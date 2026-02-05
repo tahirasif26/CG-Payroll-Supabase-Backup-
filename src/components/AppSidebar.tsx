@@ -64,10 +64,10 @@ export function AppSidebar() {
       <SidebarHeader className="px-5 py-6">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg gradient-ey flex items-center justify-center">
-            <span className="text-sm font-extrabold text-secondary">EY</span>
+            <span className="text-sm font-extrabold text-secondary">CG</span>
           </div>
           <div>
-            <h2 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">Payroll HCM</h2>
+            <h2 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">CG Payroll HCM</h2>
             <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-wider">People Platform</p>
           </div>
         </div>
