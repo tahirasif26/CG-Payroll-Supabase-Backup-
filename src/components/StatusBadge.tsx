@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type StatusVariant = "active" | "inactive" | "on-leave" | "pending" | "approved" | "rejected" | "completed" | "processing" | "draft" | "failed" | "defaulted";
+type StatusVariant = "active" | "inactive" | "on-leave" | "pending" | "approved" | "rejected" | "completed" | "processing" | "draft" | "failed" | "defaulted" | "assigned" | "available" | "maintenance" | "submitted" | "on-hold";
 
 const styles: Record<StatusVariant, string> = {
   active: "bg-success/15 text-success",
@@ -14,6 +14,11 @@ const styles: Record<StatusVariant, string> = {
   rejected: "bg-destructive/15 text-destructive",
   failed: "bg-destructive/15 text-destructive",
   defaulted: "bg-destructive/15 text-destructive",
+  assigned: "bg-info/15 text-info",
+  available: "bg-success/15 text-success",
+  maintenance: "bg-warning/15 text-warning",
+  submitted: "bg-info/15 text-info",
+  "on-hold": "bg-warning/15 text-warning",
 };
 
 export function StatusBadge({ status }: { status: StatusVariant }) {
