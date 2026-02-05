@@ -12,6 +12,13 @@ export interface Employee {
   status: "active" | "inactive" | "on-leave";
   avatar: string;
   dateOfBirth: string;
+  compensation?: SalaryComponent[];
+}
+
+export interface SalaryComponent {
+  name: string;
+  type: "base" | "housing" | "travel" | "medical" | "other";
+  amount: number;
 }
 
 export interface PayrollRun {
@@ -86,4 +93,37 @@ export interface CostAllocation {
   projectName: string;
   allocation: number;
   month: string;
+}
+
+export interface Asset {
+  id: string;
+  name: string;
+  category: string;
+  serialNumber: string;
+  employeeId: string | null;
+  employeeName: string | null;
+  assignedDate: string | null;
+  status: "assigned" | "available" | "maintenance";
+}
+
+export interface Project {
+  id: string;
+  code: string;
+  name: string;
+  client: string;
+  budget: number;
+  startDate: string;
+  endDate: string;
+  status: "active" | "completed" | "on-hold";
+  completion: number;
+  teamMembers: string[];
+}
+
+export interface Timesheet {
+  id: string;
+  employeeId: string;
+  projectId: string;
+  weekStarting: string;
+  hours: number;
+  status: "draft" | "submitted" | "approved";
 }

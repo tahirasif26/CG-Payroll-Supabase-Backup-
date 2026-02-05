@@ -1,22 +1,27 @@
 import {
   LayoutDashboard, Users, DollarSign, Calendar, Gift, FileText,
-  Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3
+  Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
+  FileCheck, Monitor, GitBranch, FolderKanban, Clock
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
-  SidebarHeader,
+  SidebarHeader, SidebarFooter,
 } from "@/components/ui/sidebar";
+import { useRole } from "@/contexts/RoleContext";
+import { Button } from "@/components/ui/button";
 
-const mainNav = [
+const employerNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Employees", url: "/employees", icon: Users },
+  { title: "Org Chart", url: "/org-chart", icon: GitBranch },
   { title: "Payroll Runs", url: "/payroll", icon: DollarSign },
+  { title: "Payslips", url: "/payslips", icon: FileCheck },
   { title: "Compensation", url: "/compensation", icon: BarChart3 },
 ];
 
-const financeNav = [
+const employerFinanceNav = [
   { title: "Deductions", url: "/deductions", icon: Receipt },
   { title: "Tax Config", url: "/tax", icon: FileText },
   { title: "Loans", url: "/loans", icon: PiggyBank },
@@ -24,12 +29,30 @@ const financeNav = [
   { title: "Cost Allocation", url: "/cost-allocation", icon: Briefcase },
 ];
 
-const peopleNav = [
+const employerPeopleNav = [
   { title: "Leave Management", url: "/leave", icon: Calendar },
   { title: "Birthdays", url: "/birthdays", icon: Gift },
+  { title: "Asset Management", url: "/assets", icon: Monitor },
 ];
 
-function NavGroup({ label, items }: { label: string; items: typeof mainNav }) {
+const employerProjectNav = [
+  { title: "Projects", url: "/projects", icon: FolderKanban },
+  { title: "Timesheets", url: "/timesheets", icon: Clock },
+];
+
+const employeeNav = [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "My Payslips", url: "/payslips", icon: FileCheck },
+  { title: "My Compensation", url: "/compensation", icon: BarChart3 },
+  { title: "My Leave", url: "/leave", icon: Calendar },
+  { title: "My Assets", url: "/assets", icon: Monitor },
+  { title: "My Timesheets", url: "/timesheets", icon: Clock },
+  { title: "Directory", url: "/org-chart", icon: Users },
+];
+
+type NavItem = { title: string; url: string; icon: any };
+
+function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
   return (
     <SidebarGroup>
       <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-widest font-semibold">
@@ -59,6 +82,8 @@ function NavGroup({ label, items }: { label: string; items: typeof mainNav }) {
 }
 
 export function AppSidebar() {
+  const { role, setRole } = useRole();
+
   return (
     <Sidebar className="border-r-0">
       <SidebarHeader className="px-5 py-6">
@@ -73,10 +98,37 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2">
-        <NavGroup label="Overview" items={mainNav} />
-        <NavGroup label="Finance" items={financeNav} />
-        <NavGroup label="People" items={peopleNav} />
+        {role === "employer" ? (
+          <>
+            <NavGroup label="Overview" items={employerNav} />
+            <NavGroup label="Finance" items={employerFinanceNav} />
+            <NavGroup label="People" items={employerPeopleNav} />
+            <NavGroup label="Projects" items={employerProjectNav} />
+          </>
+        ) : (
+          <NavGroup label="My Workspace" items={employeeNav} />
+        )}
       </SidebarContent>
+      <SidebarFooter className="p-4">
+        <div className="flex gap-2">
+          <Button
+            variant={role === "employer" ? "default" : "outline"}
+            size="sm"
+            className={`flex-1 text-xs ${role === "employer" ? "gradient-ey text-primary-foreground" : ""}`}
+            onClick={() => setRole("employer")}
+          >
+            Employer
+          </Button>
+          <Button
+            variant={role === "employee" ? "default" : "outline"}
+            size="sm"
+            className={`flex-1 text-xs ${role === "employee" ? "gradient-ey text-primary-foreground" : ""}`}
+            onClick={() => setRole("employee")}
+          >
+            Employee
+          </Button>
+        </div>
+      </SidebarFooter>
     </Sidebar>
   );
 }

@@ -1,15 +1,24 @@
-import { Employee, PayrollRun, LeaveRequest, Loan, ExpenseReimbursement, Deduction, TaxConfig, CostAllocation } from "@/types/hcm";
+import { Employee, PayrollRun, LeaveRequest, Loan, ExpenseReimbursement, Deduction, TaxConfig, CostAllocation, Asset, Project, Timesheet, SalaryComponent } from "@/types/hcm";
 
-// Sample employees
+function makeCompensation(base: number): SalaryComponent[] {
+  return [
+    { name: "Basic Salary", type: "base", amount: Math.round(base * 0.6) },
+    { name: "Housing Allowance", type: "housing", amount: Math.round(base * 0.25) },
+    { name: "Travel Allowance", type: "travel", amount: Math.round(base * 0.05) },
+    { name: "Medical Allowance", type: "medical", amount: Math.round(base * 0.05) },
+    { name: "Other Allowances", type: "other", amount: Math.round(base * 0.05) },
+  ];
+}
+
 export const employees: Employee[] = [
-  { id: "1", empId: "EY-001", firstName: "Aisha", lastName: "Rahman", email: "aisha.rahman@ey.com", phone: "+966 50 123 4567", department: "Assurance", designation: "Senior Associate", joiningDate: "2021-03-15", salary: 18000, status: "active", avatar: "", dateOfBirth: "1994-07-12" },
-  { id: "2", empId: "EY-002", firstName: "Omar", lastName: "Al-Faisal", email: "omar.alfaisal@ey.com", phone: "+966 55 234 5678", department: "Tax", designation: "Manager", joiningDate: "2019-06-01", salary: 28000, status: "active", avatar: "", dateOfBirth: "1990-02-28" },
-  { id: "3", empId: "EY-003", firstName: "Fatima", lastName: "Hassan", email: "fatima.hassan@ey.com", phone: "+966 54 345 6789", department: "Advisory", designation: "Associate", joiningDate: "2023-01-10", salary: 12000, status: "active", avatar: "", dateOfBirth: "1997-05-03" },
-  { id: "4", empId: "EY-004", firstName: "Khalid", lastName: "Nasser", email: "khalid.nasser@ey.com", phone: "+966 56 456 7890", department: "Strategy", designation: "Senior Manager", joiningDate: "2017-09-20", salary: 35000, status: "active", avatar: "", dateOfBirth: "1988-11-15" },
-  { id: "5", empId: "EY-005", firstName: "Sara", lastName: "Al-Mutairi", email: "sara.almutairi@ey.com", phone: "+966 50 567 8901", department: "Assurance", designation: "Staff", joiningDate: "2024-02-01", salary: 9000, status: "active", avatar: "", dateOfBirth: "1999-02-07" },
-  { id: "6", empId: "EY-006", firstName: "Yousef", lastName: "Bakr", email: "yousef.bakr@ey.com", phone: "+966 55 678 9012", department: "Tax", designation: "Associate", joiningDate: "2022-08-15", salary: 13000, status: "on-leave", avatar: "", dateOfBirth: "1996-08-22" },
-  { id: "7", empId: "EY-007", firstName: "Layla", lastName: "Qasim", email: "layla.qasim@ey.com", phone: "+966 54 789 0123", department: "Advisory", designation: "Partner", joiningDate: "2012-04-01", salary: 55000, status: "active", avatar: "", dateOfBirth: "1980-12-01" },
-  { id: "8", empId: "EY-008", firstName: "Tariq", lastName: "Zaman", email: "tariq.zaman@ey.com", phone: "+966 56 890 1234", department: "Technology", designation: "Manager", joiningDate: "2020-11-10", salary: 26000, status: "active", avatar: "", dateOfBirth: "1991-02-05" },
+  { id: "1", empId: "CG-001", firstName: "Aisha", lastName: "Rahman", email: "aisha.rahman@cg.com", phone: "+966 50 123 4567", department: "Assurance", designation: "Senior Associate", joiningDate: "2021-03-15", salary: 18000, status: "active", avatar: "", dateOfBirth: "1994-07-12", compensation: makeCompensation(18000) },
+  { id: "2", empId: "CG-002", firstName: "Omar", lastName: "Al-Faisal", email: "omar.alfaisal@cg.com", phone: "+966 55 234 5678", department: "Tax", designation: "Manager", joiningDate: "2019-06-01", salary: 28000, status: "active", avatar: "", dateOfBirth: "1990-02-28", compensation: makeCompensation(28000) },
+  { id: "3", empId: "CG-003", firstName: "Fatima", lastName: "Hassan", email: "fatima.hassan@cg.com", phone: "+966 54 345 6789", department: "Advisory", designation: "Associate", joiningDate: "2023-01-10", salary: 12000, status: "active", avatar: "", dateOfBirth: "1997-05-03", compensation: makeCompensation(12000) },
+  { id: "4", empId: "CG-004", firstName: "Khalid", lastName: "Nasser", email: "khalid.nasser@cg.com", phone: "+966 56 456 7890", department: "Strategy", designation: "Senior Manager", joiningDate: "2017-09-20", salary: 35000, status: "active", avatar: "", dateOfBirth: "1988-11-15", compensation: makeCompensation(35000) },
+  { id: "5", empId: "CG-005", firstName: "Sara", lastName: "Al-Mutairi", email: "sara.almutairi@cg.com", phone: "+966 50 567 8901", department: "Assurance", designation: "Staff", joiningDate: "2024-02-01", salary: 9000, status: "active", avatar: "", dateOfBirth: "1999-02-07", compensation: makeCompensation(9000) },
+  { id: "6", empId: "CG-006", firstName: "Yousef", lastName: "Bakr", email: "yousef.bakr@cg.com", phone: "+966 55 678 9012", department: "Tax", designation: "Associate", joiningDate: "2022-08-15", salary: 13000, status: "on-leave", avatar: "", dateOfBirth: "1996-08-22", compensation: makeCompensation(13000) },
+  { id: "7", empId: "CG-007", firstName: "Layla", lastName: "Qasim", email: "layla.qasim@cg.com", phone: "+966 54 789 0123", department: "Advisory", designation: "Partner", joiningDate: "2012-04-01", salary: 55000, status: "active", avatar: "", dateOfBirth: "1980-12-01", compensation: makeCompensation(55000) },
+  { id: "8", empId: "CG-008", firstName: "Tariq", lastName: "Zaman", email: "tariq.zaman@cg.com", phone: "+966 56 890 1234", department: "Technology", designation: "Manager", joiningDate: "2020-11-10", salary: 26000, status: "active", avatar: "", dateOfBirth: "1991-02-05", compensation: makeCompensation(26000) },
 ];
 
 export const payrollRuns: PayrollRun[] = [
@@ -59,19 +68,47 @@ export const costAllocations: CostAllocation[] = [
   { id: "5", employeeId: "7", employeeName: "Layla Qasim", projectCode: "PRJ-2025-001", projectName: "Saudi Aramco Audit", allocation: 20, month: "February 2025" },
 ];
 
+export const assets: Asset[] = [
+  { id: "1", name: "MacBook Pro 16\"", category: "Laptop", serialNumber: "MBP-2024-001", employeeId: "1", employeeName: "Aisha Rahman", assignedDate: "2021-03-15", status: "assigned" },
+  { id: "2", name: "Dell Ultrasharp 27\"", category: "Monitor", serialNumber: "DU27-2024-002", employeeId: "1", employeeName: "Aisha Rahman", assignedDate: "2021-03-15", status: "assigned" },
+  { id: "3", name: "ThinkPad X1 Carbon", category: "Laptop", serialNumber: "TPX1-2024-003", employeeId: "2", employeeName: "Omar Al-Faisal", assignedDate: "2019-06-01", status: "assigned" },
+  { id: "4", name: "iPhone 15 Pro", category: "Phone", serialNumber: "IP15-2024-004", employeeId: "4", employeeName: "Khalid Nasser", assignedDate: "2024-01-15", status: "assigned" },
+  { id: "5", name: "Surface Pro 9", category: "Laptop", serialNumber: "SP9-2024-005", employeeId: null, employeeName: null, assignedDate: null, status: "available" },
+  { id: "6", name: "Dell XPS 15", category: "Laptop", serialNumber: "DXP-2024-006", employeeId: null, employeeName: null, assignedDate: null, status: "maintenance" },
+];
+
+export const projects: Project[] = [
+  { id: "1", code: "PRJ-2025-001", name: "Saudi Aramco Audit", client: "Saudi Aramco", budget: 500000, startDate: "2025-01-01", endDate: "2025-06-30", status: "active", completion: 35, teamMembers: ["2", "7"] },
+  { id: "2", code: "PRJ-2025-002", name: "NEOM Strategy", client: "NEOM", budget: 800000, startDate: "2025-02-01", endDate: "2025-12-31", status: "active", completion: 15, teamMembers: ["4"] },
+  { id: "3", code: "PRJ-2025-003", name: "SABIC Tax Review", client: "SABIC", budget: 250000, startDate: "2025-01-15", endDate: "2025-04-30", status: "active", completion: 60, teamMembers: ["2"] },
+  { id: "4", code: "PRJ-2025-004", name: "Vision 2030 Advisory", client: "PIF", budget: 1200000, startDate: "2024-06-01", endDate: "2025-12-31", status: "active", completion: 45, teamMembers: ["7", "4"] },
+  { id: "5", code: "PRJ-2024-010", name: "STC Digital Transformation", client: "STC", budget: 350000, startDate: "2024-03-01", endDate: "2024-12-31", status: "completed", completion: 100, teamMembers: ["8", "3"] },
+];
+
+export const timesheets: Timesheet[] = [
+  { id: "1", employeeId: "1", projectId: "1", weekStarting: "2025-02-03", hours: 20, status: "approved" },
+  { id: "2", employeeId: "1", projectId: "3", weekStarting: "2025-02-03", hours: 20, status: "approved" },
+  { id: "3", employeeId: "2", projectId: "1", weekStarting: "2025-02-03", hours: 25, status: "approved" },
+  { id: "4", employeeId: "2", projectId: "3", weekStarting: "2025-02-03", hours: 15, status: "submitted" },
+  { id: "5", employeeId: "4", projectId: "2", weekStarting: "2025-02-03", hours: 40, status: "approved" },
+  { id: "6", employeeId: "7", projectId: "4", weekStarting: "2025-02-03", hours: 32, status: "submitted" },
+  { id: "7", employeeId: "7", projectId: "1", weekStarting: "2025-02-03", hours: 8, status: "draft" },
+  { id: "8", employeeId: "8", projectId: "5", weekStarting: "2025-02-03", hours: 40, status: "approved" },
+  { id: "9", employeeId: "1", projectId: "1", weekStarting: "2025-02-10", hours: 30, status: "submitted" },
+  { id: "10", employeeId: "1", projectId: "3", weekStarting: "2025-02-10", hours: 10, status: "draft" },
+];
+
 export function getUpcomingBirthdays(emps: Employee[]) {
   const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentDay = today.getDate();
 
   return emps
     .map((emp) => {
       const dob = new Date(emp.dateOfBirth);
       const birthMonth = dob.getMonth();
       const birthDay = dob.getDate();
-      let daysUntil = 0;
 
       const thisYearBirthday = new Date(today.getFullYear(), birthMonth, birthDay);
+      let daysUntil = 0;
       if (thisYearBirthday >= today) {
         daysUntil = Math.ceil((thisYearBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       } else {
