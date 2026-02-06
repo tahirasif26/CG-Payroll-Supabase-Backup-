@@ -45,6 +45,8 @@ const employeeNav = [
   { title: "My Payslips", url: "/payslips", icon: FileCheck },
   { title: "My Compensation", url: "/compensation", icon: BarChart3 },
   { title: "My Leave", url: "/leave", icon: Calendar },
+  { title: "My Loans", url: "/loans", icon: PiggyBank },
+  { title: "My Expenses", url: "/expenses", icon: CreditCard },
   { title: "My Assets", url: "/assets", icon: Monitor },
   { title: "My Timesheets", url: "/timesheets", icon: Clock },
   { title: "Directory", url: "/org-chart", icon: Users },
