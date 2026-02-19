@@ -21,6 +21,14 @@ import AssetsPage from "@/pages/AssetsPage";
 import OrgChartPage from "@/pages/OrgChartPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import TimesheetsPage from "@/pages/TimesheetsPage";
+import CompensationSettingsPage from "@/pages/settings/CompensationSettingsPage";
+import JobTitlesPage from "@/pages/settings/JobTitlesPage";
+import DepartmentsPage from "@/pages/settings/DepartmentsPage";
+import DivisionsPage from "@/pages/settings/DivisionsPage";
+import ExpenseCategoriesPage from "@/pages/settings/ExpenseCategoriesPage";
+import UserManagementPage from "@/pages/settings/UserManagementPage";
+import CurrencySettingsPage from "@/pages/settings/CurrencySettingsPage";
+import ProjectSettingsPage from "@/pages/settings/ProjectSettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +58,14 @@ const App = () => (
               <Route path="/org-chart" element={<OrgChartPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/timesheets" element={<TimesheetsPage />} />
+              <Route path="/settings/compensation" element={<CompensationSettingsPage />} />
+              <Route path="/settings/job-titles" element={<JobTitlesPage />} />
+              <Route path="/settings/departments" element={<DepartmentsPage />} />
+              <Route path="/settings/divisions" element={<DivisionsPage />} />
+              <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
+              <Route path="/settings/users" element={<UserManagementPage />} />
+              <Route path="/settings/currency" element={<CurrencySettingsPage />} />
+              <Route path="/settings/projects" element={<ProjectSettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
