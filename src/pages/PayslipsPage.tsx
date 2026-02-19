@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { employees, payrollRuns } from "@/data/mockData";
@@ -5,13 +6,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Download, Eye, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/StatCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+
+interface PayslipDetail {
+  employeeName: string;
+  empId: string;
+  department: string;
+  period: string;
+  gross: number;
+  deductions: number;
+  net: number;
+}
 
 export default function PayslipsPage() {
   const { role, currentEmployeeId } = useRole();
   const currentEmployee = employees.find(e => e.id === currentEmployeeId);
   const completedRuns = payrollRuns.filter(r => r.status === "completed");
+  const [viewPayslip, setViewPayslip] = useState<PayslipDetail | null>(null);
+  const { toast } = useToast();
+
+  const handleDownload = (name: string, period: string) => {
+    toast({ title: "Downloading Payslip", description: `Payslip for ${name} — ${period} will be downloaded.` });
+  };
 
   if (role === "employee" && currentEmployee) {
     const monthlySalary = currentEmployee.salary;
@@ -50,8 +68,18 @@ export default function PayslipsPage() {
                   <TableCell><StatusBadge status="completed" /></TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="sm"><Download className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => setViewPayslip({
+                        employeeName: `${currentEmployee.firstName} ${currentEmployee.lastName}`,
+                        empId: currentEmployee.empId,
+                        department: currentEmployee.department,
+                        period: `${run.month} ${run.year}`,
+                        gross: monthlySalary,
+                        deductions,
+                        net: netPay,
+                      })}><Eye className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDownload(`${currentEmployee.firstName} ${currentEmployee.lastName}`, `${run.month} ${run.year}`)}>
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -59,11 +87,14 @@ export default function PayslipsPage() {
             </TableBody>
           </Table>
         </div>
+
+        {/* View Payslip Dialog */}
+        <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={handleDownload} />
       </div>
     );
   }
 
-  // Employer view - all employee payslips
+  // Employer view
   return (
     <div className="space-y-6">
       <PageHeader title="Payslips" description="View and manage employee payslips for completed payroll runs." />
@@ -83,6 +114,7 @@ export default function PayslipsPage() {
             {completedRuns.flatMap(run =>
               employees.map(emp => {
                 const deductions = Math.round(emp.salary * 0.15);
+                const net = emp.salary - deductions;
                 return (
                   <TableRow key={`${run.id}-${emp.id}`} className="hover:bg-muted/30 transition-colors">
                     <TableCell>
@@ -95,11 +127,21 @@ export default function PayslipsPage() {
                     </TableCell>
                     <TableCell>{run.month} {run.year}</TableCell>
                     <TableCell className="text-right">{emp.salary.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-semibold">{(emp.salary - deductions).toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm"><Download className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => setViewPayslip({
+                          employeeName: `${emp.firstName} ${emp.lastName}`,
+                          empId: emp.empId,
+                          department: emp.department,
+                          period: `${run.month} ${run.year}`,
+                          gross: emp.salary,
+                          deductions,
+                          net,
+                        })}><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDownload(`${emp.firstName} ${emp.lastName}`, `${run.month} ${run.year}`)}>
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -109,6 +151,66 @@ export default function PayslipsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={handleDownload} />
     </div>
+  );
+}
+
+function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetail | null; onClose: () => void; onDownload: (name: string, period: string) => void }) {
+  if (!payslip) return null;
+  const components = [
+    { label: "Basic Salary", amount: Math.round(payslip.gross * 0.6) },
+    { label: "Housing Allowance", amount: Math.round(payslip.gross * 0.25) },
+    { label: "Travel Allowance", amount: Math.round(payslip.gross * 0.05) },
+    { label: "Medical Allowance", amount: Math.round(payslip.gross * 0.05) },
+    { label: "Other Allowances", amount: Math.round(payslip.gross * 0.05) },
+  ];
+
+  return (
+    <Dialog open={!!payslip} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Payslip — {payslip.period}</DialogTitle>
+          <DialogDescription>{payslip.employeeName} · {payslip.empId}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="text-sm text-muted-foreground">Department: {payslip.department}</div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Earnings</p>
+            {components.map((c, i) => (
+              <div key={i} className="flex justify-between text-sm py-1 border-b border-dashed last:border-0">
+                <span>{c.label}</span>
+                <span className="font-medium">SAR {c.amount.toLocaleString()}</span>
+              </div>
+            ))}
+            <div className="flex justify-between text-sm font-semibold pt-1">
+              <span>Total Gross</span>
+              <span>SAR {payslip.gross.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Deductions</p>
+            <div className="flex justify-between text-sm py-1">
+              <span>GOSI & Insurance</span>
+              <span className="font-medium text-destructive">SAR {payslip.deductions.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div className="flex justify-between text-base font-bold pt-2 border-t">
+            <span>Net Pay</span>
+            <span>SAR {payslip.net.toLocaleString()}</span>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+          <Button onClick={() => { onDownload(payslip.employeeName, payslip.period); onClose(); }}>
+            <Download className="h-4 w-4 mr-2" />Download PDF
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

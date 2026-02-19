@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { employees } from "@/data/mockData";
@@ -6,9 +7,22 @@ import { BarChart3, Plus } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CompensationPage() {
   const { role, currentEmployeeId } = useRole();
+  const [addOpen, setAddOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddOpen(false);
+    toast({ title: "Component Added", description: "The salary component has been added." });
+  };
 
   if (role === "employee") {
     const emp = employees.find(e => e.id === currentEmployeeId);
@@ -55,7 +69,7 @@ export default function CompensationPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Compensation Management" description="Manage employee compensation structures and allowances.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold">
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setAddOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />Add Component
         </Button>
       </PageHeader>
@@ -100,6 +114,54 @@ export default function CompensationPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Add Component Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Salary Component</DialogTitle>
+            <DialogDescription>Add a new compensation component for an employee.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAdd} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Employee</Label>
+              <Select required>
+                <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                <SelectContent>
+                  {employees.map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Component Name</Label>
+              <Input placeholder="e.g. Performance Bonus" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select required>
+                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="base">Base</SelectItem>
+                  <SelectItem value="housing">Housing</SelectItem>
+                  <SelectItem value="travel">Travel</SelectItem>
+                  <SelectItem value="medical">Medical</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Amount (SAR)</Label>
+              <Input type="number" placeholder="0" required min={1} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+              <Button type="submit">Add Component</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

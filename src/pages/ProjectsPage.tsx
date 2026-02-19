@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { projects, timesheets, employees } from "@/data/mockData";
@@ -8,18 +9,37 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProjectsPage() {
   const { role, currentEmployeeId } = useRole();
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [logTimeOpen, setLogTimeOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleNewProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewProjectOpen(false);
+    toast({ title: "Project Created", description: "The new project has been created successfully." });
+  };
+
+  const handleLogTime = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLogTimeOpen(false);
+    toast({ title: "Time Logged", description: "Your time entry has been submitted." });
+  };
 
   if (role === "employee") {
     const myTimesheets = timesheets.filter(t => t.employeeId === currentEmployeeId);
-    const currentEmployee = employees.find(e => e.id === currentEmployeeId);
 
     return (
       <div className="space-y-6">
-        <PageHeader title="My Timesheets" description="Allocate your time to projects." >
-          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold">
+        <PageHeader title="My Timesheets" description="Allocate your time to projects.">
+          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setLogTimeOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />Log Time
           </Button>
         </PageHeader>
@@ -49,18 +69,53 @@ export default function ProjectsPage() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Log Time Dialog */}
+        <Dialog open={logTimeOpen} onOpenChange={setLogTimeOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Log Time</DialogTitle>
+              <DialogDescription>Allocate your working hours to a project.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleLogTime} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Project</Label>
+                <Select required>
+                  <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                  <SelectContent>
+                    {projects.filter(p => p.status === "active").map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Week Starting</Label>
+                <Input type="date" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Hours</Label>
+                <Input type="number" placeholder="0" required min={1} max={60} />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setLogTimeOpen(false)}>Cancel</Button>
+                <Button type="submit">Submit</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
 
-  // Employer view - project management
+  // Employer view
   const activeProjects = projects.filter(p => p.status === "active").length;
   const totalBudget = projects.reduce((s, p) => s + p.budget, 0);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Project Management" description="Manage projects, budgets, and resource allocation.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold">
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewProjectOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />New Project
         </Button>
       </PageHeader>
@@ -115,6 +170,50 @@ export default function ProjectsPage() {
           </Card>
         ))}
       </div>
+
+      {/* New Project Dialog */}
+      <Dialog open={newProjectOpen} onOpenChange={setNewProjectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+            <DialogDescription>Set up a new project with budget and team details.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleNewProject} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Project Name</Label>
+              <Input placeholder="e.g. ACME Corp Audit" required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Project Code</Label>
+                <Input placeholder="PRJ-2025-006" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Client</Label>
+                <Input placeholder="Client name" required />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Budget (SAR)</Label>
+              <Input type="number" placeholder="0" required min={1} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input type="date" required />
+              </div>
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <Input type="date" required />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setNewProjectOpen(false)}>Cancel</Button>
+              <Button type="submit">Create Project</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

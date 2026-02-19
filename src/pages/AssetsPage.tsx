@@ -1,21 +1,23 @@
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
-import { assets } from "@/data/mockData";
+import { assets, employees } from "@/data/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Monitor, Laptop, Smartphone, Key } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatCard } from "@/components/StatCard";
-
-const assetIcons: Record<string, any> = {
-  Laptop: Laptop,
-  Monitor: Monitor,
-  Phone: Smartphone,
-};
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AssetsPage() {
   const { role, currentEmployeeId } = useRole();
-  
+  const [newOpen, setNewOpen] = useState(false);
+  const { toast } = useToast();
+
   const displayAssets = role === "employee"
     ? assets.filter(a => a.employeeId === currentEmployeeId)
     : assets;
@@ -24,6 +26,12 @@ export default function AssetsPage() {
   const assignedAssets = displayAssets.filter(a => a.status === "assigned").length;
   const availableAssets = displayAssets.filter(a => a.status === "available").length;
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewOpen(false);
+    toast({ title: "Asset Added", description: "The asset has been added successfully." });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -31,7 +39,7 @@ export default function AssetsPage() {
         description={role === "employee" ? "Assets assigned to you." : "Track and manage company assets."}
       >
         {role === "employer" && (
-          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold">
+          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />Add Asset
           </Button>
         )}
@@ -71,6 +79,53 @@ export default function AssetsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Asset</DialogTitle>
+            <DialogDescription>Register a new company asset.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Asset Name</Label>
+              <Input placeholder='e.g. MacBook Pro 16"' required />
+            </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select required>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="laptop">Laptop</SelectItem>
+                  <SelectItem value="monitor">Monitor</SelectItem>
+                  <SelectItem value="phone">Phone</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Serial Number</Label>
+              <Input placeholder="e.g. MBP-2024-007" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Assign To (Optional)</Label>
+              <Select>
+                <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {employees.map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
+              <Button type="submit">Add Asset</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
