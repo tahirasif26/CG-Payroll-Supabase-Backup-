@@ -1,7 +1,8 @@
 import {
   LayoutDashboard, Users, DollarSign, Calendar, Gift, FileText,
   Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
-  FileCheck, Monitor, GitBranch, FolderKanban, Clock
+  FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
+  Layers, Tag, Shield, Coins
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -38,6 +39,17 @@ const employerPeopleNav = [
 const employerProjectNav = [
   { title: "Projects", url: "/projects", icon: FolderKanban },
   { title: "Timesheets", url: "/timesheets", icon: Clock },
+];
+
+const employerSettingsNav = [
+  { title: "Compensation", url: "/settings/compensation", icon: BarChart3 },
+  { title: "Job Titles", url: "/settings/job-titles", icon: Tag },
+  { title: "Departments", url: "/settings/departments", icon: Building2 },
+  { title: "Divisions", url: "/settings/divisions", icon: Layers },
+  { title: "Projects", url: "/settings/projects", icon: FolderKanban },
+  { title: "Expense Categories", url: "/settings/expense-categories", icon: Receipt },
+  { title: "User Management", url: "/settings/users", icon: Shield },
+  { title: "Currency", url: "/settings/currency", icon: Coins },
 ];
 
 const employeeNav = [
@@ -106,6 +118,7 @@ export function AppSidebar() {
             <NavGroup label="Finance" items={employerFinanceNav} />
             <NavGroup label="People" items={employerPeopleNav} />
             <NavGroup label="Projects" items={employerProjectNav} />
+            <NavGroup label="Settings" items={employerSettingsNav} />
           </>
         ) : (
           <NavGroup label="My Workspace" items={employeeNav} />
