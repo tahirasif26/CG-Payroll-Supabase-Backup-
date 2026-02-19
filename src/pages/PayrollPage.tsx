@@ -13,9 +13,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/StatCard";
 import { DollarSign, Users, TrendingDown } from "lucide-react";
+import { useClient } from "@/contexts/ClientContext";
 
 export default function PayrollPage() {
   const [runs, setRuns] = useState<PayrollRun[]>(payrollRuns);
+  const { client } = useClient();
   const [newRunOpen, setNewRunOpen] = useState(false);
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -75,7 +77,9 @@ export default function PayrollPage() {
           <Button variant="ghost" size="icon" onClick={() => setSelectedRun(null)}><ArrowLeft className="h-4 w-4" /></Button>
           <div>
             <h1 className="text-xl font-bold">{selectedRun.month} {selectedRun.year} Payroll</h1>
-            <p className="text-sm text-muted-foreground">Payroll run details and employee breakdown</p>
+            <p className="text-sm text-muted-foreground">
+              {client.companyName ? `${client.companyName} — ` : ""}Payroll run details and employee breakdown
+            </p>
           </div>
           <div className="ml-auto"><StatusBadge status={selectedRun.status} /></div>
         </div>

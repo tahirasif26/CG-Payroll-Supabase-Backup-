@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { RoleProvider } from "@/contexts/RoleContext";
+import { ClientProvider } from "@/contexts/ClientContext";
 import DashboardPage from "@/pages/DashboardPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import PayrollPage from "@/pages/PayrollPage";
@@ -29,6 +30,7 @@ import ExpenseCategoriesPage from "@/pages/settings/ExpenseCategoriesPage";
 import UserManagementPage from "@/pages/settings/UserManagementPage";
 import CurrencySettingsPage from "@/pages/settings/CurrencySettingsPage";
 import ProjectSettingsPage from "@/pages/settings/ProjectSettingsPage";
+import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <RoleProvider>
+        <ClientProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -66,10 +69,12 @@ const App = () => (
               <Route path="/settings/users" element={<UserManagementPage />} />
               <Route path="/settings/currency" element={<CurrencySettingsPage />} />
               <Route path="/settings/projects" element={<ProjectSettingsPage />} />
+              <Route path="/settings/company" element={<CompanySettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </ClientProvider>
       </RoleProvider>
     </TooltipProvider>
   </QueryClientProvider>
