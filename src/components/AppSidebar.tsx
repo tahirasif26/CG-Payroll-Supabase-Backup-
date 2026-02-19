@@ -11,6 +11,7 @@ import {
   SidebarHeader, SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useRole } from "@/contexts/RoleContext";
+import { useClient } from "@/contexts/ClientContext";
 import { Button } from "@/components/ui/button";
 
 const employerNav = [
@@ -42,6 +43,7 @@ const employerProjectNav = [
 ];
 
 const employerSettingsNav = [
+  { title: "Company Profile", url: "/settings/company", icon: Building2 },
   { title: "Compensation", url: "/settings/compensation", icon: BarChart3 },
   { title: "Job Titles", url: "/settings/job-titles", icon: Tag },
   { title: "Departments", url: "/settings/departments", icon: Building2 },
@@ -97,6 +99,7 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
 
 export function AppSidebar() {
   const { role, setRole } = useRole();
+  const { client } = useClient();
 
   return (
     <Sidebar className="border-r-0">
@@ -107,7 +110,11 @@ export function AppSidebar() {
           </div>
           <div>
             <h2 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">CG Payroll HCM</h2>
-            <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-wider">People Platform</p>
+            {client.companyName ? (
+              <p className="text-[11px] text-sidebar-primary font-medium truncate max-w-[140px]">{client.companyName}</p>
+            ) : (
+              <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-wider">People Platform</p>
+            )}
           </div>
         </div>
       </SidebarHeader>
