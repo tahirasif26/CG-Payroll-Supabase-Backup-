@@ -53,6 +53,7 @@ const App = () => (
               <Route path="/compensation" element={<CompensationPage />} />
               <Route path="/deductions" element={<DeductionsPage />} />
               <Route path="/tax" element={<TaxPage />} />
+              <Route path="/settings/tax" element={<TaxPage />} />
               <Route path="/loans" element={<LoansPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/cost-allocation" element={<CostAllocationPage />} />
