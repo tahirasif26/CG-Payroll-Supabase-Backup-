@@ -56,6 +56,7 @@ export const compensationSettings: CompensationSetting[] = [
   { id: "3", name: "Travel Allowance", isActive: true },
   { id: "4", name: "Medical Allowance", isActive: true },
   { id: "5", name: "Other Allowances", isActive: true },
+  { id: "6", name: "One Off", isActive: true },
 ];
 
 export const jobTitles: JobTitle[] = [

@@ -122,9 +122,10 @@ export default function DeductionsPage() {
             <div className="space-y-2"><Label>Type</Label>
               <Select value={formType} onValueChange={setFormType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                 <SelectContent>
                   <SelectItem value="statutory">Statutory</SelectItem>
                   <SelectItem value="benefit">Benefit</SelectItem>
+                  <SelectItem value="one-off">One Off</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>

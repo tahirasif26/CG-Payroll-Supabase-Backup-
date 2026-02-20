@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { employees, payrollRuns } from "@/data/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText } from "lucide-react";
+import { Download, Eye, FileText, Search } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatCard } from "@/components/StatCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 interface PayslipDetail {
@@ -25,6 +26,7 @@ export default function PayslipsPage() {
   const currentEmployee = employees.find(e => e.id === currentEmployeeId);
   const completedRuns = payrollRuns.filter(r => r.status === "completed");
   const [viewPayslip, setViewPayslip] = useState<PayslipDetail | null>(null);
+  const [search, setSearch] = useState("");
   const { toast } = useToast();
 
   const handleDownload = (name: string, period: string) => {
@@ -94,10 +96,31 @@ export default function PayslipsPage() {
     );
   }
 
-  // Employer view
+  const allPayslips = completedRuns.flatMap(run =>
+    employees.map(emp => {
+      const deductions = Math.round(emp.salary * 0.15);
+      const net = emp.salary - deductions;
+      return { run, emp, deductions, net };
+    })
+  );
+
+  const filtered = allPayslips.filter(({ emp, run }) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q) ||
+      emp.empId.toLowerCase().includes(q) ||
+      emp.department.toLowerCase().includes(q) ||
+      `${run.month} ${run.year}`.toLowerCase().includes(q);
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader title="Payslips" description="View and manage employee payslips for completed payroll runs." />
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Search by name, ID, period..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+      </div>
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <Table>
@@ -111,43 +134,37 @@ export default function PayslipsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {completedRuns.flatMap(run =>
-              employees.map(emp => {
-                const deductions = Math.round(emp.salary * 0.15);
-                const net = emp.salary - deductions;
-                return (
-                  <TableRow key={`${run.id}-${emp.id}`} className="hover:bg-muted/30 transition-colors">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                          <span className="text-[10px] font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
-                        </div>
-                        <span className="text-sm font-medium">{emp.firstName} {emp.lastName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{run.month} {run.year}</TableCell>
-                    <TableCell className="text-right">{emp.salary.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setViewPayslip({
-                          employeeName: `${emp.firstName} ${emp.lastName}`,
-                          empId: emp.empId,
-                          department: emp.department,
-                          period: `${run.month} ${run.year}`,
-                          gross: emp.salary,
-                          deductions,
-                          net,
-                        })}><Eye className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDownload(`${emp.firstName} ${emp.lastName}`, `${run.month} ${run.year}`)}>
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
+            {filtered.map(({ run, emp, deductions, net }) => (
+              <TableRow key={`${run.id}-${emp.id}`} className="hover:bg-muted/30 transition-colors">
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
+                    </div>
+                    <span className="text-sm font-medium">{emp.firstName} {emp.lastName}</span>
+                  </div>
+                </TableCell>
+                <TableCell>{run.month} {run.year}</TableCell>
+                <TableCell className="text-right">{emp.salary.toLocaleString()}</TableCell>
+                <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setViewPayslip({
+                      employeeName: `${emp.firstName} ${emp.lastName}`,
+                      empId: emp.empId,
+                      department: emp.department,
+                      period: `${run.month} ${run.year}`,
+                      gross: emp.salary,
+                      deductions,
+                      net,
+                    })}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDownload(`${emp.firstName} ${emp.lastName}`, `${run.month} ${run.year}`)}>
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>

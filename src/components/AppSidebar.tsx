@@ -28,7 +28,6 @@ const employeesSubNav = [
 const payrollSubNav = [
   { title: "Payroll Runs", url: "/payroll", icon: DollarSign },
   { title: "Payslips", url: "/payslips", icon: FileCheck },
-  { title: "Deductions", url: "/deductions", icon: Receipt },
   { title: "Loans", url: "/loans", icon: PiggyBank },
   { title: "Expenses", url: "/expenses", icon: CreditCard },
 ];
@@ -51,6 +50,7 @@ const employerProjectNav = [
 const employerSettingsNav = [
   { title: "Company Profile", url: "/settings/company", icon: Building2 },
   { title: "Compensation", url: "/settings/compensation", icon: BarChart3 },
+  { title: "Deductions", url: "/settings/deductions", icon: Receipt },
   { title: "Tax Config", url: "/settings/tax", icon: FileText },
   { title: "Job Titles", url: "/settings/job-titles", icon: Tag },
   { title: "Departments", url: "/settings/departments", icon: Building2 },

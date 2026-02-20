@@ -66,12 +66,21 @@ export interface ExpenseReimbursement {
   submissionDate: string;
   status: "pending" | "approved" | "rejected";
   description: string;
+  payrollRunId?: string;
+}
+
+export interface OneOffAdjustment {
+  id: string;
+  employeeId: string;
+  type: "benefit" | "deduction";
+  name: string;
+  amount: number;
 }
 
 export interface Deduction {
   id: string;
   name: string;
-  type: "statutory" | "benefit" | "other";
+  type: "statutory" | "benefit" | "other" | "one-off";
   percentage?: number;
   fixedAmount?: number;
   isActive: boolean;
