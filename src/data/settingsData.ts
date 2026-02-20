@@ -1,9 +1,6 @@
 export interface CompensationSetting {
   id: string;
   name: string;
-  type: "base" | "housing" | "travel" | "medical" | "other";
-  isPercentage: boolean;
-  defaultValue: number;
   isActive: boolean;
 }
 
@@ -54,11 +51,11 @@ export interface CurrencySetting {
 }
 
 export const compensationSettings: CompensationSetting[] = [
-  { id: "1", name: "Basic Salary", type: "base", isPercentage: true, defaultValue: 60, isActive: true },
-  { id: "2", name: "Housing Allowance", type: "housing", isPercentage: true, defaultValue: 25, isActive: true },
-  { id: "3", name: "Travel Allowance", type: "travel", isPercentage: true, defaultValue: 5, isActive: true },
-  { id: "4", name: "Medical Allowance", type: "medical", isPercentage: true, defaultValue: 5, isActive: true },
-  { id: "5", name: "Other Allowances", type: "other", isPercentage: true, defaultValue: 5, isActive: true },
+  { id: "1", name: "Basic Salary", isActive: true },
+  { id: "2", name: "Housing Allowance", isActive: true },
+  { id: "3", name: "Travel Allowance", isActive: true },
+  { id: "4", name: "Medical Allowance", isActive: true },
+  { id: "5", name: "Other Allowances", isActive: true },
 ];
 
 export const jobTitles: JobTitle[] = [
