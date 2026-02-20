@@ -172,7 +172,7 @@ export function AppSidebar() {
             <NavGroup label="Finance" items={employerFinanceNav} />
             <NavGroup label="People" items={employerPeopleNav} />
             <NavGroup label="Projects" items={employerProjectNav} />
-            <NavGroup label="Settings" items={employerSettingsNav} />
+            <CollapsibleNavGroup label="Settings" icon={Settings} items={employerSettingsNav} />
           </>
         ) : (
           <NavGroup label="My Workspace" items={employeeNav} />
