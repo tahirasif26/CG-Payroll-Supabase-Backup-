@@ -18,20 +18,22 @@ import { Button } from "@/components/ui/button";
 
 const employerNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Org Chart", url: "/org-chart", icon: GitBranch },
-  { title: "Payroll Runs", url: "/payroll", icon: DollarSign },
-  { title: "Payslips", url: "/payslips", icon: FileCheck },
 ];
 
 const employeesSubNav = [
   { title: "Directory", url: "/employees", icon: Users },
+  { title: "Org Chart", url: "/org-chart", icon: GitBranch },
+];
+
+const payrollSubNav = [
+  { title: "Payroll Runs", url: "/payroll", icon: DollarSign },
+  { title: "Payslips", url: "/payslips", icon: FileCheck },
+  { title: "Deductions", url: "/deductions", icon: Receipt },
+  { title: "Loans", url: "/loans", icon: PiggyBank },
+  { title: "Expenses", url: "/expenses", icon: CreditCard },
 ];
 
 const employerFinanceNav = [
-  { title: "Deductions", url: "/deductions", icon: Receipt },
-  { title: "Tax Config", url: "/tax", icon: FileText },
-  { title: "Loans", url: "/loans", icon: PiggyBank },
-  { title: "Expenses", url: "/expenses", icon: CreditCard },
   { title: "Cost Allocation", url: "/cost-allocation", icon: Briefcase },
 ];
 
@@ -49,6 +51,7 @@ const employerProjectNav = [
 const employerSettingsNav = [
   { title: "Company Profile", url: "/settings/company", icon: Building2 },
   { title: "Compensation", url: "/settings/compensation", icon: BarChart3 },
+  { title: "Tax Config", url: "/settings/tax", icon: FileText },
   { title: "Job Titles", url: "/settings/job-titles", icon: Tag },
   { title: "Departments", url: "/settings/departments", icon: Building2 },
   { title: "Divisions", url: "/settings/divisions", icon: Layers },
@@ -168,6 +171,7 @@ export function AppSidebar() {
           <>
             <NavGroup label="Overview" items={employerNav} />
             <CollapsibleNavGroup label="Employees" icon={Users} items={employeesSubNav} />
+            <CollapsibleNavGroup label="Payroll" icon={DollarSign} items={payrollSubNav} />
             <NavGroup label="Finance" items={employerFinanceNav} />
             <NavGroup label="People" items={employerPeopleNav} />
             <NavGroup label="Projects" items={employerProjectNav} />

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard } from "lucide-react";
+import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { Employee } from "@/types/hcm";
 import { compensationSettings } from "@/data/settingsData";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EmployeeDoc {
   name: string;
@@ -151,45 +152,116 @@ function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onC
   );
 }
 
-function EmployeeDirectoryTable({ onSelect }: { onSelect: (emp: Employee) => void }) {
+type SortField = "name" | "empId" | "department" | "designation" | "joiningDate" | "salary";
+type SortDir = "asc" | "desc";
+
+function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: Employee[]; onSelect: (emp: Employee) => void }) {
+  const [search, setSearch] = useState("");
+  const [deptFilter, setDeptFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const departments = Array.from(new Set(empList.map(e => e.department)));
+  const statuses = Array.from(new Set(empList.map(e => e.status)));
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortField(field); setSortDir("asc"); }
+  };
+
+  const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <TableHead className="font-semibold cursor-pointer select-none" onClick={() => toggleSort(field)}>
+      <span className="flex items-center gap-1">{children}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+    </TableHead>
+  );
+
+  const filtered = empList
+    .filter(e => {
+      const q = search.toLowerCase();
+      const matchesSearch = !q || `${e.firstName} ${e.lastName}`.toLowerCase().includes(q) || e.empId.toLowerCase().includes(q) || e.email.toLowerCase().includes(q);
+      const matchesDept = deptFilter === "all" || e.department === deptFilter;
+      const matchesStatus = statusFilter === "all" || e.status === statusFilter;
+      return matchesSearch && matchesDept && matchesStatus;
+    })
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      switch (sortField) {
+        case "name": return dir * `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+        case "empId": return dir * a.empId.localeCompare(b.empId);
+        case "department": return dir * a.department.localeCompare(b.department);
+        case "designation": return dir * a.designation.localeCompare(b.designation);
+        case "joiningDate": return dir * (new Date(a.joiningDate).getTime() - new Date(b.joiningDate).getTime());
+        case "salary": return dir * (a.salary - b.salary);
+        default: return 0;
+      }
+    });
+
   return (
-    <div className="bg-card rounded-xl border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead className="font-semibold">Employee</TableHead>
-            <TableHead className="font-semibold">ID</TableHead>
-            <TableHead className="font-semibold">Department</TableHead>
-            <TableHead className="font-semibold">Designation</TableHead>
-            <TableHead className="font-semibold">Joined</TableHead>
-            <TableHead className="font-semibold text-right">Salary (SAR)</TableHead>
-            <TableHead className="font-semibold">Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {employees.map((emp) => (
-            <TableRow key={emp.id} className="hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onSelect(emp)}>
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                    <span className="text-[10px] font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{emp.firstName} {emp.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{emp.email}</p>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="text-sm font-mono">{emp.empId}</TableCell>
-              <TableCell className="text-sm">{emp.department}</TableCell>
-              <TableCell className="text-sm">{emp.designation}</TableCell>
-              <TableCell className="text-sm">{new Date(emp.joiningDate).toLocaleDateString()}</TableCell>
-              <TableCell className="text-sm text-right font-semibold">{emp.salary.toLocaleString()}</TableCell>
-              <TableCell><StatusBadge status={emp.status} /></TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name, ID, or email..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9" />
+        </div>
+        <Select value={deptFilter} onValueChange={setDeptFilter}>
+          <SelectTrigger className="w-[160px] h-9"><Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" /><SelectValue placeholder="Department" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Departments</SelectItem>
+            {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            {statuses.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="bg-card rounded-xl border overflow-hidden">
+        <ScrollArea className="h-[500px]">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <SortHeader field="name">Employee</SortHeader>
+                <SortHeader field="empId">ID</SortHeader>
+                <SortHeader field="department">Department</SortHeader>
+                <SortHeader field="designation">Designation</SortHeader>
+                <SortHeader field="joiningDate">Joined</SortHeader>
+                <SortHeader field="salary">Salary (SAR)</SortHeader>
+                <TableHead className="font-semibold">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length > 0 ? filtered.map((emp) => (
+                <TableRow key={emp.id} className="hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onSelect(emp)}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                        <span className="text-[10px] font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{emp.firstName} {emp.lastName}</p>
+                        <p className="text-xs text-muted-foreground">{emp.email}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm font-mono">{emp.empId}</TableCell>
+                  <TableCell className="text-sm">{emp.department}</TableCell>
+                  <TableCell className="text-sm">{emp.designation}</TableCell>
+                  <TableCell className="text-sm">{new Date(emp.joiningDate).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-sm text-right font-semibold">{emp.salary.toLocaleString()}</TableCell>
+                  <TableCell><StatusBadge status={emp.status} /></TableCell>
+                </TableRow>
+              )) : (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No employees match your filters.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </div>
+      <p className="text-xs text-muted-foreground">{filtered.length} of {empList.length} employees</p>
     </div>
   );
 }
@@ -607,10 +679,30 @@ export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
+  const [localEmployees, setLocalEmployees] = useState<Employee[]>(employees);
   const { toast } = useToast();
 
   const handleAddEmployee = (e: React.FormEvent) => {
     e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const newEmp: Employee = {
+      id: String(Date.now()),
+      empId: `CG-${String(localEmployees.length + 1).padStart(3, "0")}`,
+      firstName: (formData.get("firstName") as string) || "New",
+      lastName: (formData.get("lastName") as string) || "Employee",
+      email: (formData.get("email") as string) || "",
+      phone: "",
+      department: (formData.get("department") as string) || "Assurance",
+      designation: (formData.get("designation") as string) || "Associate",
+      joiningDate: (formData.get("joiningDate") as string) || new Date().toISOString().split("T")[0],
+      salary: Number(formData.get("salary")) || 0,
+      status: "active",
+      avatar: "",
+      dateOfBirth: "",
+      compensation: [],
+    };
+    setLocalEmployees(prev => [...prev, newEmp]);
     setAddEmpOpen(false);
     toast({ title: "Employee Added", description: "The new employee has been added to the directory." });
   };
@@ -698,7 +790,7 @@ export default function EmployeesPage() {
         </Button>
       </PageHeader>
 
-      <EmployeeDirectoryTable onSelect={setSelectedEmployee} />
+      <EmployeeDirectoryTable employees={localEmployees} onSelect={setSelectedEmployee} />
 
       <Dialog open={addEmpOpen} onOpenChange={setAddEmpOpen}>
         <DialogContent className="max-w-lg">
@@ -708,29 +800,26 @@ export default function EmployeesPage() {
           </DialogHeader>
           <form onSubmit={handleAddEmployee} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>First Name</Label><Input placeholder="First name" required /></div>
-              <div className="space-y-2"><Label>Last Name</Label><Input placeholder="Last name" required /></div>
+              <div className="space-y-2"><Label>First Name</Label><Input name="firstName" placeholder="First name" required /></div>
+              <div className="space-y-2"><Label>Last Name</Label><Input name="lastName" placeholder="Last name" required /></div>
             </div>
-            <div className="space-y-2"><Label>Email</Label><Input type="email" placeholder="employee@cg.com" required /></div>
+            <div className="space-y-2"><Label>Email</Label><Input name="email" type="email" placeholder="employee@cg.com" required /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Department</Label>
-                <Select required>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="assurance">Assurance</SelectItem>
-                    <SelectItem value="tax">Tax</SelectItem>
-                    <SelectItem value="advisory">Advisory</SelectItem>
-                    <SelectItem value="strategy">Strategy</SelectItem>
-                    <SelectItem value="technology">Technology</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select name="department" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="Assurance">Assurance</option>
+                  <option value="Tax">Tax</option>
+                  <option value="Advisory">Advisory</option>
+                  <option value="Strategy">Strategy</option>
+                  <option value="Technology">Technology</option>
+                </select>
               </div>
-              <div className="space-y-2"><Label>Designation</Label><Input placeholder="e.g. Associate" required /></div>
+              <div className="space-y-2"><Label>Designation</Label><Input name="designation" placeholder="e.g. Associate" required /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Joining Date</Label><Input type="date" required /></div>
-              <div className="space-y-2"><Label>Salary (SAR)</Label><Input type="number" placeholder="0" required min={1} /></div>
+              <div className="space-y-2"><Label>Joining Date</Label><Input name="joiningDate" type="date" required /></div>
+              <div className="space-y-2"><Label>Salary (SAR)</Label><Input name="salary" type="number" placeholder="0" required min={1} /></div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setAddEmpOpen(false)}>Cancel</Button>
