@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Employee } from "@/types/hcm";
+import { compensationSettings } from "@/data/settingsData";
 
 interface EmployeeDoc {
   name: string;
@@ -379,12 +380,18 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
 
 function CompensationTab({ emp }: { emp: Employee }) {
   const ext = getExtData(emp.id);
-  const components = emp.compensation || [];
-  const total = components.reduce((s, c) => s + c.amount, 0);
+  // Use active compensation settings to drive which components appear
+  const activeSettings = compensationSettings.filter(s => s.isActive);
+  const existingComponents = emp.compensation || [];
+  // Map settings to component data, using existing amounts if available
+  const initialCompData = activeSettings.map(s => {
+    const existing = existingComponents.find(c => c.name === s.name);
+    return { name: s.name, type: existing?.type || "other" as const, amount: existing?.amount || 0 };
+  });
   const [editing, setEditing] = useState(false);
-  const [compData, setCompData] = useState(components.map(c => ({ ...c })));
+  const [compData, setCompData] = useState(initialCompData);
   const [showAddChange, setShowAddChange] = useState(false);
-  const [newChange, setNewChange] = useState({ effectiveDate: "", reason: "", components: compData.map(c => ({ name: c.name, amount: c.amount })) });
+  const [newChange, setNewChange] = useState({ effectiveDate: "", reason: "", components: initialCompData.map(c => ({ name: c.name, amount: c.amount })) });
   const { toast } = useToast();
 
   const currentTotal = compData.reduce((s, c) => s + c.amount, 0);

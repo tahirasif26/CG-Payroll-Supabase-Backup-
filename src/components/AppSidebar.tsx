@@ -21,7 +21,6 @@ const employerNav = [
   { title: "Org Chart", url: "/org-chart", icon: GitBranch },
   { title: "Payroll Runs", url: "/payroll", icon: DollarSign },
   { title: "Payslips", url: "/payslips", icon: FileCheck },
-  { title: "Compensation", url: "/compensation", icon: BarChart3 },
 ];
 
 const employeesSubNav = [
