@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, DollarSign, Calendar, Gift, FileText,
   Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
   FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
-  Layers, Tag, Shield, Coins
+  Layers, Tag, Shield, Coins, ChevronDown
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -10,17 +10,22 @@ import {
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useRole } from "@/contexts/RoleContext";
 import { useClient } from "@/contexts/ClientContext";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const employerNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Employees", url: "/employees", icon: Users },
   { title: "Org Chart", url: "/org-chart", icon: GitBranch },
   { title: "Payroll Runs", url: "/payroll", icon: DollarSign },
   { title: "Payslips", url: "/payslips", icon: FileCheck },
   { title: "Compensation", url: "/compensation", icon: BarChart3 },
+];
+
+const employeesSubNav = [
+  { title: "Directory", url: "/employees", icon: Users },
 ];
 
 const employerFinanceNav = [
@@ -98,6 +103,46 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
   );
 }
 
+function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon: any; items: NavItem[] }) {
+  const location = useLocation();
+  const isActive = items.some(item => location.pathname === item.url);
+  
+  return (
+    <SidebarGroup>
+      <Collapsible defaultOpen={isActive}>
+        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors group">
+          <div className="flex items-center gap-3">
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="text-sm font-medium">{label}</span>
+          </div>
+          <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu className="pl-4 mt-1">
+              {items.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      end={item.url === "/"}
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="text-sm">{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarGroup>
+  );
+}
+
 export function AppSidebar() {
   const { role, setRole } = useRole();
   const { client } = useClient();
@@ -123,6 +168,7 @@ export function AppSidebar() {
         {role === "employer" ? (
           <>
             <NavGroup label="Overview" items={employerNav} />
+            <CollapsibleNavGroup label="Employees" icon={Users} items={employeesSubNav} />
             <NavGroup label="Finance" items={employerFinanceNav} />
             <NavGroup label="People" items={employerPeopleNav} />
             <NavGroup label="Projects" items={employerProjectNav} />
