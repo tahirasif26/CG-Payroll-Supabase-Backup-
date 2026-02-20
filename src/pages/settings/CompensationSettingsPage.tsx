@@ -8,10 +8,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 
 export default function CompensationSettingsPage() {
   const [items, setItems] = useState<CompensationSetting[]>(compensationSettings);
@@ -22,31 +20,27 @@ export default function CompensationSettingsPage() {
   const { toast } = useToast();
 
   const [formName, setFormName] = useState("");
-  const [formType, setFormType] = useState<string>("other");
-  const [formIsPercentage, setFormIsPercentage] = useState(true);
-  const [formDefaultValue, setFormDefaultValue] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormType("other"); setFormIsPercentage(true); setFormDefaultValue(""); setFormIsActive(true);
+    setFormName(""); setFormIsActive(true);
     setDialogOpen(true);
   };
 
   const openEdit = (item: CompensationSetting) => {
     setEditItem(item);
-    setFormName(item.name); setFormType(item.type); setFormIsPercentage(item.isPercentage);
-    setFormDefaultValue(String(item.defaultValue)); setFormIsActive(item.isActive);
+    setFormName(item.name); setFormIsActive(item.isActive);
     setDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editItem) {
-      setItems(prev => prev.map(i => i.id === editItem.id ? { ...i, name: formName, type: formType as any, isPercentage: formIsPercentage, defaultValue: Number(formDefaultValue), isActive: formIsActive } : i));
+      setItems(prev => prev.map(i => i.id === editItem.id ? { ...i, name: formName, isActive: formIsActive } : i));
       toast({ title: "Updated", description: `${formName} has been updated.` });
     } else {
-      const newItem: CompensationSetting = { id: String(Date.now()), name: formName, type: formType as any, isPercentage: formIsPercentage, defaultValue: Number(formDefaultValue), isActive: formIsActive };
+      const newItem: CompensationSetting = { id: String(Date.now()), name: formName, isActive: formIsActive };
       setItems(prev => [...prev, newItem]);
       toast({ title: "Added", description: `${formName} has been added.` });
     }
@@ -62,30 +56,19 @@ export default function CompensationSettingsPage() {
     setDeleteId(null);
   };
 
-  const totalPercentage = items.filter(i => i.isActive && i.isPercentage).reduce((s, i) => s + i.defaultValue, 0);
-
   return (
     <div className="space-y-6">
-      <PageHeader title="Compensation Settings" description="Configure salary components and allowance structure.">
+      <PageHeader title="Compensation Settings" description="Configure salary components. Values for each component are set per employee.">
         <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-2" />Add Component
         </Button>
       </PageHeader>
 
-      {totalPercentage !== 100 && (
-        <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 text-sm text-warning">
-          ⚠ Active percentage components total {totalPercentage}% — should equal 100%.
-        </div>
-      )}
-
       <div className="bg-card rounded-xl border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold">Component</TableHead>
-              <TableHead className="font-semibold">Type</TableHead>
-              <TableHead className="font-semibold">Calculation</TableHead>
-              <TableHead className="font-semibold text-right">Default Value</TableHead>
+              <TableHead className="font-semibold">Component Name</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
@@ -94,9 +77,6 @@ export default function CompensationSettingsPage() {
             {items.map(item => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell><Badge variant="outline" className="capitalize">{item.type}</Badge></TableCell>
-                <TableCell>{item.isPercentage ? "Percentage of Total" : "Fixed Amount"}</TableCell>
-                <TableCell className="text-right font-semibold">{item.isPercentage ? `${item.defaultValue}%` : `SAR ${item.defaultValue.toLocaleString()}`}</TableCell>
                 <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -114,22 +94,10 @@ export default function CompensationSettingsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editItem ? "Edit Component" : "Add Component"}</DialogTitle>
-            <DialogDescription>Configure a salary compensation component.</DialogDescription>
+            <DialogDescription>Define a compensation component. Amounts are set individually per employee.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2"><Label>Name</Label><Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Housing Allowance" required /></div>
-            <div className="space-y-2"><Label>Type</Label>
-              <Select value={formType} onValueChange={setFormType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="base">Base</SelectItem><SelectItem value="housing">Housing</SelectItem>
-                  <SelectItem value="travel">Travel</SelectItem><SelectItem value="medical">Medical</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-3"><Switch checked={formIsPercentage} onCheckedChange={setFormIsPercentage} /><Label>Percentage-based</Label></div>
-            <div className="space-y-2"><Label>{formIsPercentage ? "Default Percentage (%)" : "Default Amount (SAR)"}</Label><Input type="number" value={formDefaultValue} onChange={e => setFormDefaultValue(e.target.value)} required min={0} /></div>
+            <div className="space-y-2"><Label>Component Name</Label><Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Housing Allowance" required /></div>
             <div className="flex items-center gap-3"><Switch checked={formIsActive} onCheckedChange={setFormIsActive} /><Label>Active</Label></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
