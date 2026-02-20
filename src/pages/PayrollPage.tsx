@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { payrollRuns, employees } from "@/data/mockData";
+import { payrollRuns, employees, loans, expenses } from "@/data/mockData";
 import { PayrollRun } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Play, Eye, CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
+import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,72 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/StatCard";
 import { DollarSign, Users, TrendingDown } from "lucide-react";
 import { useClient } from "@/contexts/ClientContext";
+
+interface EmployeePayrollLine {
+  emp: typeof employees[0];
+  basic: number;
+  allowances: number;
+  gross: number;
+  loanDeduction: number;
+  otherDeductions: number;
+  totalDeductions: number;
+  expenseReimbursement: number;
+  net: number;
+}
+
+function buildBreakdown(): EmployeePayrollLine[] {
+  return employees.map(emp => {
+    const comp = emp.compensation || [];
+    const basic = comp.find(c => c.type === "base")?.amount || 0;
+    const gross = emp.salary;
+    const allowances = gross - basic;
+    const activeLoan = loans.find(l => l.employeeId === emp.id && l.status === "active");
+    const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
+    const otherDeductions = Math.round(gross * 0.15);
+    const totalDeductions = otherDeductions + loanDeduction;
+    const approvedExpenses = expenses
+      .filter(e => e.employeeId === emp.id && e.status === "approved")
+      .reduce((s, e) => s + e.amount, 0);
+    const net = gross - totalDeductions + approvedExpenses;
+    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, net };
+  });
+}
+
+function generateAccountingCSV(run: PayrollRun, lines: EmployeePayrollLine[]): string {
+  const glRaw = localStorage.getItem("gl_mappings");
+  const glMap: Record<string, string> = {};
+  if (glRaw) {
+    try {
+      const parsed = JSON.parse(glRaw) as { entry: string; glCode: string }[];
+      parsed.forEach(m => { glMap[m.entry] = m.glCode; });
+    } catch {}
+  }
+
+  const rows: string[] = ["Date,GL Code,Account,Debit,Credit,Employee,Description"];
+  const date = run.runDate || new Date().toISOString().split("T")[0];
+
+  lines.forEach(({ emp, basic, allowances, loanDeduction, otherDeductions, expenseReimbursement, net }) => {
+    const name = `${emp.firstName} ${emp.lastName}`;
+    rows.push(`${date},${glMap["Basic Salary"] || ""},Basic Salary,${basic},0,${name},${run.month} ${run.year}`);
+    if (allowances > 0) rows.push(`${date},${glMap["Housing Allowance"] || ""},Allowances,${allowances},0,${name},${run.month} ${run.year}`);
+    if (otherDeductions > 0) rows.push(`${date},${glMap["GOSI (Employee)"] || ""},Statutory Deductions,0,${otherDeductions},${name},${run.month} ${run.year}`);
+    if (loanDeduction > 0) rows.push(`${date},${glMap["Loan Deduction"] || ""},Loan Deduction,0,${loanDeduction},${name},${run.month} ${run.year}`);
+    if (expenseReimbursement > 0) rows.push(`${date},${glMap["Expense Reimbursement"] || ""},Expense Reimbursement,${expenseReimbursement},0,${name},${run.month} ${run.year}`);
+    rows.push(`${date},${glMap["Net Pay"] || ""},Net Pay,0,${net},${name},${run.month} ${run.year}`);
+  });
+
+  return rows.join("\n");
+}
+
+function downloadCSV(content: string, filename: string) {
+  const blob = new Blob([content], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function PayrollPage() {
   const [runs, setRuns] = useState<PayrollRun[]>(payrollRuns);
@@ -30,8 +96,9 @@ export default function PayrollPage() {
 
   const handleNewRun = (e: React.FormEvent) => {
     e.preventDefault();
-    const totalGross = employees.reduce((s, emp) => s + emp.salary, 0);
-    const totalDed = Math.round(totalGross * 0.15);
+    const breakdown = buildBreakdown();
+    const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
+    const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
       id: String(Date.now()), month: newMonth, year: Number(newYear), status: "draft",
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
@@ -63,13 +130,17 @@ export default function PayrollPage() {
     setConfirmAction(null);
   };
 
+  const handleDownloadAccounting = (run: PayrollRun) => {
+    const breakdown = buildBreakdown();
+    const csv = generateAccountingCSV(run, breakdown);
+    downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
+    toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
+  };
+
   if (selectedRun) {
-    const empBreakdown = employees.map(emp => {
-      const comp = emp.compensation || [];
-      const gross = emp.salary;
-      const ded = Math.round(gross * 0.15);
-      return { emp, gross, deductions: ded, net: gross - ded, components: comp };
-    });
+    const breakdown = buildBreakdown();
+    const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
+    const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
 
     return (
       <div className="space-y-6">
@@ -81,14 +152,21 @@ export default function PayrollPage() {
               {client.companyName ? `${client.companyName} — ` : ""}Payroll run details and employee breakdown
             </p>
           </div>
-          <div className="ml-auto"><StatusBadge status={selectedRun.status} /></div>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleDownloadAccounting(selectedRun)}>
+              <Download className="h-4 w-4 mr-2" />Accounting Entry
+            </Button>
+            <StatusBadge status={selectedRun.status} />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <StatCard title="Employees" value={selectedRun.employeeCount} icon={Users} variant="info" />
           <StatCard title="Total Gross" value={`SAR ${selectedRun.totalGross.toLocaleString()}`} icon={DollarSign} variant="primary" />
-          <StatCard title="Total Deductions" value={`SAR ${selectedRun.totalDeductions.toLocaleString()}`} icon={TrendingDown} variant="warning" />
-          <StatCard title="Total Net" value={`SAR ${selectedRun.totalNet.toLocaleString()}`} icon={DollarSign} variant="success" />
+          <StatCard title="Other Deductions" value={`SAR ${selectedRun.totalDeductions.toLocaleString()}`} icon={TrendingDown} variant="warning" />
+          <StatCard title="Loan Deductions" value={`SAR ${totalLoan.toLocaleString()}`} icon={TrendingDown} variant="warning" />
+          <StatCard title="Expense Reimb." value={`SAR ${totalExpense.toLocaleString()}`} icon={DollarSign} variant="success" />
+          <StatCard title="Total Net" value={`SAR ${breakdown.reduce((s, l) => s + l.net, 0).toLocaleString()}`} icon={DollarSign} variant="success" />
         </div>
 
         <Card>
@@ -113,25 +191,25 @@ export default function PayrollPage() {
                 <TableHead className="font-semibold text-right">Allowances</TableHead>
                 <TableHead className="font-semibold text-right">Gross</TableHead>
                 <TableHead className="font-semibold text-right">Deductions</TableHead>
+                <TableHead className="font-semibold text-right">Loan Ded.</TableHead>
+                <TableHead className="font-semibold text-right">Expense Reimb.</TableHead>
                 <TableHead className="font-semibold text-right">Net Pay</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {empBreakdown.map(({ emp, gross, deductions, net, components }) => {
-                const basic = components.find(c => c.type === "base")?.amount || 0;
-                const allowances = gross - basic;
-                return (
-                  <TableRow key={emp.id}>
-                    <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
-                    <TableCell>{emp.department}</TableCell>
-                    <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{gross.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-destructive">{deductions.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
-                  </TableRow>
-                );
-              })}
+              {breakdown.map(({ emp, basic, allowances, gross, otherDeductions, loanDeduction, expenseReimbursement, net }) => (
+                <TableRow key={emp.id}>
+                  <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
+                  <TableCell>{emp.department}</TableCell>
+                  <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{gross.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-destructive">{otherDeductions.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-destructive">{loanDeduction > 0 ? loanDeduction.toLocaleString() : "—"}</TableCell>
+                  <TableCell className="text-right text-success">{expenseReimbursement > 0 ? expenseReimbursement.toLocaleString() : "—"}</TableCell>
+                  <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
@@ -150,6 +228,21 @@ export default function PayrollPage() {
             )}
           </div>
         )}
+
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{confirmAction?.action === "approve" ? "Process Payroll" : "Reject Payroll"}</DialogTitle>
+              <DialogDescription>{confirmAction?.action === "approve" ? "This will process payroll for all employees. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
+              <Button variant={confirmAction?.action === "approve" ? "default" : "destructive"} onClick={handleConfirm}>
+                {confirmAction?.action === "approve" ? "Process" : "Reject"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -189,6 +282,11 @@ export default function PayrollPage() {
                 <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRun(run)}><Eye className="h-3.5 w-3.5" /></Button>
+                    {run.status === "completed" && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadAccounting(run)}>
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     {run.status === "draft" && (
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-success" onClick={() => { setConfirmAction({ id: run.id, action: "approve" }); setConfirmOpen(true); }}>
                         <CheckCircle2 className="h-3.5 w-3.5" />
@@ -202,7 +300,6 @@ export default function PayrollPage() {
         </Table>
       </div>
 
-      {/* New Payroll Run Dialog */}
       <Dialog open={newRunOpen} onOpenChange={setNewRunOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>New Payroll Run</DialogTitle><DialogDescription>Create a new monthly payroll run.</DialogDescription></DialogHeader>
@@ -226,7 +323,6 @@ export default function PayrollPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm Action Dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>

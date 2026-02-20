@@ -31,6 +31,7 @@ import UserManagementPage from "@/pages/settings/UserManagementPage";
 import CurrencySettingsPage from "@/pages/settings/CurrencySettingsPage";
 import ProjectSettingsPage from "@/pages/settings/ProjectSettingsPage";
 import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
+import GLCodeMappingPage from "@/pages/settings/GLCodeMappingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
               <Route path="/settings/currency" element={<CurrencySettingsPage />} />
               <Route path="/settings/projects" element={<ProjectSettingsPage />} />
               <Route path="/settings/company" element={<CompanySettingsPage />} />
+              <Route path="/settings/gl-codes" element={<GLCodeMappingPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
