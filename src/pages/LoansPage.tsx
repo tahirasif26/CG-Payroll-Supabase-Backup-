@@ -4,7 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { loans, employees } from "@/data/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, PiggyBank } from "lucide-react";
+import { Plus, PiggyBank, Search } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function LoansPage() {
   const [newOpen, setNewOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const { toast } = useToast();
   const activeLoans = loans.filter((l) => l.status === "active");
   const totalOutstanding = activeLoans.reduce((s, l) => s + l.remainingBalance, 0);
@@ -23,6 +24,13 @@ export default function LoansPage() {
     setNewOpen(false);
     toast({ title: "Loan Created", description: "The loan has been successfully created." });
   };
+
+  const filtered = loans.filter(loan => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return loan.employeeName.toLowerCase().includes(q) ||
+      loan.status.toLowerCase().includes(q);
+  });
 
   return (
     <div className="space-y-6">
@@ -35,6 +43,11 @@ export default function LoansPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard title="Active Loans" value={activeLoans.length} icon={PiggyBank} variant="warning" />
         <StatCard title="Total Outstanding" value={`SAR ${totalOutstanding.toLocaleString()}`} icon={PiggyBank} variant="info" />
+      </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Search by employee name or status..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
       <div className="bg-card rounded-xl border overflow-hidden">
@@ -51,7 +64,7 @@ export default function LoansPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loans.map((loan) => (
+            {filtered.map((loan) => (
               <TableRow key={loan.id}>
                 <TableCell className="font-medium">{loan.employeeName}</TableCell>
                 <TableCell className="text-right">SAR {loan.amount.toLocaleString()}</TableCell>

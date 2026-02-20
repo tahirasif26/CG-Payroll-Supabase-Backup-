@@ -1,19 +1,22 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { payrollRuns, employees, loans, expenses } from "@/data/mockData";
-import { PayrollRun } from "@/types/hcm";
+import { PayrollRun, OneOffAdjustment } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download } from "lucide-react";
+import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download, Search, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/StatCard";
 import { DollarSign, Users, TrendingDown } from "lucide-react";
 import { useClient } from "@/contexts/ClientContext";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EmployeePayrollLine {
   emp: typeof employees[0];
@@ -24,10 +27,12 @@ interface EmployeePayrollLine {
   otherDeductions: number;
   totalDeductions: number;
   expenseReimbursement: number;
+  oneOffBenefits: number;
+  oneOffDeductions: number;
   net: number;
 }
 
-function buildBreakdown(): EmployeePayrollLine[] {
+function buildBreakdown(oneOffs: OneOffAdjustment[]): EmployeePayrollLine[] {
   return employees.map(emp => {
     const comp = emp.compensation || [];
     const basic = comp.find(c => c.type === "base")?.amount || 0;
@@ -36,12 +41,15 @@ function buildBreakdown(): EmployeePayrollLine[] {
     const activeLoan = loans.find(l => l.employeeId === emp.id && l.status === "active");
     const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
     const otherDeductions = Math.round(gross * 0.15);
-    const totalDeductions = otherDeductions + loanDeduction;
     const approvedExpenses = expenses
       .filter(e => e.employeeId === emp.id && e.status === "approved")
       .reduce((s, e) => s + e.amount, 0);
-    const net = gross - totalDeductions + approvedExpenses;
-    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, net };
+    const empOneOffs = oneOffs.filter(o => o.employeeId === emp.id);
+    const oneOffBenefits = empOneOffs.filter(o => o.type === "benefit").reduce((s, o) => s + o.amount, 0);
+    const oneOffDeductions = empOneOffs.filter(o => o.type === "deduction").reduce((s, o) => s + o.amount, 0);
+    const totalDeductions = otherDeductions + loanDeduction + oneOffDeductions;
+    const net = gross - totalDeductions + approvedExpenses + oneOffBenefits;
+    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, oneOffBenefits, oneOffDeductions, net };
   });
 }
 
@@ -92,11 +100,23 @@ export default function PayrollPage() {
   const [newYear, setNewYear] = useState("2025");
   const { toast } = useToast();
 
+  // Search state for detail view
+  const [detailSearch, setDetailSearch] = useState("");
+
+  // One-off adjustments
+  const [oneOffs, setOneOffs] = useState<Record<string, OneOffAdjustment[]>>({});
+  const [sheetEmpId, setSheetEmpId] = useState<string | null>(null);
+  const [newAdjName, setNewAdjName] = useState("");
+  const [newAdjAmount, setNewAdjAmount] = useState("");
+  const [newAdjType, setNewAdjType] = useState<"benefit" | "deduction">("benefit");
+
   const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+  const currentOneOffs = selectedRun ? (oneOffs[selectedRun.id] || []) : [];
 
   const handleNewRun = (e: React.FormEvent) => {
     e.preventDefault();
-    const breakdown = buildBreakdown();
+    const breakdown = buildBreakdown([]);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
@@ -114,7 +134,13 @@ export default function PayrollPage() {
     toast({ title: "Processing", description: "Payroll is being processed..." });
     setTimeout(() => {
       setRuns(prev => prev.map(r => r.id === id ? { ...r, status: "completed" as const, runDate: new Date().toISOString().split("T")[0] } : r));
-      toast({ title: "Completed", description: "Payroll processing completed." });
+      // Mark approved expenses as linked to this payroll run
+      expenses.forEach(exp => {
+        if (exp.status === "approved" && !exp.payrollRunId) {
+          exp.payrollRunId = id;
+        }
+      });
+      toast({ title: "Completed", description: "Payroll processing completed. This run is now locked." });
     }, 2000);
   };
 
@@ -131,25 +157,67 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const breakdown = buildBreakdown();
+    const breakdown = buildBreakdown(oneOffs[run.id] || []);
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
   };
 
+  const handleAddOneOff = () => {
+    if (!sheetEmpId || !selectedRun || !newAdjName || !newAdjAmount) return;
+    const adj: OneOffAdjustment = {
+      id: String(Date.now()),
+      employeeId: sheetEmpId,
+      type: newAdjType,
+      name: newAdjName,
+      amount: Number(newAdjAmount),
+    };
+    setOneOffs(prev => ({
+      ...prev,
+      [selectedRun.id]: [...(prev[selectedRun.id] || []), adj],
+    }));
+    setNewAdjName("");
+    setNewAdjAmount("");
+    toast({ title: "Adjustment Added", description: `One-off ${newAdjType} added.` });
+  };
+
+  const handleRemoveOneOff = (adjId: string) => {
+    if (!selectedRun) return;
+    setOneOffs(prev => ({
+      ...prev,
+      [selectedRun.id]: (prev[selectedRun.id] || []).filter(a => a.id !== adjId),
+    }));
+  };
+
+  const isLocked = selectedRun?.status === "completed" || selectedRun?.status === "failed";
+
   if (selectedRun) {
-    const breakdown = buildBreakdown();
+    const breakdown = buildBreakdown(currentOneOffs);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
+    const totalOneOffBen = breakdown.reduce((s, l) => s + l.oneOffBenefits, 0);
+    const totalOneOffDed = breakdown.reduce((s, l) => s + l.oneOffDeductions, 0);
+
+    const filteredBreakdown = breakdown.filter(({ emp }) => {
+      if (!detailSearch) return true;
+      const q = detailSearch.toLowerCase();
+      return `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q) ||
+        emp.empId.toLowerCase().includes(q) ||
+        emp.department.toLowerCase().includes(q);
+    });
+
+    const sheetEmp = sheetEmpId ? employees.find(e => e.id === sheetEmpId) : null;
+    const sheetOneOffs = sheetEmpId ? currentOneOffs.filter(o => o.employeeId === sheetEmpId) : [];
 
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setSelectedRun(null)}><ArrowLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => { setSelectedRun(null); setDetailSearch(""); }}><ArrowLeft className="h-4 w-4" /></Button>
           <div>
             <h1 className="text-xl font-bold">{selectedRun.month} {selectedRun.year} Payroll</h1>
             <p className="text-sm text-muted-foreground">
-              {client.companyName ? `${client.companyName} — ` : ""}Payroll run details and employee breakdown
+              {client.companyName ? `${client.companyName} — ` : ""}Payroll run details
+              {isLocked && <span className="ml-2 text-xs text-destructive font-medium">(Locked)</span>}
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -160,12 +228,14 @@ export default function PayrollPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
           <StatCard title="Employees" value={selectedRun.employeeCount} icon={Users} variant="info" />
           <StatCard title="Total Gross" value={`SAR ${selectedRun.totalGross.toLocaleString()}`} icon={DollarSign} variant="primary" />
           <StatCard title="Other Deductions" value={`SAR ${selectedRun.totalDeductions.toLocaleString()}`} icon={TrendingDown} variant="warning" />
           <StatCard title="Loan Deductions" value={`SAR ${totalLoan.toLocaleString()}`} icon={TrendingDown} variant="warning" />
           <StatCard title="Expense Reimb." value={`SAR ${totalExpense.toLocaleString()}`} icon={DollarSign} variant="success" />
+          <StatCard title="One-Off Benefits" value={`SAR ${totalOneOffBen.toLocaleString()}`} icon={DollarSign} variant="success" />
+          <StatCard title="One-Off Deductions" value={`SAR ${totalOneOffDed.toLocaleString()}`} icon={TrendingDown} variant="warning" />
           <StatCard title="Total Net" value={`SAR ${breakdown.reduce((s, l) => s + l.net, 0).toLocaleString()}`} icon={DollarSign} variant="success" />
         </div>
 
@@ -181,40 +251,67 @@ export default function PayrollPage() {
           </CardContent>
         </Card>
 
-        <div className="bg-card rounded-xl border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold">Employee</TableHead>
-                <TableHead className="font-semibold">Department</TableHead>
-                <TableHead className="font-semibold text-right">Basic</TableHead>
-                <TableHead className="font-semibold text-right">Allowances</TableHead>
-                <TableHead className="font-semibold text-right">Gross</TableHead>
-                <TableHead className="font-semibold text-right">Deductions</TableHead>
-                <TableHead className="font-semibold text-right">Loan Ded.</TableHead>
-                <TableHead className="font-semibold text-right">Expense Reimb.</TableHead>
-                <TableHead className="font-semibold text-right">Net Pay</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {breakdown.map(({ emp, basic, allowances, gross, otherDeductions, loanDeduction, expenseReimbursement, net }) => (
-                <TableRow key={emp.id}>
-                  <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
-                  <TableCell>{emp.department}</TableCell>
-                  <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{gross.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-destructive">{otherDeductions.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-destructive">{loanDeduction > 0 ? loanDeduction.toLocaleString() : "—"}</TableCell>
-                  <TableCell className="text-right text-success">{expenseReimbursement > 0 ? expenseReimbursement.toLocaleString() : "—"}</TableCell>
-                  <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        {/* Search bar */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, ID, department..."
+            value={detailSearch}
+            onChange={e => setDetailSearch(e.target.value)}
+            className="pl-9"
+          />
         </div>
 
-        {(selectedRun.status === "draft" || selectedRun.status === "processing") && (
+        <div className="bg-card rounded-xl border overflow-hidden">
+          <ScrollArea className="h-[500px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Employee</TableHead>
+                  <TableHead className="font-semibold">Department</TableHead>
+                  <TableHead className="font-semibold text-right">Basic</TableHead>
+                  <TableHead className="font-semibold text-right">Allowances</TableHead>
+                  <TableHead className="font-semibold text-right">Gross</TableHead>
+                  <TableHead className="font-semibold text-right">Deductions</TableHead>
+                  <TableHead className="font-semibold text-right">Loan Ded.</TableHead>
+                  <TableHead className="font-semibold text-right">Expense Reimb.</TableHead>
+                  <TableHead className="font-semibold text-right">One-Off +/-</TableHead>
+                  <TableHead className="font-semibold text-right">Net Pay</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredBreakdown.map(({ emp, basic, allowances, gross, otherDeductions, loanDeduction, expenseReimbursement, oneOffBenefits, oneOffDeductions, net }) => (
+                  <TableRow
+                    key={emp.id}
+                    className={`hover:bg-muted/30 transition-colors ${!isLocked ? "cursor-pointer" : ""}`}
+                    onClick={() => !isLocked && setSheetEmpId(emp.id)}
+                  >
+                    <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
+                    <TableCell>{emp.department}</TableCell>
+                    <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{gross.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-destructive">{otherDeductions.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-destructive">{loanDeduction > 0 ? loanDeduction.toLocaleString() : "—"}</TableCell>
+                    <TableCell className="text-right text-success">{expenseReimbursement > 0 ? expenseReimbursement.toLocaleString() : "—"}</TableCell>
+                    <TableCell className="text-right">
+                      {(oneOffBenefits > 0 || oneOffDeductions > 0) ? (
+                        <span>
+                          {oneOffBenefits > 0 && <span className="text-success">+{oneOffBenefits.toLocaleString()}</span>}
+                          {oneOffBenefits > 0 && oneOffDeductions > 0 && " / "}
+                          {oneOffDeductions > 0 && <span className="text-destructive">-{oneOffDeductions.toLocaleString()}</span>}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </div>
+
+        {!isLocked && (selectedRun.status === "draft" || selectedRun.status === "processing") && (
           <div className="flex gap-2">
             {selectedRun.status === "draft" && (
               <>
@@ -229,11 +326,72 @@ export default function PayrollPage() {
           </div>
         )}
 
+        {/* One-off adjustment sheet */}
+        <Sheet open={!!sheetEmpId} onOpenChange={(open) => { if (!open) setSheetEmpId(null); }}>
+          <SheetContent side="left" className="w-[400px] sm:w-[450px]">
+            {sheetEmp && (
+              <>
+                <SheetHeader>
+                  <SheetTitle>One-Off Adjustments</SheetTitle>
+                  <p className="text-sm text-muted-foreground">{sheetEmp.firstName} {sheetEmp.lastName} — {selectedRun.month} {selectedRun.year}</p>
+                </SheetHeader>
+                <div className="mt-6 space-y-6">
+                  {/* Existing adjustments */}
+                  {sheetOneOffs.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Adjustments</p>
+                      {sheetOneOffs.map(adj => (
+                        <div key={adj.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm">
+                          <div>
+                            <span className="font-medium">{adj.name}</span>
+                            <span className={`ml-2 text-xs ${adj.type === "benefit" ? "text-success" : "text-destructive"}`}>
+                              {adj.type === "benefit" ? "+" : "-"}SAR {adj.amount.toLocaleString()}
+                            </span>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemoveOneOff(adj.id)}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add new */}
+                  <div className="space-y-3 border-t pt-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Add Adjustment</p>
+                    <div className="space-y-2">
+                      <Label>Type</Label>
+                      <Select value={newAdjType} onValueChange={(v) => setNewAdjType(v as "benefit" | "deduction")}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="benefit">One-Off Benefit (+)</SelectItem>
+                          <SelectItem value="deduction">One-Off Deduction (-)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Input placeholder="e.g. Performance Bonus" value={newAdjName} onChange={e => setNewAdjName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Amount (SAR)</Label>
+                      <Input type="number" placeholder="0" value={newAdjAmount} onChange={e => setNewAdjAmount(e.target.value)} min={1} />
+                    </div>
+                    <Button className="w-full" onClick={handleAddOneOff} disabled={!newAdjName || !newAdjAmount}>
+                      <Plus className="h-4 w-4 mr-2" />Add Adjustment
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
+
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{confirmAction?.action === "approve" ? "Process Payroll" : "Reject Payroll"}</DialogTitle>
-              <DialogDescription>{confirmAction?.action === "approve" ? "This will process payroll for all employees. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
+              <DialogDescription>{confirmAction?.action === "approve" ? "This will process and lock payroll for all employees. It cannot be changed after. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
@@ -327,7 +485,7 @@ export default function PayrollPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{confirmAction?.action === "approve" ? "Process Payroll" : "Reject Payroll"}</DialogTitle>
-            <DialogDescription>{confirmAction?.action === "approve" ? "This will process payroll for all employees. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
+            <DialogDescription>{confirmAction?.action === "approve" ? "This will process and lock payroll for all employees. It cannot be changed after. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
