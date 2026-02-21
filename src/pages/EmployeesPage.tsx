@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { employees, leaveRequests, assets, loans, payrollRuns } from "@/data/mockData";
+import { employees, leaveRequests, loans, payrollRuns } from "@/data/mockData";
+import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -657,7 +658,8 @@ function DocumentsTab({ emp, onUpload }: { emp: Employee; onUpload: () => void }
 }
 
 function AssetsTab({ emp }: { emp: Employee }) {
-  const empAssets = assets.filter(a => a.employeeId === emp.id);
+  const { getAssetsForEmployee } = useAssets();
+  const empAssets = getAssetsForEmployee(emp.id);
   return (
     <Card>
       <CardHeader><CardTitle className="text-base flex items-center gap-2"><Monitor className="h-4 w-4 text-primary" />Tagged Assets</CardTitle></CardHeader>

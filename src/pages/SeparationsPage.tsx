@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit2, Undo2, Eye, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAssets } from "@/contexts/AssetContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { payrollRuns } from "@/data/mockData";
 
 export default function SeparationsPage() {
   const { separations, updateSeparation, removeSeparation } = useSeparations();
+  const { getAssetsForEmployee } = useAssets();
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<SeparationRecord | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -47,6 +49,17 @@ export default function SeparationsPage() {
   };
 
   const handleApprove = (sep: SeparationRecord) => {
+    // Block if employee still has assigned assets
+    const empAssets = getAssetsForEmployee(sep.employeeId);
+    if (empAssets.length > 0) {
+      toast({
+        title: "Assets Still Assigned",
+        description: `${sep.employeeName} still has ${empAssets.length} asset(s) assigned (${empAssets.map(a => a.name).join(", ")}). Please reassign or unassign all assets before approving separation.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const processingRun = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
     if (!processingRun) {
       toast({ title: "No Active Payroll", description: "There is no processing or draft payroll run to link this separation to.", variant: "destructive" });
