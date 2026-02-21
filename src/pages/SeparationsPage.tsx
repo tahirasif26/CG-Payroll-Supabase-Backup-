@@ -6,11 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Undo2, Eye } from "lucide-react";
+import { Edit2, Undo2, Eye, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { useSeparations, SeparationRecord } from "@/contexts/SeparationContext";
+import { payrollRuns } from "@/data/mockData";
 
 export default function SeparationsPage() {
   const { separations, updateSeparation, removeSeparation } = useSeparations();
@@ -44,6 +46,21 @@ export default function SeparationsPage() {
     });
   };
 
+  const handleApprove = (sep: SeparationRecord) => {
+    const processingRun = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
+    if (!processingRun) {
+      toast({ title: "No Active Payroll", description: "There is no processing or draft payroll run to link this separation to.", variant: "destructive" });
+      return;
+    }
+    updateSeparation(sep.id, {
+      status: "approved",
+      payrollRunId: processingRun.id,
+      payrollMonth: processingRun.month,
+      payrollYear: processingRun.year,
+    });
+    toast({ title: "Separation Approved", description: `${sep.employeeName}'s separation linked to ${processingRun.month} ${processingRun.year} payroll.` });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title="Separations" description="View and manage all employee separations. Reversing a separation will reactivate the employee." />
@@ -58,6 +75,7 @@ export default function SeparationsPage() {
                 <TableHead className="font-semibold">Department</TableHead>
                 <TableHead className="font-semibold">Last Date</TableHead>
                 <TableHead className="font-semibold">Reason</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="font-semibold text-right">Settlement (SAR)</TableHead>
                 <TableHead className="font-semibold">Payroll Period</TableHead>
                 <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -71,13 +89,23 @@ export default function SeparationsPage() {
                   <TableCell>{sep.department}</TableCell>
                   <TableCell>{sep.lastDate}</TableCell>
                   <TableCell className="capitalize">{sep.reason.replace("_", " ")}</TableCell>
+                  <TableCell>
+                    <Badge variant={sep.status === "approved" ? "default" : "secondary"}>
+                      {sep.status === "approved" ? "Approved" : "Pending"}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right font-semibold">{sep.totalSettlement.toLocaleString()}</TableCell>
-                  <TableCell>{sep.payrollMonth} {sep.payrollYear}</TableCell>
+                  <TableCell>{sep.status === "approved" ? `${sep.payrollMonth} ${sep.payrollYear}` : "—"}</TableCell>
                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailItem(sep)}>
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
+                      {sep.status === "pending" && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleApprove(sep)} title="Approve & link to payroll">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(sep)}>
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>
@@ -89,7 +117,7 @@ export default function SeparationsPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No separations recorded yet. Process a separation from the Employee Directory.</TableCell>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No separations recorded yet. Process a separation from the Employee Directory.</TableCell>
                 </TableRow>
               )}
             </TableBody>

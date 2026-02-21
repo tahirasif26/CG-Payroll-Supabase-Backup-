@@ -125,6 +125,7 @@ export default function PayrollPage() {
   const getSepMap = (runId?: string) => {
     const sepMap: Record<string, number> = {};
     separations.forEach(sep => {
+      if (sep.status !== "approved") return;
       if (runId) {
         if (sep.payrollRunId === runId) {
           sepMap[sep.employeeId] = sep.totalSettlement;

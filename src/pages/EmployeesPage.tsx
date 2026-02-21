@@ -1003,9 +1003,10 @@ export default function EmployeesPage() {
                 loanDeduction,
                 totalSettlement,
                 processedDate: now.toISOString().split("T")[0],
-                payrollMonth: months[now.getMonth()],
-                payrollYear: now.getFullYear(),
-                payrollRunId: payrollRuns.find(r => r.status === "processing" || r.status === "draft")?.id,
+                payrollMonth: "",
+                payrollYear: 0,
+                payrollRunId: undefined,
+                status: "pending",
               });
 
               setLocalEmployees(prev => prev.map(e => e.id === separationEmp.id ? { ...e, status: "separated" as const } : e));

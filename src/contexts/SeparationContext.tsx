@@ -22,6 +22,7 @@ export interface SeparationRecord {
   payrollMonth: string;
   payrollYear: number;
   payrollRunId?: string;
+  status: "pending" | "approved";
 }
 
 interface SeparationContextType {
