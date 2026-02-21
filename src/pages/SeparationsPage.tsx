@@ -2,14 +2,14 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/StatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Undo2 } from "lucide-react";
+import { Edit2, Undo2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { useSeparations, SeparationRecord } from "@/contexts/SeparationContext";
 
 export default function SeparationsPage() {
@@ -18,6 +18,7 @@ export default function SeparationsPage() {
   const [editItem, setEditItem] = useState<SeparationRecord | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [detailItem, setDetailItem] = useState<SeparationRecord | null>(null);
   const { toast } = useToast();
 
   const openEdit = (sep: SeparationRecord) => {
@@ -64,7 +65,7 @@ export default function SeparationsPage() {
             </TableHeader>
             <TableBody>
               {separations.length > 0 ? separations.map(sep => (
-                <TableRow key={sep.id}>
+                <TableRow key={sep.id} className="hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => setDetailItem(sep)}>
                   <TableCell className="font-medium">{sep.employeeName}</TableCell>
                   <TableCell className="font-mono text-sm">{sep.empId}</TableCell>
                   <TableCell>{sep.department}</TableCell>
@@ -72,8 +73,11 @@ export default function SeparationsPage() {
                   <TableCell className="capitalize">{sep.reason.replace("_", " ")}</TableCell>
                   <TableCell className="text-right font-semibold">{sep.totalSettlement.toLocaleString()}</TableCell>
                   <TableCell>{sep.payrollMonth} {sep.payrollYear}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailItem(sep)}>
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(sep)}>
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>
@@ -92,6 +96,126 @@ export default function SeparationsPage() {
           </Table>
         </ScrollArea>
       </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!detailItem} onOpenChange={open => { if (!open) setDetailItem(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden">
+          {detailItem && (
+            <>
+              <div className="bg-primary px-6 py-5 text-primary-foreground">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">{detailItem.employeeName}</h2>
+                    <p className="text-xs text-primary-foreground/70">{detailItem.designation} · {detailItem.department} · {detailItem.empId}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold capitalize">{detailItem.reason.replace("_", " ")}</p>
+                    <p className="text-xs text-primary-foreground/70">Processed {detailItem.processedDate}</p>
+                  </div>
+                </div>
+              </div>
+              <ScrollArea className="max-h-[calc(90vh-200px)]">
+                <div className="px-6 py-5 space-y-5">
+                  {/* Summary */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Last Working Date</p>
+                      <p className="font-semibold">{detailItem.lastDate}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Notice Period</p>
+                      <p className="font-semibold">{detailItem.noticePeriodDays} days {detailItem.noticePeriodServed ? "(Served)" : "(Not Served)"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Payroll Period</p>
+                      <p className="font-semibold">{detailItem.payrollMonth} {detailItem.payrollYear}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Separation Reason</p>
+                      <p className="font-semibold capitalize">{detailItem.reason.replace("_", " ")}</p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Detailed Settlement Breakdown */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Settlement Breakdown</p>
+                    <div className="bg-muted/30 rounded-lg overflow-hidden text-sm">
+                      {/* Unpaid Salary */}
+                      <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
+                        <div>
+                          <span className="font-medium">Unpaid Salary</span>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(detailItem.lastDate).getDate()} days × SAR {Math.round(detailItem.unpaidSalary / Math.max(1, new Date(detailItem.lastDate).getDate())).toLocaleString()}/day
+                          </p>
+                        </div>
+                        <span className="font-semibold">SAR {detailItem.unpaidSalary.toLocaleString()}</span>
+                      </div>
+
+                      {/* EOS Benefits */}
+                      {detailItem.eosBreakdown.map((eos, i) => (
+                        <div key={i} className="flex justify-between px-3 py-2.5 border-b border-border/50">
+                          <div>
+                            <span className="font-medium">{eos.name}</span>
+                            <p className="text-xs text-muted-foreground">End of service benefit</p>
+                          </div>
+                          <span className="font-semibold">SAR {eos.amount.toLocaleString()}</span>
+                        </div>
+                      ))}
+
+                      {/* Leave Encashment */}
+                      <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
+                        <div>
+                          <span className="font-medium">Leave Encashment</span>
+                          <p className="text-xs text-muted-foreground">
+                            Outstanding leave days × daily rate
+                          </p>
+                        </div>
+                        <span className="font-semibold">SAR {detailItem.leaveEncashment.toLocaleString()}</span>
+                      </div>
+
+                      {/* Notice Period Pay */}
+                      {detailItem.noticePeriodPay > 0 && (
+                        <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
+                          <div>
+                            <span className="font-medium">Notice Period Payment</span>
+                            <p className="text-xs text-muted-foreground">{detailItem.noticePeriodDays} days notice not served</p>
+                          </div>
+                          <span className="font-semibold">SAR {detailItem.noticePeriodPay.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {/* Loan Deduction */}
+                      {detailItem.loanDeduction > 0 && (
+                        <div className="flex justify-between px-3 py-2.5 border-b border-border/50 text-destructive">
+                          <div>
+                            <span className="font-medium">Outstanding Loan Deduction</span>
+                            <p className="text-xs opacity-80">Full remaining loan balance recovered</p>
+                          </div>
+                          <span className="font-semibold">- SAR {detailItem.loanDeduction.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {/* Total */}
+                      <div className="flex justify-between px-4 py-3 font-bold bg-primary/10">
+                        <span>Total Final Settlement</span>
+                        <span className="text-primary text-lg">SAR {detailItem.totalSettlement.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+              <div className="px-6 pb-5 flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDetailItem(null)}>Close</Button>
+                <Button variant="outline" onClick={() => { setDetailItem(null); openEdit(detailItem); }}>
+                  <Edit2 className="h-4 w-4 mr-2" />Edit
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
