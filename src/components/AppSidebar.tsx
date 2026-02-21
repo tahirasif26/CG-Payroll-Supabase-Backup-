@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/button";
 
 const employerNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Leave Management", url: "/leave", icon: Calendar },
+  { title: "Asset Management", url: "/assets", icon: Monitor },
 ];
 
 const employeesSubNav = [
@@ -36,6 +38,7 @@ const payrollSubNav = [
 ];
 
 const employerFinanceNav = [
+  { title: "Projects", url: "/projects", icon: FolderKanban },
   { title: "Cost Allocation", url: "/cost-allocation", icon: Briefcase },
 ];
 
@@ -82,12 +85,9 @@ const employeeNav = [
 
 type NavItem = { title: string; url: string; icon: any };
 
-function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
+function NavItems({ items }: { items: NavItem[] }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-widest font-semibold">
-        {label}
-      </SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
@@ -175,19 +175,16 @@ export function AppSidebar() {
       <SidebarContent className="px-2">
         {role === "employer" ? (
           <>
-            <NavGroup label="Overview" items={employerNav} />
+            <NavItems items={employerNav} />
             <CollapsibleNavGroup label="Employees" icon={Users} items={employeesSubNav} />
             <CollapsibleNavGroup label="Payroll" icon={DollarSign} items={payrollSubNav} />
-            <NavGroup label="Finance" items={employerFinanceNav} />
-            <NavGroup label="Leave" items={[{ title: "Leave Management", url: "/leave", icon: Calendar }]} />
-            <NavGroup label="Assets" items={[{ title: "Asset Management", url: "/assets", icon: Monitor }]} />
-            <NavGroup label="Projects" items={[{ title: "Projects", url: "/projects", icon: FolderKanban }]} />
+            <CollapsibleNavGroup label="Projects" icon={FolderKanban} items={employerFinanceNav} />
             <CollapsibleNavGroup label="Performance" icon={Target} items={performanceNav} />
             <CollapsibleNavGroup label="Upcoming Features" icon={Clock} items={upcomingFeaturesNav} />
             <CollapsibleNavGroup label="Settings" icon={Settings} items={employerSettingsNav} />
           </>
         ) : (
-          <NavGroup label="My Workspace" items={employeeNav} />
+          <NavItems items={employeeNav} />
         )}
       </SidebarContent>
       <SidebarFooter className="p-4">
