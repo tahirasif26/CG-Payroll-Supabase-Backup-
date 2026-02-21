@@ -121,12 +121,12 @@ export default function PayrollPage() {
   const [newYear, setNewYear] = useState("2025");
   const { toast } = useToast();
 
-  // Build separation map for current run period
-  const getSepMap = (month?: string, year?: number) => {
+  // Build separation map for a specific payroll run
+  const getSepMap = (runId?: string) => {
     const sepMap: Record<string, number> = {};
     separations.forEach(sep => {
-      if (month && year) {
-        if (sep.payrollMonth === month && sep.payrollYear === year) {
+      if (runId) {
+        if (sep.payrollRunId === runId) {
           sepMap[sep.employeeId] = sep.totalSettlement;
         }
       } else {
@@ -200,7 +200,7 @@ export default function PayrollPage() {
     });
 
     // Mark separated employees as processed
-    const sepMap = getSepMap(run.month, run.year);
+    const sepMap = getSepMap(run.id);
     setProcessedSeps(prev => {
       const next = new Set(prev);
       Object.keys(sepMap).forEach(empId => next.add(empId));
@@ -243,7 +243,7 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const breakdown = buildBreakdown(oneOffs[run.id] || [], getSepMap(run.month, run.year), processedSeps, run.id);
+    const breakdown = buildBreakdown(oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id);
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
@@ -278,7 +278,7 @@ export default function PayrollPage() {
   const isLocked = selectedRun?.status === "completed" || selectedRun?.status === "failed";
 
   if (selectedRun) {
-    const sepMap = getSepMap(selectedRun.month, selectedRun.year);
+    const sepMap = getSepMap(selectedRun.id);
     const breakdown = buildBreakdown(currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
