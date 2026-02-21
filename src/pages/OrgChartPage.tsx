@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { employees } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
@@ -37,13 +37,122 @@ function buildOrgTree(reportMap: Record<string, string>, empList: typeof employe
   return roots;
 }
 
+// Collect all descendant IDs from a node
+function collectDescendantIds(node: OrgNode): Set<string> {
+  const ids = new Set<string>();
+  function walk(n: OrgNode) {
+    n.reports.forEach(child => {
+      ids.add(child.employee.id);
+      walk(child);
+    });
+  }
+  walk(node);
+  return ids;
+}
+
 function OrgNodeCard({
-  node, level = 0, onClickEmployee, highlightId,
+  node, level = 0, onClickEmployee, highlightId, hoveredParentId, onHoverNode,
 }: {
-  node: OrgNode; level?: number; onClickEmployee: (emp: typeof employees[0]) => void; highlightId: string | null;
+  node: OrgNode;
+  level?: number;
+  onClickEmployee: (emp: typeof employees[0]) => void;
+  highlightId: string | null;
+  hoveredParentId: string | null;
+  onHoverNode: (empId: string | null) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const isHighlighted = highlightId === node.employee.id;
+  const isHoveredParent = hoveredParentId === node.employee.id;
+
+  // Check if this node is a descendant of the hovered parent
+  const descendantIds = useMemo(() => {
+    if (isHoveredParent) return collectDescendantIds(node);
+    return new Set<string>();
+  }, [isHoveredParent, node]);
+
+  useEffect(() => {
+    if (isHighlighted && ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    }
+  }, [isHighlighted]);
+
+  const hasReports = node.reports.length > 0;
+
+  return (
+    <div className="flex flex-col items-center">
+      <div
+        ref={ref}
+        onClick={() => onClickEmployee(node.employee)}
+        onMouseEnter={() => { if (hasReports) onHoverNode(node.employee.id); }}
+        onMouseLeave={() => { if (hasReports) onHoverNode(null); }}
+        className={`
+          w-44 px-4 py-3 border cursor-pointer transition-all duration-200
+          ${level === 0
+            ? "bg-primary text-primary-foreground border-primary"
+            : "bg-card border-border hover:border-primary/50"
+          }
+          ${isHighlighted ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg scale-105" : ""}
+          ${isHoveredParent ? "ring-2 ring-primary shadow-md" : ""}
+        `}
+      >
+        <p className={`text-sm font-semibold truncate ${level === 0 ? "" : "text-foreground"}`}>
+          {node.employee.firstName} {node.employee.lastName}
+        </p>
+        <p className={`text-[11px] truncate ${level === 0 ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+          {node.employee.designation}
+        </p>
+        {hasReports && (
+          <p className={`text-[10px] mt-0.5 ${level === 0 ? "text-primary-foreground/50" : "text-muted-foreground/60"}`}>
+            {node.reports.length} direct report{node.reports.length > 1 ? "s" : ""}
+          </p>
+        )}
+      </div>
+      {hasReports && (
+        <>
+          <div className={`w-px h-5 transition-colors duration-200 ${isHoveredParent ? "bg-primary" : "bg-border"}`} />
+          <div className="flex gap-3 relative">
+            {node.reports.length > 1 && (
+              <div
+                className={`absolute top-0 left-1/2 -translate-x-1/2 h-px transition-colors duration-200 ${isHoveredParent ? "bg-primary" : "bg-border"}`}
+                style={{ width: `calc(100% - 176px)` }}
+              />
+            )}
+            {node.reports.map(child => (
+              <div key={child.employee.id} className="flex flex-col items-center">
+                <div className={`w-px h-5 transition-colors duration-200 ${isHoveredParent ? "bg-primary" : "bg-border"}`} />
+                <ChildOrgNodeCard
+                  node={child}
+                  level={level + 1}
+                  onClickEmployee={onClickEmployee}
+                  highlightId={highlightId}
+                  hoveredParentId={hoveredParentId}
+                  onHoverNode={onHoverNode}
+                  isUnderHoveredParent={isHoveredParent}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ChildOrgNodeCard({
+  node, level = 0, onClickEmployee, highlightId, hoveredParentId, onHoverNode, isUnderHoveredParent,
+}: {
+  node: OrgNode;
+  level?: number;
+  onClickEmployee: (emp: typeof employees[0]) => void;
+  highlightId: string | null;
+  hoveredParentId: string | null;
+  onHoverNode: (empId: string | null) => void;
+  isUnderHoveredParent: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isHighlighted = highlightId === node.employee.id;
+  const isHoveredParent = hoveredParentId === node.employee.id;
+  const hasReports = node.reports.length > 0;
 
   useEffect(() => {
     if (isHighlighted && ref.current) {
@@ -56,30 +165,49 @@ function OrgNodeCard({
       <div
         ref={ref}
         onClick={() => onClickEmployee(node.employee)}
+        onMouseEnter={() => { if (hasReports) onHoverNode(node.employee.id); }}
+        onMouseLeave={() => { if (hasReports) onHoverNode(null); }}
         className={`
-          w-44 px-4 py-3 border cursor-pointer transition-all
-          ${level === 0 ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary/50"}
+          w-44 px-4 py-3 border cursor-pointer transition-all duration-200
+          ${isUnderHoveredParent ? "bg-primary/10 border-primary/40 shadow-sm" : "bg-card border-border hover:border-primary/50"}
           ${isHighlighted ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg scale-105" : ""}
+          ${isHoveredParent ? "ring-2 ring-primary shadow-md" : ""}
         `}
       >
-        <p className={`text-sm font-semibold truncate ${level === 0 ? "" : "text-foreground"}`}>
+        <p className="text-sm font-semibold truncate text-foreground">
           {node.employee.firstName} {node.employee.lastName}
         </p>
-        <p className={`text-[11px] truncate ${level === 0 ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+        <p className="text-[11px] truncate text-muted-foreground">
           {node.employee.designation}
         </p>
+        {hasReports && (
+          <p className="text-[10px] mt-0.5 text-muted-foreground/60">
+            {node.reports.length} direct report{node.reports.length > 1 ? "s" : ""}
+          </p>
+        )}
       </div>
-      {node.reports.length > 0 && (
+      {hasReports && (
         <>
-          <div className="w-px h-5 bg-border" />
+          <div className={`w-px h-5 transition-colors duration-200 ${isHoveredParent || isUnderHoveredParent ? "bg-primary" : "bg-border"}`} />
           <div className="flex gap-3 relative">
             {node.reports.length > 1 && (
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px bg-border" style={{ width: `calc(100% - 176px)` }} />
+              <div
+                className={`absolute top-0 left-1/2 -translate-x-1/2 h-px transition-colors duration-200 ${isHoveredParent || isUnderHoveredParent ? "bg-primary" : "bg-border"}`}
+                style={{ width: `calc(100% - 176px)` }}
+              />
             )}
             {node.reports.map(child => (
               <div key={child.employee.id} className="flex flex-col items-center">
-                <div className="w-px h-5 bg-border" />
-                <OrgNodeCard node={child} level={level + 1} onClickEmployee={onClickEmployee} highlightId={highlightId} />
+                <div className={`w-px h-5 transition-colors duration-200 ${isHoveredParent || isUnderHoveredParent ? "bg-primary" : "bg-border"}`} />
+                <ChildOrgNodeCard
+                  node={child}
+                  level={level + 1}
+                  onClickEmployee={onClickEmployee}
+                  highlightId={highlightId}
+                  hoveredParentId={hoveredParentId}
+                  onHoverNode={onHoverNode}
+                  isUnderHoveredParent={isHoveredParent || isUnderHoveredParent}
+                />
               </div>
             ))}
           </div>
@@ -93,12 +221,13 @@ export default function OrgChartPage() {
   const activeEmployees = useActiveEmployees();
   const { reportMap, setReportTo, getManagerName, getManagerId } = useReporting();
   const [editEmp, setEditEmp] = useState<typeof employees[0] | null>(null);
-  const [selectedManager, setSelectedManager] = useState("");
+  const [selectedManager, setSelectedManager] = useState("__none__");
   const [search, setSearch] = useState("");
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [hoveredParentId, setHoveredParentId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const tree = buildOrgTree(reportMap, activeEmployees);
+  const tree = useMemo(() => buildOrgTree(reportMap, activeEmployees), [reportMap, activeEmployees]);
 
   const searchResults = search.trim()
     ? activeEmployees.filter(e =>
@@ -114,16 +243,23 @@ export default function OrgChartPage() {
     setTimeout(() => setHighlightId(null), 3000);
   };
 
+  const openEditDialog = (emp: typeof employees[0]) => {
+    setEditEmp(emp);
+    const currentMgr = getManagerId(emp.id);
+    setSelectedManager(currentMgr || "__none__");
+  };
+
   const handleSaveReportTo = () => {
     if (!editEmp) return;
-    if (selectedManager === "__none__") {
-      setReportTo(editEmp.id, null);
-    } else if (selectedManager) {
-      setReportTo(editEmp.id, selectedManager);
+    const currentMgr = getManagerId(editEmp.id);
+    const newMgr = selectedManager === "__none__" ? null : selectedManager;
+
+    // Only update if there's an actual change
+    if (newMgr !== currentMgr) {
+      setReportTo(editEmp.id, newMgr);
+      toast({ title: "Updated", description: `Reporting line updated for ${editEmp.firstName} ${editEmp.lastName}.` });
     }
-    toast({ title: "Updated", description: `Reporting line updated for ${editEmp.firstName} ${editEmp.lastName}.` });
     setEditEmp(null);
-    setSelectedManager("");
   };
 
   return (
@@ -154,17 +290,16 @@ export default function OrgChartPage() {
             <OrgNodeCard
               key={node.employee.id}
               node={node}
-              onClickEmployee={(emp) => {
-                setEditEmp(emp);
-                setSelectedManager(getManagerId(emp.id) || "");
-              }}
+              onClickEmployee={openEditDialog}
               highlightId={highlightId}
+              hoveredParentId={hoveredParentId}
+              onHoverNode={setHoveredParentId}
             />
           ))}
         </div>
       </div>
 
-      <Dialog open={!!editEmp} onOpenChange={(open) => { if (!open) { setEditEmp(null); setSelectedManager(""); } }}>
+      <Dialog open={!!editEmp} onOpenChange={(open) => { if (!open) setEditEmp(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Change Reporting Line</DialogTitle>
@@ -193,7 +328,7 @@ export default function OrgChartPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setEditEmp(null); setSelectedManager(""); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditEmp(null)}>Cancel</Button>
             <Button onClick={handleSaveReportTo}>Save</Button>
           </DialogFooter>
         </DialogContent>
