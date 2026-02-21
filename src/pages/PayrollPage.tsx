@@ -328,62 +328,114 @@ export default function PayrollPage() {
 
         {/* One-off adjustment sheet */}
         <Sheet open={!!sheetEmpId} onOpenChange={(open) => { if (!open) setSheetEmpId(null); }}>
-          <SheetContent side="left" className="w-[400px] sm:w-[450px]">
-            {sheetEmp && (
-              <>
-                <SheetHeader>
-                  <SheetTitle>One-Off Adjustments</SheetTitle>
-                  <p className="text-sm text-muted-foreground">{sheetEmp.firstName} {sheetEmp.lastName} — {selectedRun.month} {selectedRun.year}</p>
-                </SheetHeader>
-                <div className="mt-6 space-y-6">
-                  {/* Existing adjustments */}
-                  {sheetOneOffs.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Adjustments</p>
-                      {sheetOneOffs.map(adj => (
-                        <div key={adj.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm">
-                          <div>
-                            <span className="font-medium">{adj.name}</span>
-                            <span className={`ml-2 text-xs ${adj.type === "benefit" ? "text-success" : "text-destructive"}`}>
-                              {adj.type === "benefit" ? "+" : "-"}SAR {adj.amount.toLocaleString()}
-                            </span>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemoveOneOff(adj.id)}>
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
+          <SheetContent side="right" className="w-[420px] sm:w-[500px] overflow-y-auto">
+            {sheetEmp && (() => {
+              const empLoans = loans.filter(l => l.employeeId === sheetEmp.id);
+              const empExpenses = expenses.filter(e => e.employeeId === sheetEmp.id);
+              const empDeductions = Math.round(sheetEmp.salary * 0.15);
+              return (
+                <>
+                  <SheetHeader>
+                    <SheetTitle>{sheetEmp.firstName} {sheetEmp.lastName}</SheetTitle>
+                    <p className="text-sm text-muted-foreground">{sheetEmp.designation} · {sheetEmp.department} — {selectedRun.month} {selectedRun.year}</p>
+                  </SheetHeader>
+                  <ScrollArea className="mt-4 pr-2" style={{ maxHeight: "calc(100vh - 120px)" }}>
+                    <div className="space-y-5">
+                      {/* Statutory Deductions */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Statutory Deductions</p>
+                        <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm flex justify-between">
+                          <span>GOSI & Insurance (15%)</span>
+                          <span className="font-medium text-destructive">SAR {empDeductions.toLocaleString()}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
 
-                  {/* Add new */}
-                  <div className="space-y-3 border-t pt-4">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Add Adjustment</p>
-                    <div className="space-y-2">
-                      <Label>Type</Label>
-                      <Select value={newAdjType} onValueChange={(v) => setNewAdjType(v as "benefit" | "deduction")}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="benefit">One-Off Benefit (+)</SelectItem>
-                          <SelectItem value="deduction">One-Off Deduction (-)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {/* Loan Transactions */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Loan Transactions</p>
+                        {empLoans.length > 0 ? empLoans.map(loan => (
+                          <div key={loan.id} className="bg-muted/50 rounded-lg px-3 py-2 text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span>Loan #{loan.id}</span>
+                              <StatusBadge status={loan.status} />
+                            </div>
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Total: SAR {loan.amount.toLocaleString()}</span>
+                              <span>Remaining: SAR {loan.remainingBalance.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Monthly Deduction</span>
+                              <span className="font-medium text-destructive">SAR {loan.monthlyDeduction.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        )) : <p className="text-xs text-muted-foreground">No active loans.</p>}
+                      </div>
+
+                      {/* Expense Reimbursements */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Expense Reimbursements</p>
+                        {empExpenses.length > 0 ? empExpenses.map(exp => (
+                          <div key={exp.id} className="bg-muted/50 rounded-lg px-3 py-2 text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span className="font-medium">{exp.description}</span>
+                              <StatusBadge status={exp.status} />
+                            </div>
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>{exp.category} · {exp.submissionDate}</span>
+                              <span className="font-medium text-foreground">SAR {exp.amount.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        )) : <p className="text-xs text-muted-foreground">No expense claims.</p>}
+                      </div>
+
+                      {/* One-Off Adjustments */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">One-Off Adjustments</p>
+                        {sheetOneOffs.length > 0 && sheetOneOffs.map(adj => (
+                          <div key={adj.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm">
+                            <div>
+                              <span className="font-medium">{adj.name}</span>
+                              <span className={`ml-2 text-xs ${adj.type === "benefit" ? "text-success" : "text-destructive"}`}>
+                                {adj.type === "benefit" ? "+" : "-"}SAR {adj.amount.toLocaleString()}
+                              </span>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemoveOneOff(adj.id)}>
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add new adjustment */}
+                      <div className="space-y-3 border-t pt-4">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Add Adjustment</p>
+                        <div className="space-y-2">
+                          <Label>Type</Label>
+                          <Select value={newAdjType} onValueChange={(v) => setNewAdjType(v as "benefit" | "deduction")}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="benefit">One-Off Benefit (+)</SelectItem>
+                              <SelectItem value="deduction">One-Off Deduction (-)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Input placeholder="e.g. Performance Bonus" value={newAdjName} onChange={e => setNewAdjName(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Amount (SAR)</Label>
+                          <Input type="number" placeholder="0" value={newAdjAmount} onChange={e => setNewAdjAmount(e.target.value)} min={1} />
+                        </div>
+                        <Button className="w-full" onClick={handleAddOneOff} disabled={!newAdjName || !newAdjAmount}>
+                          <Plus className="h-4 w-4 mr-2" />Add Adjustment
+                        </Button>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Input placeholder="e.g. Performance Bonus" value={newAdjName} onChange={e => setNewAdjName(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Amount (SAR)</Label>
-                      <Input type="number" placeholder="0" value={newAdjAmount} onChange={e => setNewAdjAmount(e.target.value)} min={1} />
-                    </div>
-                    <Button className="w-full" onClick={handleAddOneOff} disabled={!newAdjName || !newAdjAmount}>
-                      <Plus className="h-4 w-4 mr-2" />Add Adjustment
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
+                  </ScrollArea>
+                </>
+              );
+            })()}
           </SheetContent>
         </Sheet>
 
