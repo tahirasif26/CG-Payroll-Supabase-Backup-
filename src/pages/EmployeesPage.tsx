@@ -696,7 +696,7 @@ export default function EmployeesPage() {
       department: (formData.get("department") as string) || "Assurance",
       designation: (formData.get("designation") as string) || "Associate",
       joiningDate: (formData.get("joiningDate") as string) || new Date().toISOString().split("T")[0],
-      salary: Number(formData.get("salary")) || 0,
+      salary: 0,
       status: "active",
       avatar: "",
       dateOfBirth: "",
@@ -817,10 +817,7 @@ export default function EmployeesPage() {
               </div>
               <div className="space-y-2"><Label>Designation</Label><Input name="designation" placeholder="e.g. Associate" required /></div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Joining Date</Label><Input name="joiningDate" type="date" required /></div>
-              <div className="space-y-2"><Label>Salary (SAR)</Label><Input name="salary" type="number" placeholder="0" required min={1} /></div>
-            </div>
+            <div className="space-y-2"><Label>Joining Date</Label><Input name="joiningDate" type="date" required /></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setAddEmpOpen(false)}>Cancel</Button>
               <Button type="submit">Add Employee</Button>
