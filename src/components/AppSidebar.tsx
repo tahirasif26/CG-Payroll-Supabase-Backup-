@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, DollarSign, Calendar, Gift, FileText,
   Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
   FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
-  Layers, Tag, Shield, Coins, ChevronDown
+  Layers, Tag, Shield, Coins, ChevronDown, Award
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -60,6 +60,7 @@ const employerSettingsNav = [
   { title: "User Management", url: "/settings/users", icon: Shield },
   { title: "Currency", url: "/settings/currency", icon: Coins },
   { title: "GL Code Mapping", url: "/settings/gl-codes", icon: FileText },
+  { title: "EOS Benefits", url: "/settings/eos-benefits", icon: Award },
 ];
 
 const employeeNav = [
