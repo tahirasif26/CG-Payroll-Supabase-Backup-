@@ -6,7 +6,7 @@ import { useAssets, AssetHistoryEntry } from "@/contexts/AssetContext";
 import { Asset } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft } from "lucide-react";
+import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatCard } from "@/components/StatCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -49,13 +49,26 @@ export default function AssetsPage() {
   const [editCategory, setEditCategory] = useState("");
   const [editSerial, setEditSerial] = useState("");
 
-  const displayAssets = role === "employee"
+  // Search & filter state
+  const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const allAssets = role === "employee"
     ? assets.filter(a => a.employeeId === currentEmployeeId)
     : assets;
 
-  const totalAssets = displayAssets.length;
-  const assignedAssets = displayAssets.filter(a => a.status === "assigned").length;
-  const availableAssets = displayAssets.filter(a => a.status === "available").length;
+  const displayAssets = allAssets.filter(a => {
+    const q = search.toLowerCase();
+    const matchesSearch = !q || a.name.toLowerCase().includes(q) || a.serialNumber.toLowerCase().includes(q) || (a.employeeName || "").toLowerCase().includes(q);
+    const matchesCategory = filterCategory === "all" || a.category === filterCategory;
+    const matchesStatus = filterStatus === "all" || a.status === filterStatus;
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  const totalAssets = allAssets.length;
+  const assignedAssets = allAssets.filter(a => a.status === "assigned").length;
+  const availableAssets = allAssets.filter(a => a.status === "available").length;
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,6 +170,32 @@ export default function AssetsPage() {
           <StatCard title="Available" value={availableAssets} icon={Key} variant="success" />
         </div>
       )}
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name, serial, employee..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-[150px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Category" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="Laptop">Laptop</SelectItem>
+            <SelectItem value="Monitor">Monitor</SelectItem>
+            <SelectItem value="Phone">Phone</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="assigned">Assigned</SelectItem>
+            <SelectItem value="available">Available</SelectItem>
+            <SelectItem value="maintenance">Maintenance</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <Table>

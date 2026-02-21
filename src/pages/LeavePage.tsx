@@ -5,7 +5,7 @@ import { leaveRequests } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Check, X } from "lucide-react";
+import { Plus, Check, X, Search, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,12 +16,25 @@ import { useToast } from "@/hooks/use-toast";
 export default function LeavePage() {
   const activeEmps = useActiveEmployees();
   const activeIds = new Set(activeEmps.map(e => e.id));
-  const filteredLeaves = leaveRequests.filter(l => activeIds.has(l.employeeId));
+  const allLeaves = leaveRequests.filter(l => activeIds.has(l.employeeId));
   const [newOpen, setNewOpen] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Search & filter
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const filteredLeaves = allLeaves.filter(l => {
+    const q = search.toLowerCase();
+    const matchesSearch = !q || l.employeeName.toLowerCase().includes(q) || l.reason.toLowerCase().includes(q);
+    const matchesType = filterType === "all" || l.type === filterType;
+    const matchesStatus = filterStatus === "all" || l.status === filterStatus;
+    return matchesSearch && matchesType && matchesStatus;
+  });
 
   const handleSubmitRequest = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +63,33 @@ export default function LeavePage() {
           <Plus className="h-4 w-4 mr-2" />New Request
         </Button>
       </PageHeader>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by employee or reason..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[150px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="annual">Annual</SelectItem>
+            <SelectItem value="sick">Sick</SelectItem>
+            <SelectItem value="compassionate">Compassionate</SelectItem>
+            <SelectItem value="unpaid">Unpaid</SelectItem>
+            <SelectItem value="maternity">Maternity</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <Table>
