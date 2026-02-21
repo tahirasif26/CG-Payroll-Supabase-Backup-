@@ -42,10 +42,10 @@ export const loans: Loan[] = [
 ];
 
 export const expenses: ExpenseReimbursement[] = [
-  { id: "1", employeeId: "2", employeeName: "Omar Al-Faisal", category: "Travel", amount: 3500, submissionDate: "2025-02-10", status: "approved", description: "Client site visit - Riyadh" },
-  { id: "2", employeeId: "7", employeeName: "Layla Qasim", category: "Client Entertainment", amount: 1200, submissionDate: "2025-02-15", status: "pending", description: "Client dinner meeting" },
-  { id: "3", employeeId: "4", employeeName: "Khalid Nasser", category: "Training", amount: 5000, submissionDate: "2025-01-28", status: "approved", description: "Leadership conference" },
-  { id: "4", employeeId: "8", employeeName: "Tariq Zaman", category: "Equipment", amount: 800, submissionDate: "2025-02-18", status: "pending", description: "External monitor" },
+  { id: "1", employeeId: "2", employeeName: "Omar Al-Faisal", category: "Travel", amount: 3500, expenseDate: "2025-02-08", submissionDate: "2025-02-10", status: "approved", description: "Client site visit - Riyadh. Includes flight, hotel, and meals for 2-day engagement.", attachments: ["flight_receipt.pdf", "hotel_invoice.pdf"] },
+  { id: "2", employeeId: "7", employeeName: "Layla Qasim", category: "Client Entertainment", amount: 1200, expenseDate: "2025-02-14", submissionDate: "2025-02-15", status: "pending", description: "Client dinner meeting at Four Seasons with ABC Corp team.", attachments: ["dinner_receipt.jpg"] },
+  { id: "3", employeeId: "4", employeeName: "Khalid Nasser", category: "Training", amount: 5000, expenseDate: "2025-01-25", submissionDate: "2025-01-28", status: "approved", description: "Leadership conference registration and travel. 3-day event in Dubai.", attachments: ["conference_reg.pdf", "travel_receipt.pdf", "hotel_receipt.pdf"] },
+  { id: "4", employeeId: "8", employeeName: "Tariq Zaman", category: "Equipment", amount: 800, expenseDate: "2025-02-17", submissionDate: "2025-02-18", status: "pending", description: "External 27-inch 4K monitor for home office setup.", attachments: ["monitor_invoice.pdf"] },
 ];
 
 export const deductions: Deduction[] = [

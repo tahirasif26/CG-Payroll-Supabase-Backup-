@@ -66,9 +66,11 @@ export interface ExpenseReimbursement {
   employeeName: string;
   category: string;
   amount: number;
+  expenseDate: string;
   submissionDate: string;
   status: "pending" | "approved" | "rejected";
   description: string;
+  attachments?: string[];
   payrollRunId?: string;
 }
 
