@@ -254,7 +254,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                   <TableCell className="text-sm">{emp.department}</TableCell>
                   <TableCell className="text-sm">{emp.designation}</TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-foreground" : "bg-accent text-accent-foreground"}`}>
                       {emp.category === "direct" ? "Direct" : "Contractor"}
                     </span>
                   </TableCell>
