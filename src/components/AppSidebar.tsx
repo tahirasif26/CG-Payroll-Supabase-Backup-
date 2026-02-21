@@ -24,6 +24,7 @@ const employerNav = [
 const employeesSubNav = [
   { title: "Directory", url: "/employees", icon: Users },
   { title: "Org Chart", url: "/org-chart", icon: GitBranch },
+  { title: "Birthdays & Anniversaries", url: "/birthdays", icon: Gift },
 ];
 
 const payrollSubNav = [
@@ -38,14 +39,7 @@ const employerFinanceNav = [
   { title: "Cost Allocation", url: "/cost-allocation", icon: Briefcase },
 ];
 
-const employerPeopleNav = [
-  { title: "Leave Management", url: "/leave", icon: Calendar },
-  { title: "Birthdays", url: "/birthdays", icon: Gift },
-  { title: "Asset Management", url: "/assets", icon: Monitor },
-];
-
-const employerProjectNav = [
-  { title: "Projects", url: "/projects", icon: FolderKanban },
+const upcomingFeaturesNav = [
   { title: "Timesheets", url: "/timesheets", icon: Clock },
 ];
 
@@ -185,9 +179,11 @@ export function AppSidebar() {
             <CollapsibleNavGroup label="Employees" icon={Users} items={employeesSubNav} />
             <CollapsibleNavGroup label="Payroll" icon={DollarSign} items={payrollSubNav} />
             <NavGroup label="Finance" items={employerFinanceNav} />
-            <NavGroup label="People" items={employerPeopleNav} />
-            <NavGroup label="Projects" items={employerProjectNav} />
+            <NavGroup label="Leave" items={[{ title: "Leave Management", url: "/leave", icon: Calendar }]} />
+            <NavGroup label="Assets" items={[{ title: "Asset Management", url: "/assets", icon: Monitor }]} />
+            <NavGroup label="Projects" items={[{ title: "Projects", url: "/projects", icon: FolderKanban }]} />
             <CollapsibleNavGroup label="Performance" icon={Target} items={performanceNav} />
+            <CollapsibleNavGroup label="Upcoming Features" icon={Clock} items={upcomingFeaturesNav} />
             <CollapsibleNavGroup label="Settings" icon={Settings} items={employerSettingsNav} />
           </>
         ) : (
