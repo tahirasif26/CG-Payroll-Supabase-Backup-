@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
+import { useReporting } from "@/contexts/ReportingContext";
 
 interface EmployeeDoc {
   name: string;
@@ -431,14 +432,39 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
   const ext = getExtData(emp.id);
   const [editing, setEditing] = useState(false);
   const { toast } = useToast();
+  const { getManagerId, getManagerName, setReportTo } = useReporting();
+  const activeEmps = employees.filter(e => e.status !== "separated" && e.id !== emp.id);
+
+  const currentManagerName = getManagerName(emp.id) || ext.reportsTo || "—";
+  const currentManagerId = getManagerId(emp.id) || "";
+
   const [data, setData] = useState({
     department: emp.department, designation: emp.designation, joiningDate: emp.joiningDate,
-    reportsTo: ext.reportsTo, workEmail: ext.workEmail, empId: emp.empId,
+    reportsToId: currentManagerId, workEmail: ext.workEmail, empId: emp.empId,
     workLocationCity: ext.workLocationCity, workLocationCountry: ext.workLocationCountry, division: ext.division,
   });
 
+  const handleSave = () => {
+    // Sync report-to change to shared context
+    if (data.reportsToId === "__none__") {
+      setReportTo(emp.id, null);
+    } else if (data.reportsToId) {
+      setReportTo(emp.id, data.reportsToId);
+    }
+    setEditing(false);
+    toast({ title: "Saved", description: "Work info updated." });
+  };
+
+  // Keep local state in sync with context
+  const latestManagerId = getManagerId(emp.id) || "";
+  if (!editing && data.reportsToId !== latestManagerId) {
+    setData(prev => ({ ...prev, reportsToId: latestManagerId }));
+  }
+
+  const reportsToDisplay = getManagerName(emp.id) || "No Manager";
+
   return (
-    <SectionCard title="Work Information" icon={Briefcase} editing={editing} onEdit={() => setEditing(true)} onSave={() => { setEditing(false); toast({ title: "Saved", description: "Work info updated." }); }} onCancel={() => setEditing(false)}>
+    <SectionCard title="Work Information" icon={Briefcase} editing={editing} onEdit={() => setEditing(true)} onSave={handleSave} onCancel={() => { setEditing(false); setData(prev => ({ ...prev, reportsToId: latestManagerId })); }}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <EditableField label="Employee ID" value={data.empId} editing={editing} onChange={v => setData({ ...data, empId: v })} />
         <EditableField label="Work Email" value={data.workEmail} editing={editing} onChange={v => setData({ ...data, workEmail: v })} />
@@ -453,7 +479,22 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
         <EditableField label="Department" value={data.department} editing={editing} onChange={v => setData({ ...data, department: v })} />
         <EditableField label="Designation" value={data.designation} editing={editing} onChange={v => setData({ ...data, designation: v })} />
         <EditableField label="Division" value={data.division} editing={editing} onChange={v => setData({ ...data, division: v })} />
-        <EditableField label="Reports To" value={data.reportsTo} editing={editing} onChange={v => setData({ ...data, reportsTo: v })} />
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Reports To</p>
+          {editing ? (
+            <Select value={data.reportsToId || "__none__"} onValueChange={v => setData({ ...data, reportsToId: v })}>
+              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select manager..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No Manager (Top Level)</SelectItem>
+                {activeEmps.map(e => (
+                  <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName} — {e.designation}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-sm font-medium">{reportsToDisplay}</p>
+          )}
+        </div>
         <EditableField label="Joining Date" value={data.joiningDate} editing={editing} onChange={v => setData({ ...data, joiningDate: v })} type="date" />
         <div>
           <p className="text-xs text-muted-foreground">Tenure</p>

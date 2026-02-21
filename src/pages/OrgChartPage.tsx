@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { employees } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useReporting } from "@/contexts/ReportingContext";
 import { Search, ChevronRight } from "lucide-react";
 
 interface OrgNode {
@@ -15,85 +16,31 @@ interface OrgNode {
   reports: OrgNode[];
 }
 
-interface ReportMapping {
-  [empId: string]: string;
-}
+function buildOrgTree(reportMap: Record<string, string>, empList: typeof employees): OrgNode[] {
+  const nodeMap = new Map<string, OrgNode>();
+  empList.forEach(e => nodeMap.set(e.id, { employee: e, reports: [] }));
 
-function buildOrgTree(reportMap: ReportMapping, empList: typeof employees): OrgNode[] {
-  const hierarchy = ["Partner", "Senior Manager", "Manager", "Senior Associate", "Associate", "Staff"];
-  const hasCustom = Object.keys(reportMap).length > 0;
-
-  if (hasCustom) {
-    const nodeMap = new Map<string, OrgNode>();
-    empList.forEach(e => nodeMap.set(e.id, { employee: e, reports: [] }));
-    const roots: OrgNode[] = [];
-    const hasParent = new Set<string>();
-    Object.entries(reportMap).forEach(([empId, managerId]) => {
-      const manager = nodeMap.get(managerId);
-      const emp = nodeMap.get(empId);
-      if (manager && emp && managerId !== empId) {
-        manager.reports.push(emp);
-        hasParent.add(empId);
-      }
-    });
-    empList.forEach(e => {
-      if (!hasParent.has(e.id)) roots.push(nodeMap.get(e.id)!);
-    });
-    return roots;
-  }
-
-  const grouped = hierarchy.map(level => empList.filter(e => e.designation === level));
-  const tree: OrgNode[] = [];
-
-  grouped[0].forEach(partner => {
-    const partnerNode: OrgNode = { employee: partner, reports: [] };
-    grouped[1].forEach(sm => {
-      const smNode: OrgNode = { employee: sm, reports: [] };
-      const managers = grouped[2].filter((_, i) => i % grouped[1].length === grouped[1].indexOf(sm));
-      managers.forEach(mgr => {
-        const mgrNode: OrgNode = { employee: mgr, reports: [] };
-        const seniors = grouped[3].filter((_, i) => i % Math.max(managers.length, 1) === managers.indexOf(mgr));
-        seniors.forEach(sr => {
-          const srNode: OrgNode = { employee: sr, reports: [] };
-          const associates = grouped[4].filter((_, i) => i % Math.max(seniors.length, 1) === seniors.indexOf(sr));
-          associates.forEach(assoc => srNode.reports.push({ employee: assoc, reports: [] }));
-          mgrNode.reports.push(srNode);
-        });
-        const staff = grouped[5].filter((_, i) => i % Math.max(managers.length, 1) === managers.indexOf(mgr));
-        staff.forEach(s => mgrNode.reports.push({ employee: s, reports: [] }));
-        smNode.reports.push(mgrNode);
-      });
-      partnerNode.reports.push(smNode);
-    });
-    tree.push(partnerNode);
+  const hasParent = new Set<string>();
+  Object.entries(reportMap).forEach(([empId, managerId]) => {
+    const manager = nodeMap.get(managerId);
+    const emp = nodeMap.get(empId);
+    if (manager && emp && managerId !== empId) {
+      manager.reports.push(emp);
+      hasParent.add(empId);
+    }
   });
 
-  const inTree = new Set<string>();
-  function collect(nodes: OrgNode[]) {
-    nodes.forEach(n => { inTree.add(n.employee.id); collect(n.reports); });
-  }
-  collect(tree);
-  empList.filter(e => !inTree.has(e.id)).forEach(e => tree.push({ employee: e, reports: [] }));
-  return tree;
-}
-
-function getManagerName(reportMap: ReportMapping, empId: string, empList: typeof employees): string | null {
-  const managerId = reportMap[empId];
-  if (!managerId) return null;
-  const mgr = empList.find(e => e.id === managerId);
-  return mgr ? `${mgr.firstName} ${mgr.lastName}` : null;
+  const roots: OrgNode[] = [];
+  empList.forEach(e => {
+    if (!hasParent.has(e.id)) roots.push(nodeMap.get(e.id)!);
+  });
+  return roots;
 }
 
 function OrgNodeCard({
-  node,
-  level = 0,
-  onClickEmployee,
-  highlightId,
+  node, level = 0, onClickEmployee, highlightId,
 }: {
-  node: OrgNode;
-  level?: number;
-  onClickEmployee: (emp: typeof employees[0]) => void;
-  highlightId: string | null;
+  node: OrgNode; level?: number; onClickEmployee: (emp: typeof employees[0]) => void; highlightId: string | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const isHighlighted = highlightId === node.employee.id;
@@ -127,10 +74,7 @@ function OrgNodeCard({
           <div className="w-px h-5 bg-border" />
           <div className="flex gap-3 relative">
             {node.reports.length > 1 && (
-              <div
-                className="absolute top-0 left-1/2 -translate-x-1/2 h-px bg-border"
-                style={{ width: `calc(100% - 176px)` }}
-              />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px bg-border" style={{ width: `calc(100% - 176px)` }} />
             )}
             {node.reports.map(child => (
               <div key={child.employee.id} className="flex flex-col items-center">
@@ -147,7 +91,7 @@ function OrgNodeCard({
 
 export default function OrgChartPage() {
   const activeEmployees = useActiveEmployees();
-  const [reportMap, setReportMap] = useState<ReportMapping>({});
+  const { reportMap, setReportTo, getManagerName, getManagerId } = useReporting();
   const [editEmp, setEditEmp] = useState<typeof employees[0] | null>(null);
   const [selectedManager, setSelectedManager] = useState("");
   const [search, setSearch] = useState("");
@@ -173,13 +117,9 @@ export default function OrgChartPage() {
   const handleSaveReportTo = () => {
     if (!editEmp) return;
     if (selectedManager === "__none__") {
-      setReportMap(prev => {
-        const next = { ...prev };
-        delete next[editEmp.id];
-        return next;
-      });
+      setReportTo(editEmp.id, null);
     } else if (selectedManager) {
-      setReportMap(prev => ({ ...prev, [editEmp.id]: selectedManager }));
+      setReportTo(editEmp.id, selectedManager);
     }
     toast({ title: "Updated", description: `Reporting line updated for ${editEmp.firstName} ${editEmp.lastName}.` });
     setEditEmp(null);
@@ -191,20 +131,11 @@ export default function OrgChartPage() {
       <PageHeader title="Organization Chart" description="Company structure and reporting lines.">
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search employee..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder="Search employee..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           {searchResults.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
               {searchResults.map(emp => (
-                <button
-                  key={emp.id}
-                  onClick={() => handlePinpoint(emp.id)}
-                  className="w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between text-sm"
-                >
+                <button key={emp.id} onClick={() => handlePinpoint(emp.id)} className="w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between text-sm">
                   <div>
                     <span className="font-medium text-foreground">{emp.firstName} {emp.lastName}</span>
                     <span className="text-muted-foreground ml-2 text-xs">{emp.designation}</span>
@@ -225,7 +156,7 @@ export default function OrgChartPage() {
               node={node}
               onClickEmployee={(emp) => {
                 setEditEmp(emp);
-                setSelectedManager(reportMap[emp.id] || "");
+                setSelectedManager(getManagerId(emp.id) || "");
               }}
               highlightId={highlightId}
             />
@@ -237,16 +168,14 @@ export default function OrgChartPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Change Reporting Line</DialogTitle>
-            <DialogDescription>
-              {editEmp && `${editEmp.firstName} ${editEmp.lastName} — ${editEmp.designation}`}
-            </DialogDescription>
+            <DialogDescription>{editEmp && `${editEmp.firstName} ${editEmp.lastName} — ${editEmp.designation}`}</DialogDescription>
           </DialogHeader>
           {editEmp && (
             <div className="space-y-4">
-              {getManagerName(reportMap, editEmp.id, activeEmployees) && (
+              {getManagerName(editEmp.id) && (
                 <div className="text-sm">
                   <span className="text-muted-foreground">Currently reports to: </span>
-                  <span className="font-medium text-foreground">{getManagerName(reportMap, editEmp.id, activeEmployees)}</span>
+                  <span className="font-medium text-foreground">{getManagerName(editEmp.id)}</span>
                 </div>
               )}
               <div className="space-y-2">
