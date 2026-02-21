@@ -330,7 +330,7 @@ export default function PayrollPage() {
         <Sheet open={!!sheetEmpId} onOpenChange={(open) => { if (!open) setSheetEmpId(null); }}>
           <SheetContent side="right" className="w-[420px] sm:w-[500px] overflow-y-auto">
             {sheetEmp && (() => {
-              const empLoans = loans.filter(l => l.employeeId === sheetEmp.id);
+              const empLoans = loans.filter(l => l.employeeId === sheetEmp.id && l.status === "active");
               const empExpenses = expenses.filter(e => e.employeeId === sheetEmp.id);
               const empDeductions = Math.round(sheetEmp.salary * 0.15);
               return (

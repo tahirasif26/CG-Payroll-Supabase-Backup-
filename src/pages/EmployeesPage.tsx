@@ -700,6 +700,7 @@ export default function EmployeesPage() {
       status: "active",
       avatar: "",
       dateOfBirth: "",
+      category: (formData.get("category") as "direct" | "contractor") || "direct",
       compensation: [],
     };
     setLocalEmployees(prev => [...prev, newEmp]);
@@ -816,6 +817,14 @@ export default function EmployeesPage() {
                 </select>
               </div>
               <div className="space-y-2"><Label>Designation</Label><Input name="designation" placeholder="e.g. Associate" required /></div>
+            </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <select name="category" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Select category...</option>
+                <option value="direct">Direct Employee</option>
+                <option value="contractor">Contractor</option>
+              </select>
             </div>
             <div className="space-y-2"><Label>Joining Date</Label><Input name="joiningDate" type="date" required /></div>
             <DialogFooter>

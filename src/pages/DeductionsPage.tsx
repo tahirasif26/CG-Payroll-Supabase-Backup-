@@ -27,10 +27,11 @@ export default function DeductionsPage() {
   const [formIsPercentage, setFormIsPercentage] = useState(true);
   const [formValue, setFormValue] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
+  const [formAppliesTo, setFormAppliesTo] = useState<"all" | "direct" | "contractor">("all");
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormType("statutory"); setFormIsPercentage(true); setFormValue(""); setFormIsActive(true);
+    setFormName(""); setFormType("statutory"); setFormIsPercentage(true); setFormValue(""); setFormIsActive(true); setFormAppliesTo("all");
     setDialogOpen(true);
   };
 
@@ -38,7 +39,7 @@ export default function DeductionsPage() {
     setEditItem(item);
     setFormName(item.name); setFormType(item.type);
     setFormIsPercentage(!!item.percentage); setFormValue(String(item.percentage || item.fixedAmount || ""));
-    setFormIsActive(item.isActive);
+    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all");
     setDialogOpen(true);
   };
 
@@ -52,6 +53,7 @@ export default function DeductionsPage() {
       percentage: formIsPercentage ? val : undefined,
       fixedAmount: !formIsPercentage ? val : undefined,
       isActive: formIsActive,
+      appliesTo: formAppliesTo,
     };
     if (editItem) {
       setItems(prev => prev.map(i => i.id === editItem.id ? newDed : i));
@@ -87,6 +89,7 @@ export default function DeductionsPage() {
               <TableHead className="font-semibold">Name</TableHead>
               <TableHead className="font-semibold">Type</TableHead>
               <TableHead className="font-semibold text-right">Rate / Amount</TableHead>
+              <TableHead className="font-semibold">Applies To</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
@@ -97,6 +100,7 @@ export default function DeductionsPage() {
                 <TableCell className="font-medium">{d.name}</TableCell>
                 <TableCell><Badge variant="outline" className="capitalize">{d.type}</Badge></TableCell>
                 <TableCell className="text-right font-semibold">{d.percentage ? `${d.percentage}%` : `SAR ${d.fixedAmount?.toLocaleString()}`}</TableCell>
+                <TableCell className="capitalize text-sm">{d.appliesTo || "all"}</TableCell>
                 <TableCell><StatusBadge status={d.isActive ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -132,6 +136,17 @@ export default function DeductionsPage() {
             </div>
             <div className="flex items-center gap-3"><Switch checked={formIsPercentage} onCheckedChange={setFormIsPercentage} /><Label>Percentage-based</Label></div>
             <div className="space-y-2"><Label>{formIsPercentage ? "Percentage (%)" : "Fixed Amount (SAR)"}</Label><Input type="number" value={formValue} onChange={e => setFormValue(e.target.value)} required min={0} step="0.01" /></div>
+            <div className="space-y-2">
+              <Label>Applies To</Label>
+              <Select value={formAppliesTo} onValueChange={(v) => setFormAppliesTo(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  <SelectItem value="direct">Direct Employees Only</SelectItem>
+                  <SelectItem value="contractor">Contractors Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center gap-3"><Switch checked={formIsActive} onCheckedChange={setFormIsActive} /><Label>Active</Label></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

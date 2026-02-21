@@ -1,3 +1,5 @@
+export type EmployeeCategory = "direct" | "contractor";
+
 export interface Employee {
   id: string;
   empId: string;
@@ -12,6 +14,7 @@ export interface Employee {
   status: "active" | "inactive" | "on-leave";
   avatar: string;
   dateOfBirth: string;
+  category: EmployeeCategory;
   compensation?: SalaryComponent[];
 }
 
@@ -84,6 +87,7 @@ export interface Deduction {
   percentage?: number;
   fixedAmount?: number;
   isActive: boolean;
+  appliesTo?: "all" | "direct" | "contractor";
 }
 
 export interface TaxConfig {
@@ -92,6 +96,7 @@ export interface TaxConfig {
   rate: number;
   applicableTo: string;
   isActive: boolean;
+  appliesTo?: "all" | "direct" | "contractor";
 }
 
 export interface CostAllocation {

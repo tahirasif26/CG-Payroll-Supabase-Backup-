@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/PageHeader";
 import { compensationSettings, CompensationSetting } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,26 +22,27 @@ export default function CompensationSettingsPage() {
 
   const [formName, setFormName] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
+  const [formAppliesTo, setFormAppliesTo] = useState<"all" | "direct" | "contractor">("all");
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormIsActive(true);
+    setFormName(""); setFormIsActive(true); setFormAppliesTo("all");
     setDialogOpen(true);
   };
 
   const openEdit = (item: CompensationSetting) => {
     setEditItem(item);
-    setFormName(item.name); setFormIsActive(item.isActive);
+    setFormName(item.name); setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all");
     setDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editItem) {
-      setItems(prev => prev.map(i => i.id === editItem.id ? { ...i, name: formName, isActive: formIsActive } : i));
+      setItems(prev => prev.map(i => i.id === editItem.id ? { ...i, name: formName, isActive: formIsActive, appliesTo: formAppliesTo } : i));
       toast({ title: "Updated", description: `${formName} has been updated.` });
     } else {
-      const newItem: CompensationSetting = { id: String(Date.now()), name: formName, isActive: formIsActive };
+      const newItem: CompensationSetting = { id: String(Date.now()), name: formName, isActive: formIsActive, appliesTo: formAppliesTo };
       setItems(prev => [...prev, newItem]);
       toast({ title: "Added", description: `${formName} has been added.` });
     }
@@ -69,6 +71,7 @@ export default function CompensationSettingsPage() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Component Name</TableHead>
+              <TableHead className="font-semibold">Applies To</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
@@ -77,6 +80,7 @@ export default function CompensationSettingsPage() {
             {items.map(item => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell className="capitalize text-sm">{item.appliesTo || "all"}</TableCell>
                 <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -98,6 +102,17 @@ export default function CompensationSettingsPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2"><Label>Component Name</Label><Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Housing Allowance" required /></div>
+            <div className="space-y-2">
+              <Label>Applies To</Label>
+              <Select value={formAppliesTo} onValueChange={(v) => setFormAppliesTo(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  <SelectItem value="direct">Direct Employees Only</SelectItem>
+                  <SelectItem value="contractor">Contractors Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center gap-3"><Switch checked={formIsActive} onCheckedChange={setFormIsActive} /><Label>Active</Label></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
