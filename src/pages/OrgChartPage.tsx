@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { employees } from "@/data/mockData";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +18,7 @@ interface ReportMapping {
   [empId: string]: string; // empId -> reportsToEmpId
 }
 
-function buildOrgTree(reportMap: ReportMapping): OrgNode[] {
+function buildOrgTree(reportMap: ReportMapping, empList: typeof employees): OrgNode[] {
   const hierarchy = ["Partner", "Senior Manager", "Manager", "Senior Associate", "Associate", "Staff"];
   
   // Check if we have custom mappings
@@ -26,7 +27,7 @@ function buildOrgTree(reportMap: ReportMapping): OrgNode[] {
   if (hasCustom) {
     // Build tree from reportMap
     const nodeMap = new Map<string, OrgNode>();
-    employees.forEach(e => nodeMap.set(e.id, { employee: e, reports: [] }));
+    empList.forEach(e => nodeMap.set(e.id, { employee: e, reports: [] }));
     
     const roots: OrgNode[] = [];
     const hasParent = new Set<string>();
@@ -40,7 +41,7 @@ function buildOrgTree(reportMap: ReportMapping): OrgNode[] {
       }
     });
     
-    employees.forEach(e => {
+    empList.forEach(e => {
       if (!hasParent.has(e.id)) roots.push(nodeMap.get(e.id)!);
     });
     
@@ -48,7 +49,7 @@ function buildOrgTree(reportMap: ReportMapping): OrgNode[] {
   }
 
   // Default hierarchy-based tree
-  const grouped = hierarchy.map(level => employees.filter(e => e.designation === level));
+  const grouped = hierarchy.map(level => empList.filter(e => e.designation === level));
   const tree: OrgNode[] = [];
   
   grouped[0].forEach(partner => {
@@ -79,7 +80,7 @@ function buildOrgTree(reportMap: ReportMapping): OrgNode[] {
     nodes.forEach(n => { inTree.add(n.employee.id); collect(n.reports); });
   }
   collect(tree);
-  employees.filter(e => !inTree.has(e.id)).forEach(e => tree.push({ employee: e, reports: [] }));
+  empList.filter(e => !inTree.has(e.id)).forEach(e => tree.push({ employee: e, reports: [] }));
 
   return tree;
 }
@@ -124,12 +125,13 @@ function OrgNodeCard({ node, level = 0, onClickEmployee }: { node: OrgNode; leve
 }
 
 export default function OrgChartPage() {
+  const activeEmployees = useActiveEmployees();
   const [reportMap, setReportMap] = useState<ReportMapping>({});
   const [editEmp, setEditEmp] = useState<typeof employees[0] | null>(null);
   const [selectedManager, setSelectedManager] = useState("");
   const { toast } = useToast();
 
-  const tree = buildOrgTree(reportMap);
+  const tree = buildOrgTree(reportMap, activeEmployees);
 
   const handleSaveReportTo = () => {
     if (!editEmp) return;
@@ -165,7 +167,7 @@ export default function OrgChartPage() {
 
       {/* Directory view */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {employees.map(emp => (
+        {activeEmployees.map(emp => (
           <Card key={emp.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => {
             setEditEmp(emp);
             setSelectedManager(reportMap[emp.id] || "");
@@ -207,7 +209,7 @@ export default function OrgChartPage() {
                   <SelectTrigger><SelectValue placeholder="Select manager..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">No Manager (Top Level)</SelectItem>
-                    {employees.filter(e => e.id !== editEmp.id).map(e => (
+                    {activeEmployees.filter(e => e.id !== editEmp.id).map(e => (
                       <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName} — {e.designation}</SelectItem>
                     ))}
                   </SelectContent>

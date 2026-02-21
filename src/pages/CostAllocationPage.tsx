@@ -1,9 +1,13 @@
 import { PageHeader } from "@/components/PageHeader";
 import { costAllocations } from "@/data/mockData";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 
 export default function CostAllocationPage() {
+  const activeEmps = useActiveEmployees();
+  const activeIds = new Set(activeEmps.map(e => e.id));
+  const filtered = costAllocations.filter(ca => activeIds.has(ca.employeeId));
   return (
     <div className="space-y-6">
       <PageHeader title="Cost Allocation" description="Track employee time and cost allocation across projects." />
@@ -20,7 +24,7 @@ export default function CostAllocationPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {costAllocations.map((ca) => (
+            {filtered.map((ca) => (
               <TableRow key={ca.id}>
                 <TableCell className="font-medium">{ca.employeeName}</TableCell>
                 <TableCell className="font-mono text-sm">{ca.projectCode}</TableCell>

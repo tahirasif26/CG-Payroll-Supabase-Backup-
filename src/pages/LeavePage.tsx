@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { leaveRequests } from "@/data/mockData";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Check, X } from "lucide-react";
@@ -13,6 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LeavePage() {
+  const activeEmps = useActiveEmployees();
+  const activeIds = new Set(activeEmps.map(e => e.id));
+  const filteredLeaves = leaveRequests.filter(l => activeIds.has(l.employeeId));
   const [newOpen, setNewOpen] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -37,7 +41,7 @@ export default function LeavePage() {
     toast({ title: "Leave Rejected", description: "The leave request has been rejected." });
   };
 
-  const selectedLeaveData = leaveRequests.find(l => l.id === selectedLeave);
+  const selectedLeaveData = filteredLeaves.find(l => l.id === selectedLeave);
 
   return (
     <div className="space-y-6">
@@ -62,7 +66,7 @@ export default function LeavePage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leaveRequests.map((leave) => (
+            {filteredLeaves.map((leave) => (
               <TableRow key={leave.id} className="hover:bg-muted/30 transition-colors">
                 <TableCell className="font-medium">{leave.employeeName}</TableCell>
                 <TableCell className="capitalize">{leave.type}</TableCell>

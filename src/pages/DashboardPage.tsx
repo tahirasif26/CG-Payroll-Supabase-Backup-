@@ -3,22 +3,24 @@ import { StatCard } from "@/components/StatCard";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { employees, payrollRuns, leaveRequests, expenses, loans, getUpcomingBirthdays } from "@/data/mockData";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRole } from "@/contexts/RoleContext";
 
 function EmployerDashboard() {
-  const activeEmployees = employees.filter((e) => e.status === "active").length;
+  const activeEmps = useActiveEmployees();
+  const activeCount = activeEmps.filter((e) => e.status === "active").length;
   const lastPayroll = payrollRuns.find((p) => p.status === "completed");
   const pendingLeaves = leaveRequests.filter((l) => l.status === "pending").length;
   const pendingExpenses = expenses.filter((e) => e.status === "pending");
-  const birthdays = getUpcomingBirthdays(employees).slice(0, 4);
+  const birthdays = getUpcomingBirthdays(activeEmps).slice(0, 4);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Dashboard" description="Welcome back! Here's your HR overview." />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Employees" value={employees.length} subtitle={`${activeEmployees} active`} icon={Users} variant="primary" />
+        <StatCard title="Total Employees" value={activeEmps.length} subtitle={`${activeCount} active`} icon={Users} variant="primary" />
         <StatCard title="Last Payroll" value={`SAR ${lastPayroll?.totalNet.toLocaleString()}`} subtitle={`${lastPayroll?.month} ${lastPayroll?.year}`} icon={DollarSign} variant="success" />
         <StatCard title="Pending Leaves" value={pendingLeaves} subtitle="Awaiting approval" icon={Calendar} variant="warning" />
         <StatCard title="Pending Expenses" value={pendingExpenses.length} subtitle={`SAR ${pendingExpenses.reduce((s, e) => s + e.amount, 0).toLocaleString()}`} icon={CreditCard} variant="info" />
@@ -117,8 +119,8 @@ function EmployerDashboard() {
           <CardContent>
             <div className="space-y-3">
               {["Assurance", "Tax", "Advisory", "Strategy", "Technology"].map((dept) => {
-                const count = employees.filter((e) => e.department === dept).length;
-                const total = employees.filter((e) => e.department === dept).reduce((s, e) => s + e.salary, 0);
+                const count = activeEmps.filter((e) => e.department === dept).length;
+                const total = activeEmps.filter((e) => e.department === dept).reduce((s, e) => s + e.salary, 0);
                 return (
                   <div key={dept} className="flex items-center justify-between py-2 border-b last:border-0">
                     <div>

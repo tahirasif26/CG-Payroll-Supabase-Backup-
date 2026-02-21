@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { assets, employees } from "@/data/mockData";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Monitor, Laptop, Smartphone, Key } from "lucide-react";
@@ -15,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function AssetsPage() {
   const { role, currentEmployeeId } = useRole();
+  const activeEmps = useActiveEmployees();
   const [newOpen, setNewOpen] = useState(false);
   const { toast } = useToast();
 
@@ -113,7 +115,7 @@ export default function AssetsPage() {
                 <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Unassigned</SelectItem>
-                  {employees.map(emp => (
+                  {activeEmps.map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</SelectItem>
                   ))}
                 </SelectContent>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { employees } from "@/data/mockData";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart3, Plus } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
@@ -15,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function CompensationPage() {
   const { role, currentEmployeeId } = useRole();
+  const activeEmps = useActiveEmployees();
   const [addOpen, setAddOpen] = useState(false);
   const { toast } = useToast();
 
@@ -62,9 +64,9 @@ export default function CompensationPage() {
   }
 
   // Employer view
-  const totalPayroll = employees.reduce((s, e) => s + e.salary, 0);
-  const avgSalary = Math.round(totalPayroll / employees.length);
-  const highest = Math.max(...employees.map((e) => e.salary));
+  const totalPayroll = activeEmps.reduce((s, e) => s + e.salary, 0);
+  const avgSalary = Math.round(totalPayroll / (activeEmps.length || 1));
+  const highest = Math.max(...activeEmps.map((e) => e.salary), 0);
 
   return (
     <div className="space-y-6">
@@ -95,7 +97,7 @@ export default function CompensationPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {employees.sort((a, b) => b.salary - a.salary).map((emp) => {
+            {activeEmps.sort((a, b) => b.salary - a.salary).map((emp) => {
               const comp = emp.compensation || [];
               const getAmount = (type: string) => comp.find(c => c.type === type)?.amount || 0;
               return (
@@ -128,7 +130,7 @@ export default function CompensationPage() {
               <Select required>
                 <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
                 <SelectContent>
-                  {employees.map(emp => (
+                  {activeEmps.map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</SelectItem>
                   ))}
                 </SelectContent>

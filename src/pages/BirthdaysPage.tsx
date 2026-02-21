@@ -1,10 +1,12 @@
 import { PageHeader } from "@/components/PageHeader";
-import { employees, getUpcomingBirthdays } from "@/data/mockData";
+import { getUpcomingBirthdays } from "@/data/mockData";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Card, CardContent } from "@/components/ui/card";
 import { Gift, PartyPopper, Cake } from "lucide-react";
 
 export default function BirthdaysPage() {
-  const birthdays = getUpcomingBirthdays(employees);
+  const activeEmployees = useActiveEmployees();
+  const birthdays = getUpcomingBirthdays(activeEmployees);
 
   return (
     <div className="space-y-6">
