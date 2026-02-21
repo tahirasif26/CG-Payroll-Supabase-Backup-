@@ -1,11 +1,33 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { getUpcomingBirthdays } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Gift, PartyPopper, Cake, Search, Filter } from "lucide-react";
+import { Cake, Briefcase, Search, Filter, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+type SortField = "name" | "birthday" | "anniversary" | "birthdayDays" | "anniversaryDays";
+type SortDir = "asc" | "desc";
+
+function getDaysUntilAnniversary(joiningDate: string) {
+  const today = new Date();
+  const join = new Date(joiningDate);
+  const thisYear = new Date(today.getFullYear(), join.getMonth(), join.getDate());
+  if (thisYear >= today) {
+    return Math.ceil((thisYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
+  const nextYear = new Date(today.getFullYear() + 1, join.getMonth(), join.getDate());
+  return Math.ceil((nextYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getYearsOfService(joiningDate: string) {
+  const today = new Date();
+  const join = new Date(joiningDate);
+  return Math.floor((today.getTime() - join.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+}
 
 export default function BirthdaysPage() {
   const activeEmployees = useActiveEmployees();
@@ -14,38 +36,88 @@ export default function BirthdaysPage() {
   const [search, setSearch] = useState("");
   const [filterDept, setFilterDept] = useState("all");
   const [filterTimeframe, setFilterTimeframe] = useState("all");
+  const [sortField, setSortField] = useState<SortField>("birthdayDays");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const departments = [...new Set(activeEmployees.map(e => e.department))].sort();
 
-  const birthdays = allBirthdays.filter(emp => {
+  const data = useMemo(() => {
+    return allBirthdays.map(emp => ({
+      ...emp,
+      anniversaryDaysUntil: getDaysUntilAnniversary(emp.joiningDate),
+      yearsOfService: getYearsOfService(emp.joiningDate),
+    }));
+  }, [allBirthdays]);
+
+  const filtered = data.filter(emp => {
     const q = search.toLowerCase();
     const matchesSearch = !q || `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q) || emp.department.toLowerCase().includes(q);
     const matchesDept = filterDept === "all" || emp.department === filterDept;
+    const minDays = Math.min(emp.daysUntil, emp.anniversaryDaysUntil);
     const matchesTime = filterTimeframe === "all"
-      || (filterTimeframe === "today" && emp.daysUntil === 0)
-      || (filterTimeframe === "week" && emp.daysUntil <= 7)
-      || (filterTimeframe === "month" && emp.daysUntil <= 30);
+      || (filterTimeframe === "today" && minDays === 0)
+      || (filterTimeframe === "week" && minDays <= 7)
+      || (filterTimeframe === "month" && minDays <= 30);
     return matchesSearch && matchesDept && matchesTime;
   });
 
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    switch (sortField) {
+      case "name": return dir * `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+      case "birthday": return dir * (a.birthMonth * 31 + a.birthDay - (b.birthMonth * 31 + b.birthDay));
+      case "anniversary": {
+        const aDate = new Date(a.joiningDate);
+        const bDate = new Date(b.joiningDate);
+        return dir * (aDate.getMonth() * 31 + aDate.getDate() - (bDate.getMonth() * 31 + bDate.getDate()));
+      }
+      case "birthdayDays": return dir * (a.daysUntil - b.daysUntil);
+      case "anniversaryDays": return dir * (a.anniversaryDaysUntil - b.anniversaryDaysUntil);
+      default: return 0;
+    }
+  });
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortField(field); setSortDir("asc"); }
+  };
+
+  const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <TableHead className="font-semibold cursor-pointer select-none" onClick={() => toggleSort(field)}>
+      <span className="flex items-center gap-1">{children}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+    </TableHead>
+  );
+
+  const todayBirthdays = data.filter(e => e.daysUntil === 0).length;
+  const todayAnniversaries = data.filter(e => e.anniversaryDaysUntil === 0).length;
+  const weekBirthdays = data.filter(e => e.daysUntil <= 7).length;
+  const weekAnniversaries = data.filter(e => e.anniversaryDaysUntil <= 7).length;
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Birthdays" description="Celebrate your team! Send birthday wishes and flyers." />
+      <PageHeader title="Birthdays & Anniversaries" description="Track upcoming birthdays and work anniversaries for your team." />
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Birthdays Today</p><p className="text-2xl font-bold">{todayBirthdays}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Anniversaries Today</p><p className="text-2xl font-bold">{todayAnniversaries}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Birthdays This Week</p><p className="text-2xl font-bold text-primary">{weekBirthdays}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Anniversaries This Week</p><p className="text-2xl font-bold text-primary">{weekAnniversaries}</p></CardContent></Card>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by name or department..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Search by name or department..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9" />
         </div>
         <Select value={filterDept} onValueChange={setFilterDept}>
-          <SelectTrigger className="w-[160px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Department" /></SelectTrigger>
+          <SelectTrigger className="w-[160px] h-9"><Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" /><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Departments</SelectItem>
             {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterTimeframe} onValueChange={setFilterTimeframe}>
-          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Timeframe" /></SelectTrigger>
+          <SelectTrigger className="w-[150px] h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Upcoming</SelectItem>
             <SelectItem value="today">Today</SelectItem>
@@ -55,47 +127,84 @@ export default function BirthdaysPage() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {birthdays.length > 0 ? birthdays.map((emp) => {
-          const isToday = emp.daysUntil === 0;
-          const isSoon = emp.daysUntil <= 7 && emp.daysUntil > 0;
+      <Card>
+        <ScrollArea className="h-[550px]">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <SortHeader field="name">Employee</SortHeader>
+                <TableHead className="font-semibold">Department</TableHead>
+                <SortHeader field="birthday">Birthday</SortHeader>
+                <SortHeader field="birthdayDays">Days Until Birthday</SortHeader>
+                <SortHeader field="anniversary">Anniversary Date</SortHeader>
+                <SortHeader field="anniversaryDays">Days Until Anniversary</SortHeader>
+                <TableHead className="font-semibold">Years of Service</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sorted.length > 0 ? sorted.map(emp => {
+                const isBirthdayToday = emp.daysUntil === 0;
+                const isBirthdaySoon = emp.daysUntil <= 7 && emp.daysUntil > 0;
+                const isAnniversaryToday = emp.anniversaryDaysUntil === 0;
+                const isAnniversarySoon = emp.anniversaryDaysUntil <= 7 && emp.anniversaryDaysUntil > 0;
 
-          return (
-            <Card key={emp.id} className={`overflow-hidden transition-all hover:shadow-lg ${isToday ? "ring-2 ring-primary shadow-lg" : ""}`}>
-              <div className={`h-2 w-full ${isToday ? "gradient-ey" : isSoon ? "bg-warning" : "bg-muted"}`} />
-              <CardContent className="pt-5">
-                <div className="text-center">
-                  <div className={`h-16 w-16 rounded-full mx-auto flex items-center justify-center mb-3 ${isToday ? "gradient-ey" : "bg-secondary"}`}>
-                    {isToday ? (
-                      <PartyPopper className="h-7 w-7 text-primary-foreground" />
-                    ) : (
-                      <span className="text-lg font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
-                    )}
-                  </div>
-                  <h3 className="font-semibold">{emp.firstName} {emp.lastName}</h3>
-                  <p className="text-xs text-muted-foreground">{emp.department} · {emp.designation}</p>
-                  <div className="mt-3 flex items-center justify-center gap-1.5">
-                    <Cake className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-sm">
-                      {new Date(emp.dateOfBirth).toLocaleDateString("en-US", { month: "long", day: "numeric" })}
-                    </span>
-                  </div>
-                  <p className={`text-xs font-medium mt-1 ${isToday ? "text-primary-foreground bg-primary rounded-full px-3 py-1 inline-block" : isSoon ? "text-warning" : "text-muted-foreground"}`}>
-                    {isToday ? "🎉 Happy Birthday!" : `In ${emp.daysUntil} days`}
-                  </p>
-                  {(isToday || isSoon) && (
-                    <button className="mt-3 text-xs font-semibold text-primary hover:underline flex items-center gap-1 mx-auto">
-                      <Gift className="h-3 w-3" /> Send Birthday Flyer
-                    </button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        }) : (
-          <div className="col-span-full text-center py-12 text-muted-foreground">No birthdays match your search criteria.</div>
-        )}
-      </div>
+                return (
+                  <TableRow key={emp.id} className={isBirthdayToday || isAnniversaryToday ? "bg-primary/5" : ""}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                          <span className="text-[10px] font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{emp.firstName} {emp.lastName}</p>
+                          <p className="text-xs text-muted-foreground">{emp.designation}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">{emp.department}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <Cake className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-sm">{new Date(emp.dateOfBirth).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${
+                        isBirthdayToday ? "bg-primary text-primary-foreground" :
+                        isBirthdaySoon ? "bg-warning/10 text-warning" :
+                        "bg-muted text-muted-foreground"
+                      }`}>
+                        {isBirthdayToday ? "🎉 Today!" : `${emp.daysUntil} days`}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-sm">{new Date(emp.joiningDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${
+                        isAnniversaryToday ? "bg-primary text-primary-foreground" :
+                        isAnniversarySoon ? "bg-info/10 text-info" :
+                        "bg-muted text-muted-foreground"
+                      }`}>
+                        {isAnniversaryToday ? "🎊 Today!" : `${emp.anniversaryDaysUntil} days`}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-semibold">{emp.yearsOfService} yr{emp.yearsOfService !== 1 ? "s" : ""}</span>
+                    </TableCell>
+                  </TableRow>
+                );
+              }) : (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No results match your filters.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </Card>
+      <p className="text-xs text-muted-foreground">{sorted.length} of {data.length} employees</p>
     </div>
   );
 }
