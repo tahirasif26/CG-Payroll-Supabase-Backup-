@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { ClientProvider } from "@/contexts/ClientContext";
+import { SeparationProvider } from "@/contexts/SeparationContext";
 import DashboardPage from "@/pages/DashboardPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import PayrollPage from "@/pages/PayrollPage";
@@ -45,6 +46,7 @@ const App = () => (
       <Sonner />
       <RoleProvider>
         <ClientProvider>
+        <SeparationProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -82,6 +84,7 @@ const App = () => (
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </SeparationProvider>
         </ClientProvider>
       </RoleProvider>
     </TooltipProvider>

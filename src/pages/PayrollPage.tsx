@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { payrollRuns, employees, loans, expenses } from "@/data/mockData";
 import { PayrollRun, OneOffAdjustment } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useSeparations } from "@/contexts/SeparationContext";
 import { Button } from "@/components/ui/button";
 import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download, Search, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -29,10 +30,12 @@ interface EmployeePayrollLine {
   expenseReimbursement: number;
   oneOffBenefits: number;
   oneOffDeductions: number;
+  separationSettlement: number;
+  isSeparated: boolean;
   net: number;
 }
 
-function buildBreakdown(oneOffs: OneOffAdjustment[]): EmployeePayrollLine[] {
+function buildBreakdown(oneOffs: OneOffAdjustment[], separationMap: Record<string, number>): EmployeePayrollLine[] {
   return employees.map(emp => {
     const comp = emp.compensation || [];
     const basic = comp.find(c => c.type === "base")?.amount || 0;
@@ -47,9 +50,11 @@ function buildBreakdown(oneOffs: OneOffAdjustment[]): EmployeePayrollLine[] {
     const empOneOffs = oneOffs.filter(o => o.employeeId === emp.id);
     const oneOffBenefits = empOneOffs.filter(o => o.type === "benefit").reduce((s, o) => s + o.amount, 0);
     const oneOffDeductions = empOneOffs.filter(o => o.type === "deduction").reduce((s, o) => s + o.amount, 0);
+    const separationSettlement = separationMap[emp.id] || 0;
+    const isSeparated = !!separationMap[emp.id];
     const totalDeductions = otherDeductions + loanDeduction + oneOffDeductions;
-    const net = gross - totalDeductions + approvedExpenses + oneOffBenefits;
-    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, oneOffBenefits, oneOffDeductions, net };
+    const net = gross - totalDeductions + approvedExpenses + oneOffBenefits + separationSettlement;
+    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net };
   });
 }
 
@@ -92,6 +97,7 @@ function downloadCSV(content: string, filename: string) {
 export default function PayrollPage() {
   const [runs, setRuns] = useState<PayrollRun[]>(payrollRuns);
   const { client } = useClient();
+  const { separations } = useSeparations();
   const [newRunOpen, setNewRunOpen] = useState(false);
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -99,6 +105,21 @@ export default function PayrollPage() {
   const [newMonth, setNewMonth] = useState("April");
   const [newYear, setNewYear] = useState("2025");
   const { toast } = useToast();
+
+  // Build separation map for current run period
+  const getSepMap = (month?: string, year?: number) => {
+    const sepMap: Record<string, number> = {};
+    separations.forEach(sep => {
+      if (month && year) {
+        if (sep.payrollMonth === month && sep.payrollYear === year) {
+          sepMap[sep.employeeId] = sep.totalSettlement;
+        }
+      } else {
+        sepMap[sep.employeeId] = sep.totalSettlement;
+      }
+    });
+    return sepMap;
+  };
 
   // Search state for detail view
   const [detailSearch, setDetailSearch] = useState("");
@@ -116,7 +137,7 @@ export default function PayrollPage() {
 
   const handleNewRun = (e: React.FormEvent) => {
     e.preventDefault();
-    const breakdown = buildBreakdown([]);
+    const breakdown = buildBreakdown([], {});
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
@@ -157,7 +178,7 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const breakdown = buildBreakdown(oneOffs[run.id] || []);
+    const breakdown = buildBreakdown(oneOffs[run.id] || [], getSepMap(run.month, run.year));
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
@@ -192,11 +213,13 @@ export default function PayrollPage() {
   const isLocked = selectedRun?.status === "completed" || selectedRun?.status === "failed";
 
   if (selectedRun) {
-    const breakdown = buildBreakdown(currentOneOffs);
+    const sepMap = getSepMap(selectedRun.month, selectedRun.year);
+    const breakdown = buildBreakdown(currentOneOffs, sepMap);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
     const totalOneOffBen = breakdown.reduce((s, l) => s + l.oneOffBenefits, 0);
     const totalOneOffDed = breakdown.reduce((s, l) => s + l.oneOffDeductions, 0);
+    const totalSepSettlement = breakdown.reduce((s, l) => s + l.separationSettlement, 0);
 
     const filteredBreakdown = breakdown.filter(({ emp }) => {
       if (!detailSearch) return true;
@@ -228,7 +251,7 @@ export default function PayrollPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-4">
           <StatCard title="Employees" value={selectedRun.employeeCount} icon={Users} variant="info" />
           <StatCard title="Total Gross" value={`SAR ${selectedRun.totalGross.toLocaleString()}`} icon={DollarSign} variant="primary" />
           <StatCard title="Other Deductions" value={`SAR ${selectedRun.totalDeductions.toLocaleString()}`} icon={TrendingDown} variant="warning" />
@@ -236,6 +259,7 @@ export default function PayrollPage() {
           <StatCard title="Expense Reimb." value={`SAR ${totalExpense.toLocaleString()}`} icon={DollarSign} variant="success" />
           <StatCard title="One-Off Benefits" value={`SAR ${totalOneOffBen.toLocaleString()}`} icon={DollarSign} variant="success" />
           <StatCard title="One-Off Deductions" value={`SAR ${totalOneOffDed.toLocaleString()}`} icon={TrendingDown} variant="warning" />
+          {totalSepSettlement > 0 && <StatCard title="Separation EOS" value={`SAR ${totalSepSettlement.toLocaleString()}`} icon={DollarSign} variant="primary" />}
           <StatCard title="Total Net" value={`SAR ${breakdown.reduce((s, l) => s + l.net, 0).toLocaleString()}`} icon={DollarSign} variant="success" />
         </div>
 
@@ -276,17 +300,21 @@ export default function PayrollPage() {
                   <TableHead className="font-semibold text-right">Loan Ded.</TableHead>
                   <TableHead className="font-semibold text-right">Expense Reimb.</TableHead>
                   <TableHead className="font-semibold text-right">One-Off +/-</TableHead>
+                  <TableHead className="font-semibold text-right">EOS Settlement</TableHead>
                   <TableHead className="font-semibold text-right">Net Pay</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredBreakdown.map(({ emp, basic, allowances, gross, otherDeductions, loanDeduction, expenseReimbursement, oneOffBenefits, oneOffDeductions, net }) => (
+                {filteredBreakdown.map(({ emp, basic, allowances, gross, otherDeductions, loanDeduction, expenseReimbursement, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net }) => (
                   <TableRow
                     key={emp.id}
-                    className={`hover:bg-muted/30 transition-colors ${!isLocked ? "cursor-pointer" : ""}`}
+                    className={`hover:bg-muted/30 transition-colors ${!isLocked ? "cursor-pointer" : ""} ${isSeparated ? "bg-destructive/5" : ""}`}
                     onClick={() => !isLocked && setSheetEmpId(emp.id)}
                   >
-                    <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
+                    <TableCell className="font-medium">
+                      {emp.firstName} {emp.lastName}
+                      {isSeparated && <span className="ml-2 text-[10px] font-semibold text-destructive uppercase">Separated</span>}
+                    </TableCell>
                     <TableCell>{emp.department}</TableCell>
                     <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
                     <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
@@ -301,6 +329,11 @@ export default function PayrollPage() {
                           {oneOffBenefits > 0 && oneOffDeductions > 0 && " / "}
                           {oneOffDeductions > 0 && <span className="text-destructive">-{oneOffDeductions.toLocaleString()}</span>}
                         </span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {separationSettlement > 0 ? (
+                        <span className="font-semibold text-primary">{separationSettlement.toLocaleString()}</span>
                       ) : "—"}
                     </TableCell>
                     <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
