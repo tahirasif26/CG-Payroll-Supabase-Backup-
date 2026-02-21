@@ -191,7 +191,17 @@ export default function PayrollPage() {
     const run = runs.find(r => r.id === id);
     if (!run) return;
 
-    syncRuns(prev => prev.map(r => r.id === id ? { ...r, status: "completed" as const, runDate: new Date().toISOString().split("T")[0] } : r));
+    // Calculate the actual breakdown for this run to get correct counts
+    const currentSepMap = getSepMap(run.id);
+    const currentBreakdown = buildBreakdown(oneOffs[run.id] || [], currentSepMap, processedSeps, run.id);
+    const runEmployeeCount = currentBreakdown.length;
+    const runGross = currentBreakdown.reduce((s, l) => s + l.gross, 0);
+    const runDed = currentBreakdown.reduce((s, l) => s + l.totalDeductions, 0);
+
+    syncRuns(prev => prev.map(r => r.id === id ? {
+      ...r, status: "completed" as const, runDate: new Date().toISOString().split("T")[0],
+      employeeCount: runEmployeeCount, totalGross: runGross, totalDeductions: runDed, totalNet: runGross - runDed,
+    } : r));
 
     // Link approved expenses
     expenses.forEach(exp => {
