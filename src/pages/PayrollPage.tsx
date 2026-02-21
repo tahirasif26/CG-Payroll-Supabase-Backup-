@@ -100,7 +100,17 @@ function downloadCSV(content: string, filename: string) {
 }
 
 export default function PayrollPage() {
-  const [runs, setRuns] = useState<PayrollRun[]>(payrollRuns);
+  const [runs, setRuns] = useState<PayrollRun[]>(() => [...payrollRuns]);
+
+  // Sync state mutations back to the shared array so navigation doesn't reset
+  const syncRuns = (updater: (prev: PayrollRun[]) => PayrollRun[]) => {
+    setRuns(prev => {
+      const next = updater(prev);
+      payrollRuns.length = 0;
+      next.forEach(r => payrollRuns.push(r));
+      return next;
+    });
+  };
   const { client } = useClient();
   const { separations } = useSeparations();
   const [newRunOpen, setNewRunOpen] = useState(false);
@@ -166,13 +176,13 @@ export default function PayrollPage() {
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
       runDate: "", employeeCount: employees.length,
     };
-    setRuns(prev => [...prev, newRun]);
+    syncRuns(prev => [...prev, newRun]);
     setNewRunOpen(false);
     toast({ title: "Payroll Run Created", description: `${newMonth} ${newYear} payroll run is now open for processing.` });
   };
 
   const handleProcess = (id: string) => {
-    setRuns(prev => prev.map(r => r.id === id ? { ...r, status: "processing" as const } : r));
+    syncRuns(prev => prev.map(r => r.id === id ? { ...r, status: "processing" as const } : r));
     toast({ title: "Processing", description: "Payroll run is now open for processing." });
   };
 
@@ -180,7 +190,7 @@ export default function PayrollPage() {
     const run = runs.find(r => r.id === id);
     if (!run) return;
 
-    setRuns(prev => prev.map(r => r.id === id ? { ...r, status: "completed" as const, runDate: new Date().toISOString().split("T")[0] } : r));
+    syncRuns(prev => prev.map(r => r.id === id ? { ...r, status: "completed" as const, runDate: new Date().toISOString().split("T")[0] } : r));
 
     // Link approved expenses
     expenses.forEach(exp => {
@@ -207,7 +217,7 @@ export default function PayrollPage() {
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
       runDate: "", employeeCount: employees.length,
     };
-    setRuns(prev => [...prev, nextRun]);
+    syncRuns(prev => [...prev, nextRun]);
 
     toast({ title: "Payroll Completed", description: `${run.month} ${run.year} is locked. ${next.month} ${next.year} payroll has been opened automatically.` });
     setSelectedRun(null);
@@ -216,7 +226,7 @@ export default function PayrollPage() {
   const handleDeleteRun = (id: string) => {
     const run = runs.find(r => r.id === id);
     if (!run || run.status === "completed") return;
-    setRuns(prev => prev.filter(r => r.id !== id));
+    syncRuns(prev => prev.filter(r => r.id !== id));
     toast({ title: "Deleted", description: "Payroll run deleted." });
   };
 
@@ -225,7 +235,7 @@ export default function PayrollPage() {
     if (confirmAction.action === "approve") {
       handleComplete(confirmAction.id);
     } else {
-      setRuns(prev => prev.map(r => r.id === confirmAction.id ? { ...r, status: "failed" as const } : r));
+      syncRuns(prev => prev.map(r => r.id === confirmAction.id ? { ...r, status: "failed" as const } : r));
       toast({ title: "Rejected", description: "Payroll run has been rejected." });
     }
     setConfirmOpen(false);
