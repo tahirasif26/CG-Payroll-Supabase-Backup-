@@ -202,21 +202,19 @@ export default function PayrollPage() {
 
     // Mark separated employees as processed
     const sepMap = getSepMap(run.id);
-    setProcessedSeps(prev => {
-      const next = new Set(prev);
-      Object.keys(sepMap).forEach(empId => next.add(empId));
-      return next;
-    });
+    const updatedProcessedSeps = new Set(processedSeps);
+    Object.keys(sepMap).forEach(empId => updatedProcessedSeps.add(empId));
+    setProcessedSeps(updatedProcessedSeps);
 
-    // Auto-create next month's payroll run
+    // Auto-create next month's payroll run using updated processed seps
     const next = getNextMonth(run.month, run.year);
-    const breakdown = buildBreakdown([], {}, processedSeps);
+    const breakdown = buildBreakdown([], {}, updatedProcessedSeps);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const nextRun: PayrollRun = {
       id: String(Date.now() + 1), month: next.month, year: next.year, status: "processing",
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
-      runDate: "", employeeCount: employees.length,
+      runDate: "", employeeCount: breakdown.length,
     };
     syncRuns(prev => [...prev, nextRun]);
 
