@@ -12,6 +12,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
 
@@ -198,7 +199,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
 
   return (
     <Dialog open={!!payslip} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden">
+      <DialogContent className="max-w-2xl p-0 overflow-hidden max-h-[90vh]">
         {/* Header */}
         <div className="bg-primary px-6 py-5 text-primary-foreground">
           <div className="flex items-center justify-between">
@@ -218,6 +219,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
           </div>
         </div>
 
+        <ScrollArea className="max-h-[calc(90vh-160px)]">
         <div className="px-6 py-5 space-y-5">
           {/* Employee Details */}
           <div className="grid grid-cols-3 gap-4 text-sm">
@@ -407,6 +409,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
           </p>
         </div>
 
+        </ScrollArea>
         <div className="px-6 pb-5 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Close</Button>
           <Button onClick={() => { onDownload(payslip.employeeName, payslip.period); onClose(); }}>

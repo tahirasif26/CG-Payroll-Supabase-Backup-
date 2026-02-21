@@ -35,8 +35,13 @@ interface EmployeePayrollLine {
   net: number;
 }
 
-function buildBreakdown(oneOffs: OneOffAdjustment[], separationMap: Record<string, number>): EmployeePayrollLine[] {
-  return employees.map(emp => {
+function buildBreakdown(oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>): EmployeePayrollLine[] {
+  // Filter out employees whose separation was already processed in a completed run
+  const activeEmployees = employees.filter(emp => {
+    if (processedSepIds.has(emp.id)) return false; // Already settled in a previous run
+    return true;
+  });
+  return activeEmployees.map(emp => {
     const comp = emp.compensation || [];
     const basic = comp.find(c => c.type === "base")?.amount || 0;
     const gross = emp.salary;
@@ -121,6 +126,9 @@ export default function PayrollPage() {
     return sepMap;
   };
 
+  // Track which separations were already processed in completed runs
+  const [processedSeps, setProcessedSeps] = useState<Set<string>>(new Set());
+
   // Search state for detail view
   const [detailSearch, setDetailSearch] = useState("");
 
@@ -137,7 +145,7 @@ export default function PayrollPage() {
 
   const handleNewRun = (e: React.FormEvent) => {
     e.preventDefault();
-    const breakdown = buildBreakdown([], {});
+    const breakdown = buildBreakdown([], {}, processedSeps);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
@@ -151,6 +159,7 @@ export default function PayrollPage() {
   };
 
   const handleProcess = (id: string) => {
+    const run = runs.find(r => r.id === id);
     setRuns(prev => prev.map(r => r.id === id ? { ...r, status: "processing" as const } : r));
     toast({ title: "Processing", description: "Payroll is being processed..." });
     setTimeout(() => {
@@ -161,6 +170,15 @@ export default function PayrollPage() {
           exp.payrollRunId = id;
         }
       });
+      // Mark separated employees in this run as processed so they won't appear in future runs
+      if (run) {
+        const sepMap = getSepMap(run.month, run.year);
+        setProcessedSeps(prev => {
+          const next = new Set(prev);
+          Object.keys(sepMap).forEach(empId => next.add(empId));
+          return next;
+        });
+      }
       toast({ title: "Completed", description: "Payroll processing completed. This run is now locked." });
     }, 2000);
   };
@@ -178,7 +196,7 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const breakdown = buildBreakdown(oneOffs[run.id] || [], getSepMap(run.month, run.year));
+    const breakdown = buildBreakdown(oneOffs[run.id] || [], getSepMap(run.month, run.year), processedSeps);
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
@@ -214,7 +232,7 @@ export default function PayrollPage() {
 
   if (selectedRun) {
     const sepMap = getSepMap(selectedRun.month, selectedRun.year);
-    const breakdown = buildBreakdown(currentOneOffs, sepMap);
+    const breakdown = buildBreakdown(currentOneOffs, sepMap, isLocked ? new Set() : processedSeps);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
     const totalOneOffBen = breakdown.reduce((s, l) => s + l.oneOffBenefits, 0);
