@@ -130,12 +130,17 @@ export default function ExpensesPage() {
     setEditOpen(true);
   };
 
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+
   const filtered = expenseList.filter(exp => {
-    if (!search) return true;
     const q = search.toLowerCase();
-    return exp.employeeName.toLowerCase().includes(q) ||
+    const matchesSearch = !q || exp.employeeName.toLowerCase().includes(q) ||
       exp.category.toLowerCase().includes(q) ||
       exp.description.toLowerCase().includes(q);
+    const matchesCategory = filterCategory === "all" || exp.category === filterCategory;
+    const matchesStatus = filterStatus === "all" || exp.status === filterStatus;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const getPayrollLabel = (payrollRunId?: string) => {
@@ -152,9 +157,31 @@ export default function ExpensesPage() {
         </Button>
       </PageHeader>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search by name, category, description..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name, category, description..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-[170px]"><SelectValue placeholder="Category" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="Travel">Travel</SelectItem>
+            <SelectItem value="Client Entertainment">Client Entertainment</SelectItem>
+            <SelectItem value="Training">Training</SelectItem>
+            <SelectItem value="Equipment">Equipment</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="bg-card rounded-xl border overflow-hidden">

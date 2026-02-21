@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Undo2, Eye, CheckCircle2 } from "lucide-react";
+import { Edit2, Undo2, Eye, CheckCircle2, Search, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAssets } from "@/contexts/AssetContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,6 +24,19 @@ export default function SeparationsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [detailItem, setDetailItem] = useState<SeparationRecord | null>(null);
   const { toast } = useToast();
+
+  // Search & filter
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterReason, setFilterReason] = useState("all");
+
+  const filteredSeparations = separations.filter(sep => {
+    const q = search.toLowerCase();
+    const matchesSearch = !q || sep.employeeName.toLowerCase().includes(q) || sep.empId.toLowerCase().includes(q) || sep.department.toLowerCase().includes(q);
+    const matchesStatus = filterStatus === "all" || sep.status === filterStatus;
+    const matchesReason = filterReason === "all" || sep.reason === filterReason;
+    return matchesSearch && matchesStatus && matchesReason;
+  });
 
   const openEdit = (sep: SeparationRecord) => {
     setEditItem({ ...sep });
@@ -77,6 +90,31 @@ export default function SeparationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Separations" description="View and manage all employee separations. Reversing a separation will reactivate the employee." />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name, ID, department..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterReason} onValueChange={setFilterReason}>
+          <SelectTrigger className="w-[170px]"><SelectValue placeholder="Reason" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Reasons</SelectItem>
+            <SelectItem value="resignation">Resignation</SelectItem>
+            <SelectItem value="termination">Termination</SelectItem>
+            <SelectItem value="retirement">Retirement</SelectItem>
+            <SelectItem value="end_of_contract">End of Contract</SelectItem>
+            <SelectItem value="mutual">Mutual Agreement</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <ScrollArea className="h-[500px]">
@@ -95,7 +133,7 @@ export default function SeparationsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {separations.length > 0 ? separations.map(sep => (
+              {filteredSeparations.length > 0 ? filteredSeparations.map(sep => (
                 <TableRow key={sep.id} className="hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => setDetailItem(sep)}>
                   <TableCell className="font-medium">{sep.employeeName}</TableCell>
                   <TableCell className="font-mono text-sm">{sep.empId}</TableCell>
