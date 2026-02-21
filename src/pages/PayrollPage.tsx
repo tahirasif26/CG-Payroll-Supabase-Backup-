@@ -35,7 +35,7 @@ interface EmployeePayrollLine {
   net: number;
 }
 
-function buildBreakdown(oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>): EmployeePayrollLine[] {
+function buildBreakdown(oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string): EmployeePayrollLine[] {
   // Filter out employees whose separation was already processed in a completed run
   const activeEmployees = employees.filter(emp => {
     if (processedSepIds.has(emp.id)) return false; // Already settled in a previous run
@@ -50,7 +50,7 @@ function buildBreakdown(oneOffs: OneOffAdjustment[], separationMap: Record<strin
     const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
     const otherDeductions = Math.round(gross * 0.15);
     const approvedExpenses = expenses
-      .filter(e => e.employeeId === emp.id && e.status === "approved")
+      .filter(e => e.employeeId === emp.id && e.status === "approved" && e.payrollRunId === runId)
       .reduce((s, e) => s + e.amount, 0);
     const empOneOffs = oneOffs.filter(o => o.employeeId === emp.id);
     const oneOffBenefits = empOneOffs.filter(o => o.type === "benefit").reduce((s, o) => s + o.amount, 0);
@@ -243,7 +243,7 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const breakdown = buildBreakdown(oneOffs[run.id] || [], getSepMap(run.month, run.year), processedSeps);
+    const breakdown = buildBreakdown(oneOffs[run.id] || [], getSepMap(run.month, run.year), processedSeps, run.id);
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
@@ -279,7 +279,7 @@ export default function PayrollPage() {
 
   if (selectedRun) {
     const sepMap = getSepMap(selectedRun.month, selectedRun.year);
-    const breakdown = buildBreakdown(currentOneOffs, sepMap, isLocked ? new Set() : processedSeps);
+    const breakdown = buildBreakdown(currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
     const totalOneOffBen = breakdown.reduce((s, l) => s + l.oneOffBenefits, 0);
