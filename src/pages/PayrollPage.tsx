@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { payrollRuns, employees, loans, expenses } from "@/data/mockData";
@@ -574,63 +575,79 @@ export default function PayrollPage() {
         </div>
       )}
 
-      <div className="bg-card rounded-xl border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold">Period</TableHead>
-              <TableHead className="font-semibold">Employees</TableHead>
-              <TableHead className="font-semibold text-right">Gross (SAR)</TableHead>
-              <TableHead className="font-semibold text-right">Deductions (SAR)</TableHead>
-              <TableHead className="font-semibold text-right">Net (SAR)</TableHead>
-              <TableHead className="font-semibold">Run Date</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="font-semibold text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {runs.map((run) => {
-              // For non-completed runs, compute live employee count & totals
-              const liveBreakdown = run.status !== "completed"
-                ? buildBreakdown(oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id)
-                : null;
-              const dispEmployeeCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
-              const dispGross = liveBreakdown ? liveBreakdown.reduce((s, l) => s + l.gross, 0) : run.totalGross;
-              const dispDed = liveBreakdown ? liveBreakdown.reduce((s, l) => s + l.totalDeductions, 0) : run.totalDeductions;
-              const dispNet = liveBreakdown ? dispGross - dispDed : run.totalNet;
-              return (
-              <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
-                <TableCell className="font-medium">{run.month} {run.year}</TableCell>
-                <TableCell>{dispEmployeeCount}</TableCell>
-                <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
-                <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
-                <TableCell className="text-right font-semibold">{dispNet.toLocaleString()}</TableCell>
-                <TableCell>{run.runDate || "—"}</TableCell>
-                <TableCell><StatusBadge status={run.status} /></TableCell>
-                <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                  <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRun(run)}><Eye className="h-3.5 w-3.5" /></Button>
-                    {run.status === "completed" && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadAccounting(run)}>
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
+      <Tabs defaultValue="processing" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="processing">Processing</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+        </TabsList>
+
+        {["processing", "completed"].map(tab => {
+          const filtered = runs.filter(r => tab === "completed" ? r.status === "completed" : r.status !== "completed");
+          return (
+            <TabsContent key={tab} value={tab}>
+              <div className="bg-card rounded-xl border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold">Period</TableHead>
+                      <TableHead className="font-semibold text-right">Gross (SAR)</TableHead>
+                      <TableHead className="font-semibold text-right">Deductions (SAR)</TableHead>
+                      <TableHead className="font-semibold text-right">Net (SAR)</TableHead>
+                      <TableHead className="font-semibold">Run Date</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.length > 0 ? filtered.map((run) => {
+                      const liveBreakdown = run.status !== "completed"
+                        ? buildBreakdown(oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id)
+                        : null;
+                      const dispGross = liveBreakdown ? liveBreakdown.reduce((s, l) => s + l.gross, 0) : run.totalGross;
+                      const dispDed = liveBreakdown ? liveBreakdown.reduce((s, l) => s + l.totalDeductions, 0) : run.totalDeductions;
+                      const dispNet = liveBreakdown ? dispGross - dispDed : run.totalNet;
+                      return (
+                        <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
+                          <TableCell className="font-medium">{run.month} {run.year}</TableCell>
+                          <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-semibold">{dispNet.toLocaleString()}</TableCell>
+                          <TableCell>{run.runDate || "—"}</TableCell>
+                          <TableCell><StatusBadge status={run.status} /></TableCell>
+                          <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRun(run)}><Eye className="h-3.5 w-3.5" /></Button>
+                              {run.status === "completed" && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadAccounting(run)}>
+                                  <Download className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {run.status === "completed" && (
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground ml-1 mt-2" />
+                              )}
+                              {(run.status === "processing" || run.status === "draft" || run.status === "failed") && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRun(run.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          {tab === "completed" ? "No completed payroll runs yet." : "No processing payroll runs."}
+                        </TableCell>
+                      </TableRow>
                     )}
-                    {run.status === "completed" && (
-                      <Lock className="h-3.5 w-3.5 text-muted-foreground ml-1 mt-2" />
-                    )}
-                    {(run.status === "processing" || run.status === "draft" || run.status === "failed") && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRun(run.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          );
+        })}
+      </Tabs>
 
       <Dialog open={newRunOpen} onOpenChange={setNewRunOpen}>
         <DialogContent>
