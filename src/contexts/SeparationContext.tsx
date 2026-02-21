@@ -21,6 +21,7 @@ export interface SeparationRecord {
   processedDate: string;
   payrollMonth: string;
   payrollYear: number;
+  payrollRunId?: string;
 }
 
 interface SeparationContextType {

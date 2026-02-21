@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { employees, leaveRequests, assets, loans } from "@/data/mockData";
+import { employees, leaveRequests, assets, loans, payrollRuns } from "@/data/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1005,6 +1005,7 @@ export default function EmployeesPage() {
                 processedDate: now.toISOString().split("T")[0],
                 payrollMonth: months[now.getMonth()],
                 payrollYear: now.getFullYear(),
+                payrollRunId: payrollRuns.find(r => r.status === "processing" || r.status === "draft")?.id,
               });
 
               setLocalEmployees(prev => prev.map(e => e.id === separationEmp.id ? { ...e, status: "separated" as const } : e));
