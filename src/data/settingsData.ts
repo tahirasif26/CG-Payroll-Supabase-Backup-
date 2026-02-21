@@ -2,6 +2,7 @@ export interface CompensationSetting {
   id: string;
   name: string;
   isActive: boolean;
+  appliesTo?: "all" | "direct" | "contractor";
 }
 
 export interface JobTitle {

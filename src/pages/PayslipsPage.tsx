@@ -2,13 +2,13 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useClient } from "@/contexts/ClientContext";
-import { employees, payrollRuns } from "@/data/mockData";
+import { employees, payrollRuns, loans } from "@/data/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, FileText, Search } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatCard } from "@/components/StatCard";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
@@ -17,10 +17,13 @@ interface PayslipDetail {
   employeeName: string;
   empId: string;
   department: string;
+  designation: string;
+  joiningDate: string;
   period: string;
   gross: number;
   deductions: number;
   net: number;
+  employeeId: string;
 }
 
 export default function PayslipsPage() {
@@ -72,10 +75,11 @@ export default function PayslipsPage() {
                     <div className="flex items-center justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => setViewPayslip({
                         employeeName: `${currentEmployee.firstName} ${currentEmployee.lastName}`,
-                        empId: currentEmployee.empId,
-                        department: currentEmployee.department,
+                        empId: currentEmployee.empId, department: currentEmployee.department,
+                        designation: currentEmployee.designation, joiningDate: currentEmployee.joiningDate,
                         period: `${run.month} ${run.year}`,
                         gross: monthlySalary, deductions, net: netPay,
+                        employeeId: currentEmployee.id,
                       })}><Eye className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDownload(`${currentEmployee.firstName} ${currentEmployee.lastName}`, `${run.month} ${run.year}`)}>
                         <Download className="h-4 w-4" />
@@ -146,8 +150,10 @@ export default function PayslipsPage() {
                     <Button variant="ghost" size="sm" onClick={() => setViewPayslip({
                       employeeName: `${emp.firstName} ${emp.lastName}`,
                       empId: emp.empId, department: emp.department,
+                      designation: emp.designation, joiningDate: emp.joiningDate,
                       period: `${run.month} ${run.year}`,
                       gross: emp.salary, deductions, net,
+                      employeeId: emp.id,
                     })}><Eye className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(`${emp.firstName} ${emp.lastName}`, `${run.month} ${run.year}`)}>
                       <Download className="h-4 w-4" />
@@ -176,12 +182,19 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
     { label: "Other Allowances", amount: Math.round(payslip.gross * 0.05) },
   ];
 
+  const gosiDeduction = payslip.deductions;
+  const empLoans = loans.filter(l => l.employeeId === payslip.employeeId);
+  const activeLoan = empLoans.find(l => l.status === "active");
+  const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
+  const totalDeductions = gosiDeduction + loanDeduction;
+  const adjustedNet = payslip.gross - totalDeductions;
+
   const companyName = client.companyName || "Your Company";
 
   return (
     <Dialog open={!!payslip} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden">
-        {/* Payslip Header with company branding */}
+      <DialogContent className="max-w-2xl p-0 overflow-hidden">
+        {/* Header */}
         <div className="bg-primary px-6 py-5 text-primary-foreground">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -202,7 +215,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
 
         <div className="px-6 py-5 space-y-5">
           {/* Employee Details */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
               <p className="text-xs text-muted-foreground">Employee Name</p>
               <p className="font-semibold">{payslip.employeeName}</p>
@@ -216,6 +229,14 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
               <p className="font-medium">{payslip.department}</p>
             </div>
             <div>
+              <p className="text-xs text-muted-foreground">Job Title</p>
+              <p className="font-medium">{payslip.designation}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Joining Date</p>
+              <p className="font-medium">{new Date(payslip.joiningDate).toLocaleDateString()}</p>
+            </div>
+            <div>
               <p className="text-xs text-muted-foreground">Pay Period</p>
               <p className="font-medium">{payslip.period}</p>
             </div>
@@ -223,32 +244,43 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
 
           <Separator />
 
-          {/* Earnings */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Earnings</p>
-            <div className="bg-muted/30 rounded-lg overflow-hidden">
-              {components.map((c, i) => (
-                <div key={i} className={`flex justify-between text-sm px-3 py-2 ${i < components.length - 1 ? 'border-b border-border/50' : ''}`}>
-                  <span>{c.label}</span>
-                  <span className="font-medium">SAR {c.amount.toLocaleString()}</span>
+          {/* Two-column: Earnings | Deductions */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Earnings (Left) */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Earnings</p>
+              <div className="bg-muted/30 rounded-lg overflow-hidden">
+                {components.map((c, i) => (
+                  <div key={i} className={`flex justify-between text-sm px-3 py-2 ${i < components.length - 1 ? 'border-b border-border/50' : ''}`}>
+                    <span>{c.label}</span>
+                    <span className="font-medium">SAR {c.amount.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between text-sm font-bold px-3 pt-1">
+                <span>Total Gross</span>
+                <span>SAR {payslip.gross.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Deductions (Right) */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Deductions</p>
+              <div className="bg-muted/30 rounded-lg overflow-hidden">
+                <div className="flex justify-between text-sm px-3 py-2 border-b border-border/50">
+                  <span>GOSI & Insurance</span>
+                  <span className="font-medium text-destructive">SAR {gosiDeduction.toLocaleString()}</span>
                 </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-sm font-bold px-3 pt-1">
-              <span>Total Gross</span>
-              <span>SAR {payslip.gross.toLocaleString()}</span>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Deductions */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Deductions</p>
-            <div className="bg-muted/30 rounded-lg overflow-hidden">
-              <div className="flex justify-between text-sm px-3 py-2">
-                <span>GOSI & Insurance</span>
-                <span className="font-medium text-destructive">SAR {payslip.deductions.toLocaleString()}</span>
+                {loanDeduction > 0 && (
+                  <div className="flex justify-between text-sm px-3 py-2">
+                    <span>Loan Repayment</span>
+                    <span className="font-medium text-destructive">SAR {loanDeduction.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-between text-sm font-bold px-3 pt-1">
+                <span>Total Deductions</span>
+                <span className="text-destructive">SAR {totalDeductions.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -258,10 +290,38 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
           {/* Net Pay */}
           <div className="flex justify-between items-center bg-primary/10 rounded-lg px-4 py-3">
             <span className="text-base font-bold">Net Pay</span>
-            <span className="text-lg font-bold text-primary">SAR {payslip.net.toLocaleString()}</span>
+            <span className="text-lg font-bold text-primary">SAR {adjustedNet.toLocaleString()}</span>
           </div>
 
-          {/* Footer note */}
+          {/* Loan Summary */}
+          {empLoans.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Loan Information</p>
+                <div className="bg-muted/30 rounded-lg overflow-hidden">
+                  {empLoans.map(loan => (
+                    <div key={loan.id} className="px-3 py-2 text-sm border-b border-border/50 last:border-0">
+                      <div className="flex justify-between">
+                        <span className="font-medium">Loan #{loan.id}</span>
+                        <StatusBadge status={loan.status} />
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Total: SAR {loan.amount.toLocaleString()}</span>
+                        <span>Remaining: SAR {loan.remainingBalance.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{loan.startDate} → {loan.endDate}</span>
+                        <span>Monthly: SAR {loan.monthlyDeduction.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Footer */}
           <p className="text-[10px] text-muted-foreground text-center">
             This is a computer-generated payslip. If you have any queries, please contact the HR department.
           </p>
