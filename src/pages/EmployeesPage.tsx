@@ -894,7 +894,7 @@ export default function EmployeesPage() {
               <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
             </div>
           </div>
-          {selectedEmployee.status === "active" && (
+          {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
             <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
               <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
             </Button>
@@ -957,8 +957,8 @@ export default function EmployeesPage() {
           setSeparationData={setSeparationData}
           onConfirm={() => {
             if (separationEmp) {
-              setLocalEmployees(prev => prev.map(e => e.id === separationEmp.id ? { ...e, status: "inactive" as const } : e));
-              setSelectedEmployee({ ...separationEmp, status: "inactive" });
+              setLocalEmployees(prev => prev.map(e => e.id === separationEmp.id ? { ...e, status: "separated" as const } : e));
+              setSelectedEmployee({ ...separationEmp, status: "separated" });
               setSeparationOpen(false);
               toast({ title: "Separation Processed", description: `${separationEmp.firstName} ${separationEmp.lastName} has been separated. Final settlement will be included in the next payroll run.` });
             }

@@ -11,7 +11,7 @@ export interface Employee {
   designation: string;
   joiningDate: string;
   salary: number;
-  status: "active" | "inactive" | "on-leave";
+  status: "active" | "inactive" | "on-leave" | "separated";
   avatar: string;
   dateOfBirth: string;
   category: EmployeeCategory;

@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, DollarSign, Calendar, Gift, FileText,
   Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
   FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
-  Layers, Tag, Shield, Coins, ChevronDown, Award
+  Layers, Tag, Shield, Coins, ChevronDown, Award, UserMinus
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -28,6 +28,7 @@ const employeesSubNav = [
 const payrollSubNav = [
   { title: "Payroll Runs", url: "/payroll", icon: DollarSign },
   { title: "Payslips", url: "/payslips", icon: FileCheck },
+  { title: "Separations", url: "/separations", icon: UserMinus },
   { title: "Loans", url: "/loans", icon: PiggyBank },
   { title: "Expenses", url: "/expenses", icon: CreditCard },
 ];

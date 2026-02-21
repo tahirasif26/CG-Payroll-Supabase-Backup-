@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Shield } from "lucide-react";
+import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export interface EOSBenefitConfig {
@@ -23,16 +23,10 @@ export interface EOSBenefitConfig {
 
 export interface EOSTier {
   fromYear: number;
-  toYear: number | null; // null = unlimited
-  daysPerYear: number; // days of salary per year of service
-  fraction: number; // e.g. 0.5 = half pay, 1 = full pay
+  toYear: number | null;
+  daysPerYear: number;
+  fraction: number;
 }
-
-// Default Saudi Labor Law gratuity tiers
-const defaultGratuityTiers: EOSTier[] = [
-  { fromYear: 0, toYear: 5, daysPerYear: 15, fraction: 0.5 },
-  { fromYear: 5, toYear: null, daysPerYear: 30, fraction: 1 },
-];
 
 const defaultConfigs: EOSBenefitConfig[] = [
   {
@@ -40,7 +34,12 @@ const defaultConfigs: EOSBenefitConfig[] = [
     name: "Saudi Gratuity (End of Service Award)",
     type: "gratuity",
     calculationBasis: "basic_salary",
-    tiers: defaultGratuityTiers,
+    tiers: [
+      { fromYear: 0, toYear: 2, daysPerYear: 10, fraction: 0.5 },
+      { fromYear: 2, toYear: 5, daysPerYear: 15, fraction: 0.5 },
+      { fromYear: 5, toYear: 10, daysPerYear: 30, fraction: 1 },
+      { fromYear: 10, toYear: null, daysPerYear: 30, fraction: 1 },
+    ],
     appliesTo: "direct",
     isActive: true,
   },
@@ -55,7 +54,6 @@ const defaultConfigs: EOSBenefitConfig[] = [
   },
 ];
 
-// Export for use in payslip and separation
 export function calculateEOSBenefit(
   config: EOSBenefitConfig,
   yearsOfService: number,
@@ -79,6 +77,52 @@ export function calculateEOSBenefit(
 
 export const eosBenefitConfigs = defaultConfigs;
 
+function TierEditor({ tiers, onChange }: { tiers: EOSTier[]; onChange: (t: EOSTier[]) => void }) {
+  const updateTier = (i: number, field: keyof EOSTier, value: string) => {
+    const updated = [...tiers];
+    if (field === "toYear") {
+      updated[i] = { ...updated[i], toYear: value ? Number(value) : null };
+    } else {
+      updated[i] = { ...updated[i], [field]: Number(value) };
+    }
+    onChange(updated);
+  };
+
+  const removeTier = (i: number) => onChange(tiers.filter((_, idx) => idx !== i));
+
+  const addTier = () => {
+    if (tiers.length >= 6) return;
+    const lastTo = tiers.length > 0 ? (tiers[tiers.length - 1].toYear ?? 0) : 0;
+    onChange([...tiers, { fromYear: lastTo, toYear: null, daysPerYear: 30, fraction: 1 }]);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 text-xs text-muted-foreground font-medium">
+        <span>From Year</span><span>To Year</span><span>Days / Year of Service</span><span>Salary Fraction</span><span></span>
+      </div>
+      {tiers.map((tier, i) => (
+        <div key={i} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center">
+          <Input type="number" min={0} value={tier.fromYear} onChange={e => updateTier(i, "fromYear", e.target.value)} className="h-8" />
+          <Input type="number" min={0} value={tier.toYear ?? ""} placeholder="∞" onChange={e => updateTier(i, "toYear", e.target.value)} className="h-8" />
+          <Input type="number" min={0} value={tier.daysPerYear} onChange={e => updateTier(i, "daysPerYear", e.target.value)} className="h-8" />
+          <Input type="number" min={0} step={0.1} value={tier.fraction} onChange={e => updateTier(i, "fraction", e.target.value)} className="h-8" />
+          {tiers.length > 1 && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeTier(i)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      ))}
+      {tiers.length < 6 && (
+        <Button variant="outline" size="sm" onClick={addTier}>
+          <Plus className="h-3 w-3 mr-1" />Add Tier
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export default function EOSBenefitsPage() {
   const [configs, setConfigs] = useState<EOSBenefitConfig[]>(defaultConfigs);
   const [editOpen, setEditOpen] = useState(false);
@@ -91,7 +135,12 @@ export default function EOSBenefitsPage() {
       name: "",
       type: "gratuity",
       calculationBasis: "basic_salary",
-      tiers: [{ fromYear: 0, toYear: 5, daysPerYear: 15, fraction: 0.5 }],
+      tiers: [
+        { fromYear: 0, toYear: 2, daysPerYear: 10, fraction: 0.5 },
+        { fromYear: 2, toYear: 5, daysPerYear: 15, fraction: 0.5 },
+        { fromYear: 5, toYear: 10, daysPerYear: 30, fraction: 1 },
+        { fromYear: 10, toYear: null, daysPerYear: 30, fraction: 1 },
+      ],
       appliesTo: "all",
       isActive: true,
     });
@@ -125,26 +174,11 @@ export default function EOSBenefitsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="End of Service Benefits" description="Configure gratuity, provident fund, and other end-of-service benefit rules based on labor law.">
+      <PageHeader title="End of Service Benefits" description="Configure gratuity, provident fund, and other end-of-service benefit rules.">
         <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-2" />Add Benefit
         </Button>
       </PageHeader>
-
-      {/* Info Card */}
-      <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Shield className="h-4 w-4 text-primary" />Saudi Labor Law — Gratuity Reference</CardTitle></CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>Under Saudi Arabia's Labor Law (Article 84), employees are entitled to an end-of-service award (gratuity) calculated as:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li><strong>First 5 years:</strong> Half month's wage (15 days) for each year of service</li>
-            <li><strong>After 5 years:</strong> One month's wage (30 days) for each additional year</li>
-            <li>Calculated on the <strong>last basic salary</strong></li>
-            <li>Pro-rated for partial years</li>
-          </ul>
-          <p className="text-xs">UAE EOSB follows similar principles under Federal Decree-Law No. 33/2021: 21 days for first 5 years, 30 days thereafter, capped at 2 years' total salary.</p>
-        </CardContent>
-      </Card>
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <Table>
@@ -152,7 +186,7 @@ export default function EOSBenefitsPage() {
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Benefit Name</TableHead>
               <TableHead className="font-semibold">Type</TableHead>
-              <TableHead className="font-semibold">Basis</TableHead>
+              <TableHead className="font-semibold">Calculation Basis</TableHead>
               <TableHead className="font-semibold">Applies To</TableHead>
               <TableHead className="font-semibold">Tiers</TableHead>
               <TableHead className="font-semibold">Active</TableHead>
@@ -188,15 +222,15 @@ export default function EOSBenefitsPage() {
 
       {/* Edit/Add Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editItem?.name ? "Edit" : "Add"} EOS Benefit</DialogTitle>
-            <DialogDescription>Configure the end-of-service benefit rules and tier structure.</DialogDescription>
+            <DialogDescription>Configure the end-of-service benefit rules, calculation basis, and tier structure.</DialogDescription>
           </DialogHeader>
           {editItem && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2"><Label>Name</Label><Input value={editItem.name} onChange={e => setEditItem({ ...editItem, name: e.target.value })} placeholder="e.g. Saudi Gratuity" /></div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Type</Label>
                   <Select value={editItem.type} onValueChange={v => setEditItem({ ...editItem, type: v as any })}>
@@ -218,61 +252,28 @@ export default function EOSBenefitsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Applies To</Label>
-                <Select value={editItem.appliesTo} onValueChange={v => setEditItem({ ...editItem, appliesTo: v as any })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Employees</SelectItem>
-                    <SelectItem value="direct">Direct Employees</SelectItem>
-                    <SelectItem value="contractor">Contractors</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label>Applies To</Label>
+                  <Select value={editItem.appliesTo} onValueChange={v => setEditItem({ ...editItem, appliesTo: v as any })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Employees</SelectItem>
+                      <SelectItem value="direct">Direct Employees</SelectItem>
+                      <SelectItem value="contractor">Contractors</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {/* Tiers */}
+              {/* Tier Editor */}
               <div className="space-y-2">
                 <Label>Service Tiers</Label>
-                {editItem.tiers.map((tier, i) => (
-                  <div key={i} className="grid grid-cols-4 gap-2 items-end">
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">From Year</p>
-                      <Input type="number" value={tier.fromYear} onChange={e => {
-                        const tiers = [...editItem.tiers];
-                        tiers[i] = { ...tiers[i], fromYear: Number(e.target.value) };
-                        setEditItem({ ...editItem, tiers });
-                      }} className="h-8" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">To Year</p>
-                      <Input type="number" value={tier.toYear ?? ""} placeholder="∞" onChange={e => {
-                        const tiers = [...editItem.tiers];
-                        tiers[i] = { ...tiers[i], toYear: e.target.value ? Number(e.target.value) : null };
-                        setEditItem({ ...editItem, tiers });
-                      }} className="h-8" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Days/Year</p>
-                      <Input type="number" value={tier.daysPerYear} onChange={e => {
-                        const tiers = [...editItem.tiers];
-                        tiers[i] = { ...tiers[i], daysPerYear: Number(e.target.value) };
-                        setEditItem({ ...editItem, tiers });
-                      }} className="h-8" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Fraction</p>
-                      <Input type="number" step="0.1" value={tier.fraction} onChange={e => {
-                        const tiers = [...editItem.tiers];
-                        tiers[i] = { ...tiers[i], fraction: Number(e.target.value) };
-                        setEditItem({ ...editItem, tiers });
-                      }} className="h-8" />
-                    </div>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => setEditItem({ ...editItem, tiers: [...editItem.tiers, { fromYear: 0, toYear: null, daysPerYear: 30, fraction: 1 }] })}>
-                  <Plus className="h-3 w-3 mr-1" />Add Tier
-                </Button>
+                <p className="text-xs text-muted-foreground">Define how many days of salary per year of service for each bracket. Fraction 1 = full pay, 0.5 = half pay.</p>
+                <Card>
+                  <CardContent className="pt-4">
+                    <TierEditor tiers={editItem.tiers} onChange={tiers => setEditItem({ ...editItem, tiers })} />
+                  </CardContent>
+                </Card>
               </div>
             </div>
           )}

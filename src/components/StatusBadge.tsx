@@ -1,12 +1,13 @@
 import { cn } from "@/lib/utils";
 
-type StatusVariant = "active" | "inactive" | "on-leave" | "pending" | "approved" | "rejected" | "completed" | "processing" | "draft" | "failed" | "defaulted" | "assigned" | "available" | "maintenance" | "submitted" | "on-hold";
+type StatusVariant = "active" | "inactive" | "on-leave" | "separated" | "pending" | "approved" | "rejected" | "completed" | "processing" | "draft" | "failed" | "defaulted" | "assigned" | "available" | "maintenance" | "submitted" | "on-hold";
 
 const styles: Record<StatusVariant, string> = {
   active: "bg-success/15 text-success",
   completed: "bg-success/15 text-success",
   approved: "bg-success/15 text-success",
   inactive: "bg-muted text-muted-foreground",
+  separated: "bg-destructive/15 text-destructive",
   draft: "bg-muted text-muted-foreground",
   "on-leave": "bg-warning/15 text-warning",
   pending: "bg-warning/15 text-warning",
