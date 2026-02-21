@@ -37,6 +37,12 @@ import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
 import GLCodeMappingPage from "@/pages/settings/GLCodeMappingPage";
 import EOSBenefitsPage from "@/pages/settings/EOSBenefitsPage";
 import SeparationsPage from "@/pages/SeparationsPage";
+import RatingCalibrationPage from "@/pages/performance/RatingCalibrationPage";
+import SelfAssessmentPage from "@/pages/performance/SelfAssessmentPage";
+import PeerAssessmentPage from "@/pages/performance/PeerAssessmentPage";
+import ManagerAssessmentPage from "@/pages/performance/ManagerAssessmentPage";
+import RatingsOverviewPage from "@/pages/performance/RatingsOverviewPage";
+import QuestionnaireSettingsPage from "@/pages/performance/QuestionnaireSettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +90,12 @@ const App = () => (
               <Route path="/settings/gl-codes" element={<GLCodeMappingPage />} />
               <Route path="/settings/eos-benefits" element={<EOSBenefitsPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
+              <Route path="/performance/ratings" element={<RatingsOverviewPage />} />
+              <Route path="/performance/calibration" element={<RatingCalibrationPage />} />
+              <Route path="/performance/self-assessment" element={<SelfAssessmentPage />} />
+              <Route path="/performance/peer-assessment" element={<PeerAssessmentPage />} />
+              <Route path="/performance/manager-assessment" element={<ManagerAssessmentPage />} />
+              <Route path="/performance/questionnaire" element={<QuestionnaireSettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
