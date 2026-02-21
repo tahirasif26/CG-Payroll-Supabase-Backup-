@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
+import { useSeparations } from "@/contexts/SeparationContext";
 
 interface PayslipDetail {
   employeeName: string;
@@ -173,7 +174,10 @@ export default function PayslipsPage() {
 
 function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetail | null; onClose: () => void; onDownload: (name: string, period: string) => void }) {
   const { client } = useClient();
+  const { separations } = useSeparations();
   if (!payslip) return null;
+
+  const sepRecord = separations.find(s => s.employeeId === payslip.employeeId);
 
   const components = [
     { label: "Basic Salary", amount: Math.round(payslip.gross * 0.6) },
@@ -288,10 +292,52 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
 
           <Separator />
 
+          {/* Separation Settlement (if applicable) */}
+          {sepRecord && (
+            <>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-destructive uppercase tracking-wider">⚠ Separation Settlement</p>
+                <div className="bg-destructive/5 rounded-lg overflow-hidden text-sm">
+                  <div className="flex justify-between px-3 py-2 border-b border-border/50">
+                    <span>Unpaid Salary</span>
+                    <span className="font-medium">SAR {sepRecord.unpaidSalary.toLocaleString()}</span>
+                  </div>
+                  {sepRecord.eosBreakdown.map((eos, i) => (
+                    <div key={i} className="flex justify-between px-3 py-2 border-b border-border/50">
+                      <span>{eos.name}</span>
+                      <span className="font-medium">SAR {eos.amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between px-3 py-2 border-b border-border/50">
+                    <span>Leave Encashment</span>
+                    <span className="font-medium">SAR {sepRecord.leaveEncashment.toLocaleString()}</span>
+                  </div>
+                  {sepRecord.noticePeriodPay > 0 && (
+                    <div className="flex justify-between px-3 py-2 border-b border-border/50">
+                      <span>Notice Period Pay</span>
+                      <span className="font-medium">SAR {sepRecord.noticePeriodPay.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {sepRecord.loanDeduction > 0 && (
+                    <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
+                      <span>Outstanding Loan Deduction</span>
+                      <span className="font-medium">- SAR {sepRecord.loanDeduction.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between px-3 py-2 font-bold bg-primary/10">
+                    <span>Total Settlement</span>
+                    <span className="text-primary">SAR {sepRecord.totalSettlement.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
           {/* Net Pay */}
           <div className="flex justify-between items-center bg-primary/10 rounded-lg px-4 py-3">
-            <span className="text-base font-bold">Net Pay</span>
-            <span className="text-lg font-bold text-primary">SAR {adjustedNet.toLocaleString()}</span>
+            <span className="text-base font-bold">Net Pay {sepRecord ? "(incl. Settlement)" : ""}</span>
+            <span className="text-lg font-bold text-primary">SAR {(adjustedNet + (sepRecord?.totalSettlement || 0)).toLocaleString()}</span>
           </div>
 
           {/* EOS Accumulated Balances */}

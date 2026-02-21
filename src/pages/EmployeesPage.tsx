@@ -17,6 +17,7 @@ import { compensationSettings } from "@/data/settingsData";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
+import { useSeparations } from "@/contexts/SeparationContext";
 
 interface EmployeeDoc {
   name: string;
@@ -843,6 +844,7 @@ export default function EmployeesPage() {
     noticePeriodServed: true,
   });
   const { toast } = useToast();
+  const { addSeparation } = useSeparations();
 
   const handleAddEmployee = (e: React.FormEvent) => {
     e.preventDefault();
@@ -957,6 +959,54 @@ export default function EmployeesPage() {
           setSeparationData={setSeparationData}
           onConfirm={() => {
             if (separationEmp) {
+              // Calculate settlement for the context record
+              const yearsOfService = separationEmp.joiningDate
+                ? (Date.now() - new Date(separationEmp.joiningDate).getTime()) / (1000 * 60 * 60 * 24 * 365)
+                : 0;
+              const basicSalary = separationEmp.compensation?.find(c => c.type === "base")?.amount || Math.round(separationEmp.salary * 0.6);
+              const dailySalary = separationEmp.salary / 30;
+              const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo === "all" || c.appliesTo === separationEmp.category));
+              const eosBreakdown = applicableEOS.map(config => {
+                const basis = config.calculationBasis === "basic_salary" ? basicSalary : separationEmp.salary;
+                return { name: config.name, amount: calculateEOSBenefit(config, yearsOfService, basis) };
+              });
+              const totalEOS = eosBreakdown.reduce((s, e) => s + e.amount, 0);
+              const empLeaves = leaveRequests.filter(l => l.employeeId === separationEmp.id && l.status === "approved");
+              const remainingLeave = 21 - empLeaves.reduce((s, l) => s + l.days, 0);
+              const leaveEncashment = Math.round(Math.max(0, remainingLeave) * dailySalary);
+              const lastDate = separationData.lastDate ? new Date(separationData.lastDate) : new Date();
+              const unpaidSalary = Math.round(dailySalary * lastDate.getDate());
+              const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
+              const empLoans = loans.filter(l => l.employeeId === separationEmp.id && l.status === "active");
+              const loanDeduction = empLoans.reduce((s, l) => s + l.remainingBalance, 0);
+              const totalSettlement = unpaidSalary + totalEOS + leaveEncashment + noticePeriodPay - loanDeduction;
+
+              const now = new Date();
+              const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+              addSeparation({
+                id: `sep-${Date.now()}`,
+                employeeId: separationEmp.id,
+                employeeName: `${separationEmp.firstName} ${separationEmp.lastName}`,
+                empId: separationEmp.empId,
+                department: separationEmp.department,
+                designation: separationEmp.designation,
+                lastDate: separationData.lastDate,
+                reason: separationData.reason,
+                noticePeriodDays: separationData.noticePeriodDays,
+                noticePeriodServed: separationData.noticePeriodServed,
+                unpaidSalary,
+                eosAmount: totalEOS,
+                eosBreakdown,
+                leaveEncashment,
+                noticePeriodPay,
+                loanDeduction,
+                totalSettlement,
+                processedDate: now.toISOString().split("T")[0],
+                payrollMonth: months[now.getMonth()],
+                payrollYear: now.getFullYear(),
+              });
+
               setLocalEmployees(prev => prev.map(e => e.id === separationEmp.id ? { ...e, status: "separated" as const } : e));
               setSelectedEmployee({ ...separationEmp, status: "separated" });
               setSeparationOpen(false);

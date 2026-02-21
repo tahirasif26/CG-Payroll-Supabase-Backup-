@@ -7,46 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Trash2, Undo2 } from "lucide-react";
+import { Edit2, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { employees } from "@/data/mockData";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-export interface SeparationRecord {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  empId: string;
-  department: string;
-  lastDate: string;
-  reason: string;
-  noticePeriodDays: number;
-  noticePeriodServed: boolean;
-  settlementAmount: number;
-  status: "processed" | "reversed";
-  processedDate: string;
-}
-
-// Mock separation records
-const mockSeparations: SeparationRecord[] = [
-  {
-    id: "sep-1",
-    employeeId: "10",
-    employeeName: "Yusuf Kareem",
-    empId: "CG-010",
-    department: "Technology",
-    lastDate: "2025-01-31",
-    reason: "resignation",
-    noticePeriodDays: 30,
-    noticePeriodServed: true,
-    settlementAmount: 45200,
-    status: "processed",
-    processedDate: "2025-01-15",
-  },
-];
+import { useSeparations, SeparationRecord } from "@/contexts/SeparationContext";
 
 export default function SeparationsPage() {
-  const [separations, setSeparations] = useState<SeparationRecord[]>(mockSeparations);
+  const { separations, updateSeparation, removeSeparation } = useSeparations();
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<SeparationRecord | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -60,14 +27,14 @@ export default function SeparationsPage() {
 
   const handleSave = () => {
     if (!editItem) return;
-    setSeparations(prev => prev.map(s => s.id === editItem.id ? editItem : s));
+    updateSeparation(editItem.id, editItem);
     setEditOpen(false);
     toast({ title: "Updated", description: `Separation record for ${editItem.employeeName} updated.` });
   };
 
   const handleDelete = (id: string) => {
     const sep = separations.find(s => s.id === id);
-    setSeparations(prev => prev.filter(s => s.id !== id));
+    removeSeparation(id);
     setDeleteConfirmOpen(false);
     setDeleteId(null);
     toast({
@@ -78,7 +45,7 @@ export default function SeparationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Separations" description="View and manage all employee separations. Deleting a separation will reactivate the employee." />
+      <PageHeader title="Separations" description="View and manage all employee separations. Reversing a separation will reactivate the employee." />
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <ScrollArea className="h-[500px]">
@@ -90,8 +57,8 @@ export default function SeparationsPage() {
                 <TableHead className="font-semibold">Department</TableHead>
                 <TableHead className="font-semibold">Last Date</TableHead>
                 <TableHead className="font-semibold">Reason</TableHead>
-                <TableHead className="font-semibold">Settlement (SAR)</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold text-right">Settlement (SAR)</TableHead>
+                <TableHead className="font-semibold">Payroll Period</TableHead>
                 <TableHead className="font-semibold text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -102,9 +69,9 @@ export default function SeparationsPage() {
                   <TableCell className="font-mono text-sm">{sep.empId}</TableCell>
                   <TableCell>{sep.department}</TableCell>
                   <TableCell>{sep.lastDate}</TableCell>
-                  <TableCell className="capitalize">{sep.reason}</TableCell>
-                  <TableCell className="font-semibold">{sep.settlementAmount.toLocaleString()}</TableCell>
-                  <TableCell><StatusBadge status={sep.status === "processed" ? "completed" : "active"} /></TableCell>
+                  <TableCell className="capitalize">{sep.reason.replace("_", " ")}</TableCell>
+                  <TableCell className="text-right font-semibold">{sep.totalSettlement.toLocaleString()}</TableCell>
+                  <TableCell>{sep.payrollMonth} {sep.payrollYear}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(sep)}>
@@ -118,7 +85,7 @@ export default function SeparationsPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No separations recorded.</TableCell>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No separations recorded yet. Process a separation from the Employee Directory.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -128,36 +95,66 @@ export default function SeparationsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Separation</DialogTitle>
             <DialogDescription>Update separation details for {editItem?.employeeName}.</DialogDescription>
           </DialogHeader>
           {editItem && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Last Working Date</Label>
-                <Input type="date" value={editItem.lastDate} onChange={e => setEditItem({ ...editItem, lastDate: e.target.value })} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Last Working Date</Label>
+                  <Input type="date" value={editItem.lastDate} onChange={e => setEditItem({ ...editItem, lastDate: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Reason</Label>
+                  <Select value={editItem.reason} onValueChange={v => setEditItem({ ...editItem, reason: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="resignation">Resignation</SelectItem>
+                      <SelectItem value="termination">Termination</SelectItem>
+                      <SelectItem value="retirement">Retirement</SelectItem>
+                      <SelectItem value="end_of_contract">End of Contract</SelectItem>
+                      <SelectItem value="mutual">Mutual Agreement</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>Reason</Label>
-                <Select value={editItem.reason} onValueChange={v => setEditItem({ ...editItem, reason: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="resignation">Resignation</SelectItem>
-                    <SelectItem value="termination">Termination</SelectItem>
-                    <SelectItem value="retirement">Retirement</SelectItem>
-                    <SelectItem value="end_of_contract">End of Contract</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Notice Period (days)</Label>
-                <Input type="number" value={editItem.noticePeriodDays} onChange={e => setEditItem({ ...editItem, noticePeriodDays: Number(e.target.value) })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Settlement Amount (SAR)</Label>
-                <Input type="number" value={editItem.settlementAmount} onChange={e => setEditItem({ ...editItem, settlementAmount: Number(e.target.value) })} />
+                <Label>Settlement Breakdown</Label>
+                <div className="bg-muted/30 rounded-lg text-sm overflow-hidden">
+                  <div className="flex justify-between px-3 py-2 border-b border-border/50">
+                    <span>Unpaid Salary</span>
+                    <span className="font-medium">SAR {editItem.unpaidSalary.toLocaleString()}</span>
+                  </div>
+                  {editItem.eosBreakdown.map((eos, i) => (
+                    <div key={i} className="flex justify-between px-3 py-2 border-b border-border/50">
+                      <span>{eos.name}</span>
+                      <span className="font-medium">SAR {eos.amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between px-3 py-2 border-b border-border/50">
+                    <span>Leave Encashment</span>
+                    <span className="font-medium">SAR {editItem.leaveEncashment.toLocaleString()}</span>
+                  </div>
+                  {editItem.noticePeriodPay > 0 && (
+                    <div className="flex justify-between px-3 py-2 border-b border-border/50">
+                      <span>Notice Period Pay</span>
+                      <span className="font-medium">SAR {editItem.noticePeriodPay.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {editItem.loanDeduction > 0 && (
+                    <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
+                      <span>Loan Deduction</span>
+                      <span className="font-medium">- SAR {editItem.loanDeduction.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between px-3 py-2 font-bold bg-primary/10">
+                    <span>Total Settlement</span>
+                    <span className="text-primary">SAR {editItem.totalSettlement.toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
