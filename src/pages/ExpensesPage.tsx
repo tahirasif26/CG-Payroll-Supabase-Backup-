@@ -213,6 +213,22 @@ export default function ExpensesPage() {
                             </Button>
                           </>
                         )}
+                        {exp.status === "approved" && (() => {
+                          const openRun = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
+                          const isInCurrentRun = exp.payrollRunId && openRun && exp.payrollRunId === openRun.id;
+                          const isUnlinked = !exp.payrollRunId;
+                          const canModify = isInCurrentRun || isUnlinked;
+                          return canModify ? (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(exp)} title="Edit">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
+                                <XCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          ) : null;
+                        })()}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -389,6 +405,22 @@ export default function ExpensesPage() {
                   </Button>
                 </div>
               )}
+              {selectedExp.status === "approved" && (() => {
+                const openRun = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
+                const isInCurrentRun = selectedExp.payrollRunId && openRun && selectedExp.payrollRunId === openRun.id;
+                const isUnlinked = !selectedExp.payrollRunId;
+                const canModify = isInCurrentRun || isUnlinked;
+                return canModify ? (
+                  <div className="flex gap-2 pt-2">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => { openEdit(selectedExp); setDetailOpen(false); }}>
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
+                    </Button>
+                    <Button size="sm" variant="destructive" className="flex-1" onClick={() => { handleReject(selectedExp); setDetailOpen(false); }}>
+                      <XCircle className="h-4 w-4 mr-1" /> Reject
+                    </Button>
+                  </div>
+                ) : null;
+              })()}
             </div>
           )}
         </DialogContent>
