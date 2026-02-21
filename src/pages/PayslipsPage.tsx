@@ -12,6 +12,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 
 interface PayslipDetail {
   employeeName: string;
@@ -292,6 +293,39 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
             <span className="text-base font-bold">Net Pay</span>
             <span className="text-lg font-bold text-primary">SAR {adjustedNet.toLocaleString()}</span>
           </div>
+
+          {/* EOS Accumulated Balances */}
+          {(() => {
+            const emp = employees.find(e => e.empId === payslip.empId);
+            if (!emp) return null;
+            const yearsOfService = (Date.now() - new Date(emp.joiningDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
+            const basicSalary = emp.compensation?.find(c => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
+            const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo === "all" || c.appliesTo === emp.category));
+            if (applicableEOS.length === 0) return null;
+            return (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">End of Service Benefits (Accumulated)</p>
+                  <div className="bg-muted/30 rounded-lg overflow-hidden">
+                    {applicableEOS.map(config => {
+                      const basis = config.calculationBasis === "basic_salary" ? basicSalary : emp.salary;
+                      const amount = calculateEOSBenefit(config, yearsOfService, basis);
+                      return (
+                        <div key={config.id} className="px-3 py-2 text-sm border-b border-border/50 last:border-0">
+                          <div className="flex justify-between">
+                            <span className="font-medium">{config.name}</span>
+                            <span className="font-semibold">SAR {amount.toLocaleString()}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{yearsOfService.toFixed(1)} years of service · Based on {config.calculationBasis.replace("_", " ")}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {/* Loan Summary */}
           {empLoans.length > 0 && (

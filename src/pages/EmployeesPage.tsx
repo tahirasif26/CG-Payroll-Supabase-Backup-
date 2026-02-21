@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { employees, leaveRequests, assets } from "@/data/mockData";
+import { employees, leaveRequests, assets, loans } from "@/data/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter } from "lucide-react";
+import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { Employee } from "@/types/hcm";
 import { compensationSettings } from "@/data/settingsData";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 
 interface EmployeeDoc {
   name: string;
@@ -228,7 +230,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                 <SortHeader field="empId">ID</SortHeader>
                 <SortHeader field="department">Department</SortHeader>
                 <SortHeader field="designation">Designation</SortHeader>
-                <SortHeader field="joiningDate">Joined</SortHeader>
+                <TableHead className="font-semibold">Category</TableHead>
                 <SortHeader field="salary">Salary (SAR)</SortHeader>
                 <TableHead className="font-semibold">Status</TableHead>
               </TableRow>
@@ -250,12 +252,16 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                   <TableCell className="text-sm font-mono">{emp.empId}</TableCell>
                   <TableCell className="text-sm">{emp.department}</TableCell>
                   <TableCell className="text-sm">{emp.designation}</TableCell>
-                  <TableCell className="text-sm">{new Date(emp.joiningDate).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
+                      {emp.category === "direct" ? "Direct" : "Contractor"}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-sm text-right font-semibold">{emp.salary.toLocaleString()}</TableCell>
                   <TableCell><StatusBadge status={emp.status} /></TableCell>
                 </TableRow>
               )) : (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No employees match your filters.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No employees match your filters.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -434,6 +440,14 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <EditableField label="Employee ID" value={data.empId} editing={editing} onChange={v => setData({ ...data, empId: v })} />
         <EditableField label="Work Email" value={data.workEmail} editing={editing} onChange={v => setData({ ...data, workEmail: v })} />
+        <div>
+          <p className="text-xs text-muted-foreground">Employee Category</p>
+          <p className="text-sm font-medium">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
+              {emp.category === "direct" ? "Direct Employee" : "Contractor"}
+            </span>
+          </p>
+        </div>
         <EditableField label="Department" value={data.department} editing={editing} onChange={v => setData({ ...data, department: v })} />
         <EditableField label="Designation" value={data.designation} editing={editing} onChange={v => setData({ ...data, designation: v })} />
         <EditableField label="Division" value={data.division} editing={editing} onChange={v => setData({ ...data, division: v })} />
@@ -675,11 +689,159 @@ function AssetsTab({ emp }: { emp: Employee }) {
   );
 }
 
+function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparationData, onConfirm }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  emp: Employee | null;
+  separationData: { lastDate: string; reason: string; noticePeriodDays: number; noticePeriodServed: boolean };
+  setSeparationData: (d: any) => void;
+  onConfirm: () => void;
+}) {
+  if (!emp) return null;
+
+  const yearsOfService = emp.joiningDate
+    ? (Date.now() - new Date(emp.joiningDate).getTime()) / (1000 * 60 * 60 * 24 * 365)
+    : 0;
+  const basicSalary = emp.compensation?.find(c => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
+  const dailySalary = emp.salary / 30;
+
+  // Calculate EOS benefits
+  const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo === "all" || c.appliesTo === emp.category));
+  const eosBreakdown = applicableEOS.map(config => {
+    const basis = config.calculationBasis === "basic_salary" ? basicSalary : emp.salary;
+    return { name: config.name, amount: calculateEOSBenefit(config, yearsOfService, basis) };
+  });
+  const totalEOS = eosBreakdown.reduce((s, e) => s + e.amount, 0);
+
+  // Leave balance (simplified)
+  const empLeaves = leaveRequests.filter(l => l.employeeId === emp.id && l.status === "approved");
+  const totalUsedLeave = empLeaves.reduce((s, l) => s + l.days, 0);
+  const annualEntitlement = 21;
+  const remainingLeave = annualEntitlement - totalUsedLeave;
+  const leaveEncashment = Math.max(0, remainingLeave) * dailySalary;
+
+  // Unpaid salary (assume current month partial)
+  const lastDate = separationData.lastDate ? new Date(separationData.lastDate) : new Date();
+  const daysWorkedInMonth = lastDate.getDate();
+  const unpaidSalary = Math.round((emp.salary / 30) * daysWorkedInMonth);
+
+  // Notice period
+  const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
+
+  // Outstanding loans
+  const empLoans = loans.filter(l => l.employeeId === emp.id && l.status === "active");
+  const totalLoanBalance = empLoans.reduce((s, l) => s + l.remainingBalance, 0);
+
+  const totalSettlement = unpaidSalary + totalEOS + Math.round(leaveEncashment) + noticePeriodPay - totalLoanBalance;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Employee Separation — {emp.firstName} {emp.lastName}</DialogTitle>
+          <DialogDescription>Calculate end-of-service settlement and process separation.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Separation Reason</Label>
+              <Select value={separationData.reason} onValueChange={v => setSeparationData({ ...separationData, reason: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="resignation">Resignation</SelectItem>
+                  <SelectItem value="termination">Termination</SelectItem>
+                  <SelectItem value="end_of_contract">End of Contract</SelectItem>
+                  <SelectItem value="retirement">Retirement</SelectItem>
+                  <SelectItem value="mutual">Mutual Agreement</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Last Working Date</Label>
+              <Input type="date" value={separationData.lastDate} onChange={e => setSeparationData({ ...separationData, lastDate: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Notice Period (Days)</Label>
+              <Input type="number" value={separationData.noticePeriodDays} onChange={e => setSeparationData({ ...separationData, noticePeriodDays: Number(e.target.value) })} />
+            </div>
+            <div className="flex items-center gap-3 pt-6">
+              <input type="checkbox" checked={separationData.noticePeriodServed} onChange={e => setSeparationData({ ...separationData, noticePeriodServed: e.target.checked })} className="h-4 w-4" />
+              <Label className="text-sm">Notice period served</Label>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Employee Summary */}
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <div><p className="text-xs text-muted-foreground">Joining Date</p><p className="font-medium">{new Date(emp.joiningDate).toLocaleDateString()}</p></div>
+            <div><p className="text-xs text-muted-foreground">Years of Service</p><p className="font-medium">{yearsOfService.toFixed(1)} years</p></div>
+            <div><p className="text-xs text-muted-foreground">Monthly Salary</p><p className="font-medium">SAR {emp.salary.toLocaleString()}</p></div>
+          </div>
+
+          <Separator />
+
+          {/* Settlement Breakdown */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Final Settlement Calculation</p>
+            <div className="bg-muted/30 rounded-lg overflow-hidden text-sm">
+              <div className="flex justify-between px-3 py-2 border-b border-border/50">
+                <span>Unpaid Salary ({daysWorkedInMonth} days)</span>
+                <span className="font-medium">SAR {unpaidSalary.toLocaleString()}</span>
+              </div>
+              {eosBreakdown.map((eos, i) => (
+                <div key={i} className="flex justify-between px-3 py-2 border-b border-border/50">
+                  <span>{eos.name}</span>
+                  <span className="font-medium">SAR {eos.amount.toLocaleString()}</span>
+                </div>
+              ))}
+              <div className="flex justify-between px-3 py-2 border-b border-border/50">
+                <span>Leave Encashment ({Math.max(0, remainingLeave)} days)</span>
+                <span className="font-medium">SAR {Math.round(leaveEncashment).toLocaleString()}</span>
+              </div>
+              {noticePeriodPay > 0 && (
+                <div className="flex justify-between px-3 py-2 border-b border-border/50">
+                  <span>Notice Period Payment ({separationData.noticePeriodDays} days)</span>
+                  <span className="font-medium">SAR {noticePeriodPay.toLocaleString()}</span>
+                </div>
+              )}
+              {totalLoanBalance > 0 && (
+                <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
+                  <span>Outstanding Loan Deduction</span>
+                  <span className="font-medium">- SAR {totalLoanBalance.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-between items-center bg-primary/10 rounded-lg px-4 py-3 font-bold">
+              <span>Total Final Settlement</span>
+              <span className="text-primary">SAR {totalSettlement.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={!separationData.lastDate}>
+            <UserMinus className="h-4 w-4 mr-2" />Process Separation
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
   const [localEmployees, setLocalEmployees] = useState<Employee[]>(employees);
+  const [separationOpen, setSeparationOpen] = useState(false);
+  const [separationEmp, setSeparationEmp] = useState<Employee | null>(null);
+  const [separationData, setSeparationData] = useState({
+    lastDate: "",
+    reason: "resignation",
+    noticePeriodDays: 30,
+    noticePeriodServed: true,
+  });
   const { toast } = useToast();
 
   const handleAddEmployee = (e: React.FormEvent) => {
@@ -722,14 +884,21 @@ export default function EmployeesPage() {
             <ChevronLeft className="h-4 w-4 mr-1" />Back to Directory
           </Button>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-full bg-secondary flex items-center justify-center">
-            <span className="text-lg font-bold text-secondary-foreground">{selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-secondary flex items-center justify-center">
+              <span className="text-lg font-bold text-secondary-foreground">{selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}</span>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">{selectedEmployee.firstName} {selectedEmployee.lastName}</h2>
+              <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold">{selectedEmployee.firstName} {selectedEmployee.lastName}</h2>
-            <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
-          </div>
+          {selectedEmployee.status === "active" && (
+            <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
+              <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
+            </Button>
+          )}
         </div>
 
         <Tabs defaultValue="personal">
@@ -778,6 +947,23 @@ export default function EmployeesPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Separation Dialog */}
+        <SeparationDialog
+          open={separationOpen}
+          onOpenChange={setSeparationOpen}
+          emp={separationEmp}
+          separationData={separationData}
+          setSeparationData={setSeparationData}
+          onConfirm={() => {
+            if (separationEmp) {
+              setLocalEmployees(prev => prev.map(e => e.id === separationEmp.id ? { ...e, status: "inactive" as const } : e));
+              setSelectedEmployee({ ...separationEmp, status: "inactive" });
+              setSeparationOpen(false);
+              toast({ title: "Separation Processed", description: `${separationEmp.firstName} ${separationEmp.lastName} has been separated. Final settlement will be included in the next payroll run.` });
+            }
+          }}
+        />
       </div>
     );
   }
