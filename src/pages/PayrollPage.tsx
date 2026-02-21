@@ -589,13 +589,22 @@ export default function PayrollPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {runs.map((run) => (
+            {runs.map((run) => {
+              // For non-completed runs, compute live employee count & totals
+              const liveBreakdown = run.status !== "completed"
+                ? buildBreakdown(oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id)
+                : null;
+              const dispEmployeeCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
+              const dispGross = liveBreakdown ? liveBreakdown.reduce((s, l) => s + l.gross, 0) : run.totalGross;
+              const dispDed = liveBreakdown ? liveBreakdown.reduce((s, l) => s + l.totalDeductions, 0) : run.totalDeductions;
+              const dispNet = liveBreakdown ? dispGross - dispDed : run.totalNet;
+              return (
               <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
                 <TableCell className="font-medium">{run.month} {run.year}</TableCell>
-                <TableCell>{run.employeeCount}</TableCell>
-                <TableCell className="text-right">{run.totalGross.toLocaleString()}</TableCell>
-                <TableCell className="text-right text-destructive">{run.totalDeductions.toLocaleString()}</TableCell>
-                <TableCell className="text-right font-semibold">{run.totalNet.toLocaleString()}</TableCell>
+                <TableCell>{dispEmployeeCount}</TableCell>
+                <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
+                <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
+                <TableCell className="text-right font-semibold">{dispNet.toLocaleString()}</TableCell>
                 <TableCell>{run.runDate || "—"}</TableCell>
                 <TableCell><StatusBadge status={run.status} /></TableCell>
                 <TableCell className="text-right" onClick={e => e.stopPropagation()}>
@@ -617,7 +626,8 @@ export default function PayrollPage() {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>
