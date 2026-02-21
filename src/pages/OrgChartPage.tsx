@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { employees } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Search, ChevronRight } from "lucide-react";
 
 interface OrgNode {
   employee: typeof employees[0];
@@ -15,23 +16,18 @@ interface OrgNode {
 }
 
 interface ReportMapping {
-  [empId: string]: string; // empId -> reportsToEmpId
+  [empId: string]: string;
 }
 
 function buildOrgTree(reportMap: ReportMapping, empList: typeof employees): OrgNode[] {
   const hierarchy = ["Partner", "Senior Manager", "Manager", "Senior Associate", "Associate", "Staff"];
-  
-  // Check if we have custom mappings
   const hasCustom = Object.keys(reportMap).length > 0;
-  
+
   if (hasCustom) {
-    // Build tree from reportMap
     const nodeMap = new Map<string, OrgNode>();
     empList.forEach(e => nodeMap.set(e.id, { employee: e, reports: [] }));
-    
     const roots: OrgNode[] = [];
     const hasParent = new Set<string>();
-    
     Object.entries(reportMap).forEach(([empId, managerId]) => {
       const manager = nodeMap.get(managerId);
       const emp = nodeMap.get(empId);
@@ -40,18 +36,15 @@ function buildOrgTree(reportMap: ReportMapping, empList: typeof employees): OrgN
         hasParent.add(empId);
       }
     });
-    
     empList.forEach(e => {
       if (!hasParent.has(e.id)) roots.push(nodeMap.get(e.id)!);
     });
-    
     return roots;
   }
 
-  // Default hierarchy-based tree
   const grouped = hierarchy.map(level => empList.filter(e => e.designation === level));
   const tree: OrgNode[] = [];
-  
+
   grouped[0].forEach(partner => {
     const partnerNode: OrgNode = { employee: partner, reports: [] };
     grouped[1].forEach(sm => {
@@ -81,40 +74,68 @@ function buildOrgTree(reportMap: ReportMapping, empList: typeof employees): OrgN
   }
   collect(tree);
   empList.filter(e => !inTree.has(e.id)).forEach(e => tree.push({ employee: e, reports: [] }));
-
   return tree;
 }
 
-function OrgNodeCard({ node, level = 0, onClickEmployee }: { node: OrgNode; level?: number; onClickEmployee: (emp: typeof employees[0]) => void }) {
+function getManagerName(reportMap: ReportMapping, empId: string, empList: typeof employees): string | null {
+  const managerId = reportMap[empId];
+  if (!managerId) return null;
+  const mgr = empList.find(e => e.id === managerId);
+  return mgr ? `${mgr.firstName} ${mgr.lastName}` : null;
+}
+
+function OrgNodeCard({
+  node,
+  level = 0,
+  onClickEmployee,
+  highlightId,
+}: {
+  node: OrgNode;
+  level?: number;
+  onClickEmployee: (emp: typeof employees[0]) => void;
+  highlightId: string | null;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isHighlighted = highlightId === node.employee.id;
+
+  useEffect(() => {
+    if (isHighlighted && ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    }
+  }, [isHighlighted]);
+
   return (
     <div className="flex flex-col items-center">
-      <Card
-        className={`w-48 cursor-pointer hover:shadow-md transition-shadow ${level === 0 ? 'border-primary border-2' : ''}`}
+      <div
+        ref={ref}
         onClick={() => onClickEmployee(node.employee)}
+        className={`
+          w-44 px-4 py-3 border cursor-pointer transition-all
+          ${level === 0 ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary/50"}
+          ${isHighlighted ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg scale-105" : ""}
+        `}
       >
-        <CardContent className="p-4 text-center">
-          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center mx-auto mb-2">
-            <span className="text-xs font-bold text-secondary-foreground">
-              {node.employee.firstName[0]}{node.employee.lastName[0]}
-            </span>
-          </div>
-          <p className="text-sm font-semibold truncate">{node.employee.firstName} {node.employee.lastName}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{node.employee.designation}</p>
-          <p className="text-[10px] text-primary font-medium">{node.employee.department}</p>
-        </CardContent>
-      </Card>
+        <p className={`text-sm font-semibold truncate ${level === 0 ? "" : "text-foreground"}`}>
+          {node.employee.firstName} {node.employee.lastName}
+        </p>
+        <p className={`text-[11px] truncate ${level === 0 ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+          {node.employee.designation}
+        </p>
+      </div>
       {node.reports.length > 0 && (
         <>
-          <div className="w-px h-6 bg-border" />
-          <div className="flex gap-4 relative">
+          <div className="w-px h-5 bg-border" />
+          <div className="flex gap-3 relative">
             {node.reports.length > 1 && (
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px bg-border"
-                style={{ width: `${(node.reports.length - 1) * 100}%` }} />
+              <div
+                className="absolute top-0 left-1/2 -translate-x-1/2 h-px bg-border"
+                style={{ width: `calc(100% - 176px)` }}
+              />
             )}
             {node.reports.map(child => (
               <div key={child.employee.id} className="flex flex-col items-center">
-                <div className="w-px h-6 bg-border" />
-                <OrgNodeCard node={child} level={level + 1} onClickEmployee={onClickEmployee} />
+                <div className="w-px h-5 bg-border" />
+                <OrgNodeCard node={child} level={level + 1} onClickEmployee={onClickEmployee} highlightId={highlightId} />
               </div>
             ))}
           </div>
@@ -129,14 +150,29 @@ export default function OrgChartPage() {
   const [reportMap, setReportMap] = useState<ReportMapping>({});
   const [editEmp, setEditEmp] = useState<typeof employees[0] | null>(null);
   const [selectedManager, setSelectedManager] = useState("");
+  const [search, setSearch] = useState("");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const tree = buildOrgTree(reportMap, activeEmployees);
 
+  const searchResults = search.trim()
+    ? activeEmployees.filter(e =>
+        `${e.firstName} ${e.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
+        e.designation.toLowerCase().includes(search.toLowerCase()) ||
+        e.department.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
+
+  const handlePinpoint = (empId: string) => {
+    setHighlightId(empId);
+    setSearch("");
+    setTimeout(() => setHighlightId(null), 3000);
+  };
+
   const handleSaveReportTo = () => {
     if (!editEmp) return;
     if (selectedManager === "__none__") {
-      // Remove mapping (make root)
       setReportMap(prev => {
         const next = { ...prev };
         delete next[editEmp.id];
@@ -152,47 +188,51 @@ export default function OrgChartPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Organization Chart" description="Company organizational structure and reporting lines. Click any employee to change their reporting line." />
+      <PageHeader title="Organization Chart" description="Company structure and reporting lines.">
+        <div className="relative w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search employee..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9"
+          />
+          {searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
+              {searchResults.map(emp => (
+                <button
+                  key={emp.id}
+                  onClick={() => handlePinpoint(emp.id)}
+                  className="w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between text-sm"
+                >
+                  <div>
+                    <span className="font-medium text-foreground">{emp.firstName} {emp.lastName}</span>
+                    <span className="text-muted-foreground ml-2 text-xs">{emp.designation}</span>
+                  </div>
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-xl border p-8 overflow-x-auto">
-        <div className="flex justify-center gap-8">
+      <div className="bg-card border rounded-lg p-8 overflow-x-auto">
+        <div className="flex justify-center gap-6 min-w-max">
           {tree.map(node => (
-            <OrgNodeCard key={node.employee.id} node={node} onClickEmployee={(emp) => {
-              setEditEmp(emp);
-              setSelectedManager(reportMap[emp.id] || "");
-            }} />
+            <OrgNodeCard
+              key={node.employee.id}
+              node={node}
+              onClickEmployee={(emp) => {
+                setEditEmp(emp);
+                setSelectedManager(reportMap[emp.id] || "");
+              }}
+              highlightId={highlightId}
+            />
           ))}
         </div>
       </div>
 
-      {/* Directory view */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {activeEmployees.map(emp => (
-          <Card key={emp.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => {
-            setEditEmp(emp);
-            setSelectedManager(reportMap[emp.id] || "");
-          }}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{emp.firstName} {emp.lastName}</p>
-                  <p className="text-xs text-muted-foreground">{emp.designation}</p>
-                  <p className="text-xs text-primary font-medium">{emp.department}</p>
-                </div>
-              </div>
-              <div className="mt-3 space-y-1">
-                <p className="text-xs text-muted-foreground truncate">{emp.email}</p>
-                <p className="text-xs text-muted-foreground">{emp.phone}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Edit Report To Dialog */}
       <Dialog open={!!editEmp} onOpenChange={(open) => { if (!open) { setEditEmp(null); setSelectedManager(""); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -203,6 +243,12 @@ export default function OrgChartPage() {
           </DialogHeader>
           {editEmp && (
             <div className="space-y-4">
+              {getManagerName(reportMap, editEmp.id, activeEmployees) && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Currently reports to: </span>
+                  <span className="font-medium text-foreground">{getManagerName(reportMap, editEmp.id, activeEmployees)}</span>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Reports To</Label>
                 <Select value={selectedManager} onValueChange={setSelectedManager}>
