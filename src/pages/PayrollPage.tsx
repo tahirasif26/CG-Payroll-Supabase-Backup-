@@ -138,8 +138,17 @@ export default function PayrollPage() {
     return sepMap;
   };
 
-  // Track which separations were already processed in completed runs
-  const [processedSeps, setProcessedSeps] = useState<Set<string>>(new Set());
+  // Track which separations were already processed in completed runs — initialize from existing data
+  const [processedSeps, setProcessedSeps] = useState<Set<string>>(() => {
+    const set = new Set<string>();
+    const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
+    separations.forEach(sep => {
+      if (sep.status === "approved" && sep.payrollRunId && completedRunIds.has(sep.payrollRunId)) {
+        set.add(sep.employeeId);
+      }
+    });
+    return set;
+  });
 
   // Search state for detail view
   const [detailSearch, setDetailSearch] = useState("");
@@ -590,6 +599,7 @@ export default function PayrollPage() {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="font-semibold">Period</TableHead>
+                      <TableHead className="font-semibold">Employees</TableHead>
                       <TableHead className="font-semibold text-right">Gross (SAR)</TableHead>
                       <TableHead className="font-semibold text-right">Deductions (SAR)</TableHead>
                       <TableHead className="font-semibold text-right">Net (SAR)</TableHead>
@@ -603,12 +613,14 @@ export default function PayrollPage() {
                       const liveBreakdown = run.status !== "completed"
                         ? buildBreakdown(oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id)
                         : null;
+                      const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
                       const dispGross = liveBreakdown ? liveBreakdown.reduce((s, l) => s + l.gross, 0) : run.totalGross;
                       const dispDed = liveBreakdown ? liveBreakdown.reduce((s, l) => s + l.totalDeductions, 0) : run.totalDeductions;
                       const dispNet = liveBreakdown ? dispGross - dispDed : run.totalNet;
                       return (
                         <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
                           <TableCell className="font-medium">{run.month} {run.year}</TableCell>
+                          <TableCell>{dispCount}</TableCell>
                           <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
                           <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
                           <TableCell className="text-right font-semibold">{dispNet.toLocaleString()}</TableCell>
@@ -636,7 +648,7 @@ export default function PayrollPage() {
                       );
                     }) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           {tab === "completed" ? "No completed payroll runs yet." : "No processing payroll runs."}
                         </TableCell>
                       </TableRow>
