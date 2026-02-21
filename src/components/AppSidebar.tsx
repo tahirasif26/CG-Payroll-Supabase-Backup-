@@ -2,7 +2,8 @@ import {
   LayoutDashboard, Users, DollarSign, Calendar, Gift, FileText,
   Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
   FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
-  Layers, Tag, Shield, Coins, ChevronDown, Award, UserMinus
+  Layers, Tag, Shield, Coins, ChevronDown, Award, UserMinus,
+  Target, ClipboardCheck, UserCheck, UsersRound, Star, ListChecks
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -46,6 +47,15 @@ const employerPeopleNav = [
 const employerProjectNav = [
   { title: "Projects", url: "/projects", icon: FolderKanban },
   { title: "Timesheets", url: "/timesheets", icon: Clock },
+];
+
+const performanceNav = [
+  { title: "Ratings Overview", url: "/performance/ratings", icon: Star },
+  { title: "Rating Calibration", url: "/performance/calibration", icon: Target },
+  { title: "Self Assessment", url: "/performance/self-assessment", icon: ClipboardCheck },
+  { title: "Peer Assessment", url: "/performance/peer-assessment", icon: UsersRound },
+  { title: "Manager Assessment", url: "/performance/manager-assessment", icon: UserCheck },
+  { title: "Questionnaire Settings", url: "/performance/questionnaire", icon: ListChecks },
 ];
 
 const employerSettingsNav = [
@@ -177,6 +187,7 @@ export function AppSidebar() {
             <NavGroup label="Finance" items={employerFinanceNav} />
             <NavGroup label="People" items={employerPeopleNav} />
             <NavGroup label="Projects" items={employerProjectNav} />
+            <CollapsibleNavGroup label="Performance" icon={Target} items={performanceNav} />
             <CollapsibleNavGroup label="Settings" icon={Settings} items={employerSettingsNav} />
           </>
         ) : (
