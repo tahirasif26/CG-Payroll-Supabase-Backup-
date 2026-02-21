@@ -1029,7 +1029,7 @@ export default function EmployeesPage() {
         </Button>
       </PageHeader>
 
-      <EmployeeDirectoryTable employees={localEmployees} onSelect={setSelectedEmployee} />
+      <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} />
 
       <Dialog open={addEmpOpen} onOpenChange={setAddEmpOpen}>
         <DialogContent className="max-w-lg">

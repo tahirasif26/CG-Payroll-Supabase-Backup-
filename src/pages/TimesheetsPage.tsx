@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { timesheets, projects, employees } from "@/data/mockData";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -14,13 +15,15 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function TimesheetsPage() {
   const { role, currentEmployeeId } = useRole();
+  const activeEmps = useActiveEmployees();
+  const activeIds = new Set(activeEmps.map(e => e.id));
   const [logOpen, setLogOpen] = useState(false);
   const [approveId, setApproveId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const displayTimesheets = role === "employee"
     ? timesheets.filter(t => t.employeeId === currentEmployeeId)
-    : timesheets;
+    : timesheets.filter(t => activeIds.has(t.employeeId));
 
   const handleLogTime = (e: React.FormEvent) => {
     e.preventDefault();
