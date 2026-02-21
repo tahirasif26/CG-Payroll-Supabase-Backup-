@@ -6,7 +6,7 @@ import { PayrollRun, OneOffAdjustment } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSeparations } from "@/contexts/SeparationContext";
 import { Button } from "@/components/ui/button";
-import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download, Search, Plus, X } from "lucide-react";
+import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download, Search, Plus, X, Lock, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -143,50 +143,87 @@ export default function PayrollPage() {
 
   const currentOneOffs = selectedRun ? (oneOffs[selectedRun.id] || []) : [];
 
+  // Determine if there's already a processing/draft run
+  const hasOpenRun = runs.some(r => r.status === "draft" || r.status === "processing");
+
+  const getNextMonth = (month: string, year: number): { month: string; year: number } => {
+    const idx = months.indexOf(month);
+    if (idx === 11) return { month: "January", year: year + 1 };
+    return { month: months[idx + 1], year };
+  };
+
   const handleNewRun = (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasOpenRun) {
+      toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
+      return;
+    }
     const breakdown = buildBreakdown([], {}, processedSeps);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
-      id: String(Date.now()), month: newMonth, year: Number(newYear), status: "draft",
+      id: String(Date.now()), month: newMonth, year: Number(newYear), status: "processing",
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
       runDate: "", employeeCount: employees.length,
     };
     setRuns(prev => [...prev, newRun]);
     setNewRunOpen(false);
-    toast({ title: "Payroll Run Created", description: `${newMonth} ${newYear} payroll run created as draft.` });
+    toast({ title: "Payroll Run Created", description: `${newMonth} ${newYear} payroll run is now open for processing.` });
   };
 
   const handleProcess = (id: string) => {
-    const run = runs.find(r => r.id === id);
     setRuns(prev => prev.map(r => r.id === id ? { ...r, status: "processing" as const } : r));
-    toast({ title: "Processing", description: "Payroll is being processed..." });
-    setTimeout(() => {
-      setRuns(prev => prev.map(r => r.id === id ? { ...r, status: "completed" as const, runDate: new Date().toISOString().split("T")[0] } : r));
-      // Mark approved expenses as linked to this payroll run
-      expenses.forEach(exp => {
-        if (exp.status === "approved" && !exp.payrollRunId) {
-          exp.payrollRunId = id;
-        }
-      });
-      // Mark separated employees in this run as processed so they won't appear in future runs
-      if (run) {
-        const sepMap = getSepMap(run.month, run.year);
-        setProcessedSeps(prev => {
-          const next = new Set(prev);
-          Object.keys(sepMap).forEach(empId => next.add(empId));
-          return next;
-        });
+    toast({ title: "Processing", description: "Payroll run is now open for processing." });
+  };
+
+  const handleComplete = (id: string) => {
+    const run = runs.find(r => r.id === id);
+    if (!run) return;
+
+    setRuns(prev => prev.map(r => r.id === id ? { ...r, status: "completed" as const, runDate: new Date().toISOString().split("T")[0] } : r));
+
+    // Link approved expenses
+    expenses.forEach(exp => {
+      if (exp.status === "approved" && !exp.payrollRunId) {
+        exp.payrollRunId = id;
       }
-      toast({ title: "Completed", description: "Payroll processing completed. This run is now locked." });
-    }, 2000);
+    });
+
+    // Mark separated employees as processed
+    const sepMap = getSepMap(run.month, run.year);
+    setProcessedSeps(prev => {
+      const next = new Set(prev);
+      Object.keys(sepMap).forEach(empId => next.add(empId));
+      return next;
+    });
+
+    // Auto-create next month's payroll run
+    const next = getNextMonth(run.month, run.year);
+    const breakdown = buildBreakdown([], {}, processedSeps);
+    const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
+    const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
+    const nextRun: PayrollRun = {
+      id: String(Date.now() + 1), month: next.month, year: next.year, status: "processing",
+      totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
+      runDate: "", employeeCount: employees.length,
+    };
+    setRuns(prev => [...prev, nextRun]);
+
+    toast({ title: "Payroll Completed", description: `${run.month} ${run.year} is locked. ${next.month} ${next.year} payroll has been opened automatically.` });
+    setSelectedRun(null);
+  };
+
+  const handleDeleteRun = (id: string) => {
+    const run = runs.find(r => r.id === id);
+    if (!run || run.status === "completed") return;
+    setRuns(prev => prev.filter(r => r.id !== id));
+    toast({ title: "Deleted", description: "Payroll run deleted." });
   };
 
   const handleConfirm = () => {
     if (!confirmAction) return;
     if (confirmAction.action === "approve") {
-      handleProcess(confirmAction.id);
+      handleComplete(confirmAction.id);
     } else {
       setRuns(prev => prev.map(r => r.id === confirmAction.id ? { ...r, status: "failed" as const } : r));
       toast({ title: "Rejected", description: "Payroll run has been rejected." });
@@ -362,18 +399,14 @@ export default function PayrollPage() {
           </ScrollArea>
         </div>
 
-        {!isLocked && (selectedRun.status === "draft" || selectedRun.status === "processing") && (
+        {selectedRun.status === "processing" && (
           <div className="flex gap-2">
-            {selectedRun.status === "draft" && (
-              <>
-                <Button className="gradient-ey text-primary-foreground font-semibold" onClick={() => { setConfirmAction({ id: selectedRun.id, action: "approve" }); setConfirmOpen(true); }}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />Process Payroll
-                </Button>
-                <Button variant="destructive" onClick={() => { setConfirmAction({ id: selectedRun.id, action: "reject" }); setConfirmOpen(true); }}>
-                  <XCircle className="h-4 w-4 mr-2" />Reject
-                </Button>
-              </>
-            )}
+            <Button className="gradient-ey text-primary-foreground font-semibold" onClick={() => { setConfirmAction({ id: selectedRun.id, action: "approve" }); setConfirmOpen(true); }}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />Complete & Lock Payroll
+            </Button>
+            <Button variant="destructive" onClick={() => { setConfirmAction({ id: selectedRun.id, action: "reject" }); setConfirmOpen(true); }}>
+              <XCircle className="h-4 w-4 mr-2" />Reject
+            </Button>
           </div>
         )}
 
@@ -493,8 +526,8 @@ export default function PayrollPage() {
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{confirmAction?.action === "approve" ? "Process Payroll" : "Reject Payroll"}</DialogTitle>
-              <DialogDescription>{confirmAction?.action === "approve" ? "This will process and lock payroll for all employees. It cannot be changed after. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
+              <DialogTitle>{confirmAction?.action === "approve" ? "Complete Payroll" : "Reject Payroll"}</DialogTitle>
+              <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. A new payroll run for the next month will be created automatically. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
@@ -511,10 +544,16 @@ export default function PayrollPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Payroll Runs" description="Process and manage monthly payroll.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)}>
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={hasOpenRun}>
           <Play className="h-4 w-4 mr-2" />New Payroll Run
         </Button>
       </PageHeader>
+
+      {hasOpenRun && (
+        <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
+          A payroll run is currently open. Complete or reject it before creating a new one.
+        </div>
+      )}
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <Table>
@@ -548,9 +587,12 @@ export default function PayrollPage() {
                         <Download className="h-3.5 w-3.5" />
                       </Button>
                     )}
-                    {run.status === "draft" && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-success" onClick={() => { setConfirmAction({ id: run.id, action: "approve" }); setConfirmOpen(true); }}>
-                        <CheckCircle2 className="h-3.5 w-3.5" />
+                    {run.status === "completed" && (
+                      <Lock className="h-3.5 w-3.5 text-muted-foreground ml-1 mt-2" />
+                    )}
+                    {(run.status === "processing" || run.status === "draft" || run.status === "failed") && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRun(run.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </div>
@@ -587,13 +629,13 @@ export default function PayrollPage() {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{confirmAction?.action === "approve" ? "Process Payroll" : "Reject Payroll"}</DialogTitle>
-            <DialogDescription>{confirmAction?.action === "approve" ? "This will process and lock payroll for all employees. It cannot be changed after. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
+            <DialogTitle>{confirmAction?.action === "approve" ? "Complete Payroll" : "Reject Payroll"}</DialogTitle>
+            <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. A new run for the next month will open automatically. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
             <Button variant={confirmAction?.action === "approve" ? "default" : "destructive"} onClick={handleConfirm}>
-              {confirmAction?.action === "approve" ? "Process" : "Reject"}
+              {confirmAction?.action === "approve" ? "Complete" : "Reject"}
             </Button>
           </DialogFooter>
         </DialogContent>
