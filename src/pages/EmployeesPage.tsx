@@ -21,6 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
+import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useReporting } from "@/contexts/ReportingContext";
 
 interface EmployeeDoc {
@@ -688,46 +689,113 @@ function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdate
 
 function TimeOffTab({ emp }: { emp: Employee }) {
   const empLeaves = leaveRequests.filter(l => l.employeeId === emp.id);
-  const totalUsed = empLeaves.filter(l => l.status === "approved").reduce((s, l) => s + l.days, 0);
+  const { leaveTypes, getAllocationsForEmployee, setAllocation } = useLeaveTypes();
+  const allocations = getAllocationsForEmployee(emp.id);
   const [editing, setEditing] = useState(false);
-  const [entitlement, setEntitlement] = useState("21");
+  const [localAllocs, setLocalAllocs] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
+  const activeTypes = leaveTypes.filter(lt => lt.isActive);
+
+  const getAllocated = (ltId: string) => {
+    if (editing && localAllocs[ltId] !== undefined) return localAllocs[ltId];
+    const alloc = allocations.find(a => a.leaveTypeId === ltId);
+    return alloc ? alloc.allocatedDays : leaveTypes.find(lt => lt.id === ltId)?.defaultDays || 0;
+  };
+
+  const getUsed = (ltName: string) => {
+    return empLeaves.filter(l => l.status === "approved" && l.type.toLowerCase() === ltName.toLowerCase()).reduce((s, l) => s + l.days, 0);
+  };
+
+  const startEditing = () => {
+    const allocs: Record<string, number> = {};
+    activeTypes.forEach(lt => { allocs[lt.id] = getAllocated(lt.id); });
+    setLocalAllocs(allocs);
+    setEditing(true);
+  };
+
+  const saveEditing = () => {
+    Object.entries(localAllocs).forEach(([ltId, days]) => setAllocation(emp.id, ltId, days));
+    setEditing(false);
+    toast({ title: "Saved", description: "Leave allocations updated." });
+  };
+
+  const totalAllocated = activeTypes.reduce((s, lt) => s + getAllocated(lt.id), 0);
+  const totalUsed = empLeaves.filter(l => l.status === "approved").reduce((s, l) => s + l.days, 0);
+
   return (
-    <SectionCard title="Time Off & Vacation" icon={Calendar} editing={editing} onEdit={() => setEditing(true)} onSave={() => { setEditing(false); toast({ title: "Saved", description: "Time off settings updated." }); }} onCancel={() => setEditing(false)}>
+    <SectionCard title="Time Off & Vacation" icon={Calendar} editing={editing} onEdit={startEditing} onSave={saveEditing} onCancel={() => setEditing(false)}>
+      {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-muted/50 rounded-lg p-3 text-center">
-          <p className="text-xs text-muted-foreground">Annual Entitlement</p>
-          {editing ? <Input type="number" value={entitlement} onChange={e => setEntitlement(e.target.value)} className="h-8 text-center mt-1" /> : <p className="text-xl font-bold">{entitlement}</p>}
+          <p className="text-xs text-muted-foreground">Total Entitlement</p>
+          <p className="text-xl font-bold">{totalAllocated}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3 text-center">
-          <p className="text-xs text-muted-foreground">Used</p>
+          <p className="text-xs text-muted-foreground">Total Used</p>
           <p className="text-xl font-bold">{totalUsed}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3 text-center">
-          <p className="text-xs text-muted-foreground">Remaining</p>
-          <p className="text-xl font-bold text-primary">{Number(entitlement) - totalUsed}</p>
+          <p className="text-xs text-muted-foreground">Total Remaining</p>
+          <p className="text-xl font-bold text-primary">{totalAllocated - totalUsed}</p>
         </div>
       </div>
-      {empLeaves.length > 0 ? (
-        <Table>
-          <TableHeader><TableRow className="bg-muted/50">
-            <TableHead>Type</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>Days</TableHead><TableHead>Status</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {empLeaves.map(l => (
-              <TableRow key={l.id}>
-                <TableCell className="text-sm capitalize">{l.type}</TableCell>
-                <TableCell className="text-sm">{l.startDate}</TableCell>
-                <TableCell className="text-sm">{l.endDate}</TableCell>
-                <TableCell className="text-sm">{l.days}</TableCell>
-                <TableCell><StatusBadge status={l.status} /></TableCell>
+
+      {/* Per leave type breakdown */}
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead>Leave Type</TableHead>
+            <TableHead className="text-center">Allocated</TableHead>
+            <TableHead className="text-center">Used</TableHead>
+            <TableHead className="text-center">Remaining</TableHead>
+            <TableHead className="text-center">Paid</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {activeTypes.map(lt => {
+            const allocated = getAllocated(lt.id);
+            const used = getUsed(lt.name);
+            return (
+              <TableRow key={lt.id}>
+                <TableCell className="text-sm font-medium">{lt.name}</TableCell>
+                <TableCell className="text-center">
+                  {editing ? (
+                    <Input type="number" min={0} value={localAllocs[lt.id] ?? allocated} onChange={e => setLocalAllocs({ ...localAllocs, [lt.id]: Number(e.target.value) })} className="h-8 w-20 text-center mx-auto" />
+                  ) : (
+                    <span className="text-sm">{allocated}</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-center text-sm">{used}</TableCell>
+                <TableCell className="text-center text-sm font-semibold text-primary">{allocated - used}</TableCell>
+                <TableCell className="text-center text-sm">{lt.isPaid ? "Yes" : "No"}</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <p className="text-sm text-muted-foreground text-center py-6">No leave records found.</p>
+            );
+          })}
+        </TableBody>
+      </Table>
+
+      {/* Leave history */}
+      {empLeaves.length > 0 && (
+        <div className="mt-6">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Leave History</p>
+          <Table>
+            <TableHeader><TableRow className="bg-muted/50">
+              <TableHead>Type</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>Days</TableHead><TableHead>Status</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {empLeaves.map(l => (
+                <TableRow key={l.id}>
+                  <TableCell className="text-sm capitalize">{l.type}</TableCell>
+                  <TableCell className="text-sm">{l.startDate}</TableCell>
+                  <TableCell className="text-sm">{l.endDate}</TableCell>
+                  <TableCell className="text-sm">{l.days}</TableCell>
+                  <TableCell><StatusBadge status={l.status} /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </SectionCard>
   );
