@@ -183,8 +183,10 @@ export default function LoansPage() {
       return;
     }
     const months = Number(pauseMonths);
-    const now = new Date();
-    const pausedUntilDate = new Date(now);
+    // Use the processing payroll period as the starting point
+    const monthIdx = ["January","February","March","April","May","June","July","August","September","October","November","December"].indexOf(processingRun.month);
+    const periodDate = new Date(processingRun.year, monthIdx, 1);
+    const pausedUntilDate = new Date(periodDate);
     pausedUntilDate.setMonth(pausedUntilDate.getMonth() + months);
     const pausedUntil = pausedUntilDate.toISOString().split("T")[0];
 
@@ -204,8 +206,8 @@ export default function LoansPage() {
       amount: 0,
       balanceAfter: selectedLoan.remainingBalance,
       emiAtTime: 0,
-      date: now.toISOString().split("T")[0],
-      note: `EMI paused for ${months} month(s) until ${new Date(pausedUntil).toLocaleDateString()}. Original EMI: SAR ${selectedLoan.monthlyDeduction.toLocaleString()}${pauseReason ? `. Reason: ${pauseReason}` : ""}`,
+      date: periodDate.toISOString().split("T")[0],
+      note: `EMI paused for ${months} month(s) starting ${runLabel} until ${new Date(pausedUntil).toLocaleDateString()}. Original EMI: SAR ${selectedLoan.monthlyDeduction.toLocaleString()}${pauseReason ? `. Reason: ${pauseReason}` : ""}`,
     };
 
     syncLoans(prev => prev.map(l => l.id === selectedLoan.id ? {
