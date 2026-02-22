@@ -908,6 +908,7 @@ export default function EmployeesPage() {
       avatar: "",
       dateOfBirth: "",
       category: (formData.get("category") as "direct" | "contractor") || "direct",
+      workLocationCountry: (formData.get("workLocationCountry") as string) || "Saudi Arabia",
       compensation: [],
     };
     setLocalEmployees(prev => [...prev, newEmp]);

@@ -15,6 +15,7 @@ export interface Employee {
   avatar: string;
   dateOfBirth: string;
   category: EmployeeCategory;
+  workLocationCountry: string;
   compensation?: SalaryComponent[];
 }
 
@@ -103,6 +104,7 @@ export interface Deduction {
   fixedAmount?: number;
   isActive: boolean;
   appliesTo?: "all" | "direct" | "contractor";
+  appliesToCountries?: string[];
 }
 
 export interface TaxConfig {
@@ -112,6 +114,7 @@ export interface TaxConfig {
   applicableTo: string;
   isActive: boolean;
   appliesTo?: "all" | "direct" | "contractor";
+  appliesToCountries?: string[];
 }
 
 export interface CostAllocation {

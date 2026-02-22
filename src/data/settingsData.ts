@@ -1,8 +1,24 @@
+export const workLocationCountries = [
+  "Saudi Arabia",
+  "UAE",
+  "Qatar",
+  "Bahrain",
+  "Kuwait",
+  "Oman",
+  "Egypt",
+  "Jordan",
+  "United Kingdom",
+  "United States",
+] as const;
+
+export type WorkLocationCountry = typeof workLocationCountries[number];
+
 export interface CompensationSetting {
   id: string;
   name: string;
   isActive: boolean;
   appliesTo?: "all" | "direct" | "contractor";
+  appliesToCountries?: string[];
 }
 
 export interface JobTitle {

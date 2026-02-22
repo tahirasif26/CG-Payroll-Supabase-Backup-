@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
 
 export default function CompensationSettingsPage() {
   const [items, setItems] = useState<CompensationSetting[]>(compensationSettings);
@@ -23,26 +24,27 @@ export default function CompensationSettingsPage() {
   const [formName, setFormName] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
   const [formAppliesTo, setFormAppliesTo] = useState<"all" | "direct" | "contractor">("all");
+  const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormIsActive(true); setFormAppliesTo("all");
+    setFormName(""); setFormIsActive(true); setFormAppliesTo("all"); setFormCountries([]);
     setDialogOpen(true);
   };
 
   const openEdit = (item: CompensationSetting) => {
     setEditItem(item);
-    setFormName(item.name); setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all");
+    setFormName(item.name); setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all"); setFormCountries(item.appliesToCountries || []);
     setDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editItem) {
-      setItems(prev => prev.map(i => i.id === editItem.id ? { ...i, name: formName, isActive: formIsActive, appliesTo: formAppliesTo } : i));
+      setItems(prev => prev.map(i => i.id === editItem.id ? { ...i, name: formName, isActive: formIsActive, appliesTo: formAppliesTo, appliesToCountries: formCountries } : i));
       toast({ title: "Updated", description: `${formName} has been updated.` });
     } else {
-      const newItem: CompensationSetting = { id: String(Date.now()), name: formName, isActive: formIsActive, appliesTo: formAppliesTo };
+      const newItem: CompensationSetting = { id: String(Date.now()), name: formName, isActive: formIsActive, appliesTo: formAppliesTo, appliesToCountries: formCountries };
       setItems(prev => [...prev, newItem]);
       toast({ title: "Added", description: `${formName} has been added.` });
     }
@@ -72,6 +74,7 @@ export default function CompensationSettingsPage() {
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Component Name</TableHead>
               <TableHead className="font-semibold">Applies To</TableHead>
+              <TableHead className="font-semibold">Countries</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
@@ -81,6 +84,7 @@ export default function CompensationSettingsPage() {
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="capitalize text-sm">{item.appliesTo || "all"}</TableCell>
+                <TableCell><CountryBadges countries={item.appliesToCountries} /></TableCell>
                 <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -112,6 +116,10 @@ export default function CompensationSettingsPage() {
                   <SelectItem value="contractor">Contractors Only</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Countries</Label>
+              <CountryMultiSelect value={formCountries} onChange={setFormCountries} />
             </div>
             <div className="flex items-center gap-3"><Switch checked={formIsActive} onCheckedChange={setFormIsActive} /><Label>Active</Label></div>
             <DialogFooter>
