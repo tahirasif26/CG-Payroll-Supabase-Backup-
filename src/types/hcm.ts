@@ -86,6 +86,9 @@ export interface ExpenseReimbursement {
   description: string;
   attachments?: string[];
   payrollRunId?: string;
+  currency?: string;
+  exchangeRate?: number;
+  originalAmount?: number;
 }
 
 export interface OneOffAdjustment {

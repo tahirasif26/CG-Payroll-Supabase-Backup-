@@ -32,6 +32,7 @@ import DivisionsPage from "@/pages/settings/DivisionsPage";
 import ExpenseCategoriesPage from "@/pages/settings/ExpenseCategoriesPage";
 import UserManagementPage from "@/pages/settings/UserManagementPage";
 import CurrencySettingsPage from "@/pages/settings/CurrencySettingsPage";
+import ExchangeRatesPage from "@/pages/settings/ExchangeRatesPage";
 import ProjectSettingsPage from "@/pages/settings/ProjectSettingsPage";
 import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
 import GLCodeMappingPage from "@/pages/settings/GLCodeMappingPage";
@@ -85,6 +86,7 @@ const App = () => (
               <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
               <Route path="/settings/users" element={<UserManagementPage />} />
               <Route path="/settings/currency" element={<CurrencySettingsPage />} />
+              <Route path="/settings/exchange-rates" element={<ExchangeRatesPage />} />
               <Route path="/settings/projects" element={<ProjectSettingsPage />} />
               <Route path="/settings/company" element={<CompanySettingsPage />} />
               <Route path="/settings/gl-codes" element={<GLCodeMappingPage />} />
