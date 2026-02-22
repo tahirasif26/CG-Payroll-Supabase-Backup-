@@ -439,7 +439,7 @@ export default function LoansPage() {
               <Select value={newEmployee} onValueChange={setNewEmployee} required>
                 <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
                 <SelectContent>
-                  {employees.map(emp => (
+                  {employees.filter(e => e.status === "active" || e.status === "on-leave").map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</SelectItem>
                   ))}
                 </SelectContent>

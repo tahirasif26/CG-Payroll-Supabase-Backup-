@@ -35,7 +35,7 @@ const assetTrackingNav = [
 const payrollSubNav = [
   { title: "Payroll Runs", url: "/payroll", icon: DollarSign },
   { title: "Payslips", url: "/payslips", icon: FileCheck },
-  { title: "Separations", url: "/separations", icon: UserMinus },
+  { title: "End of Service", url: "/separations", icon: UserMinus },
   { title: "Loans", url: "/loans", icon: PiggyBank },
   { title: "Expenses", url: "/expenses", icon: CreditCard },
 ];
@@ -55,6 +55,7 @@ const performanceNav = [
   { title: "Self Assessment", url: "/performance/self-assessment", icon: ClipboardCheck },
   { title: "Peer Assessment", url: "/performance/peer-assessment", icon: UsersRound },
   { title: "Manager Assessment", url: "/performance/manager-assessment", icon: UserCheck },
+  { title: "Assessment Ratings", url: "/performance/assessment-ratings", icon: Award },
   { title: "Questionnaire Settings", url: "/performance/questionnaire", icon: ListChecks },
 ];
 
