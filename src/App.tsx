@@ -11,6 +11,7 @@ import { AssetProvider } from "@/contexts/AssetContext";
 import { ReportingProvider } from "@/contexts/ReportingContext";
 import { EmployeeProvider } from "@/contexts/EmployeeContext";
 import { DeductionProvider } from "@/contexts/DeductionContext";
+import { PerformanceCycleProvider } from "@/contexts/PerformanceCycleContext";
 import DashboardPage from "@/pages/DashboardPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import PayrollPage from "@/pages/PayrollPage";
@@ -34,7 +35,6 @@ import DivisionsPage from "@/pages/settings/DivisionsPage";
 import ExpenseCategoriesPage from "@/pages/settings/ExpenseCategoriesPage";
 import UserManagementPage from "@/pages/settings/UserManagementPage";
 import CurrencySettingsPage from "@/pages/settings/CurrencySettingsPage";
-
 import ProjectSettingsPage from "@/pages/settings/ProjectSettingsPage";
 import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
 import GLCodeMappingPage from "@/pages/settings/GLCodeMappingPage";
@@ -46,6 +46,7 @@ import PeerAssessmentPage from "@/pages/performance/PeerAssessmentPage";
 import ManagerAssessmentPage from "@/pages/performance/ManagerAssessmentPage";
 import RatingsOverviewPage from "@/pages/performance/RatingsOverviewPage";
 import QuestionnaireSettingsPage from "@/pages/performance/QuestionnaireSettingsPage";
+import AssessmentRatingsPage from "@/pages/performance/AssessmentRatingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
         <ReportingProvider>
         <EmployeeProvider>
         <DeductionProvider>
+        <PerformanceCycleProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -90,7 +92,6 @@ const App = () => (
               <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
               <Route path="/settings/users" element={<UserManagementPage />} />
               <Route path="/settings/currency" element={<CurrencySettingsPage />} />
-              
               <Route path="/settings/projects" element={<ProjectSettingsPage />} />
               <Route path="/settings/company" element={<CompanySettingsPage />} />
               <Route path="/settings/gl-codes" element={<GLCodeMappingPage />} />
@@ -102,10 +103,12 @@ const App = () => (
               <Route path="/performance/peer-assessment" element={<PeerAssessmentPage />} />
               <Route path="/performance/manager-assessment" element={<ManagerAssessmentPage />} />
               <Route path="/performance/questionnaire" element={<QuestionnaireSettingsPage />} />
+              <Route path="/performance/assessment-ratings" element={<AssessmentRatingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </PerformanceCycleProvider>
         </DeductionProvider>
         </EmployeeProvider>
         </ReportingProvider>
