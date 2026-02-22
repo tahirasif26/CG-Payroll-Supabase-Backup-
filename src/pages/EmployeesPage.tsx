@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAudit } from "@/contexts/AuditContext";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { employees as importedEmployees, leaveRequests, loans, payrollRuns } from "@/data/mockData";
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus } from "lucide-react";
+import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -280,28 +281,50 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
   const ext = getExtData(emp.id);
   const [editing, setEditing] = useState<string | null>(null);
   const { toast } = useToast();
+  const { addLogs } = useAudit();
+  const empName = `${emp.firstName} ${emp.lastName}`;
 
   const [bio, setBio] = useState({
     firstName: emp.firstName, lastName: emp.lastName, dateOfBirth: emp.dateOfBirth,
     gender: ext.gender, maritalStatus: ext.maritalStatus, religion: ext.religion, nationality: ext.nationality,
   });
+  const [prevBio, setPrevBio] = useState({ ...bio });
   const [bank, setBank] = useState({
     bankName: ext.bankName, bankCountry: ext.bankCountry, swiftCode: ext.swiftCode,
     bankAddress: ext.bankAddress, iban: ext.iban, bankCurrency: ext.bankCurrency, beneficiaryName: ext.beneficiaryName,
   });
+  const [prevBank, setPrevBank] = useState({ ...bank });
   const [address, setAddress] = useState({
     addressLine1: ext.addressLine1, addressLine2: ext.addressLine2,
     city: ext.city, state: ext.state, country: ext.country, postalCode: ext.postalCode,
   });
+  const [prevAddress, setPrevAddress] = useState({ ...address });
   const [contact, setContact] = useState({
     personalPhone: ext.personalPhone, personalEmail: ext.personalEmail,
     emergencyName: ext.emergencyName, emergencyRelation: ext.emergencyRelation,
     emergencyPhone: ext.emergencyPhone, emergencyEmail: ext.emergencyEmail,
   });
+  const [prevContact, setPrevContact] = useState({ ...contact });
   const [education, setEducation] = useState(ext.education);
   const [dependants, setDependants] = useState(ext.dependants);
 
+  const diffAndLog = (section: string, prev: Record<string, any>, curr: Record<string, any>) => {
+    const changes: Omit<import("@/contexts/AuditContext").AuditLogEntry, "id" | "changedAt" | "changedBy">[] = [];
+    for (const key of Object.keys(curr)) {
+      if (String(prev[key] || "") !== String(curr[key] || "")) {
+        changes.push({ employeeId: emp.id, employeeName: empName, section: `Personal > ${section}`, field: key, oldValue: String(prev[key] || ""), newValue: String(curr[key] || "") });
+      }
+    }
+    if (changes.length > 0) addLogs(changes);
+  };
+
   const save = (section: string) => {
+    if (section === "Basic info") { diffAndLog("Basic Information", prevBio, bio); setPrevBio({ ...bio }); }
+    else if (section === "Bank details") { diffAndLog("Bank Details", prevBank, bank); setPrevBank({ ...bank }); }
+    else if (section === "Address") { diffAndLog("Residential Address", prevAddress, address); setPrevAddress({ ...address }); }
+    else if (section === "Contact") { diffAndLog("Contact & Emergency", prevContact, contact); setPrevContact({ ...contact }); }
+    else if (section === "Education") { addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Education", field: "education", oldValue: "(previous)", newValue: `${education.length} record(s)` }]); }
+    else if (section === "Dependants") { addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Dependants", field: "dependants", oldValue: "(previous)", newValue: `${dependants.length} record(s)` }]); }
     setEditing(null);
     toast({ title: "Saved", description: `${section} updated successfully.` });
   };
@@ -433,9 +456,11 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
   const ext = getExtData(emp.id);
   const [editing, setEditing] = useState(false);
   const { toast } = useToast();
+  const { addLogs } = useAudit();
   const { getManagerId, getManagerName, setReportTo } = useReporting();
   const { employees: allEmployees } = useEmployees();
   const activeEmps = allEmployees.filter(e => e.status !== "separated" && e.id !== emp.id);
+  const empName = `${emp.firstName} ${emp.lastName}`;
 
   const currentManagerName = getManagerName(emp.id) || ext.reportsTo || "—";
   const currentManagerId = getManagerId(emp.id) || "";
@@ -445,9 +470,18 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
     reportsToId: currentManagerId, workEmail: ext.workEmail, empId: emp.empId,
     workLocationCity: ext.workLocationCity, workLocationCountry: ext.workLocationCountry, division: ext.division,
   });
+  const [prevData, setPrevData] = useState({ ...data });
 
   const handleSave = () => {
-    // Sync report-to change to shared context
+    const changes: Omit<import("@/contexts/AuditContext").AuditLogEntry, "id" | "changedAt" | "changedBy">[] = [];
+    for (const key of Object.keys(data) as (keyof typeof data)[]) {
+      if (String(prevData[key] || "") !== String(data[key] || "")) {
+        changes.push({ employeeId: emp.id, employeeName: empName, section: "Work Information", field: key, oldValue: String(prevData[key] || ""), newValue: String(data[key] || "") });
+      }
+    }
+    if (changes.length > 0) addLogs(changes);
+    setPrevData({ ...data });
+
     if (data.reportsToId === "__none__") {
       setReportTo(emp.id, null);
     } else if (data.reportsToId) {
@@ -511,16 +545,17 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
 
 function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdatePayCurrency?: (empId: string, currency: string) => void }) {
   const ext = getExtData(emp.id);
-  // Use active compensation settings to drive which components appear
+  const { addLogs, addLog } = useAudit();
+  const empName = `${emp.firstName} ${emp.lastName}`;
   const activeSettings = compensationSettings.filter(s => s.isActive);
   const existingComponents = emp.compensation || [];
-  // Map settings to component data, using existing amounts if available
   const initialCompData = activeSettings.map(s => {
     const existing = existingComponents.find(c => c.name === s.name);
     return { name: s.name, type: existing?.type || "other" as const, amount: existing?.amount || 0 };
   });
   const [editing, setEditing] = useState(false);
   const [compData, setCompData] = useState(initialCompData);
+  const [prevCompData, setPrevCompData] = useState(initialCompData.map(c => ({ ...c })));
   const [editingPayCurrency, setEditingPayCurrency] = useState(false);
   const [payCurrency, setPayCurrency] = useState(emp.payCurrency || "SAR");
   const [showAddChange, setShowAddChange] = useState(false);
@@ -542,7 +577,7 @@ function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdate
         icon={DollarSign}
         editing={editingPayCurrency}
         onEdit={() => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(true); }}
-        onSave={() => { onUpdatePayCurrency?.(emp.id, payCurrency); setEditingPayCurrency(false); toast({ title: "Pay Currency Saved", description: `Pay currency set to ${payCurrency}.` }); }}
+        onSave={() => { if (payCurrency !== currentPayCurrency) { addLog({ employeeId: emp.id, employeeName: empName, section: "Compensation > Pay Currency", field: "payCurrency", oldValue: currentPayCurrency, newValue: payCurrency }); } onUpdatePayCurrency?.(emp.id, payCurrency); setEditingPayCurrency(false); toast({ title: "Pay Currency Saved", description: `Pay currency set to ${payCurrency}.` }); }}
         onCancel={() => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(false); }}
       >
         <p className="text-xs text-muted-foreground mb-2">All compensation and payslip values for this employee are in their pay currency.</p>
@@ -562,7 +597,7 @@ function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdate
         )}
       </SectionCard>
 
-      <SectionCard title="Current Compensation" icon={DollarSign} editing={editing} onEdit={() => setEditing(true)} onSave={() => { setEditing(false); toast({ title: "Saved", description: "Compensation updated." }); }} onCancel={() => setEditing(false)}>
+      <SectionCard title="Current Compensation" icon={DollarSign} editing={editing} onEdit={() => setEditing(true)} onSave={() => { const changes = compData.filter((c, i) => c.amount !== prevCompData[i]?.amount).map(c => ({ employeeId: emp.id, employeeName: empName, section: "Compensation > Current", field: c.name, oldValue: String(prevCompData.find(p => p.name === c.name)?.amount || 0), newValue: String(c.amount) })); if (changes.length > 0) addLogs(changes); setPrevCompData(compData.map(c => ({ ...c }))); setEditing(false); toast({ title: "Saved", description: "Compensation updated." }); }} onCancel={() => setEditing(false)}>
         <div className="space-y-3">
           {compData.map((c, i) => (
             <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
@@ -643,7 +678,7 @@ function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdate
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddChange(false)}>Cancel</Button>
-            <Button onClick={() => { setShowAddChange(false); toast({ title: "Change Scheduled", description: `Compensation change effective ${newChange.effectiveDate} recorded.` }); }}>Save Change</Button>
+            <Button onClick={() => { addLog({ employeeId: emp.id, employeeName: empName, section: "Compensation > History", field: "New Change", oldValue: "", newValue: `${newChange.reason} effective ${newChange.effectiveDate}, total ${newChange.components.reduce((s, c) => s + c.amount, 0).toLocaleString()}` }); setShowAddChange(false); toast({ title: "Change Scheduled", description: `Compensation change effective ${newChange.effectiveDate} recorded.` }); }}>Save Change</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -761,6 +796,67 @@ function AssetsTab({ emp }: { emp: Employee }) {
           <div className="text-center py-8">
             <Monitor className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">No assets assigned to this employee.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AuditTrailTab({ emp }: { emp: Employee }) {
+  const { getLogsForEmployee } = useAudit();
+  const logs = getLogsForEmployee(emp.id);
+  const [sectionFilter, setSectionFilter] = useState("all");
+  const sections = Array.from(new Set(logs.map(l => l.section)));
+
+  const filtered = sectionFilter === "all" ? logs : logs.filter(l => l.section === sectionFilter);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardTitle className="text-base flex items-center gap-2"><ClipboardList className="h-4 w-4 text-primary" />Audit Trail</CardTitle>
+        {sections.length > 0 && (
+          <Select value={sectionFilter} onValueChange={setSectionFilter}>
+            <SelectTrigger className="w-[200px] h-8 text-sm"><Filter className="h-3 w-3 mr-1.5 text-muted-foreground" /><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sections</SelectItem>
+              {sections.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+      </CardHeader>
+      <CardContent>
+        {filtered.length > 0 ? (
+          <ScrollArea className="h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Date & Time</TableHead>
+                  <TableHead className="font-semibold">Section</TableHead>
+                  <TableHead className="font-semibold">Field</TableHead>
+                  <TableHead className="font-semibold">Old Value</TableHead>
+                  <TableHead className="font-semibold">New Value</TableHead>
+                  <TableHead className="font-semibold">Changed By</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(log => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(log.changedAt).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs"><span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">{log.section}</span></TableCell>
+                    <TableCell className="text-sm font-medium">{log.field}</TableCell>
+                    <TableCell className="text-sm text-destructive">{log.oldValue || "—"}</TableCell>
+                    <TableCell className="text-sm text-primary">{log.newValue || "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{log.changedBy}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        ) : (
+          <div className="text-center py-8">
+            <ClipboardList className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No changes recorded yet. Edits to personal info, work info, compensation, and documents will appear here.</p>
           </div>
         )}
       </CardContent>
@@ -951,8 +1047,15 @@ export default function EmployeesPage() {
     toast({ title: "Employee Added", description: "The new employee has been added to the directory." });
   };
 
+  const { addLog: auditLog } = useAudit();
+
   const handleUploadDoc = (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedEmployee) {
+      const form = e.target as HTMLFormElement;
+      const docName = (form.querySelector('input[placeholder]') as HTMLInputElement)?.value || "Unknown";
+      auditLog({ employeeId: selectedEmployee.id, employeeName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`, section: "Documents", field: "Upload", oldValue: "", newValue: docName });
+    }
     setUploadDocOpen(false);
     toast({ title: "Document Uploaded", description: "The document has been uploaded successfully." });
   };
@@ -990,6 +1093,7 @@ export default function EmployeesPage() {
             <TabsTrigger value="timeoff"><Calendar className="h-3.5 w-3.5 mr-1.5" />Time Off</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-3.5 w-3.5 mr-1.5" />Documents</TabsTrigger>
             <TabsTrigger value="assets"><Monitor className="h-3.5 w-3.5 mr-1.5" />Assets</TabsTrigger>
+            <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>
           </TabsList>
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
@@ -997,6 +1101,7 @@ export default function EmployeesPage() {
           <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={() => setUploadDocOpen(true)} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
+          <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>
         </Tabs>
 
         <Dialog open={uploadDocOpen} onOpenChange={setUploadDocOpen}>

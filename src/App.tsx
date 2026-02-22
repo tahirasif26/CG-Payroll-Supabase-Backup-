@@ -12,6 +12,7 @@ import { ReportingProvider } from "@/contexts/ReportingContext";
 import { EmployeeProvider } from "@/contexts/EmployeeContext";
 import { DeductionProvider } from "@/contexts/DeductionContext";
 import { PerformanceCycleProvider } from "@/contexts/PerformanceCycleContext";
+import { AuditProvider } from "@/contexts/AuditContext";
 import DashboardPage from "@/pages/DashboardPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import PayrollPage from "@/pages/PayrollPage";
@@ -64,6 +65,7 @@ const App = () => (
         <EmployeeProvider>
         <DeductionProvider>
         <PerformanceCycleProvider>
+        <AuditProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -108,6 +110,7 @@ const App = () => (
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </AuditProvider>
         </PerformanceCycleProvider>
         </DeductionProvider>
         </EmployeeProvider>
