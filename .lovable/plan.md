@@ -1,64 +1,92 @@
 
 
-## EMI Pause Feature for Employee Loans
+## Automatic Leave Balance Carryforward
 
 ### Overview
-Add the ability to pause EMI deductions on active loans for a specified number of months. This is a common request where employees need temporary relief from loan repayments.
+This feature builds on the previously approved (but not yet implemented) year-end date and carryforward settings. It adds leave balance tracking per employee per year, and automatic rollover logic: at year-end, if an employee's remaining leave days for a given type are less than or equal to the configured maximum carryforward, those days automatically roll into the next year's balance.
 
-### How It Works
+### What Gets Built (all together)
 
-- A new **"Pause EMI"** button will appear alongside the existing "Adjust EMI" button on active loan detail views
-- Clicking it opens a dialog where the admin selects the number of months to pause (1-6)
-- Optionally, a reason can be provided (e.g., "Employee on unpaid leave")
-- When paused:
-  - The loan's `monthlyDeduction` is set to 0
-  - A new transaction of type `emi_pause` is recorded with the pause duration and reason
-  - The loan detail view shows a visible **"EMI Paused"** indicator with the number of remaining pause months
-  - The end date is automatically extended by the number of pause months
-- When the pause period ends (or the admin manually resumes early), the EMI reverts to its previous value and an `emi_resume` transaction is recorded
-- A **"Resume EMI"** button replaces the Pause button while paused, allowing early resumption
+**1. Year-End Date in Company Profile (from prior plan)**
+- Add `yearEndDate` (MM-DD format) and `yearEndLocked` boolean to `ClientConfig`
+- One-time setting on Company Settings page -- locked after first save
 
-### Changes
+**2. Max Carryforward on Leave Types (from prior plan)**
+- Add `maxCarryForwardDays` field to `LeaveType` interface (default: 0 = no carryforward)
+- Editable in Leave Types settings table and dialog
+- Defaults: Annual Leave = 5, all others = 0
 
-**Type update (`src/types/hcm.ts`)**
-- Add `emi_pause` and `emi_resume` to the `LoanTransaction.type` union
-- Add optional fields to `Loan`: `pausedUntil?: string`, `prePauseEmi?: number`
+**3. Employee Leave Balance Tracking (new)**
+- New interface `EmployeeLeaveBalance` in `LeaveTypeContext`:
+  - `employeeId`, `leaveTypeId`, `year` (e.g. "2025-2026"), `entitled`, `used`, `carriedForward`, `remaining`
+- Context provides functions:
+  - `getBalanceForEmployee(employeeId, leaveTypeId, year)` -- returns balance record
+  - `getBalancesForYear(employeeId, year)` -- returns all leave type balances
+- Balances are auto-initialized from allocations (or `defaultDays`) when first accessed
+- When a leave request is approved, `used` increments and `remaining` decrements
 
-**Loans page update (`src/pages/LoansPage.tsx`)**
-- Add "Pause EMI" dialog with month selector (1-6) and reason textarea
-- Add "Resume EMI" button when loan is currently paused
-- Show a warning badge/banner on paused loans in both the list view and detail view
-- Record `emi_pause` transaction when pausing (stores original EMI, pause months, reason)
-- Record `emi_resume` transaction when resuming (restores original EMI)
-- Transaction history table updated to display the two new types with appropriate badge colors
+**4. Automatic Carryforward Logic (new)**
+- New function `runYearEndCarryforward(fromYear, toYear)` in context
+- For each employee + leave type:
+  - Calculate remaining = entitled + carriedForward - used
+  - If remaining > 0 and leave type has `maxCarryForwardDays > 0`:
+    - Carryforward = min(remaining, maxCarryForwardDays)
+  - Create next year's balance with `carriedForward` = calculated amount
+- A "Run Year-End Rollover" button on the Leave Management page (visible when year-end date is configured)
+- Shows a confirmation dialog with a preview table of what will carry forward per employee before executing
+- Once run for a given year, it cannot be run again (tracked via a `completedRollovers` list)
+
+**5. Leave Balance View on Leave Page (new)**
+- New tab or section on the Leave Management page: "Leave Balances"
+- Table showing each employee's balances per leave type for the current fiscal year:
+  - Columns: Employee, Leave Type, Entitled, Carried Forward, Used, Remaining
+- Remaining days highlighted amber if low, green if healthy
 
 ### Technical Details
 
-**Pause EMI flow:**
-1. Admin clicks "Pause EMI" on an active loan
-2. Selects number of months (1-6), enters optional reason
-3. On confirm:
-   - Store current EMI in `loan.prePauseEmi`
-   - Set `loan.monthlyDeduction` to 0
-   - Calculate `loan.pausedUntil` date (current date + N months)
-   - Extend `loan.endDate` by N months
-   - Add `emi_pause` transaction with note showing original EMI, pause duration, and reason
+**File: `src/contexts/ClientContext.tsx`**
+- Add to `ClientConfig`: `yearEndDate?: string`, `yearEndLocked?: boolean`
 
-**Resume EMI flow (manual or auto):**
-1. Admin clicks "Resume EMI" (or pause period expires conceptually)
-2. On confirm:
-   - Restore `loan.monthlyDeduction` from `loan.prePauseEmi`
-   - Clear `loan.pausedUntil` and `loan.prePauseEmi`
-   - Add `emi_resume` transaction
+**File: `src/pages/settings/CompanySettingsPage.tsx`**
+- Add fiscal year-end month/day selector, locked after save
 
-**UI indicators:**
-- Paused loans show an amber "EMI Paused" badge in the list table
-- Detail view shows a highlighted banner: "EMI paused until [date] -- original EMI: SAR X"
-- Transaction history shows `emi_pause` and `emi_resume` with distinct badge colors
+**File: `src/contexts/LeaveTypeContext.tsx`**
+- Add `maxCarryForwardDays: number` to `LeaveType` (default 0)
+- Add `EmployeeLeaveBalance` interface with fields: `employeeId`, `leaveTypeId`, `year`, `entitled`, `used`, `carriedForward`, `remaining`
+- Add state: `balances: EmployeeLeaveBalance[]`, `completedRollovers: string[]`
+- Add functions: `getBalanceForEmployee`, `getBalancesForYear`, `recordLeaveUsage`, `runYearEndCarryforward`, `initializeBalances`
+- Carryforward logic: `carryforward = Math.min(remaining, maxCarryForwardDays)` -- only if remaining > 0 and maxCarryForwardDays > 0
+
+**File: `src/pages/settings/LeaveTypesPage.tsx`**
+- Add "Max Carryforward" column to table
+- Add numeric input in add/edit dialog for `maxCarryForwardDays`
+
+**File: `src/pages/LeavePage.tsx`**
+- Add "Leave Balances" tab showing per-employee balances for the current fiscal year
+- Add "Run Year-End Rollover" button (only visible when year-end date is set)
+- Rollover confirmation dialog shows a preview of carryforward amounts
+- When approving a leave request, call `recordLeaveUsage` to update balances
+
+### Carryforward Rule Summary
+
+```text
+For each employee + leave type at year-end:
+  remaining = entitled + carriedForward - used
+  if remaining <= maxCarryForwardDays AND remaining > 0:
+      next year carriedForward = remaining  (all remaining days roll over)
+  if remaining > maxCarryForwardDays AND maxCarryForwardDays > 0:
+      next year carriedForward = maxCarryForwardDays  (capped at max)
+  if maxCarryForwardDays = 0:
+      next year carriedForward = 0  (no rollover)
+```
 
 ### Files to Modify
+
 | File | Change |
 |------|--------|
-| `src/types/hcm.ts` | Add `emi_pause`, `emi_resume` to transaction type; add `pausedUntil`, `prePauseEmi` to `Loan` |
-| `src/pages/LoansPage.tsx` | Add Pause EMI dialog, Resume EMI button, pause indicators in list and detail views, new transaction type rendering |
+| `src/contexts/ClientContext.tsx` | Add `yearEndDate`, `yearEndLocked` to config |
+| `src/pages/settings/CompanySettingsPage.tsx` | Add year-end date picker with lock behavior |
+| `src/contexts/LeaveTypeContext.tsx` | Add `maxCarryForwardDays` to LeaveType, add balance tracking state and carryforward logic |
+| `src/pages/settings/LeaveTypesPage.tsx` | Add carryforward column and form field |
+| `src/pages/LeavePage.tsx` | Add balances tab, rollover button, update approve to track usage |
 
