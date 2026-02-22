@@ -288,37 +288,39 @@ export default function ExpensesPage() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedExp(exp); setDetailOpen(true); }} title="View Details">
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
-                        {exp.status === "pending" && (
-                          <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700" onClick={() => handleApprove(exp)} title="Approve">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
-                              <XCircle className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(exp)} title="Edit">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSelectedExp(exp); setDeleteOpen(true); }} title="Delete">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
-                        )}
-                        {exp.status === "approved" && (() => {
-                          const openRun = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
-                          const isInCurrentRun = exp.payrollRunId && openRun && exp.payrollRunId === openRun.id;
-                          const isUnlinked = !exp.payrollRunId;
-                          const canModify = isInCurrentRun || isUnlinked;
-                          return canModify ? (
+                        {(() => {
+                          const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
+                          const isInCompletedRun = exp.payrollRunId ? completedRunIds.has(exp.payrollRunId) : false;
+                          const canEdit = !isInCompletedRun;
+                          return (
                             <>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(exp)} title="Edit">
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
-                                <XCircle className="h-3.5 w-3.5" />
-                              </Button>
+                              {exp.status === "pending" && (
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700" onClick={() => handleApprove(exp)} title="Approve">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
+                                    <XCircle className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              )}
+                              {canEdit && (
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(exp)} title="Edit">
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSelectedExp(exp); setDeleteOpen(true); }} title="Delete">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              )}
+                              {exp.status === "approved" && canEdit && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
+                                  <XCircle className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </>
-                          ) : null;
+                          );
                         })()}
                       </div>
                     </TableCell>
