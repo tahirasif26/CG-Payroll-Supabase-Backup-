@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { leaveRequests } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Check, X, Search, Filter } from "lucide-react";
@@ -16,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 export default function LeavePage() {
   const activeEmps = useActiveEmployees();
   const activeIds = new Set(activeEmps.map(e => e.id));
+  const { leaveTypes } = useLeaveTypes();
+  const activeLeaveTypes = leaveTypes.filter(lt => lt.isActive);
   const allLeaves = leaveRequests.filter(l => activeIds.has(l.employeeId));
   const [newOpen, setNewOpen] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
@@ -23,7 +26,10 @@ export default function LeavePage() {
   const [selectedLeave, setSelectedLeave] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Search & filter
+  // New request form state
+  const [newEmployee, setNewEmployee] = useState("");
+  const [newType, setNewType] = useState("");
+
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -39,7 +45,10 @@ export default function LeavePage() {
   const handleSubmitRequest = (e: React.FormEvent) => {
     e.preventDefault();
     setNewOpen(false);
-    toast({ title: "Leave Request Submitted", description: "Your leave request has been sent for approval." });
+    setNewEmployee("");
+    setNewType("");
+    const emp = activeEmps.find(e => e.id === newEmployee);
+    toast({ title: "Leave Request Submitted", description: `Leave request for ${emp ? `${emp.firstName} ${emp.lastName}` : "employee"} has been sent for approval.` });
   };
 
   const handleApprove = () => {
@@ -70,14 +79,12 @@ export default function LeavePage() {
           <Input placeholder="Search by employee or reason..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[150px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="w-[180px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="annual">Annual</SelectItem>
-            <SelectItem value="sick">Sick</SelectItem>
-            <SelectItem value="compassionate">Compassionate</SelectItem>
-            <SelectItem value="unpaid">Unpaid</SelectItem>
-            <SelectItem value="maternity">Maternity</SelectItem>
+            {activeLeaveTypes.map(lt => (
+              <SelectItem key={lt.id} value={lt.name.toLowerCase().replace(/\s+/g, "_")}>{lt.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -138,18 +145,28 @@ export default function LeavePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New Leave Request</DialogTitle>
-            <DialogDescription>Submit a new leave request for approval.</DialogDescription>
+            <DialogDescription>Submit a new leave request for an employee.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitRequest} className="space-y-4">
             <div className="space-y-2">
+              <Label>Employee</Label>
+              <Select value={newEmployee} onValueChange={setNewEmployee} required>
+                <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                <SelectContent>
+                  {activeEmps.map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.empId})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Leave Type</Label>
-              <Select required>
+              <Select value={newType} onValueChange={setNewType} required>
                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="annual">Annual</SelectItem>
-                  <SelectItem value="sick">Sick</SelectItem>
-                  <SelectItem value="compassionate">Compassionate</SelectItem>
-                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  {activeLeaveTypes.map(lt => (
+                    <SelectItem key={lt.id} value={lt.id}>{lt.name}{!lt.isPaid ? " (Unpaid)" : ""}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -165,11 +182,11 @@ export default function LeavePage() {
             </div>
             <div className="space-y-2">
               <Label>Reason</Label>
-              <Textarea placeholder="Provide a reason for your leave..." required />
+              <Textarea placeholder="Provide a reason for the leave..." required />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
-              <Button type="submit">Submit Request</Button>
+              <Button type="submit" disabled={!newEmployee || !newType}>Submit Request</Button>
             </DialogFooter>
           </form>
         </DialogContent>
