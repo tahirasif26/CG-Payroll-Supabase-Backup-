@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { payrollRuns, employees, loans, expenses } from "@/data/mockData";
 import { PayrollRun, OneOffAdjustment } from "@/types/hcm";
-import { defaultCountryCurrencyMappings, defaultExchangeRates } from "@/data/settingsData";
+import { defaultExchangeRates } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSeparations } from "@/contexts/SeparationContext";
 import { Button } from "@/components/ui/button";
@@ -23,9 +23,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 const REPORTING_CURRENCY = "SAR";
 
-function getEmployeePayCurrency(workLocationCountry: string): string {
-  const mapping = defaultCountryCurrencyMappings.find(m => m.country === workLocationCountry);
-  return mapping?.currencyCode || REPORTING_CURRENCY;
+function getEmployeePayCurrency(emp: { payCurrency?: string }): string {
+  return emp.payCurrency || REPORTING_CURRENCY;
 }
 
 function getToReportingRate(fromCurrency: string): number {
@@ -73,7 +72,7 @@ function buildBreakdown(oneOffs: OneOffAdjustment[], separationMap: Record<strin
     const isSeparated = !!separationMap[emp.id];
     const totalDeductions = otherDeductions + loanDeduction + oneOffDeductions;
     const net = gross - totalDeductions + approvedExpenses + oneOffBenefits + separationSettlement;
-    const payCurrency = getEmployeePayCurrency(emp.workLocationCountry);
+    const payCurrency = getEmployeePayCurrency(emp);
     return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency };
   });
 }
@@ -510,7 +509,7 @@ export default function PayrollPage() {
               const empLoans = loans.filter(l => l.employeeId === sheetEmp.id && l.status === "active");
               const empExpenses = expenses.filter(e => e.employeeId === sheetEmp.id);
               const empDeductions = Math.round(sheetEmp.salary * 0.15);
-              const empPayCurrency = getEmployeePayCurrency(sheetEmp.workLocationCountry);
+              const empPayCurrency = getEmployeePayCurrency(sheetEmp);
               return (
                 <>
                   <SheetHeader>

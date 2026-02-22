@@ -128,11 +128,6 @@ export const availableCurrencies: CurrencySetting[] = [
   { code: "JOD", name: "Jordanian Dinar", symbol: "JOD" },
 ];
 
-export interface CountryCurrencyMapping {
-  country: string;
-  currencyCode: string;
-}
-
 export interface ExchangeRate {
   id: string;
   fromCurrency: string;
@@ -140,18 +135,6 @@ export interface ExchangeRate {
   lastUpdated: string;
 }
 
-export const defaultCountryCurrencyMappings: CountryCurrencyMapping[] = [
-  { country: "Saudi Arabia", currencyCode: "SAR" },
-  { country: "UAE", currencyCode: "AED" },
-  { country: "Qatar", currencyCode: "QAR" },
-  { country: "Bahrain", currencyCode: "BHD" },
-  { country: "Kuwait", currencyCode: "KWD" },
-  { country: "Oman", currencyCode: "OMR" },
-  { country: "Egypt", currencyCode: "EGP" },
-  { country: "Jordan", currencyCode: "JOD" },
-  { country: "United Kingdom", currencyCode: "GBP" },
-  { country: "United States", currencyCode: "USD" },
-];
 
 export const defaultExchangeRates: ExchangeRate[] = [
   { id: "1", fromCurrency: "USD", toReportingRate: 3.75, lastUpdated: "2025-02-01" },
