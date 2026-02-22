@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { expenses, payrollRuns, employees } from "@/data/mockData";
-import { ExpenseReimbursement } from "@/types/hcm";
+import { expenses, payrollRuns } from "@/data/mockData";
+import { useEmployees } from "@/contexts/EmployeeContext";
+import { ExpenseReimbursement, Employee } from "@/types/hcm";
 import { defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -22,8 +23,8 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-function getEmployeePayCurrency(employeeId: string): string {
-  const emp = employees.find(e => e.id === employeeId);
+function getEmployeePayCurrency(employeeId: string, emps: Employee[]): string {
+  const emp = emps.find(e => e.id === employeeId);
   return emp?.payCurrency || "SAR";
 }
 
@@ -36,6 +37,7 @@ function getExchangeRate(fromCurrency: string, toCurrency: string): number {
 }
 
 export default function ExpensesPage() {
+  const { employees } = useEmployees();
   const [expenseList, setExpenseList] = useState<ExpenseReimbursement[]>(expenses);
   const [newOpen, setNewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -54,7 +56,7 @@ export default function ExpensesPage() {
   const [formCurrency, setFormCurrency] = useState("");
   const [formExchangeRate, setFormExchangeRate] = useState("");
 
-  const selectedEmployeePayCurrency = formEmployee ? getEmployeePayCurrency(formEmployee) : "SAR";
+  const selectedEmployeePayCurrency = formEmployee ? getEmployeePayCurrency(formEmployee, employees) : "SAR";
 
   const resetForm = () => {
     setFormEmployee("");
@@ -69,7 +71,7 @@ export default function ExpensesPage() {
   // When employee changes, default the expense currency to their pay currency
   const handleEmployeeChange = (empId: string) => {
     setFormEmployee(empId);
-    const payCurrency = getEmployeePayCurrency(empId);
+    const payCurrency = getEmployeePayCurrency(empId, employees);
     setFormCurrency(payCurrency);
     setFormExchangeRate("1");
   };
@@ -77,7 +79,7 @@ export default function ExpensesPage() {
   // When expense currency changes, auto-fill exchange rate
   const handleCurrencyChange = (currency: string) => {
     setFormCurrency(currency);
-    const payCurrency = formEmployee ? getEmployeePayCurrency(formEmployee) : "SAR";
+    const payCurrency = formEmployee ? getEmployeePayCurrency(formEmployee, employees) : "SAR";
     const rate = getExchangeRate(currency, payCurrency);
     setFormExchangeRate(rate.toFixed(4));
   };
@@ -91,7 +93,7 @@ export default function ExpensesPage() {
     e.preventDefault();
     const emp = employees.find(em => em.id === formEmployee);
     if (!emp || !formExpenseDate) return;
-    const payCurrency = getEmployeePayCurrency(emp.id);
+    const payCurrency = getEmployeePayCurrency(emp.id, employees);
     const expCurrency = formCurrency || payCurrency;
     const isMultiCurrency = expCurrency !== payCurrency;
     const convertedAmount = isMultiCurrency ? computeConvertedAmount() : Number(formAmount);
@@ -199,7 +201,7 @@ export default function ExpensesPage() {
   };
 
   const formatExpenseAmount = (exp: ExpenseReimbursement) => {
-    const payCurrency = getEmployeePayCurrency(exp.employeeId);
+    const payCurrency = getEmployeePayCurrency(exp.employeeId, employees);
     if (exp.currency && exp.originalAmount && exp.currency !== payCurrency) {
       return (
         <span>
@@ -491,7 +493,7 @@ export default function ExpensesPage() {
                 {selectedExp.currency && selectedExp.exchangeRate && (
                   <div className="col-span-2">
                     <span className="text-muted-foreground">Exchange Rate:</span>
-                    <p className="font-medium">1 {selectedExp.currency} = {selectedExp.exchangeRate} {getEmployeePayCurrency(selectedExp.employeeId)}</p>
+                    <p className="font-medium">1 {selectedExp.currency} = {selectedExp.exchangeRate} {getEmployeePayCurrency(selectedExp.employeeId, employees)}</p>
                   </div>
                 )}
                 {selectedExp.payrollRunId && (

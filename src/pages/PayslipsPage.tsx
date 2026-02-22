@@ -2,7 +2,8 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useClient } from "@/contexts/ClientContext";
-import { employees, payrollRuns, loans } from "@/data/mockData";
+import { payrollRuns, loans } from "@/data/mockData";
+import { useEmployees } from "@/contexts/EmployeeContext";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ interface PayslipDetail {
 }
 
 export default function PayslipsPage() {
+  const { employees } = useEmployees();
   const { role, currentEmployeeId } = useRole();
   const currentEmployee = employees.find(e => e.id === currentEmployeeId);
   const completedRuns = payrollRuns.filter(r => r.status === "completed");
