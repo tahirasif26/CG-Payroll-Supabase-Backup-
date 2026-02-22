@@ -37,6 +37,9 @@ const payrollSubNav = [
   { title: "Payslips", url: "/payslips", icon: FileCheck },
   { title: "End of Service", url: "/separations", icon: UserMinus },
   { title: "Loans", url: "/loans", icon: PiggyBank },
+];
+
+const expenseTrackingNav = [
   { title: "Expenses", url: "/expenses", icon: CreditCard },
 ];
 
@@ -182,6 +185,7 @@ export function AppSidebar() {
             <NavItems items={employerNav} />
             <CollapsibleNavGroup label="Employees" icon={Users} items={employeesSubNav} />
             <CollapsibleNavGroup label="Payroll" icon={DollarSign} items={payrollSubNav} />
+            <CollapsibleNavGroup label="Expense Tracking" icon={CreditCard} items={expenseTrackingNav} />
             <CollapsibleNavGroup label="Asset Tracking" icon={Monitor} items={assetTrackingNav} />
             <CollapsibleNavGroup label="Performance" icon={Target} items={performanceNav} />
             <CollapsibleNavGroup label="Projects" icon={FolderKanban} items={employerFinanceNav} />
