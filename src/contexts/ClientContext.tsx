@@ -2,6 +2,8 @@ import { createContext, useContext, useState, ReactNode } from "react";
 
 export interface ClientConfig {
   companyName: string;
+  yearEndDate?: string; // MM-DD format, e.g. "12-31"
+  yearEndLocked?: boolean;
 }
 
 interface ClientContextType {

@@ -1,30 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { leaveRequests } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
+import { useClient } from "@/contexts/ClientContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Check, X, Search, Filter } from "lucide-react";
+import { Plus, Check, X, Search, Filter, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+
+function getCurrentFiscalYear(yearEndDate?: string): string {
+  if (!yearEndDate) return `${new Date().getFullYear()}`;
+  const [mm, dd] = yearEndDate.split("-").map(Number);
+  const now = new Date();
+  const yearEndThisYear = new Date(now.getFullYear(), mm - 1, dd);
+  if (now <= yearEndThisYear) {
+    return `${now.getFullYear() - 1}-${now.getFullYear()}`;
+  }
+  return `${now.getFullYear()}-${now.getFullYear() + 1}`;
+}
 
 export default function LeavePage() {
   const activeEmps = useActiveEmployees();
   const activeIds = new Set(activeEmps.map(e => e.id));
-  const { leaveTypes } = useLeaveTypes();
+  const { leaveTypes, initializeBalances, balances, getBalancesForYear, recordLeaveUsage, runYearEndCarryforward, completedRollovers } = useLeaveTypes();
+  const { client } = useClient();
   const activeLeaveTypes = leaveTypes.filter(lt => lt.isActive);
   const [localLeaves, setLocalLeaves] = useState(() => [...leaveRequests].filter(l => activeIds.has(l.employeeId)));
   const [newOpen, setNewOpen] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<string | null>(null);
+  const [rolloverOpen, setRolloverOpen] = useState(false);
+  const [rolloverPreview, setRolloverPreview] = useState<{ employeeId: string; leaveTypeId: string; leaveTypeName: string; remaining: number; carryforward: number }[]>([]);
   const { toast } = useToast();
+
+  const currentFY = getCurrentFiscalYear(client.yearEndDate);
+
+  // Initialize balances for all active employees
+  useEffect(() => {
+    if (activeEmps.length > 0) {
+      initializeBalances(activeEmps.map(e => e.id), currentFY);
+    }
+  }, [activeEmps.length, currentFY]);
 
   // New request form state
   const [newEmployee, setNewEmployee] = useState("");
@@ -80,93 +106,227 @@ export default function LeavePage() {
   };
 
   const handleApprove = () => {
+    if (!selectedLeave) return;
+    const leave = localLeaves.find(l => l.id === selectedLeave);
+    if (leave) {
+      setLocalLeaves(prev => prev.map(l => l.id === selectedLeave ? { ...l, status: "approved" as const } : l));
+      // Find matching leave type and record usage
+      const matchingLT = leaveTypes.find(lt => lt.name.toLowerCase().replace(/\s+/g, "_") === leave.type);
+      if (matchingLT) {
+        recordLeaveUsage(leave.employeeId, matchingLT.id, currentFY, leave.days);
+      }
+    }
     setApproveOpen(false);
     setSelectedLeave(null);
-    toast({ title: "Leave Approved", description: "The leave request has been approved." });
+    toast({ title: "Leave Approved", description: "The leave request has been approved and balance updated." });
   };
 
   const handleReject = () => {
+    if (selectedLeave) {
+      setLocalLeaves(prev => prev.map(l => l.id === selectedLeave ? { ...l, status: "rejected" as const } : l));
+    }
     setRejectOpen(false);
     setSelectedLeave(null);
     toast({ title: "Leave Rejected", description: "The leave request has been rejected." });
   };
 
-  const selectedLeaveData = filteredLeaves.find(l => l.id === selectedLeave);
+  const selectedLeaveData = localLeaves.find(l => l.id === selectedLeave);
+
+  // Rollover logic
+  const canRunRollover = client.yearEndDate && !completedRollovers.includes(currentFY);
+
+  const getNextFY = () => {
+    const parts = currentFY.split("-");
+    if (parts.length === 2) return `${parts[1]}-${Number(parts[1]) + 1}`;
+    return `${Number(parts[0]) + 1}`;
+  };
+
+  const handlePreviewRollover = () => {
+    const preview = [];
+    const empIds = activeEmps.map(e => e.id);
+    for (const empId of empIds) {
+      for (const lt of activeLeaveTypes) {
+        const balance = balances.find(b => b.employeeId === empId && b.leaveTypeId === lt.id && b.year === currentFY);
+        const remaining = balance ? balance.remaining : lt.defaultDays;
+        let carryforward = 0;
+        if (remaining > 0 && lt.maxCarryForwardDays > 0) {
+          carryforward = Math.min(remaining, lt.maxCarryForwardDays);
+        }
+        if (carryforward > 0) {
+          preview.push({ employeeId: empId, leaveTypeId: lt.id, leaveTypeName: lt.name, remaining, carryforward });
+        }
+      }
+    }
+    setRolloverPreview(preview);
+    setRolloverOpen(true);
+  };
+
+  const handleRunRollover = () => {
+    runYearEndCarryforward(currentFY, getNextFY(), activeEmps.map(e => e.id));
+    setRolloverOpen(false);
+    toast({ title: "Year-End Rollover Complete", description: `Leave balances have been carried forward to ${getNextFY()}.` });
+  };
+
+  // Balance data for the table
+  const balanceRows = useMemo(() => {
+    const rows: { empId: string; empName: string; leaveType: string; entitled: number; carriedForward: number; used: number; remaining: number }[] = [];
+    for (const emp of activeEmps) {
+      const empBalances = balances.filter(b => b.employeeId === emp.id && b.year === currentFY);
+      for (const b of empBalances) {
+        const lt = leaveTypes.find(l => l.id === b.leaveTypeId);
+        rows.push({
+          empId: emp.id,
+          empName: `${emp.firstName} ${emp.lastName}`,
+          leaveType: lt?.name || b.leaveTypeId,
+          entitled: b.entitled,
+          carriedForward: b.carriedForward,
+          used: b.used,
+          remaining: b.remaining,
+        });
+      }
+    }
+    return rows;
+  }, [activeEmps, balances, currentFY, leaveTypes]);
+
+  const getEmpName = (id: string) => {
+    const emp = activeEmps.find(e => e.id === id);
+    return emp ? `${emp.firstName} ${emp.lastName}` : id;
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader title="Leave Management" description="Track and approve employee leave requests.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />New Request
-        </Button>
+        <div className="flex gap-2">
+          {canRunRollover && (
+            <Button size="sm" variant="outline" onClick={handlePreviewRollover}>
+              <RotateCcw className="h-4 w-4 mr-2" />Run Year-End Rollover
+            </Button>
+          )}
+          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />New Request
+          </Button>
+        </div>
       </PageHeader>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by employee or reason..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-        </div>
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[180px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Type" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {activeLeaveTypes.map(lt => (
-              <SelectItem key={lt.id} value={lt.name.toLowerCase().replace(/\s+/g, "_")}>{lt.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <Tabs defaultValue="requests">
+        <TabsList>
+          <TabsTrigger value="requests">Leave Requests</TabsTrigger>
+          <TabsTrigger value="balances">Leave Balances</TabsTrigger>
+        </TabsList>
 
-      <div className="bg-card rounded-xl border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold">Employee</TableHead>
-              <TableHead className="font-semibold">Type</TableHead>
-              <TableHead className="font-semibold">From</TableHead>
-              <TableHead className="font-semibold">To</TableHead>
-              <TableHead className="font-semibold">Days</TableHead>
-              <TableHead className="font-semibold">Reason</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="font-semibold">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredLeaves.map((leave) => (
-              <TableRow key={leave.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="font-medium">{leave.employeeName}</TableCell>
-                <TableCell className="capitalize">{leave.type}</TableCell>
-                <TableCell>{new Date(leave.startDate).toLocaleDateString()}</TableCell>
-                <TableCell>{new Date(leave.endDate).toLocaleDateString()}</TableCell>
-                <TableCell className="font-semibold">{leave.days}</TableCell>
-                <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{leave.reason}</TableCell>
-                <TableCell><StatusBadge status={leave.status} /></TableCell>
-                <TableCell>
-                  {leave.status === "pending" && (
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-success hover:bg-success/10" onClick={() => { setSelectedLeave(leave.id); setApproveOpen(true); }}>
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={() => { setSelectedLeave(leave.id); setRejectOpen(true); }}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+        <TabsContent value="requests">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search by employee or reason..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+              </div>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-[180px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {activeLeaveTypes.map(lt => (
+                    <SelectItem key={lt.id} value={lt.name.toLowerCase().replace(/\s+/g, "_")}>{lt.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="bg-card rounded-xl border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">Employee</TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
+                    <TableHead className="font-semibold">From</TableHead>
+                    <TableHead className="font-semibold">To</TableHead>
+                    <TableHead className="font-semibold">Days</TableHead>
+                    <TableHead className="font-semibold">Reason</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredLeaves.map((leave) => (
+                    <TableRow key={leave.id} className="hover:bg-muted/30 transition-colors">
+                      <TableCell className="font-medium">{leave.employeeName}</TableCell>
+                      <TableCell className="capitalize">{leave.type}</TableCell>
+                      <TableCell>{new Date(leave.startDate).toLocaleDateString()}</TableCell>
+                      <TableCell>{new Date(leave.endDate).toLocaleDateString()}</TableCell>
+                      <TableCell className="font-semibold">{leave.days}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{leave.reason}</TableCell>
+                      <TableCell><StatusBadge status={leave.status} /></TableCell>
+                      <TableCell>
+                        {leave.status === "pending" && (
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-success hover:bg-success/10" onClick={() => { setSelectedLeave(leave.id); setApproveOpen(true); }}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={() => { setSelectedLeave(leave.id); setRejectOpen(true); }}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="balances">
+          <Card>
+            <CardContent className="p-0">
+              <div className="p-4 border-b">
+                <p className="text-sm text-muted-foreground">Fiscal Year: <span className="font-semibold text-foreground">{currentFY}</span></p>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">Employee</TableHead>
+                    <TableHead className="font-semibold">Leave Type</TableHead>
+                    <TableHead className="font-semibold text-right">Entitled</TableHead>
+                    <TableHead className="font-semibold text-right">Carried Forward</TableHead>
+                    <TableHead className="font-semibold text-right">Used</TableHead>
+                    <TableHead className="font-semibold text-right">Remaining</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {balanceRows.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No balance data yet.</TableCell></TableRow>
+                  ) : (
+                    balanceRows.map((row, i) => (
+                      <TableRow key={`${row.empId}-${row.leaveType}-${i}`} className="hover:bg-muted/30">
+                        <TableCell className="font-medium">{row.empName}</TableCell>
+                        <TableCell>{row.leaveType}</TableCell>
+                        <TableCell className="text-right">{row.entitled}</TableCell>
+                        <TableCell className="text-right">{row.carriedForward}</TableCell>
+                        <TableCell className="text-right">{row.used}</TableCell>
+                        <TableCell className="text-right">
+                          <span className={row.remaining <= 3 ? "text-amber-600 font-semibold" : row.remaining > 5 ? "text-green-600 font-semibold" : "font-semibold"}>
+                            {row.remaining}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* New Leave Request Dialog */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
@@ -262,6 +422,46 @@ export default function LeavePage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleReject}>Reject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Year-End Rollover Dialog */}
+      <Dialog open={rolloverOpen} onOpenChange={setRolloverOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Year-End Leave Rollover</DialogTitle>
+            <DialogDescription>Preview carryforward amounts from {currentFY} to {getNextFY()}. This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          {rolloverPreview.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">No leave days eligible for carryforward.</p>
+          ) : (
+            <div className="max-h-[400px] overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">Employee</TableHead>
+                    <TableHead className="font-semibold">Leave Type</TableHead>
+                    <TableHead className="font-semibold text-right">Remaining</TableHead>
+                    <TableHead className="font-semibold text-right">Carryforward</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rolloverPreview.map((item, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{getEmpName(item.employeeId)}</TableCell>
+                      <TableCell>{item.leaveTypeName}</TableCell>
+                      <TableCell className="text-right">{item.remaining}</TableCell>
+                      <TableCell className="text-right font-semibold text-green-600">{item.carryforward}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRolloverOpen(false)}>Cancel</Button>
+            <Button onClick={handleRunRollover} disabled={rolloverPreview.length === 0}>Confirm Rollover</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
