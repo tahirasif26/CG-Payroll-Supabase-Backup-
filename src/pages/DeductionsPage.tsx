@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
 
 export default function DeductionsPage() {
   const [items, setItems] = useState<Deduction[]>(initialDeductions);
@@ -28,10 +29,11 @@ export default function DeductionsPage() {
   const [formValue, setFormValue] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
   const [formAppliesTo, setFormAppliesTo] = useState<"all" | "direct" | "contractor">("all");
+  const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormType("statutory"); setFormIsPercentage(true); setFormValue(""); setFormIsActive(true); setFormAppliesTo("all");
+    setFormName(""); setFormType("statutory"); setFormIsPercentage(true); setFormValue(""); setFormIsActive(true); setFormAppliesTo("all"); setFormCountries([]);
     setDialogOpen(true);
   };
 
@@ -39,7 +41,7 @@ export default function DeductionsPage() {
     setEditItem(item);
     setFormName(item.name); setFormType(item.type);
     setFormIsPercentage(!!item.percentage); setFormValue(String(item.percentage || item.fixedAmount || ""));
-    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all");
+    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all"); setFormCountries(item.appliesToCountries || []);
     setDialogOpen(true);
   };
 
@@ -54,6 +56,7 @@ export default function DeductionsPage() {
       fixedAmount: !formIsPercentage ? val : undefined,
       isActive: formIsActive,
       appliesTo: formAppliesTo,
+      appliesToCountries: formCountries,
     };
     if (editItem) {
       setItems(prev => prev.map(i => i.id === editItem.id ? newDed : i));
@@ -90,6 +93,7 @@ export default function DeductionsPage() {
               <TableHead className="font-semibold">Type</TableHead>
               <TableHead className="font-semibold text-right">Rate / Amount</TableHead>
               <TableHead className="font-semibold">Applies To</TableHead>
+              <TableHead className="font-semibold">Countries</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
@@ -101,6 +105,7 @@ export default function DeductionsPage() {
                 <TableCell><Badge variant="outline" className="capitalize">{d.type}</Badge></TableCell>
                 <TableCell className="text-right font-semibold">{d.percentage ? `${d.percentage}%` : `SAR ${d.fixedAmount?.toLocaleString()}`}</TableCell>
                 <TableCell className="capitalize text-sm">{d.appliesTo || "all"}</TableCell>
+                <TableCell><CountryBadges countries={d.appliesToCountries} /></TableCell>
                 <TableCell><StatusBadge status={d.isActive ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -146,6 +151,10 @@ export default function DeductionsPage() {
                   <SelectItem value="contractor">Contractors Only</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Countries</Label>
+              <CountryMultiSelect value={formCountries} onChange={setFormCountries} />
             </div>
             <div className="flex items-center gap-3"><Switch checked={formIsActive} onCheckedChange={setFormIsActive} /><Label>Active</Label></div>
             <DialogFooter>

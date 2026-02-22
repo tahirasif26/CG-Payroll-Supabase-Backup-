@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
 
 export default function TaxPage() {
   const [items, setItems] = useState<TaxConfig[]>(initialTaxConfigs);
@@ -26,17 +27,18 @@ export default function TaxPage() {
   const [formApplicableTo, setFormApplicableTo] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
   const [formAppliesTo, setFormAppliesTo] = useState<"all" | "direct" | "contractor">("all");
+  const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormRate(""); setFormApplicableTo(""); setFormIsActive(true); setFormAppliesTo("all");
+    setFormName(""); setFormRate(""); setFormApplicableTo(""); setFormIsActive(true); setFormAppliesTo("all"); setFormCountries([]);
     setDialogOpen(true);
   };
 
   const openEdit = (item: TaxConfig) => {
     setEditItem(item);
     setFormName(item.name); setFormRate(String(item.rate)); setFormApplicableTo(item.applicableTo);
-    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all");
+    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all"); setFormCountries(item.appliesToCountries || []);
     setDialogOpen(true);
   };
 
@@ -45,7 +47,7 @@ export default function TaxPage() {
     const newTax: TaxConfig = {
       id: editItem?.id || String(Date.now()),
       name: formName, rate: Number(formRate), applicableTo: formApplicableTo,
-      isActive: formIsActive, appliesTo: formAppliesTo,
+      isActive: formIsActive, appliesTo: formAppliesTo, appliesToCountries: formCountries,
     };
     if (editItem) {
       setItems(prev => prev.map(i => i.id === editItem.id ? newTax : i));
@@ -79,6 +81,7 @@ export default function TaxPage() {
               <TableHead className="font-semibold text-right">Rate (%)</TableHead>
               <TableHead className="font-semibold">Applicable To</TableHead>
               <TableHead className="font-semibold">Employee Type</TableHead>
+              <TableHead className="font-semibold">Countries</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
@@ -90,6 +93,7 @@ export default function TaxPage() {
                 <TableCell className="text-right font-semibold">{t.rate}%</TableCell>
                 <TableCell>{t.applicableTo}</TableCell>
                 <TableCell className="capitalize text-sm">{t.appliesTo || "all"}</TableCell>
+                <TableCell><CountryBadges countries={t.appliesToCountries} /></TableCell>
                 <TableCell><StatusBadge status={t.isActive ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -123,6 +127,10 @@ export default function TaxPage() {
                   <SelectItem value="contractor">Contractors Only</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Countries</Label>
+              <CountryMultiSelect value={formCountries} onChange={setFormCountries} />
             </div>
             <div className="flex items-center gap-3"><Switch checked={formIsActive} onCheckedChange={setFormIsActive} /><Label>Active</Label></div>
             <DialogFooter>

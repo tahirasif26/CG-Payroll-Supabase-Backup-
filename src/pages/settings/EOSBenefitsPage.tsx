@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
 
 export interface EOSBenefitConfig {
   id: string;
@@ -18,6 +19,7 @@ export interface EOSBenefitConfig {
   calculationBasis: "basic_salary" | "gross_salary";
   tiers: EOSTier[];
   appliesTo: "all" | "direct" | "contractor";
+  appliesToCountries?: string[];
   isActive: boolean;
 }
 
@@ -41,6 +43,7 @@ const defaultConfigs: EOSBenefitConfig[] = [
       { fromYear: 10, toYear: null, daysPerYear: 30, fraction: 1 },
     ],
     appliesTo: "direct",
+    appliesToCountries: ["Saudi Arabia"],
     isActive: true,
   },
   {
@@ -188,6 +191,7 @@ export default function EOSBenefitsPage() {
               <TableHead className="font-semibold">Type</TableHead>
               <TableHead className="font-semibold">Calculation Basis</TableHead>
               <TableHead className="font-semibold">Applies To</TableHead>
+              <TableHead className="font-semibold">Countries</TableHead>
               <TableHead className="font-semibold">Tiers</TableHead>
               <TableHead className="font-semibold">Active</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -200,6 +204,7 @@ export default function EOSBenefitsPage() {
                 <TableCell className="capitalize">{c.type.replace("_", " ")}</TableCell>
                 <TableCell className="capitalize">{c.calculationBasis.replace("_", " ")}</TableCell>
                 <TableCell className="capitalize">{c.appliesTo === "all" ? "All" : c.appliesTo === "direct" ? "Direct" : "Contractor"}</TableCell>
+                <TableCell><CountryBadges countries={c.appliesToCountries} /></TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {c.tiers.map((t, i) => (
                     <span key={i}>{t.fromYear}-{t.toYear ?? "∞"}yr: {t.daysPerYear}d × {t.fraction}{i < c.tiers.length - 1 ? " | " : ""}</span>
@@ -263,6 +268,10 @@ export default function EOSBenefitsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Countries</Label>
+                <CountryMultiSelect value={editItem.appliesToCountries || []} onChange={c => setEditItem({ ...editItem, appliesToCountries: c })} />
               </div>
 
               {/* Tier Editor */}
