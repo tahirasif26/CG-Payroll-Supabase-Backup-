@@ -991,7 +991,7 @@ export default function EmployeesPage() {
           </TabsList>
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { setLocalEmployees(prev => prev.map(e => e.id === empId ? { ...e, payCurrency: currency } : e)); }} /></TabsContent>
+          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { setLocalEmployees(prev => prev.map(e => e.id === empId ? { ...e, payCurrency: currency } : e)); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
           <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={() => setUploadDocOpen(true)} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
