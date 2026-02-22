@@ -177,6 +177,11 @@ export default function LoansPage() {
   const handlePauseEmi = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLoan) return;
+    const processingRun = payrollRuns.find(r => r.status === "processing");
+    if (!processingRun) {
+      toast({ title: "No Active Payroll", description: "EMI can only be paused when a payroll run is in processing status.", variant: "destructive" });
+      return;
+    }
     const months = Number(pauseMonths);
     const now = new Date();
     const pausedUntilDate = new Date(now);
@@ -188,9 +193,8 @@ export default function LoansPage() {
     currentEnd.setMonth(currentEnd.getMonth() + months);
     const newEndDate = currentEnd.toISOString().split("T")[0];
 
-    const processingRun = payrollRuns.find(r => r.status === "processing");
-    const runId = processingRun?.id || "0";
-    const runLabel = processingRun ? `${processingRun.month} ${processingRun.year}` : "—";
+    const runId = processingRun.id;
+    const runLabel = `${processingRun.month} ${processingRun.year}`;
 
     const txn: LoanTransaction = {
       id: `t-${Date.now()}`,
@@ -229,11 +233,15 @@ export default function LoansPage() {
 
   const handleResumeEmi = () => {
     if (!selectedLoan) return;
+    const processingRun = payrollRuns.find(r => r.status === "processing");
+    if (!processingRun) {
+      toast({ title: "No Active Payroll", description: "EMI can only be resumed when a payroll run is in processing status.", variant: "destructive" });
+      return;
+    }
     const originalEmi = selectedLoan.prePauseEmi || 0;
 
-    const processingRun = payrollRuns.find(r => r.status === "processing");
-    const runId = processingRun?.id || "0";
-    const runLabel = processingRun ? `${processingRun.month} ${processingRun.year}` : "—";
+    const runId = processingRun.id;
+    const runLabel = `${processingRun.month} ${processingRun.year}`;
 
     const txn: LoanTransaction = {
       id: `t-${Date.now()}`,
