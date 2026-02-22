@@ -16,6 +16,7 @@ export interface Employee {
   dateOfBirth: string;
   category: EmployeeCategory;
   workLocationCountry: string;
+  payCurrency?: string;
   compensation?: SalaryComponent[];
 }
 

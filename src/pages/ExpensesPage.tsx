@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { expenses, payrollRuns, employees } from "@/data/mockData";
 import { ExpenseReimbursement } from "@/types/hcm";
-import { defaultCountryCurrencyMappings, defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
+import { defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Eye, CheckCircle2, XCircle, Pencil, Trash2, FileText, Paperclip } from "lucide-react";
@@ -24,9 +24,7 @@ import { cn } from "@/lib/utils";
 
 function getEmployeePayCurrency(employeeId: string): string {
   const emp = employees.find(e => e.id === employeeId);
-  if (!emp) return "SAR";
-  const mapping = defaultCountryCurrencyMappings.find(m => m.country === emp.workLocationCountry);
-  return mapping?.currencyCode || "SAR";
+  return emp?.payCurrency || "SAR";
 }
 
 function getExchangeRate(fromCurrency: string, toCurrency: string): number {

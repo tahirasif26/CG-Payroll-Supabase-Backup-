@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Employee } from "@/types/hcm";
-import { compensationSettings } from "@/data/settingsData";
+import { compensationSettings, availableCurrencies } from "@/data/settingsData";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
@@ -519,14 +519,39 @@ function CompensationTab({ emp }: { emp: Employee }) {
   });
   const [editing, setEditing] = useState(false);
   const [compData, setCompData] = useState(initialCompData);
+  const [payCurrency, setPayCurrency] = useState(emp.payCurrency || "SAR");
   const [showAddChange, setShowAddChange] = useState(false);
   const [newChange, setNewChange] = useState({ effectiveDate: "", reason: "", components: initialCompData.map(c => ({ name: c.name, amount: c.amount })) });
   const { toast } = useToast();
 
   const currentTotal = compData.reduce((s, c) => s + c.amount, 0);
+  const currInfo = availableCurrencies.find(c => c.code === payCurrency);
 
   return (
     <div className="space-y-4">
+      {/* Pay Currency */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-primary" />Pay Currency</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground mb-2">All compensation and payslip values for this employee are in their pay currency.</p>
+          <div className="max-w-xs">
+            <Select value={payCurrency} onValueChange={(v) => { setPayCurrency(v); toast({ title: "Pay Currency Updated", description: `Pay currency set to ${v}.` }); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {availableCurrencies.map(c => (
+                  <SelectItem key={c.code} value={c.code}>{c.symbol} — {c.name} ({c.code})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {currInfo && (
+            <p className="text-xs text-muted-foreground mt-2">Current: {currInfo.symbol} {currInfo.name}</p>
+          )}
+        </CardContent>
+      </Card>
+
       <SectionCard title="Current Compensation" icon={DollarSign} editing={editing} onEdit={() => setEditing(true)} onSave={() => { setEditing(false); toast({ title: "Saved", description: "Compensation updated." }); }} onCancel={() => setEditing(false)}>
         <div className="space-y-3">
           {compData.map((c, i) => (
@@ -535,13 +560,13 @@ function CompensationTab({ emp }: { emp: Employee }) {
               {editing ? (
                 <Input type="number" value={c.amount} onChange={e => { const u = [...compData]; u[i] = { ...u[i], amount: Number(e.target.value) }; setCompData(u); }} className="w-32 h-8 text-sm text-right" />
               ) : (
-                <p className="text-sm font-semibold">{c.amount.toLocaleString()} SAR</p>
+                <p className="text-sm font-semibold">{c.amount.toLocaleString()} {payCurrency}</p>
               )}
             </div>
           ))}
           <div className="flex items-center justify-between pt-3 border-t-2">
             <p className="text-sm font-bold">Total Package</p>
-            <p className="text-sm font-bold text-primary">{currentTotal.toLocaleString()} SAR</p>
+            <p className="text-sm font-bold text-primary">{currentTotal.toLocaleString()} {payCurrency}</p>
           </div>
         </div>
       </SectionCard>
@@ -559,7 +584,7 @@ function CompensationTab({ emp }: { emp: Employee }) {
                 <TableRow className="bg-muted/50">
                   <TableHead>Effective Date</TableHead>
                   <TableHead>Reason</TableHead>
-                  <TableHead className="text-right">Total (SAR)</TableHead>
+                  <TableHead className="text-right">Total ({payCurrency})</TableHead>
                   <TableHead>Components</TableHead>
                 </TableRow>
               </TableHeader>
@@ -602,7 +627,7 @@ function CompensationTab({ emp }: { emp: Employee }) {
               ))}
               <div className="flex justify-between pt-2 border-t">
                 <span className="text-sm font-bold">New Total</span>
-                <span className="text-sm font-bold text-primary">{newChange.components.reduce((s, c) => s + c.amount, 0).toLocaleString()} SAR</span>
+                <span className="text-sm font-bold text-primary">{newChange.components.reduce((s, c) => s + c.amount, 0).toLocaleString()} {payCurrency}</span>
               </div>
             </div>
           </div>

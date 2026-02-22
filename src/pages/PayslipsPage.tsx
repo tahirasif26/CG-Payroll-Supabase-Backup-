@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useClient } from "@/contexts/ClientContext";
 import { employees, payrollRuns, loans } from "@/data/mockData";
-import { defaultCountryCurrencyMappings, defaultExchangeRates } from "@/data/settingsData";
+import { defaultExchangeRates } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, FileText, Search } from "lucide-react";
@@ -19,9 +19,8 @@ import { useSeparations } from "@/contexts/SeparationContext";
 
 const REPORTING_CURRENCY = "SAR";
 
-function getEmployeePayCurrency(workLocationCountry: string): string {
-  const mapping = defaultCountryCurrencyMappings.find(m => m.country === workLocationCountry);
-  return mapping?.currencyCode || REPORTING_CURRENCY;
+function getEmployeePayCurrency(emp: { payCurrency?: string }): string {
+  return emp.payCurrency || REPORTING_CURRENCY;
 }
 
 function getToReportingRate(fromCurrency: string): number {
@@ -60,7 +59,7 @@ export default function PayslipsPage() {
     const monthlySalary = currentEmployee.salary;
     const deductions = Math.round(monthlySalary * 0.15);
     const netPay = monthlySalary - deductions;
-    const payCurrency = getEmployeePayCurrency(currentEmployee.workLocationCountry);
+    const payCurrency = getEmployeePayCurrency(currentEmployee);
 
     return (
       <div className="space-y-6">
@@ -121,7 +120,7 @@ export default function PayslipsPage() {
     employees.map(emp => {
       const deductions = Math.round(emp.salary * 0.15);
       const net = emp.salary - deductions;
-      const payCurrency = getEmployeePayCurrency(emp.workLocationCountry);
+      const payCurrency = getEmployeePayCurrency(emp);
       return { run, emp, deductions, net, payCurrency };
     })
   );
