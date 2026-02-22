@@ -13,6 +13,9 @@ import { EmployeeProvider } from "@/contexts/EmployeeContext";
 import { DeductionProvider } from "@/contexts/DeductionContext";
 import { PerformanceCycleProvider } from "@/contexts/PerformanceCycleContext";
 import { AuditProvider } from "@/contexts/AuditContext";
+import { BLEAccessProvider } from "@/contexts/BLEAccessContext";
+import IDCardsPage from "@/pages/IDCardsPage";
+import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import PayrollPage from "@/pages/PayrollPage";
@@ -66,6 +69,7 @@ const App = () => (
         <DeductionProvider>
         <PerformanceCycleProvider>
         <AuditProvider>
+        <BLEAccessProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -99,6 +103,8 @@ const App = () => (
               <Route path="/settings/gl-codes" element={<GLCodeMappingPage />} />
               <Route path="/settings/eos-benefits" element={<EOSBenefitsPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
+              <Route path="/id-cards" element={<IDCardsPage />} />
+              <Route path="/access-management" element={<AccessManagementPage />} />
               <Route path="/performance/ratings" element={<RatingsOverviewPage />} />
               <Route path="/performance/calibration" element={<RatingCalibrationPage />} />
               <Route path="/performance/self-assessment" element={<SelfAssessmentPage />} />
@@ -110,6 +116,7 @@ const App = () => (
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </BLEAccessProvider>
         </AuditProvider>
         </PerformanceCycleProvider>
         </DeductionProvider>

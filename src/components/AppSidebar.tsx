@@ -3,7 +3,8 @@ import {
   Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
   FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
   Layers, Tag, Shield, Coins, ChevronDown, Award, UserMinus,
-  Target, ClipboardCheck, UserCheck, UsersRound, Star, ListChecks
+  Target, ClipboardCheck, UserCheck, UsersRound, Star, ListChecks,
+  CreditCard as IdCardIcon, DoorOpen
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -30,6 +31,11 @@ const employeesSubNav = [
 
 const assetTrackingNav = [
   { title: "Asset Management", url: "/assets", icon: Monitor },
+];
+
+const accessManagementNav = [
+  { title: "ID Cards", url: "/id-cards", icon: IdCardIcon },
+  { title: "Door & Lock Mgmt", url: "/access-management", icon: DoorOpen },
 ];
 
 const payrollSubNav = [
@@ -187,6 +193,7 @@ export function AppSidebar() {
             <CollapsibleNavGroup label="Payroll" icon={DollarSign} items={payrollSubNav} />
             <CollapsibleNavGroup label="Expense Tracking" icon={CreditCard} items={expenseTrackingNav} />
             <CollapsibleNavGroup label="Asset Tracking" icon={Monitor} items={assetTrackingNav} />
+            <CollapsibleNavGroup label="Access Management" icon={Shield} items={accessManagementNav} />
             <CollapsibleNavGroup label="Performance" icon={Target} items={performanceNav} />
             <CollapsibleNavGroup label="Projects" icon={FolderKanban} items={employerFinanceNav} />
             <CollapsibleNavGroup label="Upcoming Features" icon={Clock} items={upcomingFeaturesNav} />
