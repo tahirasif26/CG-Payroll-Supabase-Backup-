@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Undo2, Eye, CheckCircle2, Search, Filter, UserMinus, AlertTriangle, Package, CreditCard, Users2 } from "lucide-react";
+import { Edit2, Undo2, Eye, CheckCircle2, Search, Filter, UserMinus, AlertTriangle, Package, CreditCard, Users2, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAssets } from "@/contexts/AssetContext";
 import { useReporting } from "@/contexts/ReportingContext";
@@ -21,6 +21,7 @@ import { useSeparations, SeparationRecord } from "@/contexts/SeparationContext";
 import { payrollRuns, leaveRequests, loans, expenses } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
+import { useBLEAccess } from "@/contexts/BLEAccessContext";
 
 // --- Active Employees EOS Tab ---
 function ActiveEmployeesTab() {
@@ -254,6 +255,7 @@ function SeparatedEmployeesTab() {
   const { employees } = useEmployees();
   const { getAssetsForEmployee, reassignAsset } = useAssets();
   const { reportMap, setReportTo } = useReporting();
+  const { revokeAllForEmployee, getActiveGrantCountForEmployee } = useBLEAccess();
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<SeparationRecord | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -369,6 +371,9 @@ function SeparatedEmployeesTab() {
         reassignAsset(assetId, targetEmpId, targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : null);
       }
     });
+
+    // Revoke all BLE access
+    revokeAllForEmployee(checklistSep.employeeId);
 
     // Approve
     updateSeparation(checklistSep.id, {
@@ -646,6 +651,7 @@ function SeparatedEmployeesTab() {
           </div>
           {checklistSep && (() => {
             const { directReports, empAssets, pendingExpenses } = getChecklistData(checklistSep);
+            const bleGrantCount = getActiveGrantCountForEmployee(checklistSep.employeeId);
             const hasIssues = directReports.length > 0 || empAssets.length > 0 || pendingExpenses.length > 0;
 
             return (
@@ -770,6 +776,23 @@ function SeparatedEmployeesTab() {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* BLE Access Section */}
+                  {bleGrantCount > 0 && (
+                    <>
+                      {(directReports.length > 0 || empAssets.length > 0 || pendingExpenses.length > 0) && <Separator />}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-blue-500" />
+                          <h3 className="text-sm font-semibold">BLE Access</h3>
+                          <Badge variant="outline" className="text-xs">Auto</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {bleGrantCount} active BLE door access grant(s) will be automatically revoked upon approval.
+                        </p>
                       </div>
                     </>
                   )}
