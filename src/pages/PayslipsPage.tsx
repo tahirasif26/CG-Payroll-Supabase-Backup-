@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useClient } from "@/contexts/ClientContext";
 import { employees, payrollRuns, loans } from "@/data/mockData";
+import { defaultCountryCurrencyMappings, defaultExchangeRates } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, FileText, Search } from "lucide-react";
@@ -16,6 +17,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
 
+const REPORTING_CURRENCY = "SAR";
+
+function getEmployeePayCurrency(workLocationCountry: string): string {
+  const mapping = defaultCountryCurrencyMappings.find(m => m.country === workLocationCountry);
+  return mapping?.currencyCode || REPORTING_CURRENCY;
+}
+
+function getToReportingRate(fromCurrency: string): number {
+  if (fromCurrency === REPORTING_CURRENCY) return 1;
+  return defaultExchangeRates.find(r => r.fromCurrency === fromCurrency)?.toReportingRate || 1;
+}
+
 interface PayslipDetail {
   employeeName: string;
   empId: string;
@@ -27,6 +40,8 @@ interface PayslipDetail {
   deductions: number;
   net: number;
   employeeId: string;
+  payCurrency: string;
+  workLocationCountry: string;
 }
 
 export default function PayslipsPage() {
@@ -45,23 +60,24 @@ export default function PayslipsPage() {
     const monthlySalary = currentEmployee.salary;
     const deductions = Math.round(monthlySalary * 0.15);
     const netPay = monthlySalary - deductions;
+    const payCurrency = getEmployeePayCurrency(currentEmployee.workLocationCountry);
 
     return (
       <div className="space-y-6">
         <PageHeader title="My Payslips" description="View and download your monthly payslips." />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard title="Gross Salary" value={`SAR ${monthlySalary.toLocaleString()}`} icon={FileText} variant="primary" />
-          <StatCard title="Total Deductions" value={`SAR ${deductions.toLocaleString()}`} icon={FileText} variant="warning" />
-          <StatCard title="Net Pay" value={`SAR ${netPay.toLocaleString()}`} icon={FileText} variant="success" />
+          <StatCard title={`Gross Salary (${payCurrency})`} value={`${payCurrency} ${monthlySalary.toLocaleString()}`} icon={FileText} variant="primary" />
+          <StatCard title={`Total Deductions (${payCurrency})`} value={`${payCurrency} ${deductions.toLocaleString()}`} icon={FileText} variant="warning" />
+          <StatCard title={`Net Pay (${payCurrency})`} value={`${payCurrency} ${netPay.toLocaleString()}`} icon={FileText} variant="success" />
         </div>
         <div className="bg-card rounded-xl border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="font-semibold">Period</TableHead>
-                <TableHead className="font-semibold text-right">Gross (SAR)</TableHead>
-                <TableHead className="font-semibold text-right">Deductions (SAR)</TableHead>
-                <TableHead className="font-semibold text-right">Net Pay (SAR)</TableHead>
+                <TableHead className="font-semibold text-right">Gross ({payCurrency})</TableHead>
+                <TableHead className="font-semibold text-right">Deductions ({payCurrency})</TableHead>
+                <TableHead className="font-semibold text-right">Net Pay ({payCurrency})</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="font-semibold text-right">Actions</TableHead>
               </TableRow>
@@ -83,6 +99,8 @@ export default function PayslipsPage() {
                         period: `${run.month} ${run.year}`,
                         gross: monthlySalary, deductions, net: netPay,
                         employeeId: currentEmployee.id,
+                        payCurrency,
+                        workLocationCountry: currentEmployee.workLocationCountry,
                       })}><Eye className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDownload(`${currentEmployee.firstName} ${currentEmployee.lastName}`, `${run.month} ${run.year}`)}>
                         <Download className="h-4 w-4" />
@@ -103,7 +121,8 @@ export default function PayslipsPage() {
     employees.map(emp => {
       const deductions = Math.round(emp.salary * 0.15);
       const net = emp.salary - deductions;
-      return { run, emp, deductions, net };
+      const payCurrency = getEmployeePayCurrency(emp.workLocationCountry);
+      return { run, emp, deductions, net, payCurrency };
     })
   );
 
@@ -129,13 +148,14 @@ export default function PayslipsPage() {
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Employee</TableHead>
               <TableHead className="font-semibold">Period</TableHead>
-              <TableHead className="font-semibold text-right">Gross (SAR)</TableHead>
-              <TableHead className="font-semibold text-right">Net (SAR)</TableHead>
+              <TableHead className="font-semibold">Currency</TableHead>
+              <TableHead className="font-semibold text-right">Gross</TableHead>
+              <TableHead className="font-semibold text-right">Net</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map(({ run, emp, deductions, net }) => (
+            {filtered.map(({ run, emp, deductions, net, payCurrency }) => (
               <TableRow key={`${run.id}-${emp.id}`} className="hover:bg-muted/30 transition-colors">
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -146,6 +166,7 @@ export default function PayslipsPage() {
                   </div>
                 </TableCell>
                 <TableCell>{run.month} {run.year}</TableCell>
+                <TableCell className="text-xs font-medium">{payCurrency}</TableCell>
                 <TableCell className="text-right">{emp.salary.toLocaleString()}</TableCell>
                 <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
                 <TableCell className="text-right">
@@ -157,6 +178,8 @@ export default function PayslipsPage() {
                       period: `${run.month} ${run.year}`,
                       gross: emp.salary, deductions, net,
                       employeeId: emp.id,
+                      payCurrency,
+                      workLocationCountry: emp.workLocationCountry,
                     })}><Eye className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(`${emp.firstName} ${emp.lastName}`, `${run.month} ${run.year}`)}>
                       <Download className="h-4 w-4" />
@@ -178,6 +201,9 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
   const { separations } = useSeparations();
   if (!payslip) return null;
 
+  const payCurrency = payslip.payCurrency || REPORTING_CURRENCY;
+  const isMultiCurrency = payCurrency !== REPORTING_CURRENCY;
+  const toReportingRate = getToReportingRate(payCurrency);
   const sepRecord = separations.find(s => s.employeeId === payslip.employeeId);
 
   const components = [
@@ -214,7 +240,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
             </div>
             <div className="text-right">
               <p className="text-sm font-semibold">{payslip.period}</p>
-              <p className="text-xs text-primary-foreground/70">Payslip</p>
+              <p className="text-xs text-primary-foreground/70">Payslip · {payCurrency}</p>
             </div>
           </div>
         </div>
@@ -260,13 +286,13 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
                 {components.map((c, i) => (
                   <div key={i} className={`flex justify-between text-sm px-3 py-2 ${i < components.length - 1 ? 'border-b border-border/50' : ''}`}>
                     <span>{c.label}</span>
-                    <span className="font-medium">SAR {c.amount.toLocaleString()}</span>
+                    <span className="font-medium">{payCurrency} {c.amount.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
               <div className="flex justify-between text-sm font-bold px-3 pt-1">
                 <span>Total Gross</span>
-                <span>SAR {payslip.gross.toLocaleString()}</span>
+                <span>{payCurrency} {payslip.gross.toLocaleString()}</span>
               </div>
             </div>
 
@@ -276,18 +302,18 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
               <div className="bg-muted/30 rounded-lg overflow-hidden">
                 <div className="flex justify-between text-sm px-3 py-2 border-b border-border/50">
                   <span>GOSI & Insurance</span>
-                  <span className="font-medium text-destructive">SAR {gosiDeduction.toLocaleString()}</span>
+                  <span className="font-medium text-destructive">{payCurrency} {gosiDeduction.toLocaleString()}</span>
                 </div>
                 {loanDeduction > 0 && (
                   <div className="flex justify-between text-sm px-3 py-2">
                     <span>Loan Repayment</span>
-                    <span className="font-medium text-destructive">SAR {loanDeduction.toLocaleString()}</span>
+                    <span className="font-medium text-destructive">{payCurrency} {loanDeduction.toLocaleString()}</span>
                   </div>
                 )}
               </div>
               <div className="flex justify-between text-sm font-bold px-3 pt-1">
                 <span>Total Deductions</span>
-                <span className="text-destructive">SAR {totalDeductions.toLocaleString()}</span>
+                <span className="text-destructive">{payCurrency} {totalDeductions.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -302,33 +328,33 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
                 <div className="bg-destructive/5 rounded-lg overflow-hidden text-sm">
                   <div className="flex justify-between px-3 py-2 border-b border-border/50">
                     <span>Unpaid Salary</span>
-                    <span className="font-medium">SAR {sepRecord.unpaidSalary.toLocaleString()}</span>
+                    <span className="font-medium">{payCurrency} {sepRecord.unpaidSalary.toLocaleString()}</span>
                   </div>
                   {sepRecord.eosBreakdown.map((eos, i) => (
                     <div key={i} className="flex justify-between px-3 py-2 border-b border-border/50">
                       <span>{eos.name}</span>
-                      <span className="font-medium">SAR {eos.amount.toLocaleString()}</span>
+                      <span className="font-medium">{payCurrency} {eos.amount.toLocaleString()}</span>
                     </div>
                   ))}
                   <div className="flex justify-between px-3 py-2 border-b border-border/50">
                     <span>Leave Encashment</span>
-                    <span className="font-medium">SAR {sepRecord.leaveEncashment.toLocaleString()}</span>
+                    <span className="font-medium">{payCurrency} {sepRecord.leaveEncashment.toLocaleString()}</span>
                   </div>
                   {sepRecord.noticePeriodPay > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50">
                       <span>Notice Period Pay</span>
-                      <span className="font-medium">SAR {sepRecord.noticePeriodPay.toLocaleString()}</span>
+                      <span className="font-medium">{payCurrency} {sepRecord.noticePeriodPay.toLocaleString()}</span>
                     </div>
                   )}
                   {sepRecord.loanDeduction > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
                       <span>Outstanding Loan Deduction</span>
-                      <span className="font-medium">- SAR {sepRecord.loanDeduction.toLocaleString()}</span>
+                      <span className="font-medium">- {payCurrency} {sepRecord.loanDeduction.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between px-3 py-2 font-bold bg-primary/10">
                     <span>Total Settlement</span>
-                    <span className="text-primary">SAR {sepRecord.totalSettlement.toLocaleString()}</span>
+                    <span className="text-primary">{payCurrency} {sepRecord.totalSettlement.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -339,8 +365,16 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
           {/* Net Pay */}
           <div className="flex justify-between items-center bg-primary/10 rounded-lg px-4 py-3">
             <span className="text-base font-bold">Net Pay {sepRecord ? "(incl. Settlement)" : ""}</span>
-            <span className="text-lg font-bold text-primary">SAR {(adjustedNet + (sepRecord?.totalSettlement || 0)).toLocaleString()}</span>
+            <span className="text-lg font-bold text-primary">{payCurrency} {(adjustedNet + (sepRecord?.totalSettlement || 0)).toLocaleString()}</span>
           </div>
+
+          {/* Reporting currency equivalent note */}
+          {isMultiCurrency && (
+            <div className="bg-muted/30 rounded-lg px-4 py-2 text-xs text-muted-foreground">
+              <span className="font-medium">Reporting currency equivalent:</span> {REPORTING_CURRENCY} {Math.round((adjustedNet + (sepRecord?.totalSettlement || 0)) * toReportingRate).toLocaleString()}
+              <span className="ml-2">(Rate: 1 {payCurrency} = {toReportingRate} {REPORTING_CURRENCY})</span>
+            </div>
+          )}
 
           {/* EOS Accumulated Balances */}
           {(() => {
@@ -363,7 +397,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
                         <div key={config.id} className="px-3 py-2 text-sm border-b border-border/50 last:border-0">
                           <div className="flex justify-between">
                             <span className="font-medium">{config.name}</span>
-                            <span className="font-semibold">SAR {amount.toLocaleString()}</span>
+                            <span className="font-semibold">{payCurrency} {amount.toLocaleString()}</span>
                           </div>
                           <p className="text-xs text-muted-foreground">{yearsOfService.toFixed(1)} years of service · Based on {config.calculationBasis.replace("_", " ")}</p>
                         </div>
@@ -389,12 +423,12 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
                         <StatusBadge status={loan.status} />
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        <span>Total: SAR {loan.amount.toLocaleString()}</span>
-                        <span>Remaining: SAR {loan.remainingBalance.toLocaleString()}</span>
+                        <span>Total: {payCurrency} {loan.amount.toLocaleString()}</span>
+                        <span>Remaining: {payCurrency} {loan.remainingBalance.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>{loan.startDate} → {loan.endDate}</span>
-                        <span>Monthly: SAR {loan.monthlyDeduction.toLocaleString()}</span>
+                        <span>Monthly: {payCurrency} {loan.monthlyDeduction.toLocaleString()}</span>
                       </div>
                     </div>
                   ))}

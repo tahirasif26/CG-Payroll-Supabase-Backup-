@@ -3,7 +3,8 @@ import {
   Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
   FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
   Layers, Tag, Shield, Coins, ChevronDown, Award, UserMinus,
-  Target, ClipboardCheck, UserCheck, UsersRound, Star, ListChecks
+  Target, ClipboardCheck, UserCheck, UsersRound, Star, ListChecks,
+  ArrowLeftRight
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -70,6 +71,7 @@ const employerSettingsNav = [
   { title: "Expense Categories", url: "/settings/expense-categories", icon: Receipt },
   { title: "User Management", url: "/settings/users", icon: Shield },
   { title: "Currency", url: "/settings/currency", icon: Coins },
+  { title: "Exchange Rates", url: "/settings/exchange-rates", icon: ArrowLeftRight },
   { title: "GL Code Mapping", url: "/settings/gl-codes", icon: FileText },
   { title: "EOS Benefits", url: "/settings/eos-benefits", icon: Award },
 ];

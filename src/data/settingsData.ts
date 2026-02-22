@@ -124,4 +124,44 @@ export const availableCurrencies: CurrencySetting[] = [
   { code: "BHD", name: "Bahraini Dinar", symbol: "BHD" },
   { code: "QAR", name: "Qatari Riyal", symbol: "QAR" },
   { code: "OMR", name: "Omani Rial", symbol: "OMR" },
+  { code: "EGP", name: "Egyptian Pound", symbol: "EGP" },
+  { code: "JOD", name: "Jordanian Dinar", symbol: "JOD" },
+];
+
+export interface CountryCurrencyMapping {
+  country: string;
+  currencyCode: string;
+}
+
+export interface ExchangeRate {
+  id: string;
+  fromCurrency: string;
+  toReportingRate: number;
+  lastUpdated: string;
+}
+
+export const defaultCountryCurrencyMappings: CountryCurrencyMapping[] = [
+  { country: "Saudi Arabia", currencyCode: "SAR" },
+  { country: "UAE", currencyCode: "AED" },
+  { country: "Qatar", currencyCode: "QAR" },
+  { country: "Bahrain", currencyCode: "BHD" },
+  { country: "Kuwait", currencyCode: "KWD" },
+  { country: "Oman", currencyCode: "OMR" },
+  { country: "Egypt", currencyCode: "EGP" },
+  { country: "Jordan", currencyCode: "JOD" },
+  { country: "United Kingdom", currencyCode: "GBP" },
+  { country: "United States", currencyCode: "USD" },
+];
+
+export const defaultExchangeRates: ExchangeRate[] = [
+  { id: "1", fromCurrency: "USD", toReportingRate: 3.75, lastUpdated: "2025-02-01" },
+  { id: "2", fromCurrency: "EUR", toReportingRate: 4.05, lastUpdated: "2025-02-01" },
+  { id: "3", fromCurrency: "GBP", toReportingRate: 4.72, lastUpdated: "2025-02-01" },
+  { id: "4", fromCurrency: "AED", toReportingRate: 1.02, lastUpdated: "2025-02-01" },
+  { id: "5", fromCurrency: "KWD", toReportingRate: 12.18, lastUpdated: "2025-02-01" },
+  { id: "6", fromCurrency: "BHD", toReportingRate: 9.95, lastUpdated: "2025-02-01" },
+  { id: "7", fromCurrency: "QAR", toReportingRate: 1.03, lastUpdated: "2025-02-01" },
+  { id: "8", fromCurrency: "OMR", toReportingRate: 9.74, lastUpdated: "2025-02-01" },
+  { id: "9", fromCurrency: "EGP", toReportingRate: 0.076, lastUpdated: "2025-02-01" },
+  { id: "10", fromCurrency: "JOD", toReportingRate: 5.29, lastUpdated: "2025-02-01" },
 ];

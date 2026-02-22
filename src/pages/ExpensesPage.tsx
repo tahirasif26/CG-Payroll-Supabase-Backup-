@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { expenses, payrollRuns, employees } from "@/data/mockData";
 import { ExpenseReimbursement } from "@/types/hcm";
+import { defaultCountryCurrencyMappings, defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Eye, CheckCircle2, XCircle, Pencil, Trash2, FileText, Paperclip } from "lucide-react";
@@ -21,6 +22,21 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function getEmployeePayCurrency(employeeId: string): string {
+  const emp = employees.find(e => e.id === employeeId);
+  if (!emp) return "SAR";
+  const mapping = defaultCountryCurrencyMappings.find(m => m.country === emp.workLocationCountry);
+  return mapping?.currencyCode || "SAR";
+}
+
+function getExchangeRate(fromCurrency: string, toCurrency: string): number {
+  if (fromCurrency === toCurrency) return 1;
+  // Both rates are relative to reporting currency (SAR)
+  const fromRate = fromCurrency === "SAR" ? 1 : defaultExchangeRates.find(r => r.fromCurrency === fromCurrency)?.toReportingRate || 1;
+  const toRate = toCurrency === "SAR" ? 1 : defaultExchangeRates.find(r => r.fromCurrency === toCurrency)?.toReportingRate || 1;
+  return fromRate / toRate;
+}
+
 export default function ExpensesPage() {
   const [expenseList, setExpenseList] = useState<ExpenseReimbursement[]>(expenses);
   const [newOpen, setNewOpen] = useState(false);
@@ -37,6 +53,10 @@ export default function ExpensesPage() {
   const [formAmount, setFormAmount] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formExpenseDate, setFormExpenseDate] = useState<Date | undefined>();
+  const [formCurrency, setFormCurrency] = useState("");
+  const [formExchangeRate, setFormExchangeRate] = useState("");
+
+  const selectedEmployeePayCurrency = formEmployee ? getEmployeePayCurrency(formEmployee) : "SAR";
 
   const resetForm = () => {
     setFormEmployee("");
@@ -44,26 +64,58 @@ export default function ExpensesPage() {
     setFormAmount("");
     setFormDescription("");
     setFormExpenseDate(undefined);
+    setFormCurrency("");
+    setFormExchangeRate("");
+  };
+
+  // When employee changes, default the expense currency to their pay currency
+  const handleEmployeeChange = (empId: string) => {
+    setFormEmployee(empId);
+    const payCurrency = getEmployeePayCurrency(empId);
+    setFormCurrency(payCurrency);
+    setFormExchangeRate("1");
+  };
+
+  // When expense currency changes, auto-fill exchange rate
+  const handleCurrencyChange = (currency: string) => {
+    setFormCurrency(currency);
+    const payCurrency = formEmployee ? getEmployeePayCurrency(formEmployee) : "SAR";
+    const rate = getExchangeRate(currency, payCurrency);
+    setFormExchangeRate(rate.toFixed(4));
+  };
+
+  const computeConvertedAmount = (): number => {
+    if (!formAmount || !formExchangeRate) return 0;
+    return Math.round(Number(formAmount) * Number(formExchangeRate) * 100) / 100;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const emp = employees.find(em => em.id === formEmployee);
     if (!emp || !formExpenseDate) return;
+    const payCurrency = getEmployeePayCurrency(emp.id);
+    const expCurrency = formCurrency || payCurrency;
+    const isMultiCurrency = expCurrency !== payCurrency;
+    const convertedAmount = isMultiCurrency ? computeConvertedAmount() : Number(formAmount);
+
     const newExp: ExpenseReimbursement = {
       id: String(Date.now()),
       employeeId: emp.id,
       employeeName: `${emp.firstName} ${emp.lastName}`,
       category: formCategory,
-      amount: Number(formAmount),
+      amount: convertedAmount, // Amount in pay currency
       expenseDate: formExpenseDate.toISOString().split("T")[0],
       submissionDate: new Date().toISOString().split("T")[0],
       status: "pending",
       description: formDescription,
       attachments: [],
+      ...(isMultiCurrency ? {
+        currency: expCurrency,
+        exchangeRate: Number(formExchangeRate),
+        originalAmount: Number(formAmount),
+      } : {}),
     };
     setExpenseList(prev => [...prev, newExp]);
-    // sync to shared array
     expenses.push(newExp);
     setNewOpen(false);
     resetForm();
@@ -81,7 +133,6 @@ export default function ExpensesPage() {
       expenseDate: formExpenseDate ? formExpenseDate.toISOString().split("T")[0] : selectedExp.expenseDate,
     };
     setExpenseList(prev => prev.map(ex => ex.id === updated.id ? updated : ex));
-    // sync
     const idx = expenses.findIndex(ex => ex.id === updated.id);
     if (idx >= 0) expenses[idx] = updated;
     setEditOpen(false);
@@ -149,6 +200,19 @@ export default function ExpensesPage() {
     return run ? `${run.month} ${run.year}` : null;
   };
 
+  const formatExpenseAmount = (exp: ExpenseReimbursement) => {
+    const payCurrency = getEmployeePayCurrency(exp.employeeId);
+    if (exp.currency && exp.originalAmount && exp.currency !== payCurrency) {
+      return (
+        <span>
+          <span className="font-semibold">{exp.currency} {exp.originalAmount.toLocaleString()}</span>
+          <span className="text-muted-foreground text-xs ml-1">({payCurrency} {exp.amount.toLocaleString()})</span>
+        </span>
+      );
+    }
+    return <span className="font-semibold">{payCurrency} {exp.amount.toLocaleString()}</span>;
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title="Expense Reimbursement" description="Submit, review, and track expense claims.">
@@ -192,7 +256,7 @@ export default function ExpensesPage() {
                 <TableHead className="font-semibold">Employee</TableHead>
                 <TableHead className="font-semibold">Category</TableHead>
                 <TableHead className="font-semibold">Description</TableHead>
-                <TableHead className="font-semibold text-right">Amount (SAR)</TableHead>
+                <TableHead className="font-semibold text-right">Amount</TableHead>
                 <TableHead className="font-semibold">Expense Date</TableHead>
                 <TableHead className="font-semibold">Submitted</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
@@ -208,7 +272,7 @@ export default function ExpensesPage() {
                     <TableCell className="font-medium">{exp.employeeName}</TableCell>
                     <TableCell>{exp.category}</TableCell>
                     <TableCell className="text-muted-foreground max-w-[180px] truncate">{exp.description}</TableCell>
-                    <TableCell className="text-right font-semibold">{exp.amount.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{formatExpenseAmount(exp)}</TableCell>
                     <TableCell>{new Date(exp.expenseDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(exp.submissionDate).toLocaleDateString()}</TableCell>
                     <TableCell><StatusBadge status={exp.status} /></TableCell>
@@ -276,7 +340,7 @@ export default function ExpensesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Employee</Label>
-              <Select value={formEmployee} onValueChange={setFormEmployee} required>
+              <Select value={formEmployee} onValueChange={handleEmployeeChange} required>
                 <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
                 <SelectContent>
                   {employees.filter(e => e.status === "active" || e.status === "on-leave").map(e => (
@@ -312,10 +376,34 @@ export default function ExpensesPage() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
-              <Label>Amount (SAR)</Label>
-              <Input type="number" placeholder="0.00" value={formAmount} onChange={e => setFormAmount(e.target.value)} required min={1} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Expense Currency</Label>
+                <Select value={formCurrency} onValueChange={handleCurrencyChange}>
+                  <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
+                  <SelectContent>
+                    {availableCurrencies.map(c => (
+                      <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Amount ({formCurrency || "—"})</Label>
+                <Input type="number" placeholder="0.00" value={formAmount} onChange={e => setFormAmount(e.target.value)} required min={1} />
+              </div>
             </div>
+            {formCurrency && formCurrency !== selectedEmployeePayCurrency && (
+              <div className="space-y-2">
+                <Label>Exchange Rate (1 {formCurrency} = X {selectedEmployeePayCurrency})</Label>
+                <Input type="number" step="0.0001" value={formExchangeRate} onChange={e => setFormExchangeRate(e.target.value)} required min={0.0001} />
+                {formAmount && formExchangeRate && (
+                  <p className="text-xs text-muted-foreground">
+                    Converted: {selectedEmployeePayCurrency} {computeConvertedAmount().toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea placeholder="Describe the expense..." value={formDescription} onChange={e => setFormDescription(e.target.value)} required />
@@ -368,7 +456,7 @@ export default function ExpensesPage() {
               </Popover>
             </div>
             <div className="space-y-2">
-              <Label>Amount (SAR)</Label>
+              <Label>Amount</Label>
               <Input type="number" value={formAmount} onChange={e => setFormAmount(e.target.value)} required min={1} />
             </div>
             <div className="space-y-2">
@@ -396,9 +484,18 @@ export default function ExpensesPage() {
                 <div><span className="text-muted-foreground">Employee:</span><p className="font-medium">{selectedExp.employeeName}</p></div>
                 <div><span className="text-muted-foreground">Status:</span><p><StatusBadge status={selectedExp.status} /></p></div>
                 <div><span className="text-muted-foreground">Category:</span><p className="font-medium">{selectedExp.category}</p></div>
-                <div><span className="text-muted-foreground">Amount:</span><p className="font-semibold">SAR {selectedExp.amount.toLocaleString()}</p></div>
+                <div>
+                  <span className="text-muted-foreground">Amount:</span>
+                  <p className="font-semibold">{formatExpenseAmount(selectedExp)}</p>
+                </div>
                 <div><span className="text-muted-foreground">Expense Date:</span><p className="font-medium">{new Date(selectedExp.expenseDate).toLocaleDateString()}</p></div>
                 <div><span className="text-muted-foreground">Submitted:</span><p className="font-medium">{new Date(selectedExp.submissionDate).toLocaleDateString()}</p></div>
+                {selectedExp.currency && selectedExp.exchangeRate && (
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Exchange Rate:</span>
+                    <p className="font-medium">1 {selectedExp.currency} = {selectedExp.exchangeRate} {getEmployeePayCurrency(selectedExp.employeeId)}</p>
+                  </div>
+                )}
                 {selectedExp.payrollRunId && (
                   <div className="col-span-2"><span className="text-muted-foreground">Payroll Run:</span><p><Badge variant="outline">{getPayrollLabel(selectedExp.payrollRunId)}</Badge></p></div>
                 )}
