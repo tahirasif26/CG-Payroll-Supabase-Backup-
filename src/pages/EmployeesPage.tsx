@@ -507,7 +507,7 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
   );
 }
 
-function CompensationTab({ emp }: { emp: Employee }) {
+function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdatePayCurrency?: (empId: string, currency: string) => void }) {
   const ext = getExtData(emp.id);
   // Use active compensation settings to drive which components appear
   const activeSettings = compensationSettings.filter(s => s.isActive);
@@ -537,7 +537,7 @@ function CompensationTab({ emp }: { emp: Employee }) {
         <CardContent>
           <p className="text-xs text-muted-foreground mb-2">All compensation and payslip values for this employee are in their pay currency.</p>
           <div className="max-w-xs">
-            <Select value={payCurrency} onValueChange={(v) => { setPayCurrency(v); toast({ title: "Pay Currency Updated", description: `Pay currency set to ${v}.` }); }}>
+            <Select value={payCurrency} onValueChange={(v) => { setPayCurrency(v); onUpdatePayCurrency?.(emp.id, v); toast({ title: "Pay Currency Updated", description: `Pay currency set to ${v}.` }); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {availableCurrencies.map(c => (
@@ -983,7 +983,7 @@ export default function EmployeesPage() {
           </TabsList>
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} /></TabsContent>
+          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { setLocalEmployees(prev => prev.map(e => e.id === empId ? { ...e, payCurrency: currency } : e)); }} /></TabsContent>
           <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={() => setUploadDocOpen(true)} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
