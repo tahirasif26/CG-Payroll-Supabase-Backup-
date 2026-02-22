@@ -73,6 +73,7 @@ const employerSettingsNav = [
   { title: "Compensation", url: "/settings/compensation", icon: BarChart3 },
   { title: "Deductions", url: "/settings/deductions", icon: Receipt },
   { title: "Tax Config", url: "/settings/tax", icon: FileText },
+  { title: "Leave Types", url: "/settings/leave-types", icon: Calendar },
   { title: "Job Titles", url: "/settings/job-titles", icon: Tag },
   { title: "Departments", url: "/settings/departments", icon: Building2 },
   { title: "Divisions", url: "/settings/divisions", icon: Layers },

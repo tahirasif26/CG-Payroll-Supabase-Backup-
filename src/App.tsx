@@ -14,6 +14,7 @@ import { DeductionProvider } from "@/contexts/DeductionContext";
 import { PerformanceCycleProvider } from "@/contexts/PerformanceCycleContext";
 import { AuditProvider } from "@/contexts/AuditContext";
 import { BLEAccessProvider } from "@/contexts/BLEAccessContext";
+import { LeaveTypeProvider } from "@/contexts/LeaveTypeContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -43,6 +44,7 @@ import ProjectSettingsPage from "@/pages/settings/ProjectSettingsPage";
 import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
 import GLCodeMappingPage from "@/pages/settings/GLCodeMappingPage";
 import EOSBenefitsPage from "@/pages/settings/EOSBenefitsPage";
+import LeaveTypesPage from "@/pages/settings/LeaveTypesPage";
 import SeparationsPage from "@/pages/SeparationsPage";
 import RatingCalibrationPage from "@/pages/performance/RatingCalibrationPage";
 import SelfAssessmentPage from "@/pages/performance/SelfAssessmentPage";
@@ -70,6 +72,7 @@ const App = () => (
         <PerformanceCycleProvider>
         <AuditProvider>
         <BLEAccessProvider>
+        <LeaveTypeProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -102,6 +105,7 @@ const App = () => (
               <Route path="/settings/company" element={<CompanySettingsPage />} />
               <Route path="/settings/gl-codes" element={<GLCodeMappingPage />} />
               <Route path="/settings/eos-benefits" element={<EOSBenefitsPage />} />
+              <Route path="/settings/leave-types" element={<LeaveTypesPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
               <Route path="/id-cards" element={<IDCardsPage />} />
               <Route path="/access-management" element={<AccessManagementPage />} />
@@ -116,6 +120,7 @@ const App = () => (
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </LeaveTypeProvider>
         </BLEAccessProvider>
         </AuditProvider>
         </PerformanceCycleProvider>
