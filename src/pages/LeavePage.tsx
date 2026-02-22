@@ -19,7 +19,7 @@ export default function LeavePage() {
   const activeIds = new Set(activeEmps.map(e => e.id));
   const { leaveTypes } = useLeaveTypes();
   const activeLeaveTypes = leaveTypes.filter(lt => lt.isActive);
-  const allLeaves = leaveRequests.filter(l => activeIds.has(l.employeeId));
+  const [localLeaves, setLocalLeaves] = useState(() => [...leaveRequests].filter(l => activeIds.has(l.employeeId)));
   const [newOpen, setNewOpen] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -29,12 +29,15 @@ export default function LeavePage() {
   // New request form state
   const [newEmployee, setNewEmployee] = useState("");
   const [newType, setNewType] = useState("");
+  const [newStart, setNewStart] = useState("");
+  const [newEnd, setNewEnd] = useState("");
+  const [newReason, setNewReason] = useState("");
 
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const filteredLeaves = allLeaves.filter(l => {
+  const filteredLeaves = localLeaves.filter(l => {
     const q = search.toLowerCase();
     const matchesSearch = !q || l.employeeName.toLowerCase().includes(q) || l.reason.toLowerCase().includes(q);
     const matchesType = filterType === "all" || l.type === filterType;
@@ -44,11 +47,36 @@ export default function LeavePage() {
 
   const handleSubmitRequest = (e: React.FormEvent) => {
     e.preventDefault();
+    const emp = activeEmps.find(em => em.id === newEmployee);
+    if (!emp || !newType || !newStart || !newEnd) return;
+    const leaveType = activeLeaveTypes.find(lt => lt.id === newType);
+    const start = new Date(newStart);
+    const end = new Date(newEnd);
+    const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    const typeName = leaveType ? leaveType.name.toLowerCase().replace(/\s+/g, "_") : "annual";
+
+    const newLeave = {
+      id: `lr-${Date.now()}`,
+      employeeId: emp.id,
+      employeeName: `${emp.firstName} ${emp.lastName}`,
+      type: typeName as any,
+      startDate: newStart,
+      endDate: newEnd,
+      days,
+      status: "pending" as const,
+      reason: newReason || "No reason provided",
+    };
+
+    setLocalLeaves(prev => [newLeave, ...prev]);
+    leaveRequests.push(newLeave);
+
     setNewOpen(false);
     setNewEmployee("");
     setNewType("");
-    const emp = activeEmps.find(e => e.id === newEmployee);
-    toast({ title: "Leave Request Submitted", description: `Leave request for ${emp ? `${emp.firstName} ${emp.lastName}` : "employee"} has been sent for approval.` });
+    setNewStart("");
+    setNewEnd("");
+    setNewReason("");
+    toast({ title: "Leave Request Submitted", description: `Leave request for ${emp.firstName} ${emp.lastName} has been submitted as pending.` });
   };
 
   const handleApprove = () => {
@@ -173,16 +201,16 @@ export default function LeavePage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Start Date</Label>
-                <Input type="date" required />
+                <Input type="date" value={newStart} onChange={e => setNewStart(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label>End Date</Label>
-                <Input type="date" required />
+                <Input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} required />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Reason</Label>
-              <Textarea placeholder="Provide a reason for the leave..." required />
+              <Textarea placeholder="Provide a reason for the leave..." value={newReason} onChange={e => setNewReason(e.target.value)} required />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
