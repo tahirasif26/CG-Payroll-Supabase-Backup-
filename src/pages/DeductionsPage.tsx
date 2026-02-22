@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { deductions as initialDeductions } from "@/data/mockData";
+import { useDeductions } from "@/contexts/DeductionContext";
 import { Deduction } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
 
 export default function DeductionsPage() {
-  const [items, setItems] = useState<Deduction[]>(initialDeductions);
+  const { deductions: items, setDeductions: setItems } = useDeductions();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Deduction | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
