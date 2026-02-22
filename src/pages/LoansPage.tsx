@@ -136,16 +136,20 @@ export default function LoansPage() {
       return;
     }
 
+    const processingRun = payrollRuns.find(r => r.status === "processing");
+    const runId = processingRun?.id || "0";
+    const runLabel = processingRun ? `${processingRun.month} ${processingRun.year}` : "—";
+
     const txn: LoanTransaction = {
       id: `t-${Date.now()}`,
-      payrollRunId: "0",
-      payrollLabel: "—",
+      payrollRunId: runId,
+      payrollLabel: runLabel,
       type: "emi_change",
       amount: emiValue,
       balanceAfter: selectedLoan.remainingBalance,
       emiAtTime: emiValue,
       date: new Date().toISOString().split("T")[0],
-      note: emiReason || `EMI changed from SAR ${selectedLoan.monthlyDeduction.toLocaleString()} to SAR ${emiValue.toLocaleString()}`,
+      note: emiReason || `EMI changed from SAR ${selectedLoan.monthlyDeduction.toLocaleString()} to SAR ${emiValue.toLocaleString()} (effective ${runLabel})`,
     };
 
     syncLoans(prev => prev.map(l => l.id === selectedLoan.id ? {
