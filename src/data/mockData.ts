@@ -36,9 +36,36 @@ export const leaveRequests: LeaveRequest[] = [
 ];
 
 export const loans: Loan[] = [
-  { id: "1", employeeId: "2", employeeName: "Omar Al-Faisal", amount: 50000, remainingBalance: 35000, monthlyDeduction: 2500, startDate: "2024-06-01", endDate: "2026-02-01", status: "active" },
-  { id: "2", employeeId: "4", employeeName: "Khalid Nasser", amount: 80000, remainingBalance: 60000, monthlyDeduction: 4000, startDate: "2024-09-01", endDate: "2026-05-01", status: "active" },
-  { id: "3", employeeId: "1", employeeName: "Aisha Rahman", amount: 20000, remainingBalance: 0, monthlyDeduction: 2000, startDate: "2023-01-01", endDate: "2023-11-01", status: "completed" },
+  { id: "1", employeeId: "2", employeeName: "Omar Al-Faisal", amount: 50000, remainingBalance: 35000, monthlyDeduction: 2500, startDate: "2024-06-01", endDate: "2026-02-01", status: "active", transactions: [
+    { id: "t1-1", payrollRunId: "0", payrollLabel: "June 2024", type: "disbursement", amount: 50000, balanceAfter: 50000, emiAtTime: 2500, date: "2024-06-01", note: "Loan disbursed" },
+    { id: "t1-2", payrollRunId: "0", payrollLabel: "July 2024", type: "deduction", amount: 2500, balanceAfter: 47500, emiAtTime: 2500, date: "2024-07-28" },
+    { id: "t1-3", payrollRunId: "0", payrollLabel: "August 2024", type: "deduction", amount: 2500, balanceAfter: 45000, emiAtTime: 2500, date: "2024-08-28" },
+    { id: "t1-4", payrollRunId: "0", payrollLabel: "September 2024", type: "deduction", amount: 2500, balanceAfter: 42500, emiAtTime: 2500, date: "2024-09-28" },
+    { id: "t1-5", payrollRunId: "0", payrollLabel: "October 2024", type: "deduction", amount: 2500, balanceAfter: 40000, emiAtTime: 2500, date: "2024-10-28" },
+    { id: "t1-6", payrollRunId: "0", payrollLabel: "November 2024", type: "deduction", amount: 2500, balanceAfter: 37500, emiAtTime: 2500, date: "2024-11-28" },
+    { id: "t1-7", payrollRunId: "1", payrollLabel: "January 2025", type: "deduction", amount: 2500, balanceAfter: 35000, emiAtTime: 2500, date: "2025-01-28" },
+  ]},
+  { id: "2", employeeId: "4", employeeName: "Khalid Nasser", amount: 80000, remainingBalance: 60000, monthlyDeduction: 4000, startDate: "2024-09-01", endDate: "2026-05-01", status: "active", transactions: [
+    { id: "t2-1", payrollRunId: "0", payrollLabel: "September 2024", type: "disbursement", amount: 80000, balanceAfter: 80000, emiAtTime: 4000, date: "2024-09-01", note: "Loan disbursed" },
+    { id: "t2-2", payrollRunId: "0", payrollLabel: "October 2024", type: "deduction", amount: 4000, balanceAfter: 76000, emiAtTime: 4000, date: "2024-10-28" },
+    { id: "t2-3", payrollRunId: "0", payrollLabel: "November 2024", type: "deduction", amount: 4000, balanceAfter: 72000, emiAtTime: 4000, date: "2024-11-28" },
+    { id: "t2-4", payrollRunId: "0", payrollLabel: "December 2024", type: "deduction", amount: 4000, balanceAfter: 68000, emiAtTime: 4000, date: "2024-12-28" },
+    { id: "t2-5", payrollRunId: "1", payrollLabel: "January 2025", type: "deduction", amount: 4000, balanceAfter: 64000, emiAtTime: 4000, date: "2025-01-28" },
+    { id: "t2-6", payrollRunId: "2", payrollLabel: "February 2025", type: "deduction", amount: 4000, balanceAfter: 60000, emiAtTime: 4000, date: "2025-02-27" },
+  ]},
+  { id: "3", employeeId: "1", employeeName: "Aisha Rahman", amount: 20000, remainingBalance: 0, monthlyDeduction: 2000, startDate: "2023-01-01", endDate: "2023-11-01", status: "completed", transactions: [
+    { id: "t3-1", payrollRunId: "0", payrollLabel: "January 2023", type: "disbursement", amount: 20000, balanceAfter: 20000, emiAtTime: 2000, date: "2023-01-01", note: "Loan disbursed" },
+    { id: "t3-2", payrollRunId: "0", payrollLabel: "February 2023", type: "deduction", amount: 2000, balanceAfter: 18000, emiAtTime: 2000, date: "2023-02-28" },
+    { id: "t3-3", payrollRunId: "0", payrollLabel: "March 2023", type: "deduction", amount: 2000, balanceAfter: 16000, emiAtTime: 2000, date: "2023-03-28" },
+    { id: "t3-4", payrollRunId: "0", payrollLabel: "April 2023", type: "deduction", amount: 2000, balanceAfter: 14000, emiAtTime: 2000, date: "2023-04-28" },
+    { id: "t3-5", payrollRunId: "0", payrollLabel: "May 2023", type: "deduction", amount: 2000, balanceAfter: 12000, emiAtTime: 2000, date: "2023-05-28" },
+    { id: "t3-6", payrollRunId: "0", payrollLabel: "June 2023", type: "deduction", amount: 2000, balanceAfter: 10000, emiAtTime: 2000, date: "2023-06-28" },
+    { id: "t3-7", payrollRunId: "0", payrollLabel: "July 2023", type: "deduction", amount: 2000, balanceAfter: 8000, emiAtTime: 2000, date: "2023-07-28" },
+    { id: "t3-8", payrollRunId: "0", payrollLabel: "August 2023", type: "deduction", amount: 2000, balanceAfter: 6000, emiAtTime: 2000, date: "2023-08-28" },
+    { id: "t3-9", payrollRunId: "0", payrollLabel: "September 2023", type: "deduction", amount: 2000, balanceAfter: 4000, emiAtTime: 2000, date: "2023-09-28" },
+    { id: "t3-10", payrollRunId: "0", payrollLabel: "October 2023", type: "deduction", amount: 2000, balanceAfter: 2000, emiAtTime: 2000, date: "2023-10-28" },
+    { id: "t3-11", payrollRunId: "0", payrollLabel: "November 2023", type: "deduction", amount: 2000, balanceAfter: 0, emiAtTime: 2000, date: "2023-11-28", note: "Loan fully repaid" },
+  ]},
 ];
 
 export const expenses: ExpenseReimbursement[] = [

@@ -48,6 +48,18 @@ export interface LeaveRequest {
   reason: string;
 }
 
+export interface LoanTransaction {
+  id: string;
+  payrollRunId: string;
+  payrollLabel: string;
+  type: "disbursement" | "deduction" | "emi_change";
+  amount: number;
+  balanceAfter: number;
+  emiAtTime: number;
+  date: string;
+  note?: string;
+}
+
 export interface Loan {
   id: string;
   employeeId: string;
@@ -58,6 +70,7 @@ export interface Loan {
   startDate: string;
   endDate: string;
   status: "active" | "completed" | "defaulted";
+  transactions?: LoanTransaction[];
 }
 
 export interface ExpenseReimbursement {
