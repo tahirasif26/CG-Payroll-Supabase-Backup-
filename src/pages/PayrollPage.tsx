@@ -346,12 +346,12 @@ export default function PayrollPage() {
         emp.workLocationCountry.toLowerCase().includes(q);
     });
 
-    // Group by country
+    // Group by country + pay currency
     const countryGroups = new Map<string, EmployeePayrollLine[]>();
     filteredBreakdown.forEach(line => {
-      const country = line.emp.workLocationCountry;
-      if (!countryGroups.has(country)) countryGroups.set(country, []);
-      countryGroups.get(country)!.push(line);
+      const key = `${line.emp.workLocationCountry}|||${line.payCurrency}`;
+      if (!countryGroups.has(key)) countryGroups.set(key, []);
+      countryGroups.get(key)!.push(line);
     });
 
     const sheetEmp = sheetEmpId ? employees.find(e => e.id === sheetEmpId) : null;
@@ -431,19 +431,19 @@ export default function PayrollPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Array.from(countryGroups.entries()).map(([country, lines]) => {
-                  const countryCurrency = lines[0]?.payCurrency || REPORTING_CURRENCY;
+                {Array.from(countryGroups.entries()).map(([groupKey, lines]) => {
+                  const [country, groupCurrency] = groupKey.split("|||");
                   const subtotalGross = lines.reduce((s, l) => s + l.gross, 0);
                   const subtotalDeductions = lines.reduce((s, l) => s + l.totalDeductions, 0);
                   const subtotalNet = lines.reduce((s, l) => s + l.net, 0);
 
                   return (
-                    <React.Fragment key={country}>
-                      {/* Country header */}
+                    <React.Fragment key={groupKey}>
+                      {/* Country + Currency header */}
                       <TableRow className="bg-muted/30">
                         <TableCell colSpan={12} className="py-2">
                           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            {country} ({lines.length} employee{lines.length > 1 ? "s" : ""}) — Pay Currency: {countryCurrency}
+                            {country} — Pay Currency: {groupCurrency} ({lines.length} employee{lines.length > 1 ? "s" : ""})
                           </span>
                         </TableCell>
                       </TableRow>
@@ -484,7 +484,7 @@ export default function PayrollPage() {
                       ))}
                       {/* Country subtotal */}
                       <TableRow className="bg-muted/20 border-b-2">
-                        <TableCell colSpan={3} className="text-right text-xs font-bold text-muted-foreground">Subtotal {countryCurrency}</TableCell>
+                        <TableCell colSpan={3} className="text-right text-xs font-bold text-muted-foreground">Subtotal {country} — {groupCurrency}</TableCell>
                         <TableCell colSpan={2} />
                         <TableCell className="text-right font-bold text-xs">{subtotalGross.toLocaleString()}</TableCell>
                         <TableCell className="text-right font-bold text-xs text-destructive">{subtotalDeductions.toLocaleString()}</TableCell>
