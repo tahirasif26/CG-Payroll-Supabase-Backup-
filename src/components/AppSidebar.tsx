@@ -19,14 +19,17 @@ import { Button } from "@/components/ui/button";
 
 const employerNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Leave Management", url: "/leave", icon: Calendar },
-  { title: "Asset Management", url: "/assets", icon: Monitor },
 ];
 
 const employeesSubNav = [
   { title: "Directory", url: "/employees", icon: Users },
   { title: "Org Chart", url: "/org-chart", icon: GitBranch },
-  { title: "Birthdays & Anniversaries", url: "/birthdays", icon: Gift },
+  { title: "Imp Dates", url: "/birthdays", icon: Gift },
+  { title: "Leave Management", url: "/leave", icon: Calendar },
+];
+
+const assetTrackingNav = [
+  { title: "Asset Management", url: "/assets", icon: Monitor },
 ];
 
 const payrollSubNav = [
@@ -178,8 +181,9 @@ export function AppSidebar() {
             <NavItems items={employerNav} />
             <CollapsibleNavGroup label="Employees" icon={Users} items={employeesSubNav} />
             <CollapsibleNavGroup label="Payroll" icon={DollarSign} items={payrollSubNav} />
-            <CollapsibleNavGroup label="Projects" icon={FolderKanban} items={employerFinanceNav} />
+            <CollapsibleNavGroup label="Asset Tracking" icon={Monitor} items={assetTrackingNav} />
             <CollapsibleNavGroup label="Performance" icon={Target} items={performanceNav} />
+            <CollapsibleNavGroup label="Projects" icon={FolderKanban} items={employerFinanceNav} />
             <CollapsibleNavGroup label="Upcoming Features" icon={Clock} items={upcomingFeaturesNav} />
             <CollapsibleNavGroup label="Settings" icon={Settings} items={employerSettingsNav} />
           </>
