@@ -16,19 +16,19 @@ export default function LeaveTypesPage() {
   const { leaveTypes, addLeaveType, updateLeaveType, deleteLeaveType } = useLeaveTypes();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", defaultDays: 21, isActive: true, isPaid: true });
+  const [form, setForm] = useState({ name: "", defaultDays: 21, isActive: true, isPaid: true, maxCarryForwardDays: 0 });
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const { toast } = useToast();
 
   const openAdd = () => {
     setEditingId(null);
-    setForm({ name: "", defaultDays: 21, isActive: true, isPaid: true });
+    setForm({ name: "", defaultDays: 21, isActive: true, isPaid: true, maxCarryForwardDays: 0 });
     setDialogOpen(true);
   };
 
   const openEdit = (lt: LeaveType) => {
     setEditingId(lt.id);
-    setForm({ name: lt.name, defaultDays: lt.defaultDays, isActive: lt.isActive, isPaid: lt.isPaid });
+    setForm({ name: lt.name, defaultDays: lt.defaultDays, isActive: lt.isActive, isPaid: lt.isPaid, maxCarryForwardDays: lt.maxCarryForwardDays });
     setDialogOpen(true);
   };
 
@@ -66,6 +66,7 @@ export default function LeaveTypesPage() {
               <TableRow className="bg-muted/50">
                 <TableHead className="font-semibold">Leave Type</TableHead>
                 <TableHead className="font-semibold">Default Days</TableHead>
+                <TableHead className="font-semibold">Max Carryforward</TableHead>
                 <TableHead className="font-semibold">Paid</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -76,6 +77,7 @@ export default function LeaveTypesPage() {
                 <TableRow key={lt.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium">{lt.name}</TableCell>
                   <TableCell>{lt.defaultDays}</TableCell>
+                  <TableCell>{lt.maxCarryForwardDays > 0 ? `${lt.maxCarryForwardDays} days` : "None"}</TableCell>
                   <TableCell>{lt.isPaid ? "Yes" : "No"}</TableCell>
                   <TableCell><StatusBadge status={lt.isActive ? "active" : "inactive"} /></TableCell>
                   <TableCell className="text-right">
@@ -87,7 +89,7 @@ export default function LeaveTypesPage() {
                 </TableRow>
               ))}
               {leaveTypes.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No leave types configured.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No leave types configured.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -109,6 +111,11 @@ export default function LeaveTypesPage() {
             <div className="space-y-2">
               <Label>Default Days per Year</Label>
               <Input type="number" min={0} value={form.defaultDays} onChange={e => setForm({ ...form, defaultDays: Number(e.target.value) })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Max Carryforward Days</Label>
+              <Input type="number" min={0} value={form.maxCarryForwardDays} onChange={e => setForm({ ...form, maxCarryForwardDays: Number(e.target.value) })} />
+              <p className="text-xs text-muted-foreground">Maximum unused days that can roll over to the next year. Set to 0 for no carryforward.</p>
             </div>
             <div className="flex items-center justify-between">
               <Label>Paid Leave</Label>
