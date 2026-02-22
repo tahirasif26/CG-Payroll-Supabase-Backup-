@@ -198,6 +198,7 @@ export default function PayslipsPage() {
 }
 
 function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetail | null; onClose: () => void; onDownload: (name: string, period: string) => void }) {
+  const { employees } = useEmployees();
   const { client } = useClient();
   const { separations } = useSeparations();
   if (!payslip) return null;
