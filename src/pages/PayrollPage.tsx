@@ -428,6 +428,7 @@ export default function PayrollPage() {
                   <TableHead className="font-semibold text-right">One-Off +/-</TableHead>
                   <TableHead className="font-semibold text-right">EOS Settlement</TableHead>
                   <TableHead className="font-semibold text-right">Net Pay</TableHead>
+                  <TableHead className="font-semibold text-right">Net ({REPORTING_CURRENCY})</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -441,7 +442,7 @@ export default function PayrollPage() {
                     <React.Fragment key={groupKey}>
                       {/* Country + Currency header */}
                       <TableRow className="bg-muted/30">
-                        <TableCell colSpan={12} className="py-2">
+                        <TableCell colSpan={13} className="py-2">
                           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                             {country} — Pay Currency: {groupCurrency} ({lines.length} employee{lines.length > 1 ? "s" : ""})
                           </span>
@@ -480,6 +481,7 @@ export default function PayrollPage() {
                             ) : "—"}
                           </TableCell>
                           <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-semibold text-muted-foreground">{payCurrency !== REPORTING_CURRENCY ? Math.round(net * getToReportingRate(payCurrency)).toLocaleString() : "—"}</TableCell>
                         </TableRow>
                       ))}
                       {/* Country subtotal */}
@@ -490,6 +492,7 @@ export default function PayrollPage() {
                         <TableCell className="text-right font-bold text-xs text-destructive">{subtotalDeductions.toLocaleString()}</TableCell>
                         <TableCell colSpan={4} />
                         <TableCell className="text-right font-bold text-xs">{subtotalNet.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-bold text-xs text-muted-foreground">{groupCurrency !== REPORTING_CURRENCY ? Math.round(subtotalNet * getToReportingRate(groupCurrency)).toLocaleString() : "—"}</TableCell>
                       </TableRow>
                     </React.Fragment>
                   );
@@ -502,6 +505,7 @@ export default function PayrollPage() {
                   <TableCell className="text-right text-sm text-destructive">{rptDeductions.toLocaleString()}</TableCell>
                   <TableCell colSpan={4} />
                   <TableCell className="text-right text-sm">{rptNet.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-sm font-bold">{rptNet.toLocaleString()}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
