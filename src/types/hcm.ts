@@ -54,7 +54,7 @@ export interface LoanTransaction {
   id: string;
   payrollRunId: string;
   payrollLabel: string;
-  type: "disbursement" | "deduction" | "emi_change";
+  type: "disbursement" | "deduction" | "emi_change" | "emi_pause" | "emi_resume";
   amount: number;
   balanceAfter: number;
   emiAtTime: number;
@@ -73,6 +73,8 @@ export interface Loan {
   endDate: string;
   status: "active" | "completed" | "defaulted";
   transactions?: LoanTransaction[];
+  pausedUntil?: string;
+  prePauseEmi?: number;
 }
 
 export interface ExpenseReimbursement {
