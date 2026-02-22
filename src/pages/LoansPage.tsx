@@ -5,7 +5,7 @@ import { loans, employees, payrollRuns } from "@/data/mockData";
 import { Loan, LoanTransaction } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, PiggyBank, Search, ArrowLeft, Pencil, Eye, RefreshCw } from "lucide-react";
+import { Plus, PiggyBank, Search, ArrowLeft, Pencil, Eye, RefreshCw, PauseCircle, PlayCircle } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ export default function LoansPage() {
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [editing, setEditing] = useState(false);
   const [emiAdjustOpen, setEmiAdjustOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
   const { toast } = useToast();
 
   // Edit form state
@@ -37,6 +38,10 @@ export default function LoansPage() {
   // EMI adjustment state
   const [newEmi, setNewEmi] = useState("");
   const [emiReason, setEmiReason] = useState("");
+
+  // Pause EMI state
+  const [pauseMonths, setPauseMonths] = useState("1");
+  const [pauseReason, setPauseReason] = useState("");
 
   // New loan form state
   const [newEmployee, setNewEmployee] = useState("");
@@ -169,6 +174,97 @@ export default function LoansPage() {
     toast({ title: "EMI Updated", description: `Monthly deduction changed to SAR ${emiValue.toLocaleString()}.` });
   };
 
+  const handlePauseEmi = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLoan) return;
+    const months = Number(pauseMonths);
+    const now = new Date();
+    const pausedUntilDate = new Date(now);
+    pausedUntilDate.setMonth(pausedUntilDate.getMonth() + months);
+    const pausedUntil = pausedUntilDate.toISOString().split("T")[0];
+
+    // Extend end date
+    const currentEnd = new Date(selectedLoan.endDate);
+    currentEnd.setMonth(currentEnd.getMonth() + months);
+    const newEndDate = currentEnd.toISOString().split("T")[0];
+
+    const processingRun = payrollRuns.find(r => r.status === "processing");
+    const runId = processingRun?.id || "0";
+    const runLabel = processingRun ? `${processingRun.month} ${processingRun.year}` : "—";
+
+    const txn: LoanTransaction = {
+      id: `t-${Date.now()}`,
+      payrollRunId: runId,
+      payrollLabel: runLabel,
+      type: "emi_pause",
+      amount: 0,
+      balanceAfter: selectedLoan.remainingBalance,
+      emiAtTime: 0,
+      date: now.toISOString().split("T")[0],
+      note: `EMI paused for ${months} month(s) until ${new Date(pausedUntil).toLocaleDateString()}. Original EMI: SAR ${selectedLoan.monthlyDeduction.toLocaleString()}${pauseReason ? `. Reason: ${pauseReason}` : ""}`,
+    };
+
+    syncLoans(prev => prev.map(l => l.id === selectedLoan.id ? {
+      ...l,
+      monthlyDeduction: 0,
+      prePauseEmi: selectedLoan.monthlyDeduction,
+      pausedUntil,
+      endDate: newEndDate,
+      transactions: [...(l.transactions || []), txn],
+    } : l));
+    setSelectedLoan(prev => prev ? {
+      ...prev,
+      monthlyDeduction: 0,
+      prePauseEmi: selectedLoan.monthlyDeduction,
+      pausedUntil,
+      endDate: newEndDate,
+      transactions: [...(prev.transactions || []), txn],
+    } : null);
+
+    setPauseOpen(false);
+    setPauseMonths("1");
+    setPauseReason("");
+    toast({ title: "EMI Paused", description: `EMI paused for ${months} month(s) until ${new Date(pausedUntil).toLocaleDateString()}.` });
+  };
+
+  const handleResumeEmi = () => {
+    if (!selectedLoan) return;
+    const originalEmi = selectedLoan.prePauseEmi || 0;
+
+    const processingRun = payrollRuns.find(r => r.status === "processing");
+    const runId = processingRun?.id || "0";
+    const runLabel = processingRun ? `${processingRun.month} ${processingRun.year}` : "—";
+
+    const txn: LoanTransaction = {
+      id: `t-${Date.now()}`,
+      payrollRunId: runId,
+      payrollLabel: runLabel,
+      type: "emi_resume",
+      amount: 0,
+      balanceAfter: selectedLoan.remainingBalance,
+      emiAtTime: originalEmi,
+      date: new Date().toISOString().split("T")[0],
+      note: `EMI resumed. Monthly deduction restored to SAR ${originalEmi.toLocaleString()}.`,
+    };
+
+    syncLoans(prev => prev.map(l => l.id === selectedLoan.id ? {
+      ...l,
+      monthlyDeduction: originalEmi,
+      prePauseEmi: undefined,
+      pausedUntil: undefined,
+      transactions: [...(l.transactions || []), txn],
+    } : l));
+    setSelectedLoan(prev => prev ? {
+      ...prev,
+      monthlyDeduction: originalEmi,
+      prePauseEmi: undefined,
+      pausedUntil: undefined,
+      transactions: [...(prev.transactions || []), txn],
+    } : null);
+
+    toast({ title: "EMI Resumed", description: `Monthly deduction restored to SAR ${originalEmi.toLocaleString()}.` });
+  };
+
   const filtered = loanList.filter(loan => {
     if (filter !== "all" && loan.status !== filter) return false;
     if (!search) return true;
@@ -187,6 +283,7 @@ export default function LoansPage() {
     const progress = loan.amount > 0 ? Math.round((paidAmount / loan.amount) * 100) : 0;
     const transactions = loan.transactions || [];
     const remainingMonths = loan.monthlyDeduction > 0 ? Math.ceil(loan.remainingBalance / loan.monthlyDeduction) : 0;
+    const isPaused = !!loan.pausedUntil;
 
     return (
       <div className="space-y-6">
@@ -200,8 +297,22 @@ export default function LoansPage() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             <StatusBadge status={loan.status} />
+            {isPaused && (
+              <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                <PauseCircle className="h-3 w-3 mr-1" />EMI Paused
+              </Badge>
+            )}
             {!isCompleted && !editing && (
               <>
+                {isPaused ? (
+                  <Button variant="outline" size="sm" className="border-green-300 text-green-700 hover:bg-green-50" onClick={handleResumeEmi}>
+                    <PlayCircle className="h-4 w-4 mr-2" />Resume EMI
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setPauseOpen(true)}>
+                    <PauseCircle className="h-4 w-4 mr-2" />Pause EMI
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => { setNewEmi(String(loan.monthlyDeduction)); setEmiAdjustOpen(true); }}>
                   <RefreshCw className="h-4 w-4 mr-2" />Adjust EMI
                 </Button>
@@ -215,6 +326,14 @@ export default function LoansPage() {
 
         {!editing ? (
           <>
+            {isPaused && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2 text-sm">
+                <PauseCircle className="h-4 w-4 text-amber-600" />
+                <span className="text-amber-800 font-medium">
+                  EMI paused until {new Date(loan.pausedUntil!).toLocaleDateString()} — Original EMI: SAR {loan.prePauseEmi?.toLocaleString()}
+                </span>
+              </div>
+            )}
             <Card>
               <CardHeader><CardTitle className="text-base">Loan Details</CardTitle></CardHeader>
               <CardContent>
@@ -268,8 +387,11 @@ export default function LoansPage() {
                           <TableCell className="text-sm">{new Date(txn.date).toLocaleDateString()}</TableCell>
                           <TableCell className="text-sm font-medium">{txn.payrollLabel}</TableCell>
                           <TableCell>
-                            <Badge variant={txn.type === "disbursement" ? "default" : txn.type === "emi_change" ? "secondary" : "outline"} className="text-xs">
-                              {txn.type === "disbursement" ? "Disbursement" : txn.type === "emi_change" ? "EMI Change" : "Deduction"}
+                            <Badge
+                              variant={txn.type === "disbursement" ? "default" : txn.type === "emi_change" ? "secondary" : "outline"}
+                              className={`text-xs ${txn.type === "emi_pause" ? "bg-amber-100 text-amber-800 border-amber-300" : txn.type === "emi_resume" ? "bg-green-100 text-green-800 border-green-300" : ""}`}
+                            >
+                              {txn.type === "disbursement" ? "Disbursement" : txn.type === "emi_change" ? "EMI Change" : txn.type === "emi_pause" ? "EMI Paused" : txn.type === "emi_resume" ? "EMI Resumed" : "Deduction"}
                             </Badge>
                           </TableCell>
                           <TableCell className={`text-right font-medium ${txn.type === "disbursement" ? "text-primary" : txn.type === "deduction" ? "text-destructive" : "text-muted-foreground"}`}>
@@ -353,6 +475,40 @@ export default function LoansPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Pause EMI Dialog */}
+        <Dialog open={pauseOpen} onOpenChange={setPauseOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Pause EMI Deduction</DialogTitle>
+              <DialogDescription>
+                Temporarily pause the monthly EMI deduction for this loan. The end date will be extended accordingly.
+                Current EMI: SAR {loan.monthlyDeduction.toLocaleString()}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handlePauseEmi} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Number of Months to Pause</Label>
+                <Select value={pauseMonths} onValueChange={setPauseMonths}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6].map(m => (
+                      <SelectItem key={m} value={String(m)}>{m} month{m > 1 ? "s" : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Reason (optional)</Label>
+                <Textarea placeholder="e.g. Employee on unpaid leave" value={pauseReason} onChange={e => setPauseReason(e.target.value)} rows={2} />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setPauseOpen(false)}>Cancel</Button>
+                <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white">Pause EMI</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -408,7 +564,14 @@ export default function LoansPage() {
                 <TableCell className="text-right">SAR {loan.monthlyDeduction.toLocaleString()}</TableCell>
                 <TableCell>{new Date(loan.startDate).toLocaleDateString()}</TableCell>
                 <TableCell>{new Date(loan.endDate).toLocaleDateString()}</TableCell>
-                <TableCell><StatusBadge status={loan.status} /></TableCell>
+                <TableCell className="flex items-center gap-1">
+                  <StatusBadge status={loan.status} />
+                  {loan.pausedUntil && (
+                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                      <PauseCircle className="h-3 w-3 mr-1" />Paused
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-center" onClick={e => e.stopPropagation()}>
                   <div className="flex justify-center gap-1">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedLoan(loan)} title="View">
