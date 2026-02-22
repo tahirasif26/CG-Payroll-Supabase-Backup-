@@ -2,8 +2,9 @@ import React, { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { payrollRuns, employees, loans, expenses } from "@/data/mockData";
-import { PayrollRun, OneOffAdjustment } from "@/types/hcm";
+import { payrollRuns, loans, expenses } from "@/data/mockData";
+import { useEmployees } from "@/contexts/EmployeeContext";
+import { PayrollRun, OneOffAdjustment, Employee } from "@/types/hcm";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSeparations } from "@/contexts/SeparationContext";
@@ -33,7 +34,7 @@ function getToReportingRate(fromCurrency: string): number {
 }
 
 interface EmployeePayrollLine {
-  emp: typeof employees[0];
+  emp: Employee;
   basic: number;
   allowances: number;
   gross: number;
@@ -49,8 +50,8 @@ interface EmployeePayrollLine {
   payCurrency: string;
 }
 
-function buildBreakdown(oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string): EmployeePayrollLine[] {
-  const activeEmployees = employees.filter(emp => {
+function buildBreakdown(allEmployees: Employee[], oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string): EmployeePayrollLine[] {
+  const activeEmployees = allEmployees.filter(emp => {
     if (processedSepIds.has(emp.id)) return false;
     return true;
   });
@@ -116,6 +117,7 @@ function downloadCSV(content: string, filename: string) {
 }
 
 export default function PayrollPage() {
+  const { employees } = useEmployees();
   const [runs, setRuns] = useState<PayrollRun[]>(() => [...payrollRuns]);
 
   const syncRuns = (updater: (prev: PayrollRun[]) => PayrollRun[]) => {
@@ -187,7 +189,7 @@ export default function PayrollPage() {
       toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
       return;
     }
-    const breakdown = buildBreakdown([], {}, processedSeps);
+    const breakdown = buildBreakdown(employees, [], {}, processedSeps);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
@@ -210,7 +212,7 @@ export default function PayrollPage() {
     if (!run) return;
 
     const currentSepMap = getSepMap(run.id);
-    const currentBreakdown = buildBreakdown(oneOffs[run.id] || [], currentSepMap, processedSeps, run.id);
+    const currentBreakdown = buildBreakdown(employees, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id);
     const runEmployeeCount = currentBreakdown.length;
     const runGross = currentBreakdown.reduce((s, l) => s + l.gross, 0);
     const runDed = currentBreakdown.reduce((s, l) => s + l.totalDeductions, 0);
@@ -232,7 +234,7 @@ export default function PayrollPage() {
     setProcessedSeps(updatedProcessedSeps);
 
     const next = getNextMonth(run.month, run.year);
-    const breakdown = buildBreakdown([], {}, updatedProcessedSeps);
+    const breakdown = buildBreakdown(employees, [], {}, updatedProcessedSeps);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const nextRun: PayrollRun = {
@@ -266,7 +268,7 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const breakdown = buildBreakdown(oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id);
+    const breakdown = buildBreakdown(employees, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id);
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
@@ -302,7 +304,7 @@ export default function PayrollPage() {
 
   if (selectedRun) {
     const sepMap = getSepMap(selectedRun.id);
-    const breakdown = buildBreakdown(currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id);
+    const breakdown = buildBreakdown(employees, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
     const totalOneOffBen = breakdown.reduce((s, l) => s + l.oneOffBenefits, 0);
@@ -677,7 +679,7 @@ export default function PayrollPage() {
                   <TableBody>
                     {filtered.length > 0 ? filtered.map((run) => {
                       const liveBreakdown = run.status !== "completed"
-                        ? buildBreakdown(oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id)
+                        ? buildBreakdown(employees, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id)
                         : null;
                       const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
                       const dispGross = liveBreakdown

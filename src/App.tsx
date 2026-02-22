@@ -9,6 +9,7 @@ import { ClientProvider } from "@/contexts/ClientContext";
 import { SeparationProvider } from "@/contexts/SeparationContext";
 import { AssetProvider } from "@/contexts/AssetContext";
 import { ReportingProvider } from "@/contexts/ReportingContext";
+import { EmployeeProvider } from "@/contexts/EmployeeContext";
 import DashboardPage from "@/pages/DashboardPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import PayrollPage from "@/pages/PayrollPage";
@@ -58,6 +59,7 @@ const App = () => (
         <SeparationProvider>
         <AssetProvider>
         <ReportingProvider>
+        <EmployeeProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -102,6 +104,7 @@ const App = () => (
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </EmployeeProvider>
         </ReportingProvider>
         </AssetProvider>
         </SeparationProvider>

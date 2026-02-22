@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { employees, leaveRequests, loans, payrollRuns } from "@/data/mockData";
+import { employees as importedEmployees, leaveRequests, loans, payrollRuns } from "@/data/mockData";
+import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -433,7 +434,8 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
   const [editing, setEditing] = useState(false);
   const { toast } = useToast();
   const { getManagerId, getManagerName, setReportTo } = useReporting();
-  const activeEmps = employees.filter(e => e.status !== "separated" && e.id !== emp.id);
+  const { employees: allEmployees } = useEmployees();
+  const activeEmps = allEmployees.filter(e => e.status !== "separated" && e.id !== emp.id);
 
   const currentManagerName = getManagerName(emp.id) || ext.reportsTo || "—";
   const currentManagerId = getManagerId(emp.id) || "";
@@ -907,10 +909,10 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
 }
 
 export default function EmployeesPage() {
+  const { employees: localEmployees, updateEmployee, addEmployee } = useEmployees();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
-  const [localEmployees, setLocalEmployees] = useState<Employee[]>(employees);
   const [separationOpen, setSeparationOpen] = useState(false);
   const [separationEmp, setSeparationEmp] = useState<Employee | null>(null);
   const [separationData, setSeparationData] = useState({
@@ -944,7 +946,7 @@ export default function EmployeesPage() {
       workLocationCountry: (formData.get("workLocationCountry") as string) || "Saudi Arabia",
       compensation: [],
     };
-    setLocalEmployees(prev => [...prev, newEmp]);
+    addEmployee(newEmp);
     setAddEmpOpen(false);
     toast({ title: "Employee Added", description: "The new employee has been added to the directory." });
   };
@@ -991,7 +993,7 @@ export default function EmployeesPage() {
           </TabsList>
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { setLocalEmployees(prev => prev.map(e => e.id === empId ? { ...e, payCurrency: currency } : e)); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
+          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
           <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={() => setUploadDocOpen(true)} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
@@ -1086,7 +1088,7 @@ export default function EmployeesPage() {
                 status: "pending",
               });
 
-              setLocalEmployees(prev => prev.map(e => e.id === separationEmp.id ? { ...e, status: "separated" as const } : e));
+              updateEmployee(separationEmp.id, { status: "separated" as const });
               setSelectedEmployee({ ...separationEmp, status: "separated" });
               setSeparationOpen(false);
               toast({ title: "Separation Processed", description: `${separationEmp.firstName} ${separationEmp.lastName} has been separated. Final settlement will be included in the next payroll run.` });
