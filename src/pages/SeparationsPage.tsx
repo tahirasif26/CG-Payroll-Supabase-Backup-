@@ -6,9 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Undo2, Eye, CheckCircle2, Search, Filter, UserMinus } from "lucide-react";
+import { Edit2, Undo2, Eye, CheckCircle2, Search, Filter, UserMinus, AlertTriangle, Package, CreditCard, Users2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAssets } from "@/contexts/AssetContext";
+import { useReporting } from "@/contexts/ReportingContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/StatCard";
 import { DollarSign, Users } from "lucide-react";
 import { useSeparations, SeparationRecord } from "@/contexts/SeparationContext";
-import { payrollRuns, leaveRequests, loans } from "@/data/mockData";
+import { payrollRuns, leaveRequests, loans, expenses } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 
@@ -250,7 +251,9 @@ function ActiveEmployeesTab() {
 // --- Separated Employees Tab (existing functionality) ---
 function SeparatedEmployeesTab() {
   const { separations, updateSeparation, removeSeparation } = useSeparations();
-  const { getAssetsForEmployee } = useAssets();
+  const { employees } = useEmployees();
+  const { getAssetsForEmployee, reassignAsset } = useAssets();
+  const { reportMap, setReportTo } = useReporting();
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<SeparationRecord | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -260,6 +263,12 @@ function SeparatedEmployeesTab() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterReason, setFilterReason] = useState("all");
+
+  // Pre-approval checklist state
+  const [checklistOpen, setChecklistOpen] = useState(false);
+  const [checklistSep, setChecklistSep] = useState<SeparationRecord | null>(null);
+  const [reportReassignments, setReportReassignments] = useState<Record<string, string>>({});
+  const [assetReassignments, setAssetReassignments] = useState<Record<string, string>>({});
 
   const filteredSeparations = separations.filter(sep => {
     const q = search.toLowerCase();
@@ -289,25 +298,92 @@ function SeparatedEmployeesTab() {
     toast({ title: "Separation Reversed", description: `${sep?.employeeName}'s separation has been reversed. Employee is now active again.` });
   };
 
-  const handleApprove = (sep: SeparationRecord) => {
+  // Get checklist data for a separation
+  const getChecklistData = (sep: SeparationRecord) => {
+    const directReports = Object.entries(reportMap)
+      .filter(([_, managerId]) => managerId === sep.employeeId)
+      .map(([empId]) => employees.find(e => e.id === empId))
+      .filter(Boolean) as typeof employees;
+
     const empAssets = getAssetsForEmployee(sep.employeeId);
-    if (empAssets.length > 0) {
-      toast({ title: "Assets Still Assigned", description: `${sep.employeeName} still has ${empAssets.length} asset(s) assigned. Please reassign or unassign all assets before approving separation.`, variant: "destructive" });
+
+    const pendingExpenses = expenses.filter(
+      e => e.employeeId === sep.employeeId && e.status === "pending"
+    );
+
+    return { directReports, empAssets, pendingExpenses };
+  };
+
+  const handleApprove = (sep: SeparationRecord) => {
+    // Open checklist dialog instead of approving directly
+    const { directReports, empAssets, pendingExpenses } = getChecklistData(sep);
+
+    // Initialize reassignment maps
+    const reportInit: Record<string, string> = {};
+    directReports.forEach(dr => { reportInit[dr.id] = ""; });
+    setReportReassignments(reportInit);
+
+    const assetInit: Record<string, string> = {};
+    empAssets.forEach(a => { assetInit[a.id] = ""; });
+    setAssetReassignments(assetInit);
+
+    setChecklistSep(sep);
+    setChecklistOpen(true);
+  };
+
+  const confirmApproval = () => {
+    if (!checklistSep) return;
+    const { directReports, empAssets } = getChecklistData(checklistSep);
+
+    // Check all direct reports are reassigned
+    const unassignedReports = directReports.filter(dr => !reportReassignments[dr.id]);
+    if (unassignedReports.length > 0) {
+      toast({ title: "Reassign Direct Reports", description: "All direct reports must be reassigned before approval.", variant: "destructive" });
       return;
     }
+
+    // Check all assets are reassigned/unassigned
+    const unhandledAssets = empAssets.filter(a => !assetReassignments[a.id]);
+    if (unhandledAssets.length > 0) {
+      toast({ title: "Handle Assets", description: "All assets must be reassigned or unassigned before approval.", variant: "destructive" });
+      return;
+    }
+
     const processingRun = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
     if (!processingRun) {
       toast({ title: "No Active Payroll", description: "There is no processing or draft payroll run to link this separation to.", variant: "destructive" });
       return;
     }
-    updateSeparation(sep.id, {
+
+    // Apply reporting reassignments
+    Object.entries(reportReassignments).forEach(([empId, newManagerId]) => {
+      if (newManagerId) setReportTo(empId, newManagerId);
+    });
+
+    // Apply asset reassignments
+    Object.entries(assetReassignments).forEach(([assetId, targetEmpId]) => {
+      if (targetEmpId === "__unassign__") {
+        reassignAsset(assetId, null, null);
+      } else if (targetEmpId) {
+        const targetEmp = employees.find(e => e.id === targetEmpId);
+        reassignAsset(assetId, targetEmpId, targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : null);
+      }
+    });
+
+    // Approve
+    updateSeparation(checklistSep.id, {
       status: "approved",
       payrollRunId: processingRun.id,
       payrollMonth: processingRun.month,
       payrollYear: processingRun.year,
     });
-    toast({ title: "Separation Approved", description: `${sep.employeeName}'s separation linked to ${processingRun.month} ${processingRun.year} payroll.` });
+
+    setChecklistOpen(false);
+    setChecklistSep(null);
+    toast({ title: "Separation Approved", description: `${checklistSep.employeeName}'s separation linked to ${processingRun.month} ${processingRun.year} payroll.` });
   };
+
+  const activeEmps = employees.filter(e => e.status === "active" || e.status === "on-leave");
 
   return (
     <div className="space-y-4">
@@ -556,6 +632,157 @@ function SeparatedEmployeesTab() {
               <Undo2 className="h-4 w-4 mr-2" />Reverse & Reactivate
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pre-Approval Checklist Dialog */}
+      <Dialog open={checklistOpen} onOpenChange={setChecklistOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0">
+          <div className="bg-primary px-6 py-5 text-primary-foreground">
+            <h2 className="text-lg font-bold">Pre-Approval Checklist</h2>
+            <p className="text-xs text-primary-foreground/70">
+              Review and resolve items before approving {checklistSep?.employeeName}'s separation.
+            </p>
+          </div>
+          {checklistSep && (() => {
+            const { directReports, empAssets, pendingExpenses } = getChecklistData(checklistSep);
+            const hasIssues = directReports.length > 0 || empAssets.length > 0 || pendingExpenses.length > 0;
+
+            return (
+              <ScrollArea className="max-h-[calc(90vh-180px)]">
+                <div className="px-6 py-5 space-y-5">
+                  {!hasIssues && (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-green-500" />
+                      <p className="font-medium">No blockers found. Ready to approve.</p>
+                    </div>
+                  )}
+
+                  {/* Direct Reports Section */}
+                  {directReports.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Users2 className="h-4 w-4 text-orange-500" />
+                        <h3 className="text-sm font-semibold">Direct Reports ({directReports.length})</h3>
+                        <Badge variant="secondary" className="text-xs">Requires Reassignment</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        The following employees report to {checklistSep.employeeName}. Reassign them to continue.
+                      </p>
+                      <div className="space-y-2">
+                        {directReports.map(dr => (
+                          <div key={dr.id} className="flex items-center justify-between gap-3 bg-muted/30 rounded-lg px-3 py-2.5">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium">{dr.firstName} {dr.lastName}</p>
+                              <p className="text-xs text-muted-foreground">{dr.designation} · {dr.department}</p>
+                            </div>
+                            <Select
+                              value={reportReassignments[dr.id] || ""}
+                              onValueChange={v => setReportReassignments(prev => ({ ...prev, [dr.id]: v }))}
+                            >
+                              <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="New manager..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {activeEmps
+                                  .filter(e => e.id !== checklistSep.employeeId && e.id !== dr.id)
+                                  .map(e => (
+                                    <SelectItem key={e.id} value={e.id}>
+                                      {e.firstName} {e.lastName}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Assets Section */}
+                  {empAssets.length > 0 && (
+                    <>
+                      {directReports.length > 0 && <Separator />}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Package className="h-4 w-4 text-orange-500" />
+                          <h3 className="text-sm font-semibold">Assigned Assets ({empAssets.length})</h3>
+                          <Badge variant="secondary" className="text-xs">Requires Action</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Reassign or unassign assets currently held by {checklistSep.employeeName}.
+                        </p>
+                        <div className="space-y-2">
+                          {empAssets.map(asset => (
+                            <div key={asset.id} className="flex items-center justify-between gap-3 bg-muted/30 rounded-lg px-3 py-2.5">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium">{asset.name}</p>
+                                <p className="text-xs text-muted-foreground">{asset.category} · {asset.serialNumber}</p>
+                              </div>
+                              <Select
+                                value={assetReassignments[asset.id] || ""}
+                                onValueChange={v => setAssetReassignments(prev => ({ ...prev, [asset.id]: v }))}
+                              >
+                                <SelectTrigger className="w-[200px]">
+                                  <SelectValue placeholder="Reassign to..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__unassign__">
+                                    Unassign (Available)
+                                  </SelectItem>
+                                  {activeEmps
+                                    .filter(e => e.id !== checklistSep.employeeId)
+                                    .map(e => (
+                                      <SelectItem key={e.id} value={e.id}>
+                                        {e.firstName} {e.lastName}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Pending Expenses Section */}
+                  {pendingExpenses.length > 0 && (
+                    <>
+                      {(directReports.length > 0 || empAssets.length > 0) && <Separator />}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-yellow-500" />
+                          <h3 className="text-sm font-semibold">Pending Expenses ({pendingExpenses.length})</h3>
+                          <Badge variant="outline" className="text-xs">Info</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          These expenses are pending approval. They should be resolved in the Expenses module.
+                        </p>
+                        <div className="space-y-1">
+                          {pendingExpenses.map(exp => (
+                            <div key={exp.id} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2.5">
+                              <div>
+                                <p className="text-sm font-medium">{exp.description}</p>
+                                <p className="text-xs text-muted-foreground">{exp.category} · {exp.expenseDate}</p>
+                              </div>
+                              <span className="text-sm font-semibold">SAR {exp.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </ScrollArea>
+            );
+          })()}
+          <div className="px-6 pb-5 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setChecklistOpen(false)}>Cancel</Button>
+            <Button onClick={confirmApproval}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />Approve Separation
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
