@@ -40,7 +40,7 @@ interface LeaveTypeContextType {
   initializeBalances: (employeeIds: string[], year: string) => void;
   recordLeaveUsage: (employeeId: string, leaveTypeId: string, year: string, days: number) => void;
   // Carryforward
-  runYearEndCarryforward: (fromYear: string, toYear: string, employeeIds: string[]) => { employeeId: string; leaveTypeId: string; leaveTypeName: string; remaining: number; carryforward: number }[];
+  runYearEndCarryforward: (fromYear: string, toYear: string, employeeIds: string[], customCarryforward?: { employeeId: string; leaveTypeId: string; carryforward: number }[]) => { employeeId: string; leaveTypeId: string; leaveTypeName: string; remaining: number; carryforward: number }[];
   completedRollovers: string[];
 }
 
@@ -140,7 +140,7 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const runYearEndCarryforward = (fromYear: string, toYear: string, employeeIds: string[]) => {
+  const runYearEndCarryforward = (fromYear: string, toYear: string, employeeIds: string[], customCarryforward?: { employeeId: string; leaveTypeId: string; carryforward: number }[]) => {
     const preview: { employeeId: string; leaveTypeId: string; leaveTypeName: string; remaining: number; carryforward: number }[] = [];
 
     for (const empId of employeeIds) {
@@ -148,7 +148,11 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
         const balance = balances.find(b => b.employeeId === empId && b.leaveTypeId === lt.id && b.year === fromYear);
         const remaining = balance ? balance.remaining : getEntitledDays(empId, lt.id);
         let carryforward = 0;
-        if (remaining > 0 && lt.maxCarryForwardDays > 0) {
+        // Check for custom override first
+        const custom = customCarryforward?.find(c => c.employeeId === empId && c.leaveTypeId === lt.id);
+        if (custom !== undefined) {
+          carryforward = custom.carryforward;
+        } else if (remaining > 0 && lt.maxCarryForwardDays > 0) {
           carryforward = Math.min(remaining, lt.maxCarryForwardDays);
         }
         preview.push({ employeeId: empId, leaveTypeId: lt.id, leaveTypeName: lt.name, remaining, carryforward });
