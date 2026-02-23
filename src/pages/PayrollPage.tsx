@@ -22,8 +22,29 @@ import { DollarSign, Users, TrendingDown } from "lucide-react";
 import { useClient } from "@/contexts/ClientContext";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 
 const REPORTING_CURRENCY = "SAR";
+
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function getYearEndMonth(yearEndDate?: string): string | null {
+  if (!yearEndDate) return null;
+  const [mm] = yearEndDate.split("-").map(Number);
+  return MONTHS[mm - 1] || null;
+}
+
+function getCurrentFiscalYear(yearEndDate?: string): string {
+  if (!yearEndDate) return `${new Date().getFullYear()}`;
+  const [mm, dd] = yearEndDate.split("-").map(Number);
+  const now = new Date();
+  const yearEndThisYear = new Date(now.getFullYear(), mm - 1, dd);
+  if (now <= yearEndThisYear) {
+    return `${now.getFullYear() - 1}-${now.getFullYear()}`;
+  }
+  return `${now.getFullYear()}-${now.getFullYear() + 1}`;
+}
 
 function getEmployeePayCurrency(emp: { payCurrency?: string }): string {
   return emp.payCurrency || REPORTING_CURRENCY;
@@ -145,10 +166,15 @@ export default function PayrollPage() {
   };
   const { client } = useClient();
   const { separations } = useSeparations();
+  const activeEmps = useActiveEmployees();
+  const { leaveTypes, balances, initializeBalances, runYearEndCarryforward, completedRollovers } = useLeaveTypes();
   const [newRunOpen, setNewRunOpen] = useState(false);
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ id: string; action: "approve" | "reject" } | null>(null);
+  const [carryforwardOpen, setCarryforwardOpen] = useState(false);
+  const [carryforwardPreview, setCarryforwardPreview] = useState<{ employeeId: string; employeeName: string; leaveTypeId: string; leaveTypeName: string; remaining: number; maxCarryforward: number; carryforward: number }[]>([]);
+  const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [newMonth, setNewMonth] = useState("April");
   const [newYear, setNewYear] = useState("2025");
   const { toast } = useToast();
@@ -270,9 +296,59 @@ export default function PayrollPage() {
     toast({ title: "Deleted", description: "Payroll run deleted." });
   };
 
+  const yearEndMonth = getYearEndMonth(client.yearEndDate);
+  const currentFY = getCurrentFiscalYear(client.yearEndDate);
+
+  const getNextFY = () => {
+    const parts = currentFY.split("-");
+    if (parts.length === 2) return `${parts[1]}-${Number(parts[1]) + 1}`;
+    return `${Number(parts[0]) + 1}`;
+  };
+
+  const isYearEndRun = (run: PayrollRun) => {
+    return yearEndMonth && run.month === yearEndMonth && !completedRollovers.includes(currentFY);
+  };
+
+  const buildCarryforwardPreview = () => {
+    const activeLeaveTypes = leaveTypes.filter(lt => lt.isActive);
+    const preview: typeof carryforwardPreview = [];
+    for (const emp of activeEmps) {
+      for (const lt of activeLeaveTypes) {
+        const balance = balances.find(b => b.employeeId === emp.id && b.leaveTypeId === lt.id && b.year === currentFY);
+        const remaining = balance ? balance.remaining : lt.defaultDays;
+        let carryforward = 0;
+        if (remaining > 0 && lt.maxCarryForwardDays > 0) {
+          carryforward = Math.min(remaining, lt.maxCarryForwardDays);
+        }
+        preview.push({
+          employeeId: emp.id,
+          employeeName: `${emp.firstName} ${emp.lastName}`,
+          leaveTypeId: lt.id,
+          leaveTypeName: lt.name,
+          remaining,
+          maxCarryforward: lt.maxCarryForwardDays,
+          carryforward,
+        });
+      }
+    }
+    return preview;
+  };
+
   const handleConfirm = () => {
     if (!confirmAction) return;
     if (confirmAction.action === "approve") {
+      const run = runs.find(r => r.id === confirmAction.id);
+      if (run && isYearEndRun(run)) {
+        // Initialize balances first, then show carryforward dialog
+        initializeBalances(activeEmps.map(e => e.id), currentFY);
+        const preview = buildCarryforwardPreview();
+        setCarryforwardPreview(preview);
+        setPendingCompleteId(confirmAction.id);
+        setConfirmOpen(false);
+        setConfirmAction(null);
+        setCarryforwardOpen(true);
+        return;
+      }
       handleComplete(confirmAction.id);
     } else {
       syncRuns(prev => prev.map(r => r.id === confirmAction.id ? { ...r, status: "failed" as const } : r));
@@ -280,6 +356,34 @@ export default function PayrollPage() {
     }
     setConfirmOpen(false);
     setConfirmAction(null);
+  };
+
+  const handleCarryforwardChange = (index: number, value: number) => {
+    setCarryforwardPreview(prev => {
+      const updated = [...prev];
+      const item = updated[index];
+      // Clamp between 0 and min(remaining, maxCarryforward) — but allow user to set any value up to remaining
+      const maxAllowed = Math.max(0, item.remaining);
+      updated[index] = { ...item, carryforward: Math.max(0, Math.min(value, maxAllowed)) };
+      return updated;
+    });
+  };
+
+  const handleConfirmCarryforward = () => {
+    if (!pendingCompleteId) return;
+    // Run carryforward with custom values
+    const nextFY = getNextFY();
+    const customValues = carryforwardPreview.map(item => ({
+      employeeId: item.employeeId,
+      leaveTypeId: item.leaveTypeId,
+      carryforward: item.carryforward,
+    }));
+    runYearEndCarryforward(currentFY, nextFY, activeEmps.map(e => e.id), customValues);
+    // Now complete the payroll
+    handleComplete(pendingCompleteId);
+    setCarryforwardOpen(false);
+    setPendingCompleteId(null);
+    toast({ title: "Leave Balances Rolled Over", description: `Carryforward applied for ${nextFY}.` });
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
@@ -653,6 +757,59 @@ export default function PayrollPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Leave Carryforward Dialog */}
+        <Dialog open={carryforwardOpen} onOpenChange={setCarryforwardOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Year-End Leave Balance Carryforward</DialogTitle>
+              <DialogDescription>
+                Review and adjust carryforward days for each employee before completing the payroll. Carryforward values can be edited individually.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[450px] overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">Employee</TableHead>
+                    <TableHead className="font-semibold">Leave Type</TableHead>
+                    <TableHead className="font-semibold text-right">Remaining</TableHead>
+                    <TableHead className="font-semibold text-right">Max Allowed</TableHead>
+                    <TableHead className="font-semibold text-right">Carryforward</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {carryforwardPreview.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No leave data available.</TableCell></TableRow>
+                  ) : (
+                    carryforwardPreview.map((item, i) => (
+                      <TableRow key={`${item.employeeId}-${item.leaveTypeId}`} className="hover:bg-muted/30">
+                        <TableCell className="font-medium">{item.employeeName}</TableCell>
+                        <TableCell>{item.leaveTypeName}</TableCell>
+                        <TableCell className="text-right">{item.remaining}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{item.maxCarryforward}</TableCell>
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={item.remaining > 0 ? item.remaining : 0}
+                            value={item.carryforward}
+                            onChange={e => handleCarryforwardChange(i, Number(e.target.value))}
+                            className="w-20 text-right ml-auto h-8"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setCarryforwardOpen(false); setPendingCompleteId(null); }}>Cancel</Button>
+              <Button onClick={handleConfirmCarryforward}>Confirm & Complete Payroll</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -788,6 +945,59 @@ export default function PayrollPage() {
             <Button variant={confirmAction?.action === "approve" ? "default" : "destructive"} onClick={handleConfirm}>
               {confirmAction?.action === "approve" ? "Complete" : "Reject"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Leave Carryforward Dialog (list view) */}
+      <Dialog open={carryforwardOpen} onOpenChange={setCarryforwardOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Year-End Leave Balance Carryforward</DialogTitle>
+            <DialogDescription>
+              Review and adjust carryforward days for each employee before completing the payroll. Carryforward values can be edited individually.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[450px] overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Employee</TableHead>
+                  <TableHead className="font-semibold">Leave Type</TableHead>
+                  <TableHead className="font-semibold text-right">Remaining</TableHead>
+                  <TableHead className="font-semibold text-right">Max Allowed</TableHead>
+                  <TableHead className="font-semibold text-right">Carryforward</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {carryforwardPreview.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No leave data available.</TableCell></TableRow>
+                ) : (
+                  carryforwardPreview.map((item, i) => (
+                    <TableRow key={`${item.employeeId}-${item.leaveTypeId}`} className="hover:bg-muted/30">
+                      <TableCell className="font-medium">{item.employeeName}</TableCell>
+                      <TableCell>{item.leaveTypeName}</TableCell>
+                      <TableCell className="text-right">{item.remaining}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{item.maxCarryforward}</TableCell>
+                      <TableCell className="text-right">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={item.remaining > 0 ? item.remaining : 0}
+                          value={item.carryforward}
+                          onChange={e => handleCarryforwardChange(i, Number(e.target.value))}
+                          className="w-20 text-right ml-auto h-8"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCarryforwardOpen(false); setPendingCompleteId(null); }}>Cancel</Button>
+            <Button onClick={handleConfirmCarryforward}>Confirm & Complete Payroll</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -7,7 +7,7 @@ import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useClient } from "@/contexts/ClientContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Check, X, Search, Filter, RotateCcw } from "lucide-react";
+import { Plus, Check, X, Search, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ function getCurrentFiscalYear(yearEndDate?: string): string {
 export default function LeavePage() {
   const activeEmps = useActiveEmployees();
   const activeIds = new Set(activeEmps.map(e => e.id));
-  const { leaveTypes, initializeBalances, balances, getBalancesForYear, recordLeaveUsage, runYearEndCarryforward, completedRollovers } = useLeaveTypes();
+  const { leaveTypes, initializeBalances, balances, recordLeaveUsage } = useLeaveTypes();
   const { client } = useClient();
   const activeLeaveTypes = leaveTypes.filter(lt => lt.isActive);
   const [localLeaves, setLocalLeaves] = useState(() => [...leaveRequests].filter(l => activeIds.has(l.employeeId)));
@@ -39,8 +39,6 @@ export default function LeavePage() {
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<string | null>(null);
-  const [rolloverOpen, setRolloverOpen] = useState(false);
-  const [rolloverPreview, setRolloverPreview] = useState<{ employeeId: string; leaveTypeId: string; leaveTypeName: string; remaining: number; carryforward: number }[]>([]);
   const { toast } = useToast();
 
   const currentFY = getCurrentFiscalYear(client.yearEndDate);
@@ -132,41 +130,6 @@ export default function LeavePage() {
 
   const selectedLeaveData = localLeaves.find(l => l.id === selectedLeave);
 
-  // Rollover logic
-  const canRunRollover = client.yearEndDate && !completedRollovers.includes(currentFY);
-
-  const getNextFY = () => {
-    const parts = currentFY.split("-");
-    if (parts.length === 2) return `${parts[1]}-${Number(parts[1]) + 1}`;
-    return `${Number(parts[0]) + 1}`;
-  };
-
-  const handlePreviewRollover = () => {
-    const preview = [];
-    const empIds = activeEmps.map(e => e.id);
-    for (const empId of empIds) {
-      for (const lt of activeLeaveTypes) {
-        const balance = balances.find(b => b.employeeId === empId && b.leaveTypeId === lt.id && b.year === currentFY);
-        const remaining = balance ? balance.remaining : lt.defaultDays;
-        let carryforward = 0;
-        if (remaining > 0 && lt.maxCarryForwardDays > 0) {
-          carryforward = Math.min(remaining, lt.maxCarryForwardDays);
-        }
-        if (carryforward > 0) {
-          preview.push({ employeeId: empId, leaveTypeId: lt.id, leaveTypeName: lt.name, remaining, carryforward });
-        }
-      }
-    }
-    setRolloverPreview(preview);
-    setRolloverOpen(true);
-  };
-
-  const handleRunRollover = () => {
-    runYearEndCarryforward(currentFY, getNextFY(), activeEmps.map(e => e.id));
-    setRolloverOpen(false);
-    toast({ title: "Year-End Rollover Complete", description: `Leave balances have been carried forward to ${getNextFY()}.` });
-  };
-
   // Balance data for the table
   const balanceRows = useMemo(() => {
     const rows: { empId: string; empName: string; leaveType: string; entitled: number; carriedForward: number; used: number; remaining: number }[] = [];
@@ -197,11 +160,6 @@ export default function LeavePage() {
     <div className="space-y-6">
       <PageHeader title="Leave Management" description="Track and approve employee leave requests.">
         <div className="flex gap-2">
-          {canRunRollover && (
-            <Button size="sm" variant="outline" onClick={handlePreviewRollover}>
-              <RotateCcw className="h-4 w-4 mr-2" />Run Year-End Rollover
-            </Button>
-          )}
           <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />New Request
           </Button>
@@ -426,45 +384,6 @@ export default function LeavePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Year-End Rollover Dialog */}
-      <Dialog open={rolloverOpen} onOpenChange={setRolloverOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Year-End Leave Rollover</DialogTitle>
-            <DialogDescription>Preview carryforward amounts from {currentFY} to {getNextFY()}. This action cannot be undone.</DialogDescription>
-          </DialogHeader>
-          {rolloverPreview.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No leave days eligible for carryforward.</p>
-          ) : (
-            <div className="max-h-[400px] overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">Employee</TableHead>
-                    <TableHead className="font-semibold">Leave Type</TableHead>
-                    <TableHead className="font-semibold text-right">Remaining</TableHead>
-                    <TableHead className="font-semibold text-right">Carryforward</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rolloverPreview.map((item, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{getEmpName(item.employeeId)}</TableCell>
-                      <TableCell>{item.leaveTypeName}</TableCell>
-                      <TableCell className="text-right">{item.remaining}</TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">{item.carryforward}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRolloverOpen(false)}>Cancel</Button>
-            <Button onClick={handleRunRollover} disabled={rolloverPreview.length === 0}>Confirm Rollover</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
