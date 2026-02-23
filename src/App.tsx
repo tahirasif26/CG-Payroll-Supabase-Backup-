@@ -15,6 +15,7 @@ import { PerformanceCycleProvider } from "@/contexts/PerformanceCycleContext";
 import { AuditProvider } from "@/contexts/AuditContext";
 import { BLEAccessProvider } from "@/contexts/BLEAccessContext";
 import { LeaveTypeProvider } from "@/contexts/LeaveTypeContext";
+import { ApprovalProvider } from "@/contexts/ApprovalContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -39,6 +40,7 @@ import DepartmentsPage from "@/pages/settings/DepartmentsPage";
 import DivisionsPage from "@/pages/settings/DivisionsPage";
 import ExpenseCategoriesPage from "@/pages/settings/ExpenseCategoriesPage";
 import UserManagementPage from "@/pages/settings/UserManagementPage";
+import ApprovalMatrixPage from "@/pages/settings/ApprovalMatrixPage";
 import CurrencySettingsPage from "@/pages/settings/CurrencySettingsPage";
 import ProjectSettingsPage from "@/pages/settings/ProjectSettingsPage";
 import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
@@ -73,6 +75,7 @@ const App = () => (
         <AuditProvider>
         <BLEAccessProvider>
         <LeaveTypeProvider>
+        <ApprovalProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -99,7 +102,8 @@ const App = () => (
               <Route path="/settings/departments" element={<DepartmentsPage />} />
               <Route path="/settings/divisions" element={<DivisionsPage />} />
               <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
-              <Route path="/settings/users" element={<UserManagementPage />} />
+              <Route path="/settings/users" element={<ApprovalMatrixPage />} />
+              <Route path="/settings/approval-matrix" element={<ApprovalMatrixPage />} />
               <Route path="/settings/currency" element={<CurrencySettingsPage />} />
               <Route path="/settings/projects" element={<ProjectSettingsPage />} />
               <Route path="/settings/company" element={<CompanySettingsPage />} />
@@ -120,6 +124,7 @@ const App = () => (
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </ApprovalProvider>
         </LeaveTypeProvider>
         </BLEAccessProvider>
         </AuditProvider>

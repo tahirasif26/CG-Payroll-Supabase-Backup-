@@ -24,6 +24,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { useApprovals } from "@/contexts/ApprovalContext";
+import { useRole } from "@/contexts/RoleContext";
 
 const REPORTING_CURRENCY = "SAR";
 
@@ -154,6 +156,8 @@ function downloadCSV(content: string, filename: string) {
 export default function PayrollPage() {
   const { employees } = useEmployees();
   const { deductions } = useDeductions();
+  const { canUserApprovePayroll } = useApprovals();
+  const { currentEmployeeId } = useRole();
   const [runs, setRuns] = useState<PayrollRun[]>(() => [...payrollRuns]);
 
   const syncRuns = (updater: (prev: PayrollRun[]) => PayrollRun[]) => {
@@ -249,6 +253,10 @@ export default function PayrollPage() {
   };
 
   const handleComplete = (id: string) => {
+    if (!canUserApprovePayroll(currentEmployeeId)) {
+      toast({ title: "Not Authorized", description: "Completing payroll requires Payroll approval permissions.", variant: "destructive" });
+      return;
+    }
     const run = runs.find(r => r.id === id);
     if (!run) return;
 

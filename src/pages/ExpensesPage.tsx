@@ -4,6 +4,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { expenses, payrollRuns } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { ExpenseReimbursement, Employee } from "@/types/hcm";
+import { useApprovals } from "@/contexts/ApprovalContext";
+import { useRole } from "@/contexts/RoleContext";
 import { defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,8 @@ function getExchangeRate(fromCurrency: string, toCurrency: string): number {
 
 export default function ExpensesPage() {
   const { employees } = useEmployees();
+  const { canUserApproveExpense } = useApprovals();
+  const { currentEmployeeId } = useRole();
   const [expenseList, setExpenseList] = useState<ExpenseReimbursement[]>(expenses);
   const [newOpen, setNewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -151,6 +155,15 @@ export default function ExpensesPage() {
   };
 
   const handleApprove = (exp: ExpenseReimbursement) => {
+    const { allowed, limit } = canUserApproveExpense(currentEmployeeId, exp.amount);
+    if (!allowed) {
+      if (limit === 0) {
+        toast({ title: "Not Authorized", description: "You do not have expense approval permissions.", variant: "destructive" });
+      } else {
+        toast({ title: "Limit Exceeded", description: `Your approval limit is SAR ${limit.toLocaleString()}. This expense of SAR ${exp.amount.toLocaleString()} requires a higher authority.`, variant: "destructive" });
+      }
+      return;
+    }
     const openRun = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
     const updated = { ...exp, status: "approved" as const, payrollRunId: openRun?.id };
     setExpenseList(prev => prev.map(ex => ex.id === exp.id ? updated : ex));
