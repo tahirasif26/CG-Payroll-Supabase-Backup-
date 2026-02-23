@@ -16,8 +16,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useApprovals } from "@/contexts/ApprovalContext";
+import { useRole } from "@/contexts/RoleContext";
 
 export default function LoansPage() {
+  const { canUserApproveHR } = useApprovals();
+  const { currentEmployeeId } = useRole();
   const [loanList, setLoanList] = useState<Loan[]>(() => [...loans]);
   const [newOpen, setNewOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -27,6 +31,14 @@ export default function LoansPage() {
   const [emiAdjustOpen, setEmiAdjustOpen] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
   const { toast } = useToast();
+
+  const hrCheck = (): boolean => {
+    if (!canUserApproveHR(currentEmployeeId)) {
+      toast({ title: "Not Authorized", description: "This action requires HR approval permissions.", variant: "destructive" });
+      return false;
+    }
+    return true;
+  };
 
   // Edit form state
   const [editAmount, setEditAmount] = useState("");
@@ -69,6 +81,7 @@ export default function LoansPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hrCheck()) return;
     const emp = employees.find(em => em.id === newEmployee);
     if (!emp) return;
     const loanAmount = Number(newAmount);
@@ -111,6 +124,7 @@ export default function LoansPage() {
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hrCheck()) return;
     if (!selectedLoan) return;
     syncLoans(prev => prev.map(l => l.id === selectedLoan.id ? {
       ...l,
@@ -134,6 +148,7 @@ export default function LoansPage() {
 
   const handleEmiAdjust = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hrCheck()) return;
     if (!selectedLoan) return;
     const emiValue = Number(newEmi);
     if (emiValue <= 0 || emiValue > selectedLoan.remainingBalance) {
@@ -176,6 +191,7 @@ export default function LoansPage() {
 
   const handlePauseEmi = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hrCheck()) return;
     if (!selectedLoan) return;
     const processingRun = payrollRuns.find(r => r.status === "processing");
     if (!processingRun) {
@@ -234,6 +250,7 @@ export default function LoansPage() {
   };
 
   const handleResumeEmi = () => {
+    if (!hrCheck()) return;
     if (!selectedLoan) return;
     const processingRun = payrollRuns.find(r => r.status === "processing");
     if (!processingRun) {

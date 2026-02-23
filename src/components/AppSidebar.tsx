@@ -79,7 +79,7 @@ const employerSettingsNav = [
   { title: "Divisions", url: "/settings/divisions", icon: Layers },
   { title: "Projects", url: "/settings/projects", icon: FolderKanban },
   { title: "Expense Categories", url: "/settings/expense-categories", icon: Receipt },
-  { title: "User Management", url: "/settings/users", icon: Shield },
+  { title: "Approval Matrix", url: "/settings/approval-matrix", icon: Shield },
   { title: "Currency", url: "/settings/currency", icon: Coins },
   { title: "GL Code Mapping", url: "/settings/gl-codes", icon: FileText },
   { title: "EOS Benefits", url: "/settings/eos-benefits", icon: Award },
