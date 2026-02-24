@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { expenses, payrollRuns } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
@@ -9,7 +10,8 @@ import { useRole } from "@/contexts/RoleContext";
 import { defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, CheckCircle2, XCircle, Pencil, Trash2, FileText, Paperclip } from "lucide-react";
+import { Plus, Search, Eye, CheckCircle2, XCircle, Pencil, Trash2, FileText, Paperclip, BarChart3 } from "lucide-react";
+import ExpenseAnalytics from "@/components/expenses/ExpenseAnalytics";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -228,12 +230,20 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Expense Reimbursement" description="Submit, review, and track expense claims.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />New Claim
-        </Button>
-      </PageHeader>
+      <PageHeader title="Expense Reimbursement" description="Submit, review, and track expense claims." />
 
+      <Tabs defaultValue="claims" className="space-y-4">
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="claims"><FileText className="h-4 w-4 mr-1.5" />Claims</TabsTrigger>
+            <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1.5" />Analytics</TabsTrigger>
+          </TabsList>
+          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />New Claim
+          </Button>
+        </div>
+
+        <TabsContent value="claims" className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -615,6 +625,12 @@ export default function ExpensesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <ExpenseAnalytics />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
