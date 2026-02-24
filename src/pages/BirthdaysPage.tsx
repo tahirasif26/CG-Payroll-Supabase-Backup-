@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { CardSettingsPanel } from "@/components/cards/CardSettingsPanel";
+import { HolidayCardSender } from "@/components/cards/HolidayCardSender";
 import { useCards } from "@/contexts/CardContext";
 
 type SortField = "name" | "birthday" | "anniversary" | "birthdayDays" | "anniversaryDays";
@@ -112,6 +113,7 @@ export default function BirthdaysPage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="cards">Digital Cards</TabsTrigger>
+          <TabsTrigger value="holiday">Holiday Cards</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -267,6 +269,10 @@ export default function BirthdaysPage() {
 
         <TabsContent value="cards">
           <CardSettingsPanel />
+        </TabsContent>
+
+        <TabsContent value="holiday">
+          <HolidayCardSender />
         </TabsContent>
       </Tabs>
     </div>

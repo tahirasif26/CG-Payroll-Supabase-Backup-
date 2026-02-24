@@ -1,4 +1,4 @@
-import { useCards } from "@/contexts/CardContext";
+import { useCards, occasionLabels } from "@/contexts/CardContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { CardGallery } from "./CardGallery";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { templateMeta } from "./CardTemplates";
 import { Mail, Settings2 } from "lucide-react";
 
 export function CardSettingsPanel() {
@@ -85,7 +84,7 @@ export function CardSettingsPanel() {
                 {history.length > 0 ? history.map(h => (
                   <TableRow key={h.id}>
                     <TableCell className="text-sm font-medium">{h.employeeName}</TableCell>
-                    <TableCell><Badge variant="outline" className="capitalize">{h.occasion}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className="capitalize">{occasionLabels[h.occasion] || h.occasion}</Badge></TableCell>
                     <TableCell className="text-sm">{new Date(h.dateSent).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</TableCell>
                     <TableCell className="text-sm">{h.designName}</TableCell>
                     <TableCell>

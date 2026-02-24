@@ -1,8 +1,10 @@
 import React from "react";
 
+export type CardOccasion = "birthday" | "anniversary" | "new_year" | "eid" | "christmas" | "holiday";
+
 export interface CardTemplateProps {
   name: string;
-  occasion: "birthday" | "anniversary";
+  occasion: CardOccasion;
   yearsOfService?: number;
   companyName: string;
   year: number;
@@ -10,17 +12,25 @@ export interface CardTemplateProps {
 }
 
 const templateMeta = [
-  { id: 1, name: "Confetti Burst", type: "birthday" },
-  { id: 2, name: "Elegant Gold", type: "birthday" },
-  { id: 3, name: "Modern Geometric", type: "birthday" },
-  { id: 4, name: "Warm Sunset", type: "birthday" },
-  { id: 5, name: "Minimalist", type: "birthday" },
-  { id: 6, name: "Ocean Breeze", type: "anniversary" },
-  { id: 7, name: "Starlight", type: "anniversary" },
-  { id: 8, name: "Nature Garden", type: "anniversary" },
-  { id: 9, name: "Royal Purple", type: "anniversary" },
-  { id: 10, name: "Celebration", type: "anniversary" },
-] as const;
+  { id: 1, name: "Confetti Burst", type: "birthday" as CardOccasion },
+  { id: 2, name: "Elegant Gold", type: "birthday" as CardOccasion },
+  { id: 3, name: "Modern Geometric", type: "birthday" as CardOccasion },
+  { id: 4, name: "Warm Sunset", type: "birthday" as CardOccasion },
+  { id: 5, name: "Minimalist", type: "birthday" as CardOccasion },
+  { id: 6, name: "Ocean Breeze", type: "anniversary" as CardOccasion },
+  { id: 7, name: "Starlight", type: "anniversary" as CardOccasion },
+  { id: 8, name: "Nature Garden", type: "anniversary" as CardOccasion },
+  { id: 9, name: "Royal Purple", type: "anniversary" as CardOccasion },
+  { id: 10, name: "Celebration", type: "anniversary" as CardOccasion },
+  { id: 11, name: "Fireworks", type: "new_year" as CardOccasion },
+  { id: 12, name: "Golden Countdown", type: "new_year" as CardOccasion },
+  { id: 13, name: "Crescent Moon", type: "eid" as CardOccasion },
+  { id: 14, name: "Eid Lanterns", type: "eid" as CardOccasion },
+  { id: 15, name: "Winter Wonderland", type: "christmas" as CardOccasion },
+  { id: 16, name: "Festive Red", type: "christmas" as CardOccasion },
+  { id: 17, name: "Tropical Vibes", type: "holiday" as CardOccasion },
+  { id: 18, name: "Warm Wishes", type: "holiday" as CardOccasion },
+];
 
 export function getTemplateForEmployee(employeeId: string, year: number, occasion: "birthday" | "anniversary") {
   const hash = [...employeeId].reduce((acc, c) => acc + c.charCodeAt(0), 0);
@@ -230,6 +240,160 @@ function CelebrationCard({ name, yearsOfService, companyName, message, year }: C
   );
 }
 
+// --- Holiday card components ---
+
+function Fireworks({ name, companyName, message, year }: CardTemplateProps) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-8 text-center"
+      style={{ background: "linear-gradient(180deg, hsl(230 30% 8%), hsl(240 25% 15%))", minHeight: 320 }}>
+      {[...Array(18)].map((_, i) => (
+        <div key={i} className="absolute rounded-full"
+          style={{
+            width: 3 + (i % 4) * 2, height: 3 + (i % 4) * 2,
+            top: `${(i * 11 + 5) % 70}%`, left: `${(i * 17 + 8) % 90}%`,
+            background: ["hsl(48 100% 67%)", "hsl(0 80% 60%)", "hsl(200 80% 65%)", "hsl(120 60% 55%)"][i % 4],
+            opacity: 0.5,
+          }} />
+      ))}
+      <div className="relative z-10">
+        <p className="text-5xl mb-3">🎆</p>
+        <h2 className="text-2xl font-bold text-white mb-1">Happy New Year!</h2>
+        <p className="text-white/90 text-lg font-medium mb-4">{name}</p>
+        <p className="text-white/70 text-sm max-w-xs mx-auto">{message || "Wishing you a year filled with new hopes, joy, and success!"}</p>
+        <p className="text-white/40 text-xs mt-6">{companyName} • {year}</p>
+      </div>
+    </div>
+  );
+}
+
+function GoldenCountdown({ name, companyName, message, year }: CardTemplateProps) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-8 text-center"
+      style={{ background: "linear-gradient(135deg, hsl(240 20% 10%), hsl(260 20% 18%))", minHeight: 320, border: "2px solid hsl(43 80% 50%)" }}>
+      <div className="absolute inset-6 rounded-lg" style={{ border: "1px solid hsl(43 80% 50% / 0.2)" }} />
+      <div className="relative z-10">
+        <p className="text-6xl font-bold mb-2" style={{ color: "hsl(43 80% 60%)", fontFamily: "Georgia, serif" }}>{year}</p>
+        <h2 className="text-xl font-bold text-white mb-1">Happy New Year!</h2>
+        <p className="text-lg font-medium mb-4" style={{ color: "hsl(43 80% 70%)" }}>{name}</p>
+        <p className="text-sm max-w-xs mx-auto" style={{ color: "hsl(0 0% 65%)" }}>{message || "May the new year bring you prosperity and happiness."}</p>
+        <p className="text-xs mt-6" style={{ color: "hsl(43 80% 50% / 0.5)" }}>{companyName}</p>
+      </div>
+    </div>
+  );
+}
+
+function CrescentMoon({ name, companyName, message, year }: CardTemplateProps) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-8 text-center"
+      style={{ background: "linear-gradient(160deg, hsl(210 50% 15%), hsl(230 40% 25%))", minHeight: 320 }}>
+      <div className="absolute top-8 right-10 w-16 h-16 rounded-full opacity-20" style={{ background: "hsl(43 80% 60%)", boxShadow: "inset 6px -4px 0 0 hsl(210 50% 15%)" }} />
+      {[...Array(10)].map((_, i) => (
+        <div key={i} className="absolute rounded-full" style={{
+          width: 2, height: 2, top: `${(i * 19 + 10) % 80}%`, left: `${(i * 23 + 15) % 85}%`,
+          background: "hsl(43 80% 70%)", opacity: 0.3,
+        }} />
+      ))}
+      <div className="relative z-10">
+        <p className="text-5xl mb-3">🌙</p>
+        <h2 className="text-2xl font-bold mb-1" style={{ color: "hsl(43 80% 70%)" }}>Eid Mubarak!</h2>
+        <p className="text-white/90 text-lg font-medium mb-4">{name}</p>
+        <p className="text-white/65 text-sm max-w-xs mx-auto">{message || "May this blessed occasion bring peace, happiness, and prosperity to you and your family."}</p>
+        <p className="text-white/40 text-xs mt-6">{companyName} • {year}</p>
+      </div>
+    </div>
+  );
+}
+
+function EidLanterns({ name, companyName, message, year }: CardTemplateProps) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-8 text-center"
+      style={{ background: "linear-gradient(180deg, hsl(170 40% 20%), hsl(180 35% 12%))", minHeight: 320 }}>
+      <div className="absolute top-0 left-1/4 w-0.5 h-12 opacity-20" style={{ background: "hsl(43 80% 60%)" }} />
+      <div className="absolute top-0 left-1/2 w-0.5 h-16 opacity-20" style={{ background: "hsl(43 80% 60%)" }} />
+      <div className="absolute top-0 right-1/4 w-0.5 h-10 opacity-20" style={{ background: "hsl(43 80% 60%)" }} />
+      <div className="relative z-10 mt-4">
+        <p className="text-5xl mb-3">🏮</p>
+        <h2 className="text-2xl font-bold mb-1" style={{ color: "hsl(43 80% 65%)" }}>Eid Mubarak!</h2>
+        <p className="text-white/90 text-lg font-medium mb-4">{name}</p>
+        <p className="text-white/65 text-sm max-w-xs mx-auto">{message || "Wishing you joy, prosperity, and blessings on this sacred celebration."}</p>
+        <p className="text-white/40 text-xs mt-6">{companyName} • {year}</p>
+      </div>
+    </div>
+  );
+}
+
+function WinterWonderland({ name, companyName, message, year }: CardTemplateProps) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-8 text-center"
+      style={{ background: "linear-gradient(180deg, hsl(210 40% 88%), hsl(200 50% 80%))", minHeight: 320 }}>
+      {[...Array(14)].map((_, i) => (
+        <div key={i} className="absolute rounded-full opacity-40"
+          style={{
+            width: 4 + (i % 3) * 3, height: 4 + (i % 3) * 3,
+            top: `${(i * 14 + 3) % 85}%`, left: `${(i * 19 + 7) % 90}%`,
+            background: "hsl(0 0% 100%)",
+          }} />
+      ))}
+      <div className="relative z-10">
+        <p className="text-5xl mb-3">🎄</p>
+        <h2 className="text-2xl font-bold mb-1" style={{ color: "hsl(150 60% 25%)" }}>Merry Christmas!</h2>
+        <p className="text-lg font-medium mb-4" style={{ color: "hsl(0 70% 45%)" }}>{name}</p>
+        <p className="text-sm max-w-xs mx-auto" style={{ color: "hsl(210 20% 30%)" }}>{message || "Wishing you a joyful holiday season and a wonderful new year!"}</p>
+        <p className="text-xs mt-6" style={{ color: "hsl(210 20% 30% / 0.5)" }}>{companyName} • {year}</p>
+      </div>
+    </div>
+  );
+}
+
+function FestiveRed({ name, companyName, message, year }: CardTemplateProps) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-8 text-center"
+      style={{ background: "linear-gradient(135deg, hsl(0 65% 42%), hsl(350 60% 35%))", minHeight: 320 }}>
+      <div className="absolute top-0 right-0 w-24 h-24 opacity-10" style={{ background: "hsl(43 80% 60%)", borderRadius: "0 1rem 0 100%" }} />
+      <div className="relative z-10">
+        <p className="text-5xl mb-3">🎅</p>
+        <h2 className="text-2xl font-bold text-white mb-1">Merry Christmas!</h2>
+        <p className="text-white/90 text-lg font-medium mb-4">{name}</p>
+        <p className="text-white/70 text-sm max-w-xs mx-auto">{message || "May the magic of Christmas fill your heart with warmth and cheer."}</p>
+        <p className="text-white/50 text-xs mt-6">{companyName} • {year}</p>
+      </div>
+    </div>
+  );
+}
+
+function TropicalVibes({ name, companyName, message, year }: CardTemplateProps) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-8 text-center"
+      style={{ background: "linear-gradient(135deg, hsl(180 60% 45%), hsl(160 50% 55%))", minHeight: 320 }}>
+      <div className="absolute top-4 left-6 text-3xl opacity-25">🌴</div>
+      <div className="absolute bottom-6 right-6 text-3xl opacity-25">🌺</div>
+      <div className="relative z-10">
+        <p className="text-5xl mb-3">🏖️</p>
+        <h2 className="text-2xl font-bold text-white mb-1">Happy Holidays!</h2>
+        <p className="text-white/90 text-lg font-medium mb-4">{name}</p>
+        <p className="text-white/70 text-sm max-w-xs mx-auto">{message || "Relax, recharge, and enjoy this well-deserved break!"}</p>
+        <p className="text-white/50 text-xs mt-6">{companyName} • {year}</p>
+      </div>
+    </div>
+  );
+}
+
+function WarmWishes({ name, companyName, message, year }: CardTemplateProps) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-8 text-center"
+      style={{ background: "linear-gradient(160deg, hsl(30 60% 92%), hsl(20 50% 85%))", minHeight: 320 }}>
+      <div className="absolute inset-0 opacity-5" style={{ background: "radial-gradient(circle at 30% 70%, hsl(30 80% 50%), transparent 60%)" }} />
+      <div className="relative z-10">
+        <p className="text-5xl mb-3">🌟</p>
+        <h2 className="text-2xl font-bold mb-1" style={{ color: "hsl(25 60% 30%)" }}>Happy Holidays!</h2>
+        <p className="text-lg font-medium mb-4" style={{ color: "hsl(25 50% 40%)" }}>{name}</p>
+        <p className="text-sm max-w-xs mx-auto" style={{ color: "hsl(25 30% 40%)" }}>{message || "Wishing you warmth, joy, and a peaceful holiday season."}</p>
+        <p className="text-xs mt-6" style={{ color: "hsl(25 30% 40% / 0.5)" }}>{companyName} • {year}</p>
+      </div>
+    </div>
+  );
+}
+
 export const cardTemplates: React.FC<CardTemplateProps>[] = [
   ConfettiBurst,
   ElegantGold,
@@ -241,4 +405,12 @@ export const cardTemplates: React.FC<CardTemplateProps>[] = [
   NatureGarden,
   RoyalPurple,
   CelebrationCard,
+  Fireworks,
+  GoldenCountdown,
+  CrescentMoon,
+  EidLanterns,
+  WinterWonderland,
+  FestiveRed,
+  TropicalVibes,
+  WarmWishes,
 ];
