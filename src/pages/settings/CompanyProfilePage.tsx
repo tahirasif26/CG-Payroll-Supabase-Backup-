@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CompanyProfileSection from "./CompanySettingsPage";
 import CurrencySection from "./CurrencySettingsPage";
 import GLCodeSection from "./GLCodeMappingPage";
+import VisualPreferenceSection from "./VisualPreferencePage";
 
 export default function CompanyProfilePage() {
   return (
@@ -13,10 +14,12 @@ export default function CompanyProfilePage() {
           <TabsTrigger value="profile">Company Details</TabsTrigger>
           <TabsTrigger value="currency">Currency</TabsTrigger>
           <TabsTrigger value="gl-codes">GL Code Mapping</TabsTrigger>
+          <TabsTrigger value="visual">Visual Preference</TabsTrigger>
         </TabsList>
         <TabsContent value="profile"><CompanyProfileSection /></TabsContent>
         <TabsContent value="currency"><CurrencySection /></TabsContent>
         <TabsContent value="gl-codes"><GLCodeSection /></TabsContent>
+        <TabsContent value="visual"><VisualPreferenceSection /></TabsContent>
       </Tabs>
     </div>
   );
