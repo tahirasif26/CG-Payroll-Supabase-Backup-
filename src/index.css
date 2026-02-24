@@ -6,44 +6,44 @@
 
 @layer base {
   :root {
-    --background: 220 14% 96%;
-    --foreground: 240 10% 16%;
+    --background: 230 60% 98%;
+    --foreground: 240 20% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 16%;
+    --card-foreground: 240 20% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 16%;
+    --popover-foreground: 240 20% 12%;
 
-    --primary: 52 100% 50%;
-    --primary-foreground: 240 10% 16%;
+    --primary: 233 90% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 10% 16%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 233 80% 95%;
+    --secondary-foreground: 233 90% 40%;
 
-    --muted: 220 14% 92%;
+    --muted: 230 40% 93%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 52 100% 94%;
-    --accent-foreground: 240 10% 16%;
+    --accent: 230 60% 96%;
+    --accent-foreground: 240 20% 12%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 52 100% 50%;
+    --border: 230 30% 91%;
+    --input: 230 30% 91%;
+    --ring: 233 90% 60%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 240 10% 16%;
+    --sidebar-background: 240 20% 12%;
     --sidebar-foreground: 220 14% 80%;
-    --sidebar-primary: 52 100% 50%;
-    --sidebar-primary-foreground: 240 10% 16%;
-    --sidebar-accent: 240 8% 22%;
+    --sidebar-primary: 233 90% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 15% 20%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 8% 24%;
-    --sidebar-ring: 52 100% 50%;
+    --sidebar-border: 240 15% 22%;
+    --sidebar-ring: 233 90% 60%;
 
     --success: 152 69% 40%;
     --success-foreground: 0 0% 100%;
@@ -52,7 +52,7 @@
     --info: 213 94% 55%;
     --info-foreground: 0 0% 100%;
 
-    --chart-1: 52 100% 50%;
+    --chart-1: 233 90% 60%;
     --chart-2: 213 94% 55%;
     --chart-3: 152 69% 40%;
     --chart-4: 38 92% 50%;
@@ -60,33 +60,33 @@
   }
 
   .dark {
-    --background: 240 10% 10%;
-    --foreground: 220 14% 96%;
-    --card: 240 10% 14%;
-    --card-foreground: 220 14% 96%;
-    --popover: 240 10% 14%;
-    --popover-foreground: 220 14% 96%;
-    --primary: 52 100% 50%;
-    --primary-foreground: 240 10% 16%;
-    --secondary: 220 14% 80%;
-    --secondary-foreground: 240 10% 16%;
-    --muted: 240 8% 22%;
+    --background: 240 20% 8%;
+    --foreground: 230 60% 98%;
+    --card: 240 20% 12%;
+    --card-foreground: 230 60% 98%;
+    --popover: 240 20% 12%;
+    --popover-foreground: 230 60% 98%;
+    --primary: 233 90% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 233 30% 20%;
+    --secondary-foreground: 233 80% 90%;
+    --muted: 240 15% 20%;
     --muted-foreground: 220 9% 60%;
-    --accent: 240 8% 22%;
-    --accent-foreground: 220 14% 96%;
+    --accent: 240 15% 20%;
+    --accent-foreground: 230 60% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 8% 24%;
-    --input: 240 8% 24%;
-    --ring: 52 100% 50%;
-    --sidebar-background: 240 10% 8%;
+    --border: 240 15% 22%;
+    --input: 240 15% 22%;
+    --ring: 233 90% 60%;
+    --sidebar-background: 240 20% 6%;
     --sidebar-foreground: 220 14% 80%;
-    --sidebar-primary: 52 100% 50%;
-    --sidebar-primary-foreground: 240 10% 16%;
-    --sidebar-accent: 240 8% 16%;
+    --sidebar-primary: 233 90% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 15% 14%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 8% 18%;
-    --sidebar-ring: 52 100% 50%;
+    --sidebar-border: 240 15% 16%;
+    --sidebar-ring: 233 90% 60%;
   }
 }
 
@@ -103,10 +103,10 @@
 
 @layer utilities {
   .gradient-ey {
-    background: linear-gradient(135deg, hsl(52 100% 50%) 0%, hsl(45 100% 45%) 100%);
+    background: linear-gradient(135deg, hsl(233 90% 60%) 0%, hsl(213 94% 55%) 100%);
   }
   .text-gradient-ey {
-    background: linear-gradient(135deg, hsl(52 100% 50%) 0%, hsl(45 100% 45%) 100%);
+    background: linear-gradient(135deg, hsl(233 90% 60%) 0%, hsl(213 94% 55%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
