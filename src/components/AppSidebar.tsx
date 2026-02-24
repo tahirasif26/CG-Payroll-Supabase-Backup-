@@ -70,9 +70,7 @@ const performanceNav = [
 
 const employerSettingsNav = [
   { title: "Company Profile", url: "/settings/company", icon: Building2 },
-  { title: "Compensation", url: "/settings/compensation", icon: BarChart3 },
-  { title: "Deductions", url: "/settings/deductions", icon: Receipt },
-  { title: "Tax Config", url: "/settings/tax", icon: FileText },
+  { title: "Payroll Settings", url: "/settings/payroll", icon: DollarSign },
   { title: "Leave Types", url: "/settings/leave-types", icon: Calendar },
   { title: "Company Structure", url: "/settings/company-structure", icon: Building2 },
   { title: "Projects", url: "/settings/projects", icon: FolderKanban },
@@ -80,7 +78,7 @@ const employerSettingsNav = [
   { title: "Approval Matrix", url: "/settings/approval-matrix", icon: Shield },
   { title: "Currency", url: "/settings/currency", icon: Coins },
   { title: "GL Code Mapping", url: "/settings/gl-codes", icon: FileText },
-  { title: "EOS Benefits", url: "/settings/eos-benefits", icon: Award },
+  
 ];
 
 const employeeNav = [

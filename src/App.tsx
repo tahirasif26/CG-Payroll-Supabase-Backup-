@@ -34,7 +34,7 @@ import AssetsPage from "@/pages/AssetsPage";
 import OrgChartPage from "@/pages/OrgChartPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import TimesheetsPage from "@/pages/TimesheetsPage";
-import CompensationSettingsPage from "@/pages/settings/CompensationSettingsPage";
+import PayrollSettingsPage from "@/pages/settings/PayrollSettingsPage";
 import CompanyStructurePage from "@/pages/settings/CompanyStructurePage";
 import ExpenseCategoriesPage from "@/pages/settings/ExpenseCategoriesPage";
 import UserManagementPage from "@/pages/settings/UserManagementPage";
@@ -83,9 +83,8 @@ const App = () => (
               <Route path="/payslips" element={<PayslipsPage />} />
               <Route path="/compensation" element={<CompensationPage />} />
               <Route path="/deductions" element={<DeductionsPage />} />
-              <Route path="/settings/deductions" element={<DeductionsPage />} />
-              <Route path="/tax" element={<TaxPage />} />
-              <Route path="/settings/tax" element={<TaxPage />} />
+              <Route path="/settings/deductions" element={<PayrollSettingsPage />} />
+              <Route path="/settings/tax" element={<PayrollSettingsPage />} />
               <Route path="/loans" element={<LoansPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/cost-allocation" element={<CostAllocationPage />} />
@@ -95,7 +94,8 @@ const App = () => (
               <Route path="/org-chart" element={<OrgChartPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/timesheets" element={<TimesheetsPage />} />
-              <Route path="/settings/compensation" element={<CompensationSettingsPage />} />
+              <Route path="/settings/payroll" element={<PayrollSettingsPage />} />
+              <Route path="/settings/compensation" element={<PayrollSettingsPage />} />
               <Route path="/settings/company-structure" element={<CompanyStructurePage />} />
               <Route path="/settings/job-titles" element={<CompanyStructurePage />} />
               <Route path="/settings/departments" element={<CompanyStructurePage />} />
@@ -107,7 +107,7 @@ const App = () => (
               <Route path="/settings/projects" element={<ProjectSettingsPage />} />
               <Route path="/settings/company" element={<CompanySettingsPage />} />
               <Route path="/settings/gl-codes" element={<GLCodeMappingPage />} />
-              <Route path="/settings/eos-benefits" element={<EOSBenefitsPage />} />
+              <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
               <Route path="/settings/leave-types" element={<LeaveTypesPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
               <Route path="/id-cards" element={<IDCardsPage />} />
