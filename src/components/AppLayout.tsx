@@ -12,12 +12,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <header className="h-14 border-b bg-card flex items-center justify-between px-4 sticky top-0 z-10">
             <div className="flex items-center gap-3">
               <SidebarTrigger />
-              <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search employees, payroll..."
-                  className="pl-9 w-72 h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-primary"
-                />
+              <div className="hidden md:block">
+                <span className="text-sm text-muted-foreground">Welcome,</span>
+                <span className="ml-1.5 text-sm font-semibold text-foreground">Aisha Rahman</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
