@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Users, DollarSign, Calendar, TrendingUp, Gift, CreditCard, Clock, PiggyBank, FileText, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { PageHeader } from "@/components/PageHeader";
@@ -8,13 +9,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRole } from "@/contexts/RoleContext";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell } from "recharts";
 
-const CHART_COLORS = [
-  "hsl(22, 97%, 41%)",
-  "hsl(0, 0%, 30%)",
-  "hsl(152, 69%, 40%)",
-  "hsl(38, 92%, 50%)",
-  "hsl(213, 94%, 55%)",
-];
+function getChartColors() {
+  const style = getComputedStyle(document.documentElement);
+  return [
+    `hsl(${style.getPropertyValue("--primary").trim()})`,
+    `hsl(${style.getPropertyValue("--chart-2").trim()})`,
+    `hsl(${style.getPropertyValue("--chart-3").trim()})`,
+    `hsl(${style.getPropertyValue("--chart-4").trim()})`,
+    `hsl(${style.getPropertyValue("--chart-5").trim()})`,
+  ];
+}
 
 function QuickStat({ label, value, change, positive }: { label: string; value: string; change?: string; positive?: boolean }) {
   return (
@@ -35,6 +39,7 @@ function QuickStat({ label, value, change, positive }: { label: string; value: s
 }
 
 function EmployerDashboard() {
+  const CHART_COLORS = useMemo(() => getChartColors(), []);
   const activeEmps = useActiveEmployees();
   const activeCount = activeEmps.filter((e) => e.status === "active").length;
   const lastPayroll = payrollRuns.find((p) => p.status === "completed");
