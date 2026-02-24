@@ -16,6 +16,7 @@ import { AuditProvider } from "@/contexts/AuditContext";
 import { BLEAccessProvider } from "@/contexts/BLEAccessContext";
 import { LeaveTypeProvider } from "@/contexts/LeaveTypeContext";
 import { ApprovalProvider } from "@/contexts/ApprovalContext";
+import { CardProvider } from "@/contexts/CardContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -75,6 +76,7 @@ const App = () => (
         <BLEAccessProvider>
         <LeaveTypeProvider>
         <ApprovalProvider>
+        <CardProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -125,6 +127,7 @@ const App = () => (
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </CardProvider>
         </ApprovalProvider>
         </LeaveTypeProvider>
         </BLEAccessProvider>
