@@ -8,9 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { getCompletedRuns, computeComparison, PayrollEmployeeDetail } from "@/data/payrollAnalyticsData";
-import { departments, divisions } from "@/data/settingsData";
-import { workLocationCountries } from "@/data/settingsData";
-import { ArrowUpRight, ArrowDownRight, Users, DollarSign, TrendingUp, Minus, UserPlus, UserMinus, RefreshCw, Filter } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Users, DollarSign, TrendingUp, Minus, UserPlus, UserMinus, RefreshCw } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, Legend,
@@ -37,12 +35,9 @@ export default function PayrollAnalyticsPage() {
   const [baseRunId, setBaseRunId] = useState(runs[0]?.id || "");
   const [compareRunId, setCompareRunId] = useState(runs[1]?.id || "");
 
-  // Composition filters
-  const [compDivision, setCompDivision] = useState("all");
-  const [compDepartment, setCompDepartment] = useState("all");
-  const [compLocation, setCompLocation] = useState("all");
-  const [compCurrency, setCompCurrency] = useState("all");
-  const [compCategory, setCompCategory] = useState("all");
+  // Composition controls
+  type GroupByOption = "department" | "division" | "workLocation" | "payCurrency" | "category";
+  const [compGroupBy, setCompGroupBy] = useState<GroupByOption>("department");
   const [compMetric, setCompMetric] = useState<"gross" | "count">("gross");
 
   const comparison = useMemo(
@@ -81,45 +76,35 @@ export default function PayrollAnalyticsPage() {
     }));
   }, [comparison]);
 
-  // Filtered employees for composition
-  const filteredCompareEmployees = useMemo(() => {
-    if (!comparison) return [];
-    return comparison.compareRun.employees.filter((e) => {
-      if (compDivision !== "all" && e.division !== compDivision) return false;
-      if (compDepartment !== "all" && e.department !== compDepartment) return false;
-      if (compLocation !== "all" && e.workLocationCountry !== compLocation) return false;
-      if (compCurrency !== "all" && e.payCurrency !== compCurrency) return false;
-      if (compCategory !== "all" && e.category !== compCategory) return false;
-      return true;
-    });
-  }, [comparison, compDivision, compDepartment, compLocation, compCurrency, compCategory]);
-
-  // Composition pie (grouped by department)
+  // Composition bar chart (grouped by selected dimension, sorted desc)
   const compositionData = useMemo(() => {
-    const deptTotals = new Map<string, number>();
-    for (const e of filteredCompareEmployees) {
-      const val = compMetric === "gross" ? e.grossPay : 1;
-      deptTotals.set(e.department, (deptTotals.get(e.department) || 0) + val);
-    }
-    const COLORS = ["hsl(233, 90%, 60%)", "hsl(213, 94%, 55%)", "hsl(152, 69%, 40%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(280, 70%, 55%)"];
-    return Array.from(deptTotals.entries()).map(([dept, total], i) => ({
-      name: dept,
-      value: total,
-      fill: COLORS[i % COLORS.length],
-    }));
-  }, [filteredCompareEmployees, compMetric]);
-
-  // Unique values for composition filters
-  const compFilterOptions = useMemo(() => {
-    if (!comparison) return { divisions: [], departments: [], locations: [], currencies: [] };
+    if (!comparison) return [];
     const emps = comparison.compareRun.employees;
-    return {
-      divisions: [...new Set(emps.map(e => e.division))].sort(),
-      departments: [...new Set(emps.map(e => e.department))].sort(),
-      locations: [...new Set(emps.map(e => e.workLocationCountry))].sort(),
-      currencies: [...new Set(emps.map(e => e.payCurrency))].sort(),
+    const groupKey = (e: PayrollEmployeeDetail): string => {
+      switch (compGroupBy) {
+        case "division": return e.division;
+        case "workLocation": return e.workLocationCountry;
+        case "payCurrency": return e.payCurrency;
+        case "category": return e.category === "direct" ? "Direct Employee" : "Contractor";
+        default: return e.department;
+      }
     };
-  }, [comparison]);
+    const totals = new Map<string, number>();
+    for (const e of emps) {
+      const key = groupKey(e);
+      totals.set(key, (totals.get(key) || 0) + (compMetric === "gross" ? e.grossPay : 1));
+    }
+    const grandTotal = Array.from(totals.values()).reduce((s, v) => s + v, 0);
+    const COLORS = ["hsl(233, 90%, 60%)", "hsl(213, 94%, 55%)", "hsl(152, 69%, 40%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(280, 70%, 55%)", "hsl(320, 65%, 50%)", "hsl(180, 60%, 45%)"];
+    return Array.from(totals.entries())
+      .map(([name, value], i) => ({
+        name,
+        value,
+        percent: grandTotal > 0 ? (value / grandTotal) * 100 : 0,
+        fill: COLORS[i % COLORS.length],
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [comparison, compGroupBy, compMetric]);
 
   if (runs.length < 2) {
     return (
@@ -336,69 +321,30 @@ export default function PayrollAnalyticsPage() {
             <TabsContent value="composition">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
+                  <CardTitle className="text-base">
                     Composition — {comparison.compareRun.runLabel}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Filters */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {/* Controls */}
+                  <div className="flex flex-wrap items-end gap-4">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Division</Label>
-                      <Select value={compDivision} onValueChange={setCompDivision}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <Label className="text-xs text-muted-foreground">Group By</Label>
+                      <Select value={compGroupBy} onValueChange={(v) => setCompGroupBy(v as GroupByOption)}>
+                        <SelectTrigger className="h-8 text-xs w-44"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Divisions</SelectItem>
-                          {compFilterOptions.divisions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Department</Label>
-                      <Select value={compDepartment} onValueChange={setCompDepartment}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Departments</SelectItem>
-                          {compFilterOptions.departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Work Location</Label>
-                      <Select value={compLocation} onValueChange={setCompLocation}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Locations</SelectItem>
-                          {compFilterOptions.locations.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Pay Currency</Label>
-                      <Select value={compCurrency} onValueChange={setCompCurrency}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Currencies</SelectItem>
-                          {compFilterOptions.currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Category</Label>
-                      <Select value={compCategory} onValueChange={setCompCategory}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="direct">Direct Employee</SelectItem>
-                          <SelectItem value="contractor">Contractor</SelectItem>
+                          <SelectItem value="department">Department</SelectItem>
+                          <SelectItem value="division">Division</SelectItem>
+                          <SelectItem value="workLocation">Work Location</SelectItem>
+                          <SelectItem value="payCurrency">Pay Currency</SelectItem>
+                          <SelectItem value="category">Employee Category</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Metric</Label>
                       <Select value={compMetric} onValueChange={(v) => setCompMetric(v as "gross" | "count")}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs w-36"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="gross">Gross Pay</SelectItem>
                           <SelectItem value="count">Headcount</SelectItem>
@@ -407,52 +353,54 @@ export default function PayrollAnalyticsPage() {
                     </div>
                   </div>
 
-                  {/* Active filter badges */}
-                  {(compDivision !== "all" || compDepartment !== "all" || compLocation !== "all" || compCurrency !== "all" || compCategory !== "all") && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {compDivision !== "all" && <Badge variant="secondary" className="text-xs">Division: {compDivision}</Badge>}
-                      {compDepartment !== "all" && <Badge variant="secondary" className="text-xs">Dept: {compDepartment}</Badge>}
-                      {compLocation !== "all" && <Badge variant="secondary" className="text-xs">Location: {compLocation}</Badge>}
-                      {compCurrency !== "all" && <Badge variant="secondary" className="text-xs">Currency: {compCurrency}</Badge>}
-                      {compCategory !== "all" && <Badge variant="secondary" className="text-xs">Category: {compCategory}</Badge>}
-                    </div>
-                  )}
-
-                  {/* Pie Chart */}
+                  {/* Bar Chart */}
                   {compositionData.length > 0 ? (
-                    <div className="h-80">
+                    <div className="h-96">
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={compositionData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={110}
-                            paddingAngle={3}
-                            dataKey="value"
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        <BarChart data={compositionData} layout="vertical" margin={{ left: 20, right: 80 }} barCategoryGap="20%">
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" horizontal={false} />
+                          <XAxis
+                            type="number"
+                            tick={{ fontSize: 11 }}
+                            className="fill-muted-foreground"
+                            tickFormatter={(v) => compMetric === "gross" ? `${(v / 1000).toFixed(0)}k` : String(v)}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="name"
+                            tick={{ fontSize: 12 }}
+                            className="fill-muted-foreground"
+                            width={120}
+                          />
+                          <Tooltip
+                            formatter={(value: number) => [compMetric === "gross" ? fmtCurrency(value) : `${value} employees`]}
+                            contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "0.5rem" }}
+                          />
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]}
+                            label={({ x, y, width: w, height: h, value, index }: any) => {
+                              const item = compositionData[index];
+                              const labelText = compMetric === "gross"
+                                ? `${fmtCurrency(value)} (${item.percent.toFixed(1)}%)`
+                                : `${value} (${item.percent.toFixed(1)}%)`;
+                              return (
+                                <text x={x + w + 6} y={y + h / 2} textAnchor="start" dominantBaseline="middle" className="fill-foreground text-xs">
+                                  {labelText}
+                                </text>
+                              );
+                            }}
                           >
                             {compositionData.map((entry, index) => (
                               <Cell key={index} fill={entry.fill} />
                             ))}
-                          </Pie>
-                          <Tooltip formatter={(value: number) => [compMetric === "gross" ? fmtCurrency(value) : `${value} employees`]} />
-                          <Legend />
-                        </PieChart>
+                          </Bar>
+                        </BarChart>
                       </ResponsiveContainer>
                     </div>
                   ) : (
                     <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
-                      No employees match the selected filters.
+                      No data available.
                     </div>
                   )}
-
-                  {/* Summary */}
-                  <div className="text-sm text-muted-foreground text-center">
-                    {filteredCompareEmployees.length} employee{filteredCompareEmployees.length !== 1 ? "s" : ""} 
-                    {compMetric === "gross" && ` — Total: ${fmtCurrency(filteredCompareEmployees.reduce((s, e) => s + e.grossPay, 0))}`}
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
