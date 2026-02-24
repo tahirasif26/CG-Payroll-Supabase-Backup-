@@ -104,7 +104,7 @@ function NavItems({ items }: { items: NavItem[] }) {
                   to={item.url}
                   end={item.url === "/"}
                   className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                  activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                  activeClassName="!bg-foreground !text-background font-semibold border-l-[3px] border-primary"
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   <span className="text-sm">{item.title}</span>
@@ -142,7 +142,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
                       to={item.url}
                       end={item.url === "/"}
                       className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                      activeClassName="!bg-foreground !text-background font-semibold border-l-[3px] border-primary"
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span className="text-sm">{item.title}</span>
