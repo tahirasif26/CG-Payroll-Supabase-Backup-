@@ -237,6 +237,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                 <SortHeader field="department">Department</SortHeader>
                 <SortHeader field="designation">Designation</SortHeader>
                 <TableHead className="font-semibold">Category</TableHead>
+                <TableHead className="font-semibold">Work Location</TableHead>
                 <SortHeader field="salary">Salary (SAR)</SortHeader>
                 <TableHead className="font-semibold">Status</TableHead>
               </TableRow>
@@ -263,11 +264,17 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                       {emp.category === "direct" ? "Direct" : "Contractor"}
                     </span>
                   </TableCell>
+                  <TableCell className="text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                      {emp.workLocationCountry}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-sm text-right font-semibold">{emp.salary.toLocaleString()}</TableCell>
                   <TableCell><StatusBadge status={emp.status} /></TableCell>
                 </TableRow>
               )) : (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No employees match your filters.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No employees match your filters.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
