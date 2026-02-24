@@ -19,7 +19,6 @@ interface CardSettings {
   senderName: string;
   birthdayMessage: string;
   anniversaryMessage: string;
-  companyName: string;
 }
 
 export const occasionLabels: Record<CardOccasion, string> = {
@@ -60,7 +59,6 @@ export function CardProvider({ children }: { children: React.ReactNode }) {
     senderName: "HR Team",
     birthdayMessage: "Wishing you a wonderful birthday filled with joy and success!",
     anniversaryMessage: "Thank you for your incredible dedication and contributions to our team!",
-    companyName: "CG Group",
   });
 
   const [enabledEmployees, setEnabledEmployees] = useState<Record<string, { birthday: boolean; anniversary: boolean }>>({});

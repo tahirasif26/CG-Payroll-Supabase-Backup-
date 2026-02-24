@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cardTemplates, templateMeta, type CardTemplateProps, type CardOccasion } from "./CardTemplates";
 import { useCards, occasionLabels, occasionEmojis } from "@/contexts/CardContext";
+import { useClient } from "@/contexts/ClientContext";
 import { toast } from "@/hooks/use-toast";
 import { Eye, Send, X } from "lucide-react";
 
@@ -12,16 +13,21 @@ const allOccasions: CardOccasion[] = ["birthday", "anniversary", "new_year", "ei
 
 export function CardGallery({ trigger }: { trigger?: React.ReactNode }) {
   const { settings } = useCards();
+  const { client } = useClient();
   const [open, setOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [filterOccasion, setFilterOccasion] = useState<"all" | CardOccasion>("all");
   const currentYear = new Date().getFullYear();
 
+  const companyName = client.companyName || "Your Company";
+  const companyLogo = client.companyLogo;
+
   const sampleProps: CardTemplateProps = {
     name: "Jane Doe",
     occasion: "birthday",
     yearsOfService: 5,
-    companyName: settings.companyName || "Your Company",
+    companyName,
+    companyLogo,
     year: currentYear,
     message: settings.birthdayMessage,
   };

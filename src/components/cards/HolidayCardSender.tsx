@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { useCards, occasionLabels, occasionEmojis } from "@/contexts/CardContext";
+import { useClient } from "@/contexts/ClientContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { cardTemplates, templateMeta, type CardOccasion } from "./CardTemplates";
 import { Send, Search, Mail, Users } from "lucide-react";
@@ -18,12 +19,17 @@ const holidayOccasions: CardOccasion[] = ["new_year", "eid", "christmas", "holid
 
 export function HolidayCardSender() {
   const { settings, addHistory } = useCards();
+  const { client } = useClient();
   const activeEmployees = useActiveEmployees();
+
+  const companyName = client.companyName || "Your Company";
+  const companyLogo = client.companyLogo;
 
   const [occasion, setOccasion] = useState<CardOccasion>("new_year");
   const [selectedDesign, setSelectedDesign] = useState<number | null>(null);
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
   const [customMessage, setCustomMessage] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
   const [search, setSearch] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
 
@@ -135,6 +141,17 @@ export function HolidayCardSender() {
                 />
               </div>
 
+              {sendEmail && (
+                <div className="space-y-1.5">
+                  <Label>Email Subject (optional)</Label>
+                  <Input
+                    value={emailSubject}
+                    onChange={e => setEmailSubject(e.target.value)}
+                    placeholder={`${occasionLabels[occasion]} Greetings from ${companyName}`}
+                  />
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="sendEmail"
@@ -163,13 +180,14 @@ export function HolidayCardSender() {
                       onClick={() => setSelectedDesign(d.idx)}
                     >
                       <div style={{ transform: "scale(0.65)", transformOrigin: "top center", marginBottom: -80 }}>
-                        <Template
-                          name="Preview"
-                          occasion={occasion}
-                          companyName={settings.companyName}
-                          year={currentYear}
-                          message={customMessage || undefined}
-                        />
+                      <Template
+                        name="Preview"
+                        occasion={occasion}
+                        companyName={companyName}
+                        companyLogo={companyLogo}
+                        year={currentYear}
+                        message={customMessage || undefined}
+                      />
                       </div>
                       <div className="p-2 text-center">
                         <span className="text-xs font-medium">{d.name}</span>
