@@ -109,7 +109,7 @@ function NavItems({ items }: { items: NavItem[] }) {
                   activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
-            <span className="text-sm">{item.title}</span>
+            <span className="text-[13px]">{item.title}</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -130,7 +130,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
         <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 rounded-md text-foreground/80 hover:bg-accent hover:text-foreground transition-colors group">
           <div className="flex items-center gap-3">
             <Icon className="h-[18px] w-[18px] shrink-0" />
-            <span className="text-sm font-semibold">{label}</span>
+            <span className="text-[13px] font-semibold">{label}</span>
           </div>
           <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
         </CollapsibleTrigger>
@@ -147,7 +147,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
                       activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                     >
                       <item.icon className="h-[18px] w-[18px] shrink-0" />
-                      <span className="text-sm">{item.title}</span>
+                      <span className="text-[13px]">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
