@@ -108,7 +108,7 @@ const App = () => (
               <Route path="/settings/company" element={<CompanyProfilePage />} />
               <Route path="/settings/gl-codes" element={<CompanyProfilePage />} />
               <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
-              <Route path="/settings/leave-types" element={<LeaveTypesPage />} />
+              <Route path="/settings/leave-types" element={<PayrollSettingsPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
               <Route path="/id-cards" element={<IDCardsPage />} />
               <Route path="/access-management" element={<AccessManagementPage />} />
