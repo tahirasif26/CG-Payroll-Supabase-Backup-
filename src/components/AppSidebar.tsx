@@ -76,9 +76,6 @@ const employerSettingsNav = [
   { title: "Projects", url: "/settings/projects", icon: FolderKanban },
   { title: "Expense Categories", url: "/settings/expense-categories", icon: Receipt },
   { title: "Approval Matrix", url: "/settings/approval-matrix", icon: Shield },
-  { title: "Currency", url: "/settings/currency", icon: Coins },
-  { title: "GL Code Mapping", url: "/settings/gl-codes", icon: FileText },
-  
 ];
 
 const employeeNav = [
