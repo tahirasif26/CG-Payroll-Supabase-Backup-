@@ -43,6 +43,7 @@ const payrollSubNav = [
   { title: "Payslips", url: "/payslips", icon: FileCheck },
   { title: "End of Service", url: "/separations", icon: UserMinus },
   { title: "Loans", url: "/loans", icon: PiggyBank },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ];
 
 const expenseTrackingNav = [

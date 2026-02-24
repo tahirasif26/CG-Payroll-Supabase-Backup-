@@ -46,6 +46,7 @@ import GLCodeMappingPage from "@/pages/settings/GLCodeMappingPage";
 import EOSBenefitsPage from "@/pages/settings/EOSBenefitsPage";
 import LeaveTypesPage from "@/pages/settings/LeaveTypesPage";
 import SeparationsPage from "@/pages/SeparationsPage";
+import PayrollAnalyticsPage from "@/pages/PayrollAnalyticsPage";
 import RatingCalibrationPage from "@/pages/performance/RatingCalibrationPage";
 import SelfAssessmentPage from "@/pages/performance/SelfAssessmentPage";
 import PeerAssessmentPage from "@/pages/performance/PeerAssessmentPage";
@@ -110,6 +111,7 @@ const App = () => (
               <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
               <Route path="/settings/leave-types" element={<PayrollSettingsPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
+              <Route path="/analytics" element={<PayrollAnalyticsPage />} />
               <Route path="/id-cards" element={<IDCardsPage />} />
               <Route path="/access-management" element={<AccessManagementPage />} />
               <Route path="/performance/ratings" element={<RatingsOverviewPage />} />
