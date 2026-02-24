@@ -41,7 +41,7 @@ import UserManagementPage from "@/pages/settings/UserManagementPage";
 import ApprovalMatrixPage from "@/pages/settings/ApprovalMatrixPage";
 import CurrencySettingsPage from "@/pages/settings/CurrencySettingsPage";
 import ProjectSettingsPage from "@/pages/settings/ProjectSettingsPage";
-import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
+import CompanyProfilePage from "@/pages/settings/CompanyProfilePage";
 import GLCodeMappingPage from "@/pages/settings/GLCodeMappingPage";
 import EOSBenefitsPage from "@/pages/settings/EOSBenefitsPage";
 import LeaveTypesPage from "@/pages/settings/LeaveTypesPage";
@@ -103,10 +103,10 @@ const App = () => (
               <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
               <Route path="/settings/users" element={<ApprovalMatrixPage />} />
               <Route path="/settings/approval-matrix" element={<ApprovalMatrixPage />} />
-              <Route path="/settings/currency" element={<CurrencySettingsPage />} />
+              <Route path="/settings/currency" element={<CompanyProfilePage />} />
               <Route path="/settings/projects" element={<ProjectSettingsPage />} />
-              <Route path="/settings/company" element={<CompanySettingsPage />} />
-              <Route path="/settings/gl-codes" element={<GLCodeMappingPage />} />
+              <Route path="/settings/company" element={<CompanyProfilePage />} />
+              <Route path="/settings/gl-codes" element={<CompanyProfilePage />} />
               <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
               <Route path="/settings/leave-types" element={<LeaveTypesPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
