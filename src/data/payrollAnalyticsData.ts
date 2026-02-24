@@ -1,4 +1,5 @@
 import { employees } from "./mockData";
+import { departments } from "./settingsData";
 
 export interface PayrollRunDetail {
   runId: string;
@@ -11,8 +12,11 @@ export interface PayrollEmployeeDetail {
   empId: string;
   name: string;
   department: string;
+  division: string;
   designation: string;
   category: "direct" | "contractor";
+  workLocationCountry: string;
+  payCurrency: string;
   baseSalary: number;
   housingAllowance: number;
   travelAllowance: number;
@@ -21,13 +25,14 @@ export interface PayrollEmployeeDetail {
   grossPay: number;
   totalDeductions: number;
   netPay: number;
-  isNew?: boolean;        // joined this period
-  isSeparated?: boolean;  // separated this period
+  isNew?: boolean;
+  isSeparated?: boolean;
   salaryChanged?: boolean;
   previousGross?: number;
 }
 
-// January 2025 - all 8 employees, same salary as base
+const getDivision = (dept: string) => departments.find(d => d.name === dept)?.division || "Other";
+
 const jan2025Employees: PayrollEmployeeDetail[] = employees.map((emp) => {
   const base = Math.round(emp.salary * 0.6);
   const housing = Math.round(emp.salary * 0.25);
@@ -41,8 +46,11 @@ const jan2025Employees: PayrollEmployeeDetail[] = employees.map((emp) => {
     empId: emp.empId,
     name: `${emp.firstName} ${emp.lastName}`,
     department: emp.department,
+    division: getDivision(emp.department),
     designation: emp.designation,
     category: emp.category,
+    workLocationCountry: emp.workLocationCountry,
+    payCurrency: emp.payCurrency || "SAR",
     baseSalary: base,
     housingAllowance: housing,
     travelAllowance: travel,
@@ -85,8 +93,11 @@ const feb2025Employees: PayrollEmployeeDetail[] = (employees
       empId: emp.empId,
       name: `${emp.firstName} ${emp.lastName}`,
       department: emp.department,
+      division: getDivision(emp.department),
       designation: emp.designation,
       category: emp.category,
+      workLocationCountry: emp.workLocationCountry,
+      payCurrency: emp.payCurrency || "SAR",
       baseSalary: base,
       housingAllowance: housing,
       travelAllowance: travel,
@@ -106,8 +117,11 @@ const feb2025Employees: PayrollEmployeeDetail[] = (employees
       empId: "CG-009",
       name: "Nadia Al-Rashid",
       department: "Advisory",
+      division: getDivision("Advisory"),
       designation: "Senior Associate",
       category: "direct" as const,
+      workLocationCountry: "Saudi Arabia",
+      payCurrency: "SAR",
       baseSalary: 13200,
       housingAllowance: 5500,
       travelAllowance: 1100,
