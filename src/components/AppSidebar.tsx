@@ -48,6 +48,7 @@ const payrollSubNav = [
 
 const expenseTrackingNav = [
   { title: "Expenses", url: "/expenses", icon: CreditCard },
+  { title: "Expense Analytics", url: "/expense-analytics", icon: BarChart3 },
 ];
 
 const employerFinanceNav = [
@@ -108,7 +109,7 @@ function NavItems({ items }: { items: NavItem[] }) {
                   activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
-                  <span className="text-[13px]">{item.title}</span>
+            <span className="text-sm">{item.title}</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -129,7 +130,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
         <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 rounded-md text-foreground/80 hover:bg-accent hover:text-foreground transition-colors group">
           <div className="flex items-center gap-3">
             <Icon className="h-[18px] w-[18px] shrink-0" />
-            <span className="text-[13px] font-semibold">{label}</span>
+            <span className="text-sm font-semibold">{label}</span>
           </div>
           <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
         </CollapsibleTrigger>
@@ -146,7 +147,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
                       activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                     >
                       <item.icon className="h-[18px] w-[18px] shrink-0" />
-                      <span className="text-[13px]">{item.title}</span>
+                      <span className="text-sm">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -167,11 +168,11 @@ export function AppSidebar() {
     <Sidebar className="border-r-0">
       <SidebarHeader className="px-5 py-6">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg gradient-ey flex items-center justify-center">
-            <span className="text-sm font-extrabold text-secondary">CG</span>
+          <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-sm font-extrabold text-primary-foreground">CG</span>
           </div>
           <div>
-            <h2 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">CG Payroll HCM</h2>
+            <h2 className="text-sm font-bold text-sidebar-foreground tracking-tight">CG Payroll HCM</h2>
             {client.companyName ? (
               <p className="text-[11px] text-sidebar-primary font-medium truncate max-w-[140px]">{client.companyName}</p>
             ) : (

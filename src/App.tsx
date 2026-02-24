@@ -27,6 +27,7 @@ import DeductionsPage from "@/pages/DeductionsPage";
 import TaxPage from "@/pages/TaxPage";
 import LoansPage from "@/pages/LoansPage";
 import ExpensesPage from "@/pages/ExpensesPage";
+import ExpenseAnalyticsPage from "@/pages/ExpenseAnalyticsPage";
 import CostAllocationPage from "@/pages/CostAllocationPage";
 import LeavePage from "@/pages/LeavePage";
 import BirthdaysPage from "@/pages/BirthdaysPage";
@@ -90,6 +91,7 @@ const App = () => (
               <Route path="/settings/tax" element={<PayrollSettingsPage />} />
               <Route path="/loans" element={<LoansPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/expense-analytics" element={<ExpenseAnalyticsPage />} />
               <Route path="/cost-allocation" element={<CostAllocationPage />} />
               <Route path="/leave" element={<LeavePage />} />
               <Route path="/birthdays" element={<BirthdaysPage />} />

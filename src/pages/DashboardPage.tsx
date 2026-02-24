@@ -1,4 +1,4 @@
-import { Users, DollarSign, Calendar, TrendingUp, Gift, CreditCard, Clock, PiggyBank, FileText } from "lucide-react";
+import { Users, DollarSign, Calendar, TrendingUp, Gift, CreditCard, Clock, PiggyBank, FileText, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -6,6 +6,33 @@ import { employees, payrollRuns, leaveRequests, expenses, loans, getUpcomingBirt
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRole } from "@/contexts/RoleContext";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell } from "recharts";
+
+const CHART_COLORS = [
+  "hsl(22, 97%, 41%)",
+  "hsl(0, 0%, 30%)",
+  "hsl(152, 69%, 40%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(213, 94%, 55%)",
+];
+
+function QuickStat({ label, value, change, positive }: { label: string; value: string; change?: string; positive?: boolean }) {
+  return (
+    <Card className="relative overflow-hidden">
+      <CardContent className="p-5">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+        <p className="text-2xl font-bold text-foreground mt-1">{value}</p>
+        {change && (
+          <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${positive ? "text-success" : "text-destructive"}`}>
+            {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            {change}
+          </div>
+        )}
+      </CardContent>
+      <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-[40px]" />
+    </Card>
+  );
+}
 
 function EmployerDashboard() {
   const activeEmps = useActiveEmployees();
@@ -13,36 +40,106 @@ function EmployerDashboard() {
   const lastPayroll = payrollRuns.find((p) => p.status === "completed");
   const pendingLeaves = leaveRequests.filter((l) => l.status === "pending").length;
   const pendingExpenses = expenses.filter((e) => e.status === "pending");
-  const birthdays = getUpcomingBirthdays(activeEmps).slice(0, 4);
+  const birthdays = getUpcomingBirthdays(activeEmps).slice(0, 5);
+
+  const departments = ["Assurance", "Tax", "Advisory", "Strategy", "Technology"];
+  const deptData = departments.map((dept) => ({
+    name: dept,
+    count: activeEmps.filter((e) => e.department === dept).length,
+    cost: activeEmps.filter((e) => e.department === dept).reduce((s, e) => s + e.salary, 0),
+  }));
+
+  const statusData = [
+    { name: "Active", value: activeEmps.filter(e => e.status === "active").length },
+    { name: "On Leave", value: activeEmps.filter(e => e.status === "on-leave").length },
+    { name: "Inactive", value: activeEmps.filter(e => e.status === "inactive").length },
+  ].filter(d => d.value > 0);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard" description="Welcome back! Here's your HR overview." />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Employees" value={activeEmps.length} subtitle={`${activeCount} active`} icon={Users} variant="primary" />
-        <StatCard title="Last Payroll" value={`SAR ${lastPayroll?.totalNet.toLocaleString()}`} subtitle={`${lastPayroll?.month} ${lastPayroll?.year}`} icon={DollarSign} variant="success" />
-        <StatCard title="Pending Leaves" value={pendingLeaves} subtitle="Awaiting approval" icon={Calendar} variant="warning" />
-        <StatCard title="Pending Expenses" value={pendingExpenses.length} subtitle={`SAR ${pendingExpenses.reduce((s, e) => s + e.amount, 0).toLocaleString()}`} icon={CreditCard} variant="info" />
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-1">Welcome back. Here's your HR overview at a glance.</p>
       </div>
 
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <QuickStat label="Total Employees" value={String(activeEmps.length)} change={`${activeCount} active`} positive />
+        <QuickStat label="Last Payroll" value={`SAR ${lastPayroll?.totalNet.toLocaleString() ?? "—"}`} change={`${lastPayroll?.month} ${lastPayroll?.year}`} positive />
+        <QuickStat label="Pending Leaves" value={String(pendingLeaves)} change="Awaiting approval" positive={pendingLeaves === 0} />
+        <QuickStat label="Pending Expenses" value={String(pendingExpenses.length)} change={`SAR ${pendingExpenses.reduce((s, e) => s + e.amount, 0).toLocaleString()}`} />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-foreground">Headcount by Department</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[240px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={deptData} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "hsl(0, 0%, 40%)" }} width={80} />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(0,0%,88%)" }}
+                    formatter={(value: number) => [value, "Employees"]}
+                  />
+                  <Bar dataKey="count" fill="hsl(22, 97%, 41%)" radius={[0, 4, 4, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-foreground">Employee Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[200px] flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={45}>
+                    {statusData.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(0,0%,88%)" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap gap-3 justify-center mt-1">
+              {statusData.map((d, i) => (
+                <div key={d.name} className="flex items-center gap-1.5 text-xs">
+                  <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                  <span className="text-muted-foreground">{d.name} ({d.value})</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-primary" /> Recent Payroll Runs
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {payrollRuns.map((run) => (
-                <div key={run.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div key={run.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div>
-                    <p className="text-sm font-medium">{run.month} {run.year}</p>
+                    <p className="text-sm font-medium text-foreground">{run.month} {run.year}</p>
                     <p className="text-xs text-muted-foreground">{run.employeeCount} employees</p>
                   </div>
                   <div className="text-right flex items-center gap-3">
-                    <p className="text-sm font-semibold">SAR {run.totalNet.toLocaleString()}</p>
+                    <p className="text-sm font-semibold text-foreground">SAR {run.totalNet.toLocaleString()}</p>
                     <StatusBadge status={run.status} />
                   </div>
                 </div>
@@ -53,23 +150,23 @@ function EmployerDashboard() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Gift className="h-4 w-4 text-primary" /> Upcoming Birthdays
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {birthdays.map((emp) => (
-                <div key={emp.id} className="flex items-center gap-3 py-2 border-b last:border-0">
-                  <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-primary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
+                <div key={emp.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-bold text-primary">{emp.firstName[0]}{emp.lastName[0]}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{emp.firstName} {emp.lastName}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{emp.firstName} {emp.lastName}</p>
                     <p className="text-xs text-muted-foreground">{emp.department}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-medium">{new Date(emp.dateOfBirth).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                    <p className="text-xs font-medium text-foreground">{new Date(emp.dateOfBirth).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
                     <p className="text-[10px] text-muted-foreground">
                       {emp.daysUntil === 0 ? "🎉 Today!" : `in ${emp.daysUntil} days`}
                     </p>
@@ -82,25 +179,25 @@ function EmployerDashboard() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary" /> Pending Approvals
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {leaveRequests.filter((l) => l.status === "pending").map((leave) => (
-                <div key={leave.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div key={leave.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div>
-                    <p className="text-sm font-medium">{leave.employeeName}</p>
+                    <p className="text-sm font-medium text-foreground">{leave.employeeName}</p>
                     <p className="text-xs text-muted-foreground capitalize">{leave.type} leave · {leave.days} days</p>
                   </div>
                   <StatusBadge status={leave.status} />
                 </div>
               ))}
               {pendingExpenses.map((exp) => (
-                <div key={exp.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div key={exp.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div>
-                    <p className="text-sm font-medium">{exp.employeeName}</p>
+                    <p className="text-sm font-medium text-foreground">{exp.employeeName}</p>
                     <p className="text-xs text-muted-foreground">{exp.category} · SAR {exp.amount.toLocaleString()}</p>
                   </div>
                   <StatusBadge status={exp.status} />
@@ -112,25 +209,21 @@ function EmployerDashboard() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" /> Department Summary
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" /> Department Payroll Cost
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {["Assurance", "Tax", "Advisory", "Strategy", "Technology"].map((dept) => {
-                const count = activeEmps.filter((e) => e.department === dept).length;
-                const total = activeEmps.filter((e) => e.department === dept).reduce((s, e) => s + e.salary, 0);
-                return (
-                  <div key={dept} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <div>
-                      <p className="text-sm font-medium">{dept}</p>
-                      <p className="text-xs text-muted-foreground">{count} employees</p>
-                    </div>
-                    <p className="text-sm font-semibold">SAR {total.toLocaleString()}</p>
+            <div className="space-y-2">
+              {deptData.map((dept) => (
+                <div key={dept.name} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{dept.name}</p>
+                    <p className="text-xs text-muted-foreground">{dept.count} employees</p>
                   </div>
-                );
-              })}
+                  <p className="text-sm font-semibold text-foreground">SAR {dept.cost.toLocaleString()}</p>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -153,30 +246,32 @@ function EmployeeDashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={`Welcome, ${emp.firstName}!`} description={`${emp.designation} · ${emp.department}`} />
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Welcome, {emp.firstName}!</h1>
+        <p className="text-sm text-muted-foreground mt-1">{emp.designation} · {emp.department}</p>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="My Salary" value={`SAR ${emp.salary.toLocaleString()}`} subtitle="Monthly gross" icon={DollarSign} variant="primary" />
-        <StatCard title="Leave Requests" value={myLeaves.length} subtitle={pendingLeaves > 0 ? `${pendingLeaves} pending` : "All processed"} icon={Calendar} variant="warning" />
-        <StatCard title="Active Loans" value={activeLoans.length} subtitle={totalLoanBalance > 0 ? `SAR ${totalLoanBalance.toLocaleString()} remaining` : "No active loans"} icon={PiggyBank} variant="info" />
-        <StatCard title="Expenses" value={myExpenses.length} subtitle={`${myExpenses.filter(e => e.status === "pending").length} pending`} icon={CreditCard} variant="success" />
+        <QuickStat label="My Salary" value={`SAR ${emp.salary.toLocaleString()}`} change="Monthly gross" positive />
+        <QuickStat label="Leave Requests" value={String(myLeaves.length)} change={pendingLeaves > 0 ? `${pendingLeaves} pending` : "All processed"} positive={pendingLeaves === 0} />
+        <QuickStat label="Active Loans" value={String(activeLoans.length)} change={totalLoanBalance > 0 ? `SAR ${totalLoanBalance.toLocaleString()} remaining` : "No active loans"} />
+        <QuickStat label="Expenses" value={String(myExpenses.length)} change={`${myExpenses.filter(e => e.status === "pending").length} pending`} positive />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* My Leave Requests */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary" /> My Leave Requests
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {myLeaves.length === 0 && <p className="text-sm text-muted-foreground">No leave requests.</p>}
               {myLeaves.map((leave) => (
-                <div key={leave.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div key={leave.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div>
-                    <p className="text-sm font-medium capitalize">{leave.type} Leave</p>
+                    <p className="text-sm font-medium text-foreground capitalize">{leave.type} Leave</p>
                     <p className="text-xs text-muted-foreground">{leave.startDate} — {leave.endDate} · {leave.days} days</p>
                   </div>
                   <StatusBadge status={leave.status} />
@@ -186,20 +281,19 @@ function EmployeeDashboard() {
           </CardContent>
         </Card>
 
-        {/* My Loans */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <PiggyBank className="h-4 w-4 text-primary" /> My Loans
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {myLoans.length === 0 && <p className="text-sm text-muted-foreground">No loans.</p>}
               {myLoans.map((loan) => (
-                <div key={loan.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div key={loan.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div>
-                    <p className="text-sm font-medium">SAR {loan.amount.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-foreground">SAR {loan.amount.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">
                       Balance: SAR {loan.remainingBalance.toLocaleString()} · SAR {loan.monthlyDeduction.toLocaleString()}/mo
                     </p>
@@ -211,20 +305,19 @@ function EmployeeDashboard() {
           </CardContent>
         </Card>
 
-        {/* My Expenses */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-primary" /> My Expense Claims
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {myExpenses.length === 0 && <p className="text-sm text-muted-foreground">No expense claims.</p>}
               {myExpenses.map((exp) => (
-                <div key={exp.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div key={exp.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div>
-                    <p className="text-sm font-medium">{exp.description}</p>
+                    <p className="text-sm font-medium text-foreground">{exp.description}</p>
                     <p className="text-xs text-muted-foreground">{exp.category} · SAR {exp.amount.toLocaleString()}</p>
                   </div>
                   <StatusBadge status={exp.status} />
@@ -234,19 +327,18 @@ function EmployeeDashboard() {
           </CardContent>
         </Card>
 
-        {/* My Compensation */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" /> My Compensation Breakdown
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {emp.compensation?.map((comp) => (
-                <div key={comp.name} className="flex items-center justify-between py-2 border-b last:border-0">
-                  <p className="text-sm font-medium">{comp.name}</p>
-                  <p className="text-sm font-semibold">SAR {comp.amount.toLocaleString()}</p>
+                <div key={comp.name} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <p className="text-sm font-medium text-foreground">{comp.name}</p>
+                  <p className="text-sm font-semibold text-foreground">SAR {comp.amount.toLocaleString()}</p>
                 </div>
               ))}
             </div>
