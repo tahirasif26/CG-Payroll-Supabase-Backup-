@@ -36,13 +36,13 @@
 
     --radius: 0.625rem;
 
-    --sidebar-background: 240 20% 12%;
-    --sidebar-foreground: 220 14% 80%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 20% 12%;
     --sidebar-primary: 233 90% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 15% 20%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 15% 22%;
+    --sidebar-accent: 230 60% 96%;
+    --sidebar-accent-foreground: 240 20% 12%;
+    --sidebar-border: 230 30% 91%;
     --sidebar-ring: 233 90% 60%;
 
     --success: 152 69% 40%;
