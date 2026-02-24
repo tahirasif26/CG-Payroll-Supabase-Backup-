@@ -35,9 +35,7 @@ import OrgChartPage from "@/pages/OrgChartPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import TimesheetsPage from "@/pages/TimesheetsPage";
 import CompensationSettingsPage from "@/pages/settings/CompensationSettingsPage";
-import JobTitlesPage from "@/pages/settings/JobTitlesPage";
-import DepartmentsPage from "@/pages/settings/DepartmentsPage";
-import DivisionsPage from "@/pages/settings/DivisionsPage";
+import CompanyStructurePage from "@/pages/settings/CompanyStructurePage";
 import ExpenseCategoriesPage from "@/pages/settings/ExpenseCategoriesPage";
 import UserManagementPage from "@/pages/settings/UserManagementPage";
 import ApprovalMatrixPage from "@/pages/settings/ApprovalMatrixPage";
@@ -98,9 +96,10 @@ const App = () => (
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/timesheets" element={<TimesheetsPage />} />
               <Route path="/settings/compensation" element={<CompensationSettingsPage />} />
-              <Route path="/settings/job-titles" element={<JobTitlesPage />} />
-              <Route path="/settings/departments" element={<DepartmentsPage />} />
-              <Route path="/settings/divisions" element={<DivisionsPage />} />
+              <Route path="/settings/company-structure" element={<CompanyStructurePage />} />
+              <Route path="/settings/job-titles" element={<CompanyStructurePage />} />
+              <Route path="/settings/departments" element={<CompanyStructurePage />} />
+              <Route path="/settings/divisions" element={<CompanyStructurePage />} />
               <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
               <Route path="/settings/users" element={<ApprovalMatrixPage />} />
               <Route path="/settings/approval-matrix" element={<ApprovalMatrixPage />} />
