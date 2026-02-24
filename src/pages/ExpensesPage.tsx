@@ -232,18 +232,14 @@ export default function ExpensesPage() {
     <div className="space-y-6">
       <PageHeader title="Expense Reimbursement" description="Submit, review, and track expense claims." />
 
-      <Tabs defaultValue="claims" className="space-y-4">
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="claims"><FileText className="h-4 w-4 mr-1.5" />Claims</TabsTrigger>
-            <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1.5" />Analytics</TabsTrigger>
-          </TabsList>
-          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" />New Claim
-          </Button>
-        </div>
+      <div className="flex items-center justify-between">
+        <div />
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" />New Claim
+        </Button>
+      </div>
 
-        <TabsContent value="claims" className="space-y-6">
+      <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -625,12 +621,7 @@ export default function ExpensesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-        </TabsContent>
-
-        <TabsContent value="analytics">
-          <ExpenseAnalytics />
-        </TabsContent>
-      </Tabs>
+      </div>
     </div>
   );
 }
