@@ -95,7 +95,9 @@ export default function PayrollAnalyticsPage() {
       totals.set(key, (totals.get(key) || 0) + (compMetric === "gross" ? e.grossPay : 1));
     }
     const grandTotal = Array.from(totals.values()).reduce((s, v) => s + v, 0);
-    const COLORS = ["hsl(233, 90%, 60%)", "hsl(213, 94%, 55%)", "hsl(152, 69%, 40%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(280, 70%, 55%)", "hsl(320, 65%, 50%)", "hsl(180, 60%, 45%)"];
+    const style = getComputedStyle(document.documentElement);
+    const primaryHue = style.getPropertyValue("--primary").trim();
+    const COLORS = [`hsl(${primaryHue})`, "hsl(213, 94%, 55%)", "hsl(152, 69%, 40%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(280, 70%, 55%)", "hsl(320, 65%, 50%)", "hsl(180, 60%, 45%)"];
     return Array.from(totals.entries())
       .map(([name, value], i) => ({
         name,
