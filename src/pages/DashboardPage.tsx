@@ -70,25 +70,60 @@ function EmployerDashboard() {
         <QuickStat label="Pending Expenses" value={String(pendingExpenses.length)} change={`SAR ${pendingExpenses.reduce((s, e) => s + e.amount, 0).toLocaleString()}`} />
       </div>
 
-      {/* Charts Row */}
+      {/* Charts & Lists Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-foreground">Headcount by Department</CardTitle>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" /> Latest Joiners
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={deptData} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
-                  <XAxis type="number" hide />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "hsl(0, 0%, 40%)" }} width={80} />
-                  <Tooltip
-                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(0,0%,88%)" }}
-                    formatter={(value: number) => [value, "Employees"]}
-                  />
-                  <Bar dataKey="count" fill="hsl(22, 97%, 41%)" radius={[0, 4, 4, 0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="space-y-2">
+              {[...activeEmps]
+                .sort((a, b) => new Date(b.joiningDate).getTime() - new Date(a.joiningDate).getTime())
+                .slice(0, 5)
+                .map((emp) => (
+                  <div key={emp.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-primary">{emp.firstName[0]}{emp.lastName[0]}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{emp.firstName} {emp.lastName}</p>
+                      <p className="text-xs text-muted-foreground">{emp.department}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{new Date(emp.joiningDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <ArrowDownRight className="h-4 w-4 text-destructive" /> Recent Leavers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {(() => {
+                const leavers = employees.filter(e => e.status === "separated" || e.status === "inactive")
+                  .sort((a, b) => new Date(b.joiningDate).getTime() - new Date(a.joiningDate).getTime())
+                  .slice(0, 5);
+                return leavers.length > 0 ? leavers.map((emp) => (
+                  <div key={emp.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-destructive">{emp.firstName[0]}{emp.lastName[0]}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{emp.firstName} {emp.lastName}</p>
+                      <p className="text-xs text-muted-foreground">{emp.department}</p>
+                    </div>
+                    <StatusBadge status={emp.status} />
+                  </div>
+                )) : <p className="text-sm text-muted-foreground">No recent leavers.</p>;
+              })()}
             </div>
           </CardContent>
         </Card>
