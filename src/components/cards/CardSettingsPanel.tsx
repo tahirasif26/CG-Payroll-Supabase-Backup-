@@ -1,4 +1,5 @@
 import { useCards, occasionLabels } from "@/contexts/CardContext";
+import { useClient } from "@/contexts/ClientContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -8,10 +9,11 @@ import { CardGallery } from "./CardGallery";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, Settings2 } from "lucide-react";
+import { Mail, Settings2, Building } from "lucide-react";
 
 export function CardSettingsPanel() {
   const { settings, updateSettings, history } = useCards();
+  const { client } = useClient();
 
   return (
     <div className="space-y-6">
@@ -39,8 +41,12 @@ export function CardSettingsPanel() {
               <Input value={settings.senderName} onChange={e => updateSettings({ senderName: e.target.value })} placeholder="HR Team" />
             </div>
             <div className="space-y-1.5">
-              <Label>Company Name (on cards)</Label>
-              <Input value={settings.companyName} onChange={e => updateSettings({ companyName: e.target.value })} placeholder="Company Name" />
+              <Label className="flex items-center gap-1.5"><Building className="h-3.5 w-3.5" />Company Name & Logo</Label>
+              <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                {client.companyLogo && <img src={client.companyLogo} alt="" className="h-6 w-auto max-w-[50px] object-contain" />}
+                <span className="text-sm">{client.companyName || "Not set"}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Update via Company Profile in Settings.</p>
             </div>
           </CardContent>
         </Card>

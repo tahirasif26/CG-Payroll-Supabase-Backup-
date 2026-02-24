@@ -2,6 +2,7 @@ import { createContext, useContext, useState, ReactNode } from "react";
 
 export interface ClientConfig {
   companyName: string;
+  companyLogo?: string; // base64 data URL
   yearEndDate?: string; // MM-DD format, e.g. "12-31"
   yearEndLocked?: boolean;
 }
