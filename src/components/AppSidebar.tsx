@@ -95,7 +95,7 @@ type NavItem = { title: string; url: string; icon: any };
 
 function NavItems({ items }: { items: NavItem[] }) {
   return (
-    <SidebarGroup>
+    <SidebarGroup className="py-0.5">
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
@@ -104,11 +104,11 @@ function NavItems({ items }: { items: NavItem[] }) {
                 <NavLink
                   to={item.url}
                   end={item.url === "/"}
-                  className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
                   activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                 >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span className="text-sm">{item.title}</span>
+                  <item.icon className="h-[18px] w-[18px] shrink-0" />
+                  <span className="text-[13px]">{item.title}</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -124,29 +124,29 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
   const isActive = items.some(item => location.pathname === item.url);
   
   return (
-    <SidebarGroup>
+    <SidebarGroup className="py-0.5">
       <Collapsible defaultOpen={isActive}>
-        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors group">
+        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 rounded-md text-foreground/80 hover:bg-accent hover:text-foreground transition-colors group">
           <div className="flex items-center gap-3">
-            <Icon className="h-4 w-4 shrink-0" />
-            <span className="text-sm font-medium">{label}</span>
+            <Icon className="h-[18px] w-[18px] shrink-0" />
+            <span className="text-[13px] font-semibold">{label}</span>
           </div>
           <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarGroupContent>
-            <SidebarMenu className="pl-4 mt-1">
+            <SidebarMenu className="pl-4 mt-0.5">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
                       activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                     >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span className="text-sm">{item.title}</span>
+                      <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      <span className="text-[13px]">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
