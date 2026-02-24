@@ -103,8 +103,8 @@ function NavItems({ items }: { items: NavItem[] }) {
                 <NavLink
                   to={item.url}
                   end={item.url === "/"}
-                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                  activeClassName="!bg-foreground !text-background font-semibold border-l-[3px] border-primary"
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   <span className="text-sm">{item.title}</span>
@@ -125,7 +125,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
   return (
     <SidebarGroup>
       <Collapsible defaultOpen={isActive}>
-        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors group">
+        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors group">
           <div className="flex items-center gap-3">
             <Icon className="h-4 w-4 shrink-0" />
             <span className="text-sm font-medium">{label}</span>
@@ -141,8 +141,8 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                      activeClassName="!bg-foreground !text-background font-semibold border-l-[3px] border-primary"
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span className="text-sm">{item.title}</span>
