@@ -1,18 +1,19 @@
 
 
-## Add Work Location Country to Employee Directory
+## Professional Page Transition
 
-A small UI update to show the **Work Location Country** column in the employee directory table.
+Add a subtle, clean fade-in animation to page content on route changes — no bouncy slides, just a refined opacity + slight scale transition.
 
 ### Changes
 
-**File: `src/pages/EmployeesPage.tsx`**
+1. **`src/components/AppLayout.tsx`**
+   - Import `useLocation` from react-router-dom
+   - Use `location.pathname` as a `key` on a wrapper div around `{children}` inside `<main>`
+   - Apply a `page-transition` CSS class to that wrapper
 
-In the `EmployeeDirectoryTable` component:
+2. **`src/index.css`**
+   - Add `@keyframes page-enter`: opacity 0→1 + scale 0.985→1 over 250ms ease-out
+   - Add `.page-transition` class applying the animation
 
-1. Add a new table header column "Work Location" between "Category" and "Salary" in the header row (line ~239).
-2. Add a matching table cell in each row displaying `emp.workLocationCountry` with a small map-pin icon for visual clarity (after the Category cell, around line ~265).
-3. Update the `colSpan` in the empty-state row from 8 to 9 to account for the new column.
-
-No new files, dependencies, or context changes needed.
+The scale is intentionally minimal (0.985) — just enough to feel alive without being distracting. Fast 250ms duration keeps it snappy and professional.
 
