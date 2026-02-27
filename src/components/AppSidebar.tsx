@@ -96,7 +96,7 @@ type NavItem = { title: string; url: string; icon: any };
 
 function NavItems({ items }: { items: NavItem[] }) {
   return (
-    <SidebarGroup className="py-1">
+    <SidebarGroup className="py-0.5">
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
@@ -105,11 +105,11 @@ function NavItems({ items }: { items: NavItem[] }) {
                 <NavLink
                   to={item.url}
                   end={item.url === "/"}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-                  activeClassName="!bg-sidebar-primary !text-sidebar-primary-foreground font-semibold"
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
+                  activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
-                  <span className="text-sm group-data-[collapsible=icon]:hidden">{item.title}</span>
+            <span className="text-[13px] group-data-[collapsible=icon]:hidden">{item.title}</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -125,12 +125,12 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
   const isActive = items.some(item => location.pathname === item.url);
   
   return (
-    <SidebarGroup className="py-1">
+    <SidebarGroup className="py-0.5">
       <Collapsible defaultOpen={isActive}>
-        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors group">
+        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 rounded-md text-foreground/80 hover:bg-accent hover:text-foreground transition-colors group">
           <div className="flex items-center gap-3">
             <Icon className="h-[18px] w-[18px] shrink-0" />
-            <span className="text-sm font-medium group-data-[collapsible=icon]:hidden">{label}</span>
+            <span className="text-[13px] font-semibold group-data-[collapsible=icon]:hidden">{label}</span>
           </div>
           <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180 group-data-[collapsible=icon]:hidden" />
         </CollapsibleTrigger>
@@ -143,11 +143,11 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-                      activeClassName="!bg-sidebar-primary !text-sidebar-primary-foreground font-semibold"
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
+                      activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
                     >
                       <item.icon className="h-[18px] w-[18px] shrink-0" />
-                      <span className="text-sm">{item.title}</span>
+                      <span className="text-[13px]">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -166,10 +166,10 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="px-4 py-5 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-4">
+      <SidebarHeader className="px-5 py-6 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-4">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-            <span className="text-sm font-extrabold text-sidebar-primary-foreground">CG</span>
+          <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
+            <span className="text-sm font-extrabold text-primary-foreground">CG</span>
           </div>
           <div className="group-data-[collapsible=icon]:hidden">
             <h2 className="text-sm font-bold text-sidebar-foreground tracking-tight">CG Payroll HCM</h2>
@@ -199,12 +199,12 @@ export function AppSidebar() {
           <NavItems items={employeeNav} />
         )}
       </SidebarContent>
-      <SidebarFooter className="p-4 group-data-[collapsible=icon]:p-2 border-t border-sidebar-border">
+      <SidebarFooter className="p-4 group-data-[collapsible=icon]:p-2">
         <div className="flex gap-2 group-data-[collapsible=icon]:flex-col">
           <Button
             variant={role === "employer" ? "default" : "outline"}
             size="sm"
-            className={`flex-1 text-xs ${role === "employer" ? "gradient-ey text-sidebar-primary-foreground" : "border-sidebar-border text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}
+            className={`flex-1 text-xs ${role === "employer" ? "gradient-ey text-primary-foreground" : ""}`}
             onClick={() => setRole("employer")}
           >
             <span className="group-data-[collapsible=icon]:hidden">Employer</span>
@@ -213,7 +213,7 @@ export function AppSidebar() {
           <Button
             variant={role === "employee" ? "default" : "outline"}
             size="sm"
-            className={`flex-1 text-xs ${role === "employee" ? "gradient-ey text-sidebar-primary-foreground" : "border-sidebar-border text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}
+            className={`flex-1 text-xs ${role === "employee" ? "gradient-ey text-primary-foreground" : ""}`}
             onClick={() => setRole("employee")}
           >
             <span className="group-data-[collapsible=icon]:hidden">Employee</span>
