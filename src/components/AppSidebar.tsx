@@ -127,7 +127,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
   return (
     <SidebarGroup className="py-0.5">
       <Collapsible defaultOpen={isActive}>
-        <CollapsibleTrigger className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md transition-colors group ${isActive ? 'bg-primary text-primary-foreground font-bold' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'}`}>
+        <CollapsibleTrigger className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md transition-all duration-300 ease-in-out group ${isActive ? 'bg-primary text-primary-foreground font-bold' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'}`}>
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 shrink-0" />
             <span className="text-[12px] font-bold tracking-tight">{label}</span>
@@ -166,9 +166,12 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0">
       <SidebarHeader className="px-4 py-5">
-        <div className="flex items-center">
-          <span className="text-[20px] font-extrabold tracking-tight text-sidebar-foreground">Connect</span>
-          <span className="text-[20px] font-extrabold tracking-tight text-primary">HR</span>
+        <div>
+          <div className="flex items-center">
+            <span className="text-[24px] font-extrabold tracking-tighter text-sidebar-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
+            <span className="text-[24px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
+          </div>
+          <p className="text-[9px] text-sidebar-foreground/45 tracking-wide font-medium -mt-1">powered by Consultify Global</p>
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2 overflow-y-auto scrollbar-hide">
