@@ -105,11 +105,11 @@ function NavItems({ items }: { items: NavItem[] }) {
                 <NavLink
                   to={item.url}
                   end={item.url === "/"}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
-                  activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground transition-colors font-medium"
+                  activeClassName="!bg-sidebar-foreground !text-sidebar-background font-bold rounded-md"
                 >
-                  <item.icon className="h-[18px] w-[18px] shrink-0" />
-            <span className="text-[13px] group-data-[collapsible=icon]:hidden">{item.title}</span>
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  <span className="text-[12px] tracking-tight">{item.title}</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -127,27 +127,27 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
   return (
     <SidebarGroup className="py-0.5">
       <Collapsible defaultOpen={isActive}>
-        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 rounded-md text-foreground/80 hover:bg-accent hover:text-foreground transition-colors group">
-          <div className="flex items-center gap-3">
-            <Icon className="h-[18px] w-[18px] shrink-0" />
-            <span className="text-[13px] font-semibold group-data-[collapsible=icon]:hidden">{label}</span>
+        <CollapsibleTrigger className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md transition-colors group ${isActive ? 'bg-sidebar-foreground text-sidebar-background font-bold' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'}`}>
+          <div className="flex items-center gap-2">
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="text-[12px] font-bold tracking-tight">{label}</span>
           </div>
-          <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180 group-data-[collapsible=icon]:hidden" />
+          <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
         </CollapsibleTrigger>
-        <CollapsibleContent className="group-data-[collapsible=icon]:hidden">
+        <CollapsibleContent>
           <SidebarGroupContent>
-            <SidebarMenu className="pl-4 mt-0.5">
+            <SidebarMenu className="pl-6 mt-0 space-y-0">
               {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                <SidebarMenuItem key={item.title} className="py-0">
+                  <SidebarMenuButton asChild className="h-auto min-h-0">
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="flex items-center gap-3 px-3 py-1.5 rounded-md text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
-                      activeClassName="bg-primary/10 text-primary font-semibold border-l-[3px] border-primary !rounded-l-none"
+                      className="flex items-center gap-2 px-2 py-[3px] rounded-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors font-medium"
+                      activeClassName="!text-primary font-bold"
                     >
-                      <item.icon className="h-[18px] w-[18px] shrink-0" />
-                      <span className="text-[13px]">{item.title}</span>
+                      <item.icon className="h-3.5 w-3.5 shrink-0" />
+                      <span className="text-[11px] tracking-tight">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -165,18 +165,18 @@ export function AppSidebar() {
   const { client } = useClient();
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="px-5 py-6 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-4">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <span className="text-sm font-extrabold text-primary-foreground">CG</span>
+    <Sidebar collapsible="offcanvas" className="border-r-0">
+      <SidebarHeader className="px-4 py-5">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+            <span className="text-xs font-extrabold text-primary-foreground">CG</span>
           </div>
-          <div className="group-data-[collapsible=icon]:hidden">
-            <h2 className="text-sm font-bold text-sidebar-foreground tracking-tight">CG Payroll HCM</h2>
+          <div>
+            <h2 className="text-[12px] font-bold text-sidebar-foreground tracking-tight">CG Payroll HCM</h2>
             {client.companyName ? (
-              <p className="text-[11px] text-sidebar-primary font-medium truncate max-w-[140px]">{client.companyName}</p>
+              <p className="text-[10px] text-sidebar-primary font-semibold truncate max-w-[120px]">{client.companyName}</p>
             ) : (
-              <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-wider">People Platform</p>
+              <p className="text-[9px] text-sidebar-foreground/50 uppercase tracking-wider font-semibold">People Platform</p>
             )}
           </div>
         </div>
@@ -199,25 +199,23 @@ export function AppSidebar() {
           <NavItems items={employeeNav} />
         )}
       </SidebarContent>
-      <SidebarFooter className="p-4 group-data-[collapsible=icon]:p-2">
-        <div className="flex gap-2 group-data-[collapsible=icon]:flex-col">
+      <SidebarFooter className="p-3">
+        <div className="flex gap-1.5">
           <Button
             variant={role === "employer" ? "default" : "outline"}
             size="sm"
-            className={`flex-1 text-xs ${role === "employer" ? "gradient-ey text-primary-foreground" : ""}`}
+            className={`flex-1 text-[11px] h-7 font-bold ${role === "employer" ? "gradient-ey text-primary-foreground" : ""}`}
             onClick={() => setRole("employer")}
           >
-            <span className="group-data-[collapsible=icon]:hidden">Employer</span>
-            <span className="hidden group-data-[collapsible=icon]:inline">E</span>
+            Employer
           </Button>
           <Button
             variant={role === "employee" ? "default" : "outline"}
             size="sm"
-            className={`flex-1 text-xs ${role === "employee" ? "gradient-ey text-primary-foreground" : ""}`}
+            className={`flex-1 text-[11px] h-7 font-bold ${role === "employee" ? "gradient-ey text-primary-foreground" : ""}`}
             onClick={() => setRole("employee")}
           >
-            <span className="group-data-[collapsible=icon]:hidden">Employee</span>
-            <span className="hidden group-data-[collapsible=icon]:inline">U</span>
+            Employee
           </Button>
         </div>
       </SidebarFooter>
