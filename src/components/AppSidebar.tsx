@@ -115,7 +115,7 @@ function ParentNavItem({ item }: { item: NavItem }) {
             <NavLink
               to={item.url}
               end={item.url === "/"}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors font-semibold ${isActive ? '' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'} ${wipeClass}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors font-semibold ${isActive ? 'hover:text-primary-foreground' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'} ${wipeClass}`}
               activeClassName=""
             >
               <item.icon className="h-4 w-4 shrink-0" />
@@ -162,7 +162,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarGroupContent>
-            <SidebarMenu className="pl-6 mt-0 space-y-0">
+            <SidebarMenu className="pl-6 mt-1 space-y-0">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title} className="py-0">
                   <SidebarMenuButton asChild className="h-auto min-h-0">
