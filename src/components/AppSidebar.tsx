@@ -95,29 +95,46 @@ const employeeNav = [
 
 type NavItem = { title: string; url: string; icon: any };
 
-function NavItems({ items }: { items: NavItem[] }) {
+function ParentNavItem({ item }: { item: NavItem }) {
+  const location = useLocation();
+  const isActive = location.pathname === item.url;
+  const prevActiveRef = React.useRef(isActive);
+  const wasActive = prevActiveRef.current;
+
+  React.useEffect(() => {
+    prevActiveRef.current = isActive;
+  }, [isActive]);
+
+  const wipeClass = isActive ? 'nav-wipe-in text-primary-foreground font-bold' : (wasActive ? 'nav-wipe-out' : '');
+
   return (
     <SidebarGroup className="py-0.5">
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
-                <NavLink
-                  to={item.url}
-                  end={item.url === "/"}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground transition-colors font-medium"
-                  activeClassName="!bg-sidebar-foreground !text-sidebar-background font-bold rounded-md"
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span className="text-[12px] tracking-tight">{item.title}</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild>
+            <NavLink
+              to={item.url}
+              end={item.url === "/"}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors font-bold ${isActive ? '' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'} ${wipeClass}`}
+              activeClassName=""
+            >
+              <item.icon className="h-4 w-4 shrink-0" />
+              <span className="text-[12px] tracking-tight">{item.title}</span>
+            </NavLink>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
     </SidebarGroup>
+  );
+}
+
+function NavItems({ items }: { items: NavItem[] }) {
+  return (
+    <>
+      {items.map((item) => (
+        <ParentNavItem key={item.title} item={item} />
+      ))}
+    </>
   );
 }
 
