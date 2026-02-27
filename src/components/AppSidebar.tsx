@@ -108,7 +108,7 @@ function ParentNavItem({ item }: { item: NavItem }) {
   const wipeClass = isActive ? 'nav-wipe-in text-primary-foreground font-bold' : (wasActive ? 'nav-wipe-out' : '');
 
   return (
-    <SidebarGroup className="py-0.5">
+    <SidebarGroup className="py-0">
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton asChild>
@@ -119,7 +119,7 @@ function ParentNavItem({ item }: { item: NavItem }) {
               activeClassName=""
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              <span className="text-[12px] tracking-tight">{item.title}</span>
+              <span className="text-[13px] tracking-tight" style={{ lineHeight: '1.5' }}>{item.title}</span>
             </NavLink>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -151,12 +151,12 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
   const wipeClass = isActive ? 'nav-wipe-in text-primary-foreground font-bold' : (wasActive ? 'nav-wipe-out' : '');
   
   return (
-    <SidebarGroup className="py-0.5">
+    <SidebarGroup className="py-0">
       <Collapsible defaultOpen={isActive}>
         <CollapsibleTrigger className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md group ${isActive ? '' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'} ${wipeClass}`}>
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 shrink-0" />
-            <span className="text-[12px] font-bold tracking-tight">{label}</span>
+            <span className="text-[13px] font-bold tracking-tight" style={{ lineHeight: '1.5' }}>{label}</span>
           </div>
           <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
         </CollapsibleTrigger>
@@ -172,7 +172,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
                       className="flex items-center gap-1 px-2 py-[2px] rounded-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors font-medium"
                       activeClassName="!text-primary font-bold"
                     >
-                      <span className="text-[11px] tracking-tight">{item.title}</span>
+                      <span className="text-[12px] tracking-tight" style={{ lineHeight: '1.4' }}>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
