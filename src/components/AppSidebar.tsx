@@ -166,18 +166,9 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0">
       <SidebarHeader className="px-4 py-5">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <span className="text-xs font-extrabold text-primary-foreground">CG</span>
-          </div>
-          <div>
-            <h2 className="text-[12px] font-bold text-sidebar-foreground tracking-tight">CG Payroll HCM</h2>
-            {client.companyName ? (
-              <p className="text-[10px] text-sidebar-primary font-semibold truncate max-w-[120px]">{client.companyName}</p>
-            ) : (
-              <p className="text-[9px] text-sidebar-foreground/50 uppercase tracking-wider font-semibold">People Platform</p>
-            )}
-          </div>
+        <div className="flex items-center">
+          <span className="text-[20px] font-extrabold tracking-tight text-sidebar-foreground">Connect</span>
+          <span className="text-[20px] font-extrabold tracking-tight text-primary">HR</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2 overflow-y-auto scrollbar-hide">
