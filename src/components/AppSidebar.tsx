@@ -105,7 +105,7 @@ function ParentNavItem({ item }: { item: NavItem }) {
     prevActiveRef.current = isActive;
   }, [isActive]);
 
-  const wipeClass = isActive ? 'nav-wipe-in text-primary-foreground font-bold' : (wasActive ? 'nav-wipe-out' : '');
+  const wipeClass = isActive ? 'nav-wipe-in text-primary-foreground font-semibold' : (wasActive ? 'nav-wipe-out' : '');
 
   return (
     <SidebarGroup className="py-0">
@@ -115,11 +115,11 @@ function ParentNavItem({ item }: { item: NavItem }) {
             <NavLink
               to={item.url}
               end={item.url === "/"}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors font-bold ${isActive ? '' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'} ${wipeClass}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors font-semibold ${isActive ? '' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'} ${wipeClass}`}
               activeClassName=""
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              <span className="text-[13px] tracking-tight" style={{ lineHeight: '1.5' }}>{item.title}</span>
+              <span className="text-[13.5px] tracking-tight" style={{ lineHeight: '1.5' }}>{item.title}</span>
             </NavLink>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -148,7 +148,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
     prevActiveRef.current = isActive;
   }, [isActive]);
 
-  const wipeClass = isActive ? 'nav-wipe-in text-primary-foreground font-bold' : (wasActive ? 'nav-wipe-out' : '');
+  const wipeClass = isActive ? 'nav-wipe-in text-primary-foreground font-semibold' : (wasActive ? 'nav-wipe-out' : '');
   
   return (
     <SidebarGroup className="py-0">
@@ -156,7 +156,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
         <CollapsibleTrigger className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md group ${isActive ? '' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'} ${wipeClass}`}>
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 shrink-0" />
-            <span className="text-[13px] font-bold tracking-tight" style={{ lineHeight: '1.5' }}>{label}</span>
+            <span className="text-[13.5px] font-semibold tracking-tight" style={{ lineHeight: '1.5' }}>{label}</span>
           </div>
           <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
         </CollapsibleTrigger>
