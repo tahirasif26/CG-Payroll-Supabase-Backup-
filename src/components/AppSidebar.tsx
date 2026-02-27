@@ -143,10 +143,9 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="flex items-center gap-2 px-2 py-[3px] rounded-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors font-medium"
+                      className="flex items-center gap-1 px-2 py-[2px] rounded-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors font-medium"
                       activeClassName="!text-primary font-bold"
                     >
-                      <item.icon className="h-3.5 w-3.5 shrink-0" />
                       <span className="text-[11px] tracking-tight">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -181,7 +180,7 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 overflow-y-auto scrollbar-hide">
         {role === "employer" ? (
           <>
             <NavItems items={employerNav} />
