@@ -10,6 +10,48 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  .nav-wipe-in {
+    position: relative;
+    z-index: 0;
+    background: transparent !important;
+  }
+  .nav-wipe-in::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: hsl(var(--primary));
+    z-index: -1;
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: wipe-in 0.35s ease-out forwards;
+  }
+  .nav-wipe-out {
+    position: relative;
+    z-index: 0;
+    background: transparent !important;
+  }
+  .nav-wipe-out::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: hsl(var(--primary));
+    z-index: -1;
+    transform: scaleX(0);
+    transform-origin: right;
+    animation: wipe-out 0.3s ease-in forwards;
+  }
+}
+
+@keyframes wipe-in {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes wipe-out {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
