@@ -1,3 +1,4 @@
+import React from "react";
 import {
   LayoutDashboard, Users, DollarSign, Calendar, Gift, FileText,
   Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
@@ -123,11 +124,19 @@ function NavItems({ items }: { items: NavItem[] }) {
 function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon: any; items: NavItem[] }) {
   const location = useLocation();
   const isActive = items.some(item => location.pathname === item.url);
+  const prevActiveRef = React.useRef(isActive);
+  const wasActive = prevActiveRef.current;
+  
+  React.useEffect(() => {
+    prevActiveRef.current = isActive;
+  }, [isActive]);
+
+  const wipeClass = isActive ? 'nav-wipe-in text-primary-foreground font-bold' : (wasActive ? 'nav-wipe-out' : '');
   
   return (
     <SidebarGroup className="py-0.5">
       <Collapsible defaultOpen={isActive}>
-        <CollapsibleTrigger className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md transition-all duration-300 ease-in-out group ${isActive ? 'bg-primary text-primary-foreground font-bold' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'}`}>
+        <CollapsibleTrigger className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md group ${isActive ? '' : 'text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground'} ${wipeClass}`}>
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 shrink-0" />
             <span className="text-[12px] font-bold tracking-tight">{label}</span>
