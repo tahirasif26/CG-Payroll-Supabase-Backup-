@@ -2,8 +2,10 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useLocation } from "react-router-dom";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -28,7 +30,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
           <main className="flex-1 p-6 overflow-auto">
-            {children}
+            <div key={location.pathname} className="page-transition">
+              {children}
+            </div>
           </main>
         </div>
       </div>
