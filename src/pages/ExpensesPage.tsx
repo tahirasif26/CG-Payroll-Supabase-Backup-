@@ -10,7 +10,8 @@ import { useRole } from "@/contexts/RoleContext";
 import { defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, CheckCircle2, XCircle, Pencil, Trash2, FileText, Paperclip, BarChart3 } from "lucide-react";
+import { Plus, Search, Eye, CheckCircle2, XCircle, Pencil, Trash2, FileText, Paperclip, BarChart3, ScanLine } from "lucide-react";
+import { AutoScanDialog } from "@/components/expenses/AutoScanDialog";
 import ExpenseAnalytics from "@/components/expenses/ExpenseAnalytics";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ export default function ExpensesPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedExp, setSelectedExp] = useState<ExpenseReimbursement | null>(null);
   const [search, setSearch] = useState("");
+  const [autoScanOpen, setAutoScanOpen] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -234,9 +236,14 @@ export default function ExpensesPage() {
 
       <div className="flex items-center justify-between">
         <div />
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />New Claim
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setAutoScanOpen(true)}>
+            <ScanLine className="h-4 w-4 mr-2" />Auto Scan
+          </Button>
+          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />New Claim
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -621,6 +628,36 @@ export default function ExpensesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AutoScanDialog
+        open={autoScanOpen}
+        onOpenChange={setAutoScanOpen}
+        employees={employees}
+        onSubmit={(data) => {
+          const emp = employees.find(e => e.id === data.employeeId);
+          if (!emp) return;
+          const newExp: ExpenseReimbursement = {
+            id: String(Date.now()),
+            employeeId: emp.id,
+            employeeName: `${emp.firstName} ${emp.lastName}`,
+            category: data.category,
+            amount: Number(data.amount),
+            expenseDate: data.date.toISOString().split("T")[0],
+            submissionDate: new Date().toISOString().split("T")[0],
+            status: "pending",
+            description: data.description,
+            attachments: [],
+            ...(data.currency && data.currency !== (emp.payCurrency || "SAR") ? {
+              currency: data.currency,
+              originalAmount: Number(data.amount),
+              exchangeRate: 1,
+            } : {}),
+          };
+          setExpenseList(prev => [...prev, newExp]);
+          expenses.push(newExp);
+          toast({ title: "Expense Claim Submitted", description: "Auto-scanned expense claim submitted for approval." });
+        }}
+      />
       </div>
     </div>
   );
