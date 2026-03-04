@@ -299,9 +299,9 @@ export function AutoScanDialog({ open, onOpenChange, employees, onSubmit }: Auto
                 </div>
                 <Select value={currency} onValueChange={setCurrency}>
                   <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
-                  <SelectContent>
+                <SelectContent>
                     {availableCurrencies.map(c => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                      <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
