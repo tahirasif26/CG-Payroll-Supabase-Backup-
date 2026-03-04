@@ -52,6 +52,7 @@ export default function ExpensesPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedExp, setSelectedExp] = useState<ExpenseReimbursement | null>(null);
   const [search, setSearch] = useState("");
+  const [autoScanOpen, setAutoScanOpen] = useState(false);
   const { toast } = useToast();
 
   // Form state
