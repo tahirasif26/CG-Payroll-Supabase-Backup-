@@ -628,6 +628,36 @@ export default function ExpensesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AutoScanDialog
+        open={autoScanOpen}
+        onOpenChange={setAutoScanOpen}
+        employees={employees}
+        onSubmit={(data) => {
+          const emp = employees.find(e => e.id === data.employeeId);
+          if (!emp) return;
+          const newExp: ExpenseReimbursement = {
+            id: String(Date.now()),
+            employeeId: emp.id,
+            employeeName: `${emp.firstName} ${emp.lastName}`,
+            category: data.category,
+            amount: Number(data.amount),
+            expenseDate: data.date.toISOString().split("T")[0],
+            submissionDate: new Date().toISOString().split("T")[0],
+            status: "pending",
+            description: data.description,
+            attachments: [],
+            ...(data.currency && data.currency !== (emp.payCurrency || "SAR") ? {
+              currency: data.currency,
+              originalAmount: Number(data.amount),
+              exchangeRate: 1,
+            } : {}),
+          };
+          setExpenseList(prev => [...prev, newExp]);
+          expenses.push(newExp);
+          toast({ title: "Expense Claim Submitted", description: "Auto-scanned expense claim submitted for approval." });
+        }}
+      />
       </div>
     </div>
   );
