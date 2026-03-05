@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { mileageEntries } from "@/data/mockData";
 import { MileageEntry } from "@/types/hcm";
@@ -10,16 +10,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from "@/hooks/use-toast";
 import { defaultMileageSettings } from "@/data/settingsData";
 import { MileageEntryDialog } from "@/components/expenses/MileageEntryDialog";
-import { GPSMileageTracker } from "@/components/expenses/GPSMileageTracker";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNavigate } from "react-router-dom";
 
 export default function MileagePage() {
   const [entries, setEntries] = useState<MileageEntry[]>(mileageEntries);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
-  const [gpsOpen, setGpsOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<MileageEntry | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Pick up GPS submissions via sessionStorage
+  useEffect(() => {
+    const raw = sessionStorage.getItem("newMileageEntry");
+    if (raw) {
+      sessionStorage.removeItem("newMileageEntry");
+      try {
+        const entry = JSON.parse(raw);
+        const newEntry: MileageEntry = { ...entry, id: String(Date.now()), status: "pending" };
+        setEntries(prev => [newEntry, ...prev]);
+      } catch {}
+    }
+  }, []);
 
   const handleSubmit = (entry: Omit<MileageEntry, "id" | "status">) => {
     if (defaultMileageSettings.dailyDistanceCap && entry.distance > defaultMileageSettings.dailyDistanceCap) {
@@ -101,19 +114,14 @@ export default function MileagePage() {
     <div className="space-y-6">
       <PageHeader title="Mileage Tracking" description="Record, review, and reimburse mileage expenses with GPS or manual entry.">
         <div className="flex gap-2">
-          <Button size="sm" variant={gpsOpen ? "secondary" : "default"} className="gap-2 font-semibold" onClick={() => setGpsOpen(!gpsOpen)}>
-            <Navigation className="h-4 w-4" />{gpsOpen ? "Close GPS" : "GPS Trip"}
+          <Button size="sm" className="gap-2 font-semibold" onClick={() => navigate("/mileage/gps")}>
+            <Navigation className="h-4 w-4" />GPS Trip
           </Button>
           <Button size="sm" variant="outline" className="gap-2 font-semibold" onClick={() => setManualDialogOpen(true)}>
             <Plus className="h-4 w-4" />Manual Entry
           </Button>
         </div>
       </PageHeader>
-
-      {/* Inline GPS Tracker */}
-      {gpsOpen && (
-        <GPSMileageTracker onSubmit={handleSubmit} onClose={() => setGpsOpen(false)} />
-      )}
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
