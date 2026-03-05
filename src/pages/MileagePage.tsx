@@ -114,8 +114,8 @@ export default function MileagePage() {
     <div className="space-y-6">
       <PageHeader title="Mileage Tracking" description="Record, review, and reimburse mileage expenses with GPS or manual entry.">
         <div className="flex gap-2">
-          <Button size="sm" variant={gpsOpen ? "secondary" : "default"} className="gap-2 font-semibold" onClick={() => setGpsOpen(!gpsOpen)}>
-            <Navigation className="h-4 w-4" />{gpsOpen ? "Close GPS" : "GPS Trip"}
+          <Button size="sm" className="gap-2 font-semibold" onClick={() => navigate("/mileage/gps")}>
+            <Navigation className="h-4 w-4" />GPS Trip
           </Button>
           <Button size="sm" variant="outline" className="gap-2 font-semibold" onClick={() => setManualDialogOpen(true)}>
             <Plus className="h-4 w-4" />Manual Entry
