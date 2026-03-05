@@ -4,18 +4,19 @@ import { mileageEntries } from "@/data/mockData";
 import { MileageEntry } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Eye, CheckCircle2, XCircle, Trash2 } from "lucide-react";
+import { Navigation, Plus, Eye, CheckCircle2, XCircle, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { defaultMileageSettings } from "@/data/settingsData";
 import { MileageEntryDialog } from "@/components/expenses/MileageEntryDialog";
+import { GPSMileageTracker } from "@/components/expenses/GPSMileageTracker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function MileagePage() {
   const [entries, setEntries] = useState<MileageEntry[]>(mileageEntries);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [gpsOpen, setGpsOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<MileageEntry | null>(null);
   const { toast } = useToast();
@@ -46,7 +47,6 @@ export default function MileagePage() {
 
   const pending = entries.filter(e => e.status === "pending");
   const processed = entries.filter(e => e.status !== "pending");
-
   const totalDistance = entries.reduce((s, e) => s + e.distance, 0);
   const totalAmount = entries.reduce((s, e) => s + e.amount, 0);
 
@@ -100,10 +100,20 @@ export default function MileagePage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Mileage Tracking" description="Record, review, and reimburse mileage expenses with GPS or manual entry.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />New Mileage
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant={gpsOpen ? "secondary" : "default"} className="gap-2 font-semibold" onClick={() => setGpsOpen(!gpsOpen)}>
+            <Navigation className="h-4 w-4" />{gpsOpen ? "Close GPS" : "GPS Trip"}
+          </Button>
+          <Button size="sm" variant="outline" className="gap-2 font-semibold" onClick={() => setManualDialogOpen(true)}>
+            <Plus className="h-4 w-4" />Manual Entry
+          </Button>
+        </div>
       </PageHeader>
+
+      {/* Inline GPS Tracker */}
+      {gpsOpen && (
+        <GPSMileageTracker onSubmit={handleSubmit} onClose={() => setGpsOpen(false)} />
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -155,8 +165,8 @@ export default function MileagePage() {
         </div>
       </div>
 
-      {/* Entry Dialog */}
-      <MileageEntryDialog open={dialogOpen} onOpenChange={setDialogOpen} onSubmit={handleSubmit} />
+      {/* Manual Entry Dialog */}
+      <MileageEntryDialog open={manualDialogOpen} onOpenChange={setManualDialogOpen} onSubmit={handleSubmit} />
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
