@@ -51,6 +51,7 @@ import LeaveTypesPage from "@/pages/settings/LeaveTypesPage";
 import SeparationsPage from "@/pages/SeparationsPage";
 import PayrollAnalyticsPage from "@/pages/PayrollAnalyticsPage";
 import MileagePage from "@/pages/MileagePage";
+import GPSTrackingPage from "@/pages/GPSTrackingPage";
 import RatingCalibrationPage from "@/pages/performance/RatingCalibrationPage";
 import SelfAssessmentPage from "@/pages/performance/SelfAssessmentPage";
 import PeerAssessmentPage from "@/pages/performance/PeerAssessmentPage";
