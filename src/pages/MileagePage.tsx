@@ -123,11 +123,6 @@ export default function MileagePage() {
         </div>
       </PageHeader>
 
-      {/* Inline GPS Tracker */}
-      {gpsOpen && (
-        <GPSMileageTracker onSubmit={handleSubmit} onClose={() => setGpsOpen(false)} />
-      )}
-
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card rounded-xl border p-4">
