@@ -16,10 +16,23 @@ import { useNavigate } from "react-router-dom";
 export default function MileagePage() {
   const [entries, setEntries] = useState<MileageEntry[]>(mileageEntries);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
-  const [gpsOpen, setGpsOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<MileageEntry | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Pick up GPS submissions via sessionStorage
+  useEffect(() => {
+    const raw = sessionStorage.getItem("newMileageEntry");
+    if (raw) {
+      sessionStorage.removeItem("newMileageEntry");
+      try {
+        const entry = JSON.parse(raw);
+        const newEntry: MileageEntry = { ...entry, id: String(Date.now()), status: "pending" };
+        setEntries(prev => [newEntry, ...prev]);
+      } catch {}
+    }
+  }, []);
 
   const handleSubmit = (entry: Omit<MileageEntry, "id" | "status">) => {
     if (defaultMileageSettings.dailyDistanceCap && entry.distance > defaultMileageSettings.dailyDistanceCap) {
