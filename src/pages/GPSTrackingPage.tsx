@@ -35,13 +35,15 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function MapAutoCenter({ position }: { position: [number, number] | null }) {
+// eslint-disable-next-line react/display-name
+const MapAutoCenter = ({ position }: { position: [number, number] | null }) => {
   const map = useMap();
   useEffect(() => {
     if (position) map.setView(position, map.getZoom());
   }, [position, map]);
   return null;
-}
+};
+MapAutoCenter.displayName = "MapAutoCenter";
 
 type Phase = "ready" | "tracking" | "review";
 
