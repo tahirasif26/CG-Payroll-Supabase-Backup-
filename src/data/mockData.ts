@@ -1,4 +1,4 @@
-import { Employee, PayrollRun, LeaveRequest, Loan, ExpenseReimbursement, Deduction, TaxConfig, CostAllocation, Asset, Project, Timesheet, SalaryComponent } from "@/types/hcm";
+import { Employee, PayrollRun, LeaveRequest, Loan, ExpenseReimbursement, Deduction, TaxConfig, CostAllocation, Asset, Project, Timesheet, SalaryComponent, MileageEntry } from "@/types/hcm";
 
 function makeCompensation(base: number): SalaryComponent[] {
   return [

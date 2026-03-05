@@ -165,3 +165,20 @@ export interface Timesheet {
   hours: number;
   status: "draft" | "submitted" | "approved";
 }
+
+export interface MileageEntry {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  distance: number;
+  rate: number;
+  amount: number;
+  vehicleType: "car" | "motorcycle" | "bicycle";
+  fromAddress?: string;
+  toAddress?: string;
+  routeCoordinates?: { lat: number; lng: number }[];
+  notes?: string;
+  status: "pending" | "approved" | "rejected";
+  attachments?: string[];
+}

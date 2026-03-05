@@ -148,3 +148,17 @@ export const defaultExchangeRates: ExchangeRate[] = [
   { id: "9", fromCurrency: "EGP", toReportingRate: 0.076, lastUpdated: "2025-02-01" },
   { id: "10", fromCurrency: "JOD", toReportingRate: 5.29, lastUpdated: "2025-02-01" },
 ];
+
+export interface MileageSettings {
+  defaultRate: number;
+  ratesByVehicle: { car: number; motorcycle: number; bicycle: number };
+  dailyDistanceCap: number;
+  requireGPS: boolean;
+}
+
+export const defaultMileageSettings: MileageSettings = {
+  defaultRate: 5,
+  ratesByVehicle: { car: 5, motorcycle: 3, bicycle: 1 },
+  dailyDistanceCap: 200,
+  requireGPS: false,
+};
