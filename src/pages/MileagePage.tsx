@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { mileageEntries } from "@/data/mockData";
 import { MileageEntry } from "@/types/hcm";
@@ -10,8 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from "@/hooks/use-toast";
 import { defaultMileageSettings } from "@/data/settingsData";
 import { MileageEntryDialog } from "@/components/expenses/MileageEntryDialog";
-import { GPSMileageTracker } from "@/components/expenses/GPSMileageTracker";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNavigate } from "react-router-dom";
 
 export default function MileagePage() {
   const [entries, setEntries] = useState<MileageEntry[]>(mileageEntries);
