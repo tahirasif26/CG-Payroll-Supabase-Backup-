@@ -50,6 +50,7 @@ import EOSBenefitsPage from "@/pages/settings/EOSBenefitsPage";
 import LeaveTypesPage from "@/pages/settings/LeaveTypesPage";
 import SeparationsPage from "@/pages/SeparationsPage";
 import PayrollAnalyticsPage from "@/pages/PayrollAnalyticsPage";
+import MileagePage from "@/pages/MileagePage";
 import RatingCalibrationPage from "@/pages/performance/RatingCalibrationPage";
 import SelfAssessmentPage from "@/pages/performance/SelfAssessmentPage";
 import PeerAssessmentPage from "@/pages/performance/PeerAssessmentPage";
@@ -95,6 +96,7 @@ const App = () => {
               <Route path="/loans" element={<LoansPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/expense-analytics" element={<ExpenseAnalyticsPage />} />
+              <Route path="/mileage" element={<MileagePage />} />
               <Route path="/cost-allocation" element={<CostAllocationPage />} />
               <Route path="/leave" element={<LeavePage />} />
               <Route path="/birthdays" element={<BirthdaysPage />} />

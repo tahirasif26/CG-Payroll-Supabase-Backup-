@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MileageSettings from "@/components/expenses/MileageSettings";
 
 export default function ExpenseCategoriesPage() {
   const [items, setItems] = useState<ExpenseCategory[]>(expenseCategories);
@@ -40,30 +42,42 @@ export default function ExpenseCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Expense Categories" description="Configure expense types and limits.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Category</Button>
-      </PageHeader>
-      <div className="bg-card rounded-xl border overflow-hidden">
-        <Table>
-          <TableHeader><TableRow className="bg-muted/50">
-            <TableHead className="font-semibold">Category</TableHead><TableHead className="font-semibold text-right">Max Amount</TableHead><TableHead className="font-semibold">Approval Required</TableHead><TableHead className="font-semibold">Status</TableHead><TableHead className="font-semibold text-right">Actions</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {items.map(item => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-right">{item.maxAmount ? `SAR ${item.maxAmount.toLocaleString()}` : "No limit"}</TableCell>
-                <TableCell>{item.requiresApproval ? "Yes" : "No"}</TableCell>
-                <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}><Pencil className="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <PageHeader title="Expense Settings" description="Configure expense categories and mileage rates." />
+      <Tabs defaultValue="categories">
+        <TabsList>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="mileage">Mileage Rates</TabsTrigger>
+        </TabsList>
+        <TabsContent value="categories" className="space-y-4 mt-4">
+          <div className="flex justify-end">
+            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Category</Button>
+          </div>
+          <div className="bg-card rounded-xl border overflow-hidden">
+            <Table>
+              <TableHeader><TableRow className="bg-muted/50">
+                <TableHead className="font-semibold">Category</TableHead><TableHead className="font-semibold text-right">Max Amount</TableHead><TableHead className="font-semibold">Approval Required</TableHead><TableHead className="font-semibold">Status</TableHead><TableHead className="font-semibold text-right">Actions</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {items.map(item => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="text-right">{item.maxAmount ? `SAR ${item.maxAmount.toLocaleString()}` : "No limit"}</TableCell>
+                    <TableCell>{item.requiresApproval ? "Yes" : "No"}</TableCell>
+                    <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+        <TabsContent value="mileage" className="mt-4">
+          <MileageSettings />
+        </TabsContent>
+      </Tabs>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editItem ? "Edit Category" : "Add Category"}</DialogTitle><DialogDescription>Configure expense category.</DialogDescription></DialogHeader>

@@ -1,7 +1,7 @@
 import React from "react";
 import {
   LayoutDashboard, Users, DollarSign, Calendar, Gift, FileText,
-  Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3,
+  Receipt, CreditCard, Settings, Briefcase, PiggyBank, BarChart3, Navigation,
   FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
   Layers, Tag, Shield, Coins, ChevronDown, Award, UserMinus,
   Target, ClipboardCheck, UserCheck, UsersRound, Star, ListChecks,
@@ -49,6 +49,7 @@ const payrollSubNav = [
 
 const expenseTrackingNav = [
   { title: "Expenses", url: "/expenses", icon: CreditCard },
+  { title: "Mileage", url: "/mileage", icon: Navigation },
   { title: "Expense Analytics", url: "/expense-analytics", icon: BarChart3 },
 ];
 

@@ -1,4 +1,4 @@
-import { Employee, PayrollRun, LeaveRequest, Loan, ExpenseReimbursement, Deduction, TaxConfig, CostAllocation, Asset, Project, Timesheet, SalaryComponent } from "@/types/hcm";
+import { Employee, PayrollRun, LeaveRequest, Loan, ExpenseReimbursement, Deduction, TaxConfig, CostAllocation, Asset, Project, Timesheet, SalaryComponent, MileageEntry } from "@/types/hcm";
 
 function makeCompensation(base: number): SalaryComponent[] {
   return [
@@ -123,6 +123,13 @@ export const timesheets: Timesheet[] = [
   { id: "8", employeeId: "8", projectId: "5", weekStarting: "2025-02-03", hours: 40, status: "approved" },
   { id: "9", employeeId: "1", projectId: "1", weekStarting: "2025-02-10", hours: 30, status: "submitted" },
   { id: "10", employeeId: "1", projectId: "3", weekStarting: "2025-02-10", hours: 10, status: "draft" },
+];
+
+export const mileageEntries: MileageEntry[] = [
+  { id: "m1", employeeId: "2", employeeName: "Omar Al-Faisal", date: "2025-02-10", distance: 45.2, rate: 5, amount: 226, vehicleType: "car", fromAddress: "Office - Riyadh", toAddress: "Client Site - King Fahd Rd", notes: "Client visit for audit review", status: "approved" },
+  { id: "m2", employeeId: "4", employeeName: "Khalid Nasser", date: "2025-02-12", distance: 28.7, rate: 5, amount: 143.5, vehicleType: "car", fromAddress: "Home", toAddress: "NEOM Office", notes: "Strategy meeting", status: "pending" },
+  { id: "m3", employeeId: "1", employeeName: "Aisha Rahman", date: "2025-02-14", distance: 12.3, rate: 3, amount: 36.9, vehicleType: "motorcycle", fromAddress: "Office", toAddress: "Training Center", notes: "CPD training session", status: "approved" },
+  { id: "m4", employeeId: "8", employeeName: "Tariq Zaman", date: "2025-02-18", distance: 67.8, rate: 5, amount: 339, vehicleType: "car", fromAddress: "Office - Bahrain", toAddress: "Client HQ", notes: "IT infrastructure review", status: "pending" },
 ];
 
 export function getUpcomingBirthdays(emps: Employee[]) {
