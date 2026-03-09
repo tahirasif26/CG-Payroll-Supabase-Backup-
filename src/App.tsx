@@ -85,6 +85,7 @@ const App = () => {
         <LeaveTypeProvider>
         <ApprovalProvider>
         <CardProvider>
+        <AdvanceProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
