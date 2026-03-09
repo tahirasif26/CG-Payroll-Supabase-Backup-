@@ -47,6 +47,37 @@ export default function ExpensesPage() {
   const { canUserApproveExpense } = useApprovals();
   const { currentEmployeeId } = useRole();
   const [expenseList, setExpenseList] = useState<ExpenseReimbursement[]>(expenses);
+
+  // Pick up GPS mileage entries from sessionStorage
+  useEffect(() => {
+    const raw = sessionStorage.getItem("newMileageEntry");
+    if (raw) {
+      sessionStorage.removeItem("newMileageEntry");
+      try {
+        const entry = JSON.parse(raw);
+        const newExp: ExpenseReimbursement = {
+          id: String(Date.now()),
+          employeeId: entry.employeeId,
+          employeeName: entry.employeeName,
+          category: "Mileage",
+          amount: entry.amount,
+          expenseDate: entry.date,
+          submissionDate: new Date().toISOString().split("T")[0],
+          status: "pending",
+          description: `GPS Trip: ${entry.distance} km × SAR ${entry.rate}/km${entry.notes ? ` — ${entry.notes}` : ""}`,
+          attachments: [],
+        };
+        setExpenseList(prev => {
+          // Avoid duplicates on hot-reload
+          if (prev.some(e => e.employeeId === newExp.employeeId && e.description === newExp.description && e.expenseDate === newExp.expenseDate)) return prev;
+          expenses.push(newExp);
+          return [...prev, newExp];
+        });
+        toast({ title: "Mileage Claim Added", description: `GPS trip added to your expense claims.` });
+      } catch { /* ignore parse errors */ }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [newOpen, setNewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
