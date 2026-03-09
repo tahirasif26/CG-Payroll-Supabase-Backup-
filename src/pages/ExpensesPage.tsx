@@ -153,6 +153,7 @@ export default function ExpensesPage() {
     const payCurrency = getEmployeePayCurrency(empId, employees);
     setFormCurrency(payCurrency);
     setFormExchangeRate("1");
+    setFormAdvanceId(""); // Reset advance when employee changes
   };
 
   // When expense currency changes, auto-fill exchange rate
