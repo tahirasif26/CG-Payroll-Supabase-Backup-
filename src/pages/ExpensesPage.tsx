@@ -262,11 +262,14 @@ export default function ExpensesPage() {
       <div className="flex items-center justify-between">
         <div />
         <div className="flex items-center gap-2">
+          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />New Claim
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setAutoScanOpen(true)}>
             <ScanLine className="h-4 w-4 mr-2" />Auto Scan
           </Button>
-          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" />New Claim
+          <Button size="sm" variant="outline" onClick={() => navigate("/expenses/gps")}>
+            <Navigation className="h-4 w-4 mr-2" />GPS Trip
           </Button>
         </div>
       </div>
