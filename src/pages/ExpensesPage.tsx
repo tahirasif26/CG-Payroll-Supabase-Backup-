@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -47,6 +47,37 @@ export default function ExpensesPage() {
   const { canUserApproveExpense } = useApprovals();
   const { currentEmployeeId } = useRole();
   const [expenseList, setExpenseList] = useState<ExpenseReimbursement[]>(expenses);
+
+  // Pick up GPS mileage entries from sessionStorage
+  useEffect(() => {
+    const raw = sessionStorage.getItem("newMileageEntry");
+    if (raw) {
+      sessionStorage.removeItem("newMileageEntry");
+      try {
+        const entry = JSON.parse(raw);
+        const newExp: ExpenseReimbursement = {
+          id: String(Date.now()),
+          employeeId: entry.employeeId,
+          employeeName: entry.employeeName,
+          category: "Mileage",
+          amount: entry.amount,
+          expenseDate: entry.date,
+          submissionDate: new Date().toISOString().split("T")[0],
+          status: "pending",
+          description: `GPS Trip: ${entry.distance} km × SAR ${entry.rate}/km${entry.notes ? ` — ${entry.notes}` : ""}`,
+          attachments: [],
+        };
+        setExpenseList(prev => {
+          // Avoid duplicates on hot-reload
+          if (prev.some(e => e.employeeId === newExp.employeeId && e.description === newExp.description && e.expenseDate === newExp.expenseDate)) return prev;
+          expenses.push(newExp);
+          return [...prev, newExp];
+        });
+        toast({ title: "Mileage Claim Added", description: `GPS trip added to your expense claims.` });
+      } catch { /* ignore parse errors */ }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [newOpen, setNewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -289,6 +320,7 @@ export default function ExpensesPage() {
             <SelectItem value="Client Entertainment">Client Entertainment</SelectItem>
             <SelectItem value="Training">Training</SelectItem>
             <SelectItem value="Equipment">Equipment</SelectItem>
+            <SelectItem value="Mileage">Mileage</SelectItem>
             <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
         </Select>
@@ -326,10 +358,14 @@ export default function ExpensesPage() {
                 const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
                 const isInCompletedRun = exp.payrollRunId ? completedRunIds.has(exp.payrollRunId) : false;
                 const isPending = exp.status === "pending";
+                const isMileage = exp.category === "Mileage";
                 return (
                   <TableRow key={exp.id}>
                     <TableCell className="font-medium">{exp.employeeName}</TableCell>
-                    <TableCell>{exp.category}</TableCell>
+                    <TableCell>
+                      {exp.category}
+                      {isMileage && <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">GPS</Badge>}
+                    </TableCell>
                     <TableCell className="text-muted-foreground max-w-[180px] truncate">{exp.description}</TableCell>
                     <TableCell className="text-right">{formatExpenseAmount(exp)}</TableCell>
                     <TableCell>{new Date(exp.expenseDate).toLocaleDateString()}</TableCell>
@@ -355,12 +391,16 @@ export default function ExpensesPage() {
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
                               <XCircle className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(exp)} title="Edit">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSelectedExp(exp); setDeleteOpen(true); }} title="Delete">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            {!isMileage && (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(exp)} title="Edit">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSelectedExp(exp); setDeleteOpen(true); }} title="Delete">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
                           </>
                         )}
                         {exp.status === "approved" && !isInCompletedRun && (
