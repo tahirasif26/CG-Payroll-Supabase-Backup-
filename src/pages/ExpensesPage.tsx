@@ -7,6 +7,7 @@ import { useEmployees } from "@/contexts/EmployeeContext";
 import { ExpenseReimbursement, Employee } from "@/types/hcm";
 import { useApprovals } from "@/contexts/ApprovalContext";
 import { useRole } from "@/contexts/RoleContext";
+import { useAdvances } from "@/contexts/AdvanceContext";
 import { defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
