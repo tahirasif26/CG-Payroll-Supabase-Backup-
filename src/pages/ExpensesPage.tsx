@@ -358,10 +358,14 @@ export default function ExpensesPage() {
                 const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
                 const isInCompletedRun = exp.payrollRunId ? completedRunIds.has(exp.payrollRunId) : false;
                 const isPending = exp.status === "pending";
+                const isMileage = exp.category === "Mileage";
                 return (
                   <TableRow key={exp.id}>
                     <TableCell className="font-medium">{exp.employeeName}</TableCell>
-                    <TableCell>{exp.category}</TableCell>
+                    <TableCell>
+                      {exp.category}
+                      {isMileage && <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">GPS</Badge>}
+                    </TableCell>
                     <TableCell className="text-muted-foreground max-w-[180px] truncate">{exp.description}</TableCell>
                     <TableCell className="text-right">{formatExpenseAmount(exp)}</TableCell>
                     <TableCell>{new Date(exp.expenseDate).toLocaleDateString()}</TableCell>
