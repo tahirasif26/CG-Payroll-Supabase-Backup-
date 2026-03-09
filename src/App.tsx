@@ -18,6 +18,7 @@ import { BLEAccessProvider } from "@/contexts/BLEAccessContext";
 import { LeaveTypeProvider } from "@/contexts/LeaveTypeContext";
 import { ApprovalProvider } from "@/contexts/ApprovalContext";
 import { CardProvider } from "@/contexts/CardContext";
+import { AdvanceProvider } from "@/contexts/AdvanceContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -84,6 +85,7 @@ const App = () => {
         <LeaveTypeProvider>
         <ApprovalProvider>
         <CardProvider>
+        <AdvanceProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -137,6 +139,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </AdvanceProvider>
         </CardProvider>
         </ApprovalProvider>
         </LeaveTypeProvider>

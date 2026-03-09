@@ -7,6 +7,7 @@ import { useEmployees } from "@/contexts/EmployeeContext";
 import { ExpenseReimbursement, Employee } from "@/types/hcm";
 import { useApprovals } from "@/contexts/ApprovalContext";
 import { useRole } from "@/contexts/RoleContext";
+import { useAdvances } from "@/contexts/AdvanceContext";
 import { defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ export default function ExpensesPage() {
   const { employees } = useEmployees();
   const { canUserApproveExpense } = useApprovals();
   const { currentEmployeeId } = useRole();
+  const { getEmployeeAdvances, useAdvanceAmount } = useAdvances();
   const [expenseList, setExpenseList] = useState<ExpenseReimbursement[]>(expenses);
 
   // Pick up GPS mileage entries from sessionStorage
@@ -130,6 +132,7 @@ export default function ExpensesPage() {
   const [formExpenseDate, setFormExpenseDate] = useState<Date | undefined>();
   const [formCurrency, setFormCurrency] = useState("");
   const [formExchangeRate, setFormExchangeRate] = useState("");
+  const [formAdvanceId, setFormAdvanceId] = useState("");
 
   const selectedEmployeePayCurrency = formEmployee ? getEmployeePayCurrency(formEmployee, employees) : "SAR";
 
@@ -141,6 +144,7 @@ export default function ExpensesPage() {
     setFormExpenseDate(undefined);
     setFormCurrency("");
     setFormExchangeRate("");
+    setFormAdvanceId("");
   };
 
   // When employee changes, default the expense currency to their pay currency
@@ -149,6 +153,7 @@ export default function ExpensesPage() {
     const payCurrency = getEmployeePayCurrency(empId, employees);
     setFormCurrency(payCurrency);
     setFormExchangeRate("1");
+    setFormAdvanceId(""); // Reset advance when employee changes
   };
 
   // When expense currency changes, auto-fill exchange rate
@@ -191,7 +196,12 @@ export default function ExpensesPage() {
             originalAmount: Number(formAmount),
           }
         : {}),
+      ...(formAdvanceId && formAdvanceId !== "none" ? { advanceId: formAdvanceId } : {}),
     };
+    // Update advance used amount
+    if (formAdvanceId && formAdvanceId !== "none") {
+      useAdvanceAmount(formAdvanceId, convertedAmount);
+    }
     setExpenseList((prev) => [...prev, newExp]);
     expenses.push(newExp);
     setNewOpen(false);
@@ -580,6 +590,24 @@ export default function ExpensesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {formEmployee && getEmployeeAdvances(formEmployee).length > 0 && (
+                <div className="space-y-2">
+                  <Label>Against Advance (Optional)</Label>
+                  <Select value={formAdvanceId} onValueChange={setFormAdvanceId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="None — No advance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None — No advance</SelectItem>
+                      {getEmployeeAdvances(formEmployee).map((adv) => (
+                        <SelectItem key={adv.id} value={adv.id}>
+                          {adv.advanceName} — Remaining: {adv.currency} {(adv.amount - adv.amountUsed).toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Category</Label>
                 <Select value={formCategory} onValueChange={setFormCategory} required>
@@ -717,6 +745,24 @@ export default function ExpensesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {formEmployee && getEmployeeAdvances(formEmployee).length > 0 && (
+                <div className="space-y-2">
+                  <Label>Against Advance (Optional)</Label>
+                  <Select value={formAdvanceId} onValueChange={setFormAdvanceId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="None — No advance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None — No advance</SelectItem>
+                      {getEmployeeAdvances(formEmployee).map((adv) => (
+                        <SelectItem key={adv.id} value={adv.id}>
+                          {adv.advanceName} — Remaining: {adv.currency} {(adv.amount - adv.amountUsed).toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Category</Label>
                 <Select value={formCategory} onValueChange={setFormCategory} required>
