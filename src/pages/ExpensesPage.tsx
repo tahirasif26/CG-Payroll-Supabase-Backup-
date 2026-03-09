@@ -144,6 +144,7 @@ export default function ExpensesPage() {
     setFormExpenseDate(undefined);
     setFormCurrency("");
     setFormExchangeRate("");
+    setFormAdvanceId("");
   };
 
   // When employee changes, default the expense currency to their pay currency
