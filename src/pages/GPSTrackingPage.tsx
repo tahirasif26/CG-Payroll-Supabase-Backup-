@@ -185,8 +185,8 @@ export default function GPSTrackingPage() {
             <Play className="h-6 w-6" />
             Start Trip
           </Button>
-          <Button variant="ghost" onClick={() => navigate("/mileage")} className="gap-2 text-muted-foreground">
-            <ArrowLeft className="h-4 w-4" /> Back to Mileage
+          <Button variant="ghost" onClick={() => navigate("/expenses")} className="gap-2 text-muted-foreground">
+            <ArrowLeft className="h-4 w-4" /> Back to Expenses
           </Button>
         </div>
       )}
