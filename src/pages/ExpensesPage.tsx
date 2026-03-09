@@ -590,6 +590,24 @@ export default function ExpensesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {formEmployee && getEmployeeAdvances(formEmployee).length > 0 && (
+                <div className="space-y-2">
+                  <Label>Against Advance (Optional)</Label>
+                  <Select value={formAdvanceId} onValueChange={setFormAdvanceId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="None — No advance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None — No advance</SelectItem>
+                      {getEmployeeAdvances(formEmployee).map((adv) => (
+                        <SelectItem key={adv.id} value={adv.id}>
+                          {adv.advanceName} — Remaining: {adv.currency} {(adv.amount - adv.amountUsed).toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Category</Label>
                 <Select value={formCategory} onValueChange={setFormCategory} required>
