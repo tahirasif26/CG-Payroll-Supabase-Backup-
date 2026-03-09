@@ -49,6 +49,7 @@ const payrollSubNav = [
 
 const expenseTrackingNav = [
   { title: "Expenses", url: "/expenses", icon: CreditCard },
+  { title: "Advances", url: "/advances", icon: Coins },
   { title: "Expense Analytics", url: "/expense-analytics", icon: BarChart3 },
 ];
 
