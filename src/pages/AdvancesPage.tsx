@@ -106,6 +106,70 @@ export default function AdvancesPage() {
         <Button onClick={() => setFormOpen(true)}><Plus className="h-4 w-4 mr-1" />Request Advance</Button>
       </PageHeader>
 
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+        {[
+          {
+            title: "Active Advances",
+            description: "Advances currently in use",
+            value: advances.filter(a => a.status === "approved").length,
+            icon: Activity,
+            color: "text-info",
+            bg: "bg-info/10 border-info/20",
+            iconBg: "bg-info text-info-foreground",
+          },
+          {
+            title: "Pending Requests",
+            description: "Awaiting approval",
+            value: advances.filter(a => a.status === "pending").length,
+            icon: Clock,
+            color: "text-warning",
+            bg: "bg-warning/10 border-warning/20",
+            iconBg: "bg-warning text-warning-foreground",
+          },
+          {
+            title: "Total Advances Issued",
+            description: "Total amount of advances",
+            value: `SAR ${advances.reduce((s, a) => s + a.amount, 0).toLocaleString()}`,
+            icon: Wallet,
+            color: "text-primary",
+            bg: "bg-primary/10 border-primary/20",
+            iconBg: "bg-primary text-primary-foreground",
+          },
+          {
+            title: "Used Amount",
+            description: "Expenses against advances",
+            value: `SAR ${advances.reduce((s, a) => s + a.amountUsed, 0).toLocaleString()}`,
+            icon: TrendingUp,
+            color: "text-success",
+            bg: "bg-success/10 border-success/20",
+            iconBg: "bg-success text-success-foreground",
+          },
+          {
+            title: "Remaining Balance",
+            description: "Outstanding advance balance",
+            value: `SAR ${advances.reduce((s, a) => s + (a.amount - a.amountUsed), 0).toLocaleString()}`,
+            icon: AlertTriangle,
+            color: "text-destructive",
+            bg: "bg-destructive/10 border-destructive/20",
+            iconBg: "bg-destructive text-destructive-foreground",
+          },
+        ].map((card) => (
+          <Card key={card.title} className={cn("border animate-fade-in", card.bg)}>
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className={cn("rounded-lg p-2 shrink-0", card.iconBg)}>
+                <card.icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{card.title}</p>
+                <p className={cn("text-xl font-bold tracking-tight mt-0.5", card.color)}>{card.value}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{card.description}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       {/* Filters */}
       <Card className="mb-4">
         <CardContent className="py-3 flex flex-wrap items-center gap-3">
