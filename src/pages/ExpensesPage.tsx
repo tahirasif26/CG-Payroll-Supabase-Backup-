@@ -71,6 +71,7 @@ export default function ExpensesPage() {
   const { employees } = useEmployees();
   const { canUserApproveExpense } = useApprovals();
   const { currentEmployeeId } = useRole();
+  const { getEmployeeAdvances, useAdvanceAmount } = useAdvances();
   const [expenseList, setExpenseList] = useState<ExpenseReimbursement[]>(expenses);
 
   // Pick up GPS mileage entries from sessionStorage
