@@ -6,7 +6,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Search, Eye, CheckCircle2, XCircle, Activity, Clock, Wallet, TrendingUp, AlertTriangle } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
