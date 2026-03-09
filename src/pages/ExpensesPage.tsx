@@ -10,8 +10,9 @@ import { useRole } from "@/contexts/RoleContext";
 import { defaultExchangeRates, availableCurrencies } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, CheckCircle2, XCircle, Pencil, Trash2, FileText, Paperclip, BarChart3, ScanLine } from "lucide-react";
+import { Plus, Search, Eye, CheckCircle2, XCircle, Pencil, Trash2, FileText, Paperclip, BarChart3, ScanLine, Navigation } from "lucide-react";
 import { AutoScanDialog } from "@/components/expenses/AutoScanDialog";
+import { useNavigate } from "react-router-dom";
 import ExpenseAnalytics from "@/components/expenses/ExpenseAnalytics";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,7 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState("");
   const [autoScanOpen, setAutoScanOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Form state
   const [formEmployee, setFormEmployee] = useState("");
@@ -261,11 +263,14 @@ export default function ExpensesPage() {
       <div className="flex items-center justify-between">
         <div />
         <div className="flex items-center gap-2">
+          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />New Claim
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setAutoScanOpen(true)}>
             <ScanLine className="h-4 w-4 mr-2" />Auto Scan
           </Button>
-          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => { resetForm(); setNewOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" />New Claim
+          <Button size="sm" variant="outline" onClick={() => navigate("/expenses/gps")}>
+            <Navigation className="h-4 w-4 mr-2" />GPS Trip
           </Button>
         </div>
       </div>

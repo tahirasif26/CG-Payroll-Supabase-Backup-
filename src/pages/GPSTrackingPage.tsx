@@ -162,7 +162,7 @@ export default function GPSTrackingPage() {
     // We store this in sessionStorage so MileagePage can pick it up
     sessionStorage.setItem("newMileageEntry", JSON.stringify(entry));
     toast({ title: "Mileage Claim Submitted", description: `${gpsDistance.toFixed(1)} km × SAR ${rate}/km = SAR ${amount.toFixed(2)}` });
-    navigate("/mileage");
+    navigate("/expenses");
   };
 
   const polyline = coordinates.map(c => [c.lat, c.lng] as [number, number]);
@@ -185,8 +185,8 @@ export default function GPSTrackingPage() {
             <Play className="h-6 w-6" />
             Start Trip
           </Button>
-          <Button variant="ghost" onClick={() => navigate("/mileage")} className="gap-2 text-muted-foreground">
-            <ArrowLeft className="h-4 w-4" /> Back to Mileage
+          <Button variant="ghost" onClick={() => navigate("/expenses")} className="gap-2 text-muted-foreground">
+            <ArrowLeft className="h-4 w-4" /> Back to Expenses
           </Button>
         </div>
       )}
@@ -285,7 +285,7 @@ export default function GPSTrackingPage() {
           </div>
 
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate("/mileage")} className="gap-2">
+            <Button variant="outline" onClick={() => navigate("/expenses")} className="gap-2">
               <ArrowLeft className="h-4 w-4" />Cancel
             </Button>
             <Button onClick={handleSubmit} className="flex-1 gap-2">
