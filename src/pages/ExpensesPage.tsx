@@ -209,10 +209,14 @@ export default function ExpensesPage() {
 
   const openEdit = (exp: ExpenseReimbursement) => {
     setSelectedExp(exp);
+    setFormEmployee(exp.employeeId);
     setFormCategory(exp.category);
-    setFormAmount(String(exp.amount));
+    setFormAmount(String(exp.originalAmount ?? exp.amount));
     setFormDescription(exp.description);
     setFormExpenseDate(new Date(exp.expenseDate));
+    const payCurrency = getEmployeePayCurrency(exp.employeeId, employees);
+    setFormCurrency(exp.currency || payCurrency);
+    setFormExchangeRate(exp.exchangeRate ? String(exp.exchangeRate) : "1");
     setEditOpen(true);
   };
 
