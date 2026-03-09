@@ -465,7 +465,7 @@ export default function ExpensesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Expense Dialog */}
+      {/* Edit Expense Dialog - reuses full create form */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -474,9 +474,20 @@ export default function ExpensesPage() {
           </DialogHeader>
           <form onSubmit={handleEdit} className="space-y-4">
             <div className="space-y-2">
+              <Label>Employee</Label>
+              <Select value={formEmployee} onValueChange={handleEmployeeChange} required>
+                <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                <SelectContent>
+                  {employees.filter(e => e.status === "active" || e.status === "on-leave").map(e => (
+                    <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Category</Label>
-              <Select value={formCategory} onValueChange={setFormCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={formCategory} onValueChange={setFormCategory} required>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Travel">Travel</SelectItem>
                   <SelectItem value="Client Entertainment">Client Entertainment</SelectItem>
@@ -500,13 +511,41 @@ export default function ExpensesPage() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
-              <Label>Amount</Label>
-              <Input type="number" value={formAmount} onChange={e => setFormAmount(e.target.value)} required min={1} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Expense Currency</Label>
+                <Select value={formCurrency} onValueChange={handleCurrencyChange}>
+                  <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
+                  <SelectContent>
+                    {availableCurrencies.map(c => (
+                      <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Amount ({formCurrency || "—"})</Label>
+                <Input type="number" placeholder="0.00" value={formAmount} onChange={e => setFormAmount(e.target.value)} required min={1} />
+              </div>
             </div>
+            {formCurrency && formCurrency !== selectedEmployeePayCurrency && (
+              <div className="space-y-2">
+                <Label>Exchange Rate (1 {formCurrency} = X {selectedEmployeePayCurrency})</Label>
+                <Input type="number" step="0.0001" value={formExchangeRate} onChange={e => setFormExchangeRate(e.target.value)} required min={0.0001} />
+                {formAmount && formExchangeRate && (
+                  <p className="text-xs text-muted-foreground">
+                    Converted: {selectedEmployeePayCurrency} {computeConvertedAmount().toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} required />
+              <Textarea placeholder="Describe the expense..." value={formDescription} onChange={e => setFormDescription(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Receipt / Attachment</Label>
+              <Input type="file" accept="image/*,.pdf" multiple />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
@@ -515,8 +554,6 @@ export default function ExpensesPage() {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Detail View Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
