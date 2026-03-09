@@ -294,7 +294,7 @@ export default function AdvancesPage() {
                       <Select value={formCurrency} onValueChange={setFormCurrency}>
                         <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {availableCurrencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          {availableCurrencies.map(c => <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
