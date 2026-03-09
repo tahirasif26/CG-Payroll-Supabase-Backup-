@@ -110,62 +110,46 @@ export default function AdvancesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
         {[
           {
-            title: "Active Advances",
-            description: "Advances currently in use",
-            value: advances.filter(a => a.status === "approved").length,
-            icon: Activity,
-            color: "text-info",
-            bg: "bg-info/10 border-info/20",
-            iconBg: "bg-info text-info-foreground",
+            label: "ACTIVE ADVANCES",
+            value: String(advances.filter(a => a.status === "approved").length),
+            change: "Currently in use",
+            positive: true,
           },
           {
-            title: "Pending Requests",
-            description: "Awaiting approval",
-            value: advances.filter(a => a.status === "pending").length,
-            icon: Clock,
-            color: "text-warning",
-            bg: "bg-warning/10 border-warning/20",
-            iconBg: "bg-warning text-warning-foreground",
+            label: "PENDING REQUESTS",
+            value: String(advances.filter(a => a.status === "pending").length),
+            change: "Awaiting approval",
+            positive: false,
           },
           {
-            title: "Total Advances Issued",
-            description: "Total amount of advances",
+            label: "TOTAL ADVANCES ISSUED",
             value: `SAR ${advances.reduce((s, a) => s + a.amount, 0).toLocaleString()}`,
-            icon: Wallet,
-            color: "text-primary",
-            bg: "bg-primary/10 border-primary/20",
-            iconBg: "bg-primary text-primary-foreground",
+            change: "Total amount",
+            positive: true,
           },
           {
-            title: "Used Amount",
-            description: "Expenses against advances",
+            label: "USED AMOUNT",
             value: `SAR ${advances.reduce((s, a) => s + a.amountUsed, 0).toLocaleString()}`,
-            icon: TrendingUp,
-            color: "text-success",
-            bg: "bg-success/10 border-success/20",
-            iconBg: "bg-success text-success-foreground",
+            change: "Against advances",
+            positive: true,
           },
           {
-            title: "Remaining Balance",
-            description: "Outstanding advance balance",
+            label: "REMAINING BALANCE",
             value: `SAR ${advances.reduce((s, a) => s + (a.amount - a.amountUsed), 0).toLocaleString()}`,
-            icon: AlertTriangle,
-            color: "text-destructive",
-            bg: "bg-destructive/10 border-destructive/20",
-            iconBg: "bg-destructive text-destructive-foreground",
+            change: "Outstanding",
+            positive: false,
           },
         ].map((card) => (
-          <Card key={card.title} className={cn("border animate-fade-in", card.bg)}>
-            <CardContent className="p-4 flex items-start gap-3">
-              <div className={cn("rounded-lg p-2 shrink-0", card.iconBg)}>
-                <card.icon className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{card.title}</p>
-                <p className={cn("text-xl font-bold tracking-tight mt-0.5", card.color)}>{card.value}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{card.description}</p>
+          <Card key={card.label} className="relative overflow-hidden animate-fade-in">
+            <CardContent className="p-5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{card.label}</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{card.value}</p>
+              <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${card.positive ? "text-success" : "text-destructive"}`}>
+                {card.positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {card.change}
               </div>
             </CardContent>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-[40px]" />
           </Card>
         ))}
       </div>
