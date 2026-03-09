@@ -320,6 +320,7 @@ export default function ExpensesPage() {
             <SelectItem value="Client Entertainment">Client Entertainment</SelectItem>
             <SelectItem value="Training">Training</SelectItem>
             <SelectItem value="Equipment">Equipment</SelectItem>
+            <SelectItem value="Mileage">Mileage</SelectItem>
             <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
         </Select>
