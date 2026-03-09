@@ -285,7 +285,7 @@ export default function GPSTrackingPage() {
           </div>
 
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate("/mileage")} className="gap-2">
+            <Button variant="outline" onClick={() => navigate("/expenses")} className="gap-2">
               <ArrowLeft className="h-4 w-4" />Cancel
             </Button>
             <Button onClick={handleSubmit} className="flex-1 gap-2">
