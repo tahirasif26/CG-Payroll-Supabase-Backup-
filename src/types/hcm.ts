@@ -92,6 +92,7 @@ export interface ExpenseReimbursement {
   currency?: string;
   exchangeRate?: number;
   originalAmount?: number;
+  advanceId?: string;
 }
 
 export interface OneOffAdjustment {
