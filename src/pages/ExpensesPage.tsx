@@ -133,12 +133,30 @@ export default function ExpensesPage() {
   const handleEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExp) return;
+    const emp = employees.find(em => em.id === formEmployee);
+    if (!emp || !formExpenseDate) return;
+    const payCurrency = getEmployeePayCurrency(emp.id, employees);
+    const expCurrency = formCurrency || payCurrency;
+    const isMultiCurrency = expCurrency !== payCurrency;
+    const convertedAmount = isMultiCurrency ? computeConvertedAmount() : Number(formAmount);
+
     const updated: ExpenseReimbursement = {
       ...selectedExp,
-      category: formCategory || selectedExp.category,
-      amount: formAmount ? Number(formAmount) : selectedExp.amount,
-      description: formDescription || selectedExp.description,
-      expenseDate: formExpenseDate ? formExpenseDate.toISOString().split("T")[0] : selectedExp.expenseDate,
+      employeeId: emp.id,
+      employeeName: `${emp.firstName} ${emp.lastName}`,
+      category: formCategory,
+      amount: convertedAmount,
+      description: formDescription,
+      expenseDate: formExpenseDate.toISOString().split("T")[0],
+      ...(isMultiCurrency ? {
+        currency: expCurrency,
+        exchangeRate: Number(formExchangeRate),
+        originalAmount: Number(formAmount),
+      } : {
+        currency: undefined,
+        exchangeRate: undefined,
+        originalAmount: undefined,
+      }),
     };
     setExpenseList(prev => prev.map(ex => ex.id === updated.id ? updated : ex));
     const idx = expenses.findIndex(ex => ex.id === updated.id);
@@ -191,25 +209,31 @@ export default function ExpensesPage() {
 
   const openEdit = (exp: ExpenseReimbursement) => {
     setSelectedExp(exp);
+    setFormEmployee(exp.employeeId);
     setFormCategory(exp.category);
-    setFormAmount(String(exp.amount));
+    setFormAmount(String(exp.originalAmount ?? exp.amount));
     setFormDescription(exp.description);
     setFormExpenseDate(new Date(exp.expenseDate));
+    const payCurrency = getEmployeePayCurrency(exp.employeeId, employees);
+    setFormCurrency(exp.currency || payCurrency);
+    setFormExchangeRate(exp.exchangeRate ? String(exp.exchangeRate) : "1");
     setEditOpen(true);
   };
 
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const filtered = expenseList.filter(exp => {
-    const q = search.toLowerCase();
-    const matchesSearch = !q || exp.employeeName.toLowerCase().includes(q) ||
-      exp.category.toLowerCase().includes(q) ||
-      exp.description.toLowerCase().includes(q);
-    const matchesCategory = filterCategory === "all" || exp.category === filterCategory;
-    const matchesStatus = filterStatus === "all" || exp.status === filterStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  const filtered = expenseList
+    .filter(exp => {
+      const q = search.toLowerCase();
+      const matchesSearch = !q || exp.employeeName.toLowerCase().includes(q) ||
+        exp.category.toLowerCase().includes(q) ||
+        exp.description.toLowerCase().includes(q);
+      const matchesCategory = filterCategory === "all" || exp.category === filterCategory;
+      const matchesStatus = filterStatus === "all" || exp.status === filterStatus;
+      return matchesSearch && matchesCategory && matchesStatus;
+    })
+    .sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
 
   const getPayrollLabel = (payrollRunId?: string) => {
     if (!payrollRunId) return null;
@@ -274,52 +298,58 @@ export default function ExpensesPage() {
         </Select>
       </div>
 
-      {/* Pending Claims */}
-      {(() => {
-        const pendingExpenses = filtered.filter(exp => exp.status === "pending");
-        const processedExpenses = filtered.filter(exp => exp.status !== "pending");
-
-        const renderRow = (exp: ExpenseReimbursement) => {
-          const payrollLabel = getPayrollLabel(exp.payrollRunId);
-          return (
-            <TableRow key={exp.id}>
-              <TableCell className="font-medium">{exp.employeeName}</TableCell>
-              <TableCell>{exp.category}</TableCell>
-              <TableCell className="text-muted-foreground max-w-[180px] truncate">{exp.description}</TableCell>
-              <TableCell className="text-right">{formatExpenseAmount(exp)}</TableCell>
-              <TableCell>{new Date(exp.expenseDate).toLocaleDateString()}</TableCell>
-              <TableCell>{new Date(exp.submissionDate).toLocaleDateString()}</TableCell>
-              <TableCell><StatusBadge status={exp.status} /></TableCell>
-              <TableCell>
-                {payrollLabel ? (
-                  <Badge variant="outline" className="text-xs">{payrollLabel}</Badge>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center justify-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedExp(exp); setDetailOpen(true); }} title="View Details">
-                    <Eye className="h-3.5 w-3.5" />
-                  </Button>
-                  {(() => {
-                    const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
-                    const isInCompletedRun = exp.payrollRunId ? completedRunIds.has(exp.payrollRunId) : false;
-                    const canEdit = !isInCompletedRun;
-                    return (
-                      <>
-                        {exp.status === "pending" && (
+      {/* Unified Claims List */}
+      <div className="bg-card rounded-xl border overflow-hidden">
+        <ScrollArea className="h-[500px]">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="font-semibold">Employee</TableHead>
+                <TableHead className="font-semibold">Category</TableHead>
+                <TableHead className="font-semibold">Description</TableHead>
+                <TableHead className="font-semibold text-right">Amount</TableHead>
+                <TableHead className="font-semibold">Expense Date</TableHead>
+                <TableHead className="font-semibold">Submitted</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold">Payroll Run</TableHead>
+                <TableHead className="font-semibold text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length > 0 ? filtered.map(exp => {
+                const payrollLabel = getPayrollLabel(exp.payrollRunId);
+                const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
+                const isInCompletedRun = exp.payrollRunId ? completedRunIds.has(exp.payrollRunId) : false;
+                const isPending = exp.status === "pending";
+                return (
+                  <TableRow key={exp.id}>
+                    <TableCell className="font-medium">{exp.employeeName}</TableCell>
+                    <TableCell>{exp.category}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-[180px] truncate">{exp.description}</TableCell>
+                    <TableCell className="text-right">{formatExpenseAmount(exp)}</TableCell>
+                    <TableCell>{new Date(exp.expenseDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(exp.submissionDate).toLocaleDateString()}</TableCell>
+                    <TableCell><StatusBadge status={exp.status} /></TableCell>
+                    <TableCell>
+                      {payrollLabel ? (
+                        <Badge variant="outline" className="text-xs">{payrollLabel}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedExp(exp); setDetailOpen(true); }} title="View Details">
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        {isPending && (
                           <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700" onClick={() => handleApprove(exp)} title="Approve">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-success hover:text-success" onClick={() => handleApprove(exp)} title="Approve">
                               <CheckCircle2 className="h-3.5 w-3.5" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
                               <XCircle className="h-3.5 w-3.5" />
                             </Button>
-                          </>
-                        )}
-                        {canEdit && (
-                          <>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(exp)} title="Edit">
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -328,72 +358,22 @@ export default function ExpensesPage() {
                             </Button>
                           </>
                         )}
-                        {exp.status === "approved" && canEdit && (
+                        {exp.status === "approved" && !isInCompletedRun && (
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
                             <XCircle className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </TableCell>
-            </TableRow>
-          );
-        };
-
-        const tableHeaders = (
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold">Employee</TableHead>
-              <TableHead className="font-semibold">Category</TableHead>
-              <TableHead className="font-semibold">Description</TableHead>
-              <TableHead className="font-semibold text-right">Amount</TableHead>
-              <TableHead className="font-semibold">Expense Date</TableHead>
-              <TableHead className="font-semibold">Submitted</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="font-semibold">Payroll Run</TableHead>
-              <TableHead className="font-semibold text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-        );
-
-        return (
-          <>
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Pending Approval ({pendingExpenses.length})</h3>
-              <div className="bg-card rounded-xl border overflow-hidden">
-                <ScrollArea className="h-[300px]">
-                  <Table>
-                    {tableHeaders}
-                    <TableBody>
-                      {pendingExpenses.length > 0 ? pendingExpenses.map(renderRow) : (
-                        <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No pending expense claims.</TableCell></TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Approved / Rejected ({processedExpenses.length})</h3>
-              <div className="bg-card rounded-xl border overflow-hidden">
-                <ScrollArea className="h-[300px]">
-                  <Table>
-                    {tableHeaders}
-                    <TableBody>
-                      {processedExpenses.length > 0 ? processedExpenses.map(renderRow) : (
-                        <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No approved or rejected expense claims.</TableCell></TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </div>
-            </div>
-          </>
-        );
-      })()}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              }) : (
+                <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No expense claims found.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </div>
 
       {/* New Expense Dialog */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
@@ -485,7 +465,7 @@ export default function ExpensesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Expense Dialog */}
+      {/* Edit Expense Dialog - reuses full create form */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -494,9 +474,20 @@ export default function ExpensesPage() {
           </DialogHeader>
           <form onSubmit={handleEdit} className="space-y-4">
             <div className="space-y-2">
+              <Label>Employee</Label>
+              <Select value={formEmployee} onValueChange={handleEmployeeChange} required>
+                <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                <SelectContent>
+                  {employees.filter(e => e.status === "active" || e.status === "on-leave").map(e => (
+                    <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Category</Label>
-              <Select value={formCategory} onValueChange={setFormCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={formCategory} onValueChange={setFormCategory} required>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Travel">Travel</SelectItem>
                   <SelectItem value="Client Entertainment">Client Entertainment</SelectItem>
@@ -520,13 +511,41 @@ export default function ExpensesPage() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
-              <Label>Amount</Label>
-              <Input type="number" value={formAmount} onChange={e => setFormAmount(e.target.value)} required min={1} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Expense Currency</Label>
+                <Select value={formCurrency} onValueChange={handleCurrencyChange}>
+                  <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
+                  <SelectContent>
+                    {availableCurrencies.map(c => (
+                      <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Amount ({formCurrency || "—"})</Label>
+                <Input type="number" placeholder="0.00" value={formAmount} onChange={e => setFormAmount(e.target.value)} required min={1} />
+              </div>
             </div>
+            {formCurrency && formCurrency !== selectedEmployeePayCurrency && (
+              <div className="space-y-2">
+                <Label>Exchange Rate (1 {formCurrency} = X {selectedEmployeePayCurrency})</Label>
+                <Input type="number" step="0.0001" value={formExchangeRate} onChange={e => setFormExchangeRate(e.target.value)} required min={0.0001} />
+                {formAmount && formExchangeRate && (
+                  <p className="text-xs text-muted-foreground">
+                    Converted: {selectedEmployeePayCurrency} {computeConvertedAmount().toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} required />
+              <Textarea placeholder="Describe the expense..." value={formDescription} onChange={e => setFormDescription(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Receipt / Attachment</Label>
+              <Input type="file" accept="image/*,.pdf" multiple />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
@@ -535,8 +554,6 @@ export default function ExpensesPage() {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Detail View Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
