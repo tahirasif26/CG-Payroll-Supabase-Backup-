@@ -55,6 +55,7 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState("");
   const [autoScanOpen, setAutoScanOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Form state
   const [formEmployee, setFormEmployee] = useState("");

@@ -162,7 +162,7 @@ export default function GPSTrackingPage() {
     // We store this in sessionStorage so MileagePage can pick it up
     sessionStorage.setItem("newMileageEntry", JSON.stringify(entry));
     toast({ title: "Mileage Claim Submitted", description: `${gpsDistance.toFixed(1)} km × SAR ${rate}/km = SAR ${amount.toFixed(2)}` });
-    navigate("/mileage");
+    navigate("/expenses");
   };
 
   const polyline = coordinates.map(c => [c.lat, c.lng] as [number, number]);
