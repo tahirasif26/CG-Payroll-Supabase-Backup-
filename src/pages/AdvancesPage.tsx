@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useRole } from "@/contexts/RoleContext";
+import { useAdvances } from "@/contexts/AdvanceContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Eye, CheckCircle2, XCircle } from "lucide-react";
@@ -23,61 +24,17 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { availableCurrencies } from "@/data/settingsData";
 
-interface Advance {
-  id: string;
-  advanceName: string;
-  employeeId: string;
-  employeeName: string;
-  purpose: string;
-  amount: number;
-  amountUsed: number;
-  currency: string;
-  status: "pending" | "approved" | "rejected";
-  requestDate: string;
-  expectedSpendDate: string;
-  settlementDueDate: string;
-  attachments: string[];
-  notes: string;
-}
-
-const initialAdvances: Advance[] = [
-  {
-    id: "ADV-001", advanceName: "Client Visit - Riyadh", employeeId: "1", employeeName: "Aisha Rahman",
-    purpose: "Travel and accommodation for client site visit", amount: 5000, amountUsed: 3200, currency: "SAR",
-    status: "approved", requestDate: "2025-03-01", expectedSpendDate: "2025-03-15", settlementDueDate: "2025-04-01",
-    attachments: [], notes: "3-day client engagement trip",
-  },
-  {
-    id: "ADV-002", advanceName: "Conference Registration", employeeId: "2", employeeName: "Omar Al-Faisal",
-    purpose: "Annual tax conference fees and travel", amount: 8000, amountUsed: 0, currency: "SAR",
-    status: "pending", requestDate: "2025-03-05", expectedSpendDate: "2025-04-10", settlementDueDate: "2025-04-30",
-    attachments: [], notes: "",
-  },
-  {
-    id: "ADV-003", advanceName: "Equipment Purchase", employeeId: "4", employeeName: "Khalid Nasser",
-    purpose: "Purchase portable projector for client presentations", amount: 3500, amountUsed: 3500, currency: "SAR",
-    status: "approved", requestDate: "2025-02-20", expectedSpendDate: "2025-02-28", settlementDueDate: "2025-03-15",
-    attachments: [], notes: "Fully utilized",
-  },
-  {
-    id: "ADV-004", advanceName: "Training Materials", employeeId: "3", employeeName: "Fatima Hassan",
-    purpose: "Books and online course subscriptions", amount: 1200, amountUsed: 0, currency: "SAR",
-    status: "rejected", requestDate: "2025-03-02", expectedSpendDate: "2025-03-20", settlementDueDate: "2025-04-15",
-    attachments: [], notes: "Rejected: covered by L&D budget",
-  },
-];
-
 export default function AdvancesPage() {
   const { employees } = useEmployees();
   const { role } = useRole();
   const { toast } = useToast();
+  const { advances, addAdvance, approveAdvance, rejectAdvance } = useAdvances();
 
-  const [advances, setAdvances] = useState<Advance[]>(initialAdvances);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
-  const [viewAdv, setViewAdv] = useState<Advance | null>(null);
+  const [viewAdv, setViewAdv] = useState<ReturnType<typeof useAdvances>["advances"][number] | null>(null);
 
   // Form state
   const [formAmount, setFormAmount] = useState("");
@@ -102,7 +59,7 @@ export default function AdvancesPage() {
       toast({ title: "Missing Fields", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
-    const newAdv: Advance = {
+    addAdvance({
       id: `ADV-${String(advances.length + 1).padStart(3, "0")}`,
       advanceName: formName,
       employeeId: currentEmployee.id,
@@ -117,21 +74,20 @@ export default function AdvancesPage() {
       settlementDueDate: format(formSettlementDate, "yyyy-MM-dd"),
       attachments: formAttachments,
       notes: formNotes,
-    };
-    setAdvances(prev => [newAdv, ...prev]);
+    });
     setFormOpen(false);
     resetForm();
     toast({ title: "Advance Requested", description: "Your advance request has been submitted for approval." });
   };
 
-  const handleApprove = (adv: Advance) => {
-    setAdvances(prev => prev.map(a => a.id === adv.id ? { ...a, status: "approved" as const } : a));
-    toast({ title: "Advance Approved", description: `${adv.advanceName} has been approved.` });
+  const handleApprove = (id: string, name: string) => {
+    approveAdvance(id);
+    toast({ title: "Advance Approved", description: `${name} has been approved.` });
   };
 
-  const handleReject = (adv: Advance) => {
-    setAdvances(prev => prev.map(a => a.id === adv.id ? { ...a, status: "rejected" as const } : a));
-    toast({ title: "Advance Rejected", description: `${adv.advanceName} has been rejected.` });
+  const handleReject = (id: string, name: string) => {
+    rejectAdvance(id);
+    toast({ title: "Advance Rejected", description: `${name} has been rejected.` });
   };
 
   const filtered = advances
@@ -207,10 +163,10 @@ export default function AdvancesPage() {
                         </Button>
                         {isPending && role === "employer" && (
                           <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-success" onClick={() => handleApprove(adv)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-success" onClick={() => handleApprove(adv.id, adv.advanceName)}>
                               <CheckCircle2 className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleReject(adv)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleReject(adv.id, adv.advanceName)}>
                               <XCircle className="h-3.5 w-3.5" />
                             </Button>
                           </>

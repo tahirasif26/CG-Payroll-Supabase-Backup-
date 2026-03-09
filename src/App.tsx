@@ -139,6 +139,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </AdvanceProvider>
         </CardProvider>
         </ApprovalProvider>
         </LeaveTypeProvider>
