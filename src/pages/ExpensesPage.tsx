@@ -223,15 +223,17 @@ export default function ExpensesPage() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const filtered = expenseList.filter(exp => {
-    const q = search.toLowerCase();
-    const matchesSearch = !q || exp.employeeName.toLowerCase().includes(q) ||
-      exp.category.toLowerCase().includes(q) ||
-      exp.description.toLowerCase().includes(q);
-    const matchesCategory = filterCategory === "all" || exp.category === filterCategory;
-    const matchesStatus = filterStatus === "all" || exp.status === filterStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  const filtered = expenseList
+    .filter(exp => {
+      const q = search.toLowerCase();
+      const matchesSearch = !q || exp.employeeName.toLowerCase().includes(q) ||
+        exp.category.toLowerCase().includes(q) ||
+        exp.description.toLowerCase().includes(q);
+      const matchesCategory = filterCategory === "all" || exp.category === filterCategory;
+      const matchesStatus = filterStatus === "all" || exp.status === filterStatus;
+      return matchesSearch && matchesCategory && matchesStatus;
+    })
+    .sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
 
   const getPayrollLabel = (payrollRunId?: string) => {
     if (!payrollRunId) return null;
