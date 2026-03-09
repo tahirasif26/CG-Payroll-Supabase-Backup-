@@ -132,6 +132,7 @@ export default function ExpensesPage() {
   const [formExpenseDate, setFormExpenseDate] = useState<Date | undefined>();
   const [formCurrency, setFormCurrency] = useState("");
   const [formExchangeRate, setFormExchangeRate] = useState("");
+  const [formAdvanceId, setFormAdvanceId] = useState("");
 
   const selectedEmployeePayCurrency = formEmployee ? getEmployeePayCurrency(formEmployee, employees) : "SAR";
 
