@@ -298,52 +298,58 @@ export default function ExpensesPage() {
         </Select>
       </div>
 
-      {/* Pending Claims */}
-      {(() => {
-        const pendingExpenses = filtered.filter(exp => exp.status === "pending");
-        const processedExpenses = filtered.filter(exp => exp.status !== "pending");
-
-        const renderRow = (exp: ExpenseReimbursement) => {
-          const payrollLabel = getPayrollLabel(exp.payrollRunId);
-          return (
-            <TableRow key={exp.id}>
-              <TableCell className="font-medium">{exp.employeeName}</TableCell>
-              <TableCell>{exp.category}</TableCell>
-              <TableCell className="text-muted-foreground max-w-[180px] truncate">{exp.description}</TableCell>
-              <TableCell className="text-right">{formatExpenseAmount(exp)}</TableCell>
-              <TableCell>{new Date(exp.expenseDate).toLocaleDateString()}</TableCell>
-              <TableCell>{new Date(exp.submissionDate).toLocaleDateString()}</TableCell>
-              <TableCell><StatusBadge status={exp.status} /></TableCell>
-              <TableCell>
-                {payrollLabel ? (
-                  <Badge variant="outline" className="text-xs">{payrollLabel}</Badge>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center justify-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedExp(exp); setDetailOpen(true); }} title="View Details">
-                    <Eye className="h-3.5 w-3.5" />
-                  </Button>
-                  {(() => {
-                    const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
-                    const isInCompletedRun = exp.payrollRunId ? completedRunIds.has(exp.payrollRunId) : false;
-                    const canEdit = !isInCompletedRun;
-                    return (
-                      <>
-                        {exp.status === "pending" && (
+      {/* Unified Claims List */}
+      <div className="bg-card rounded-xl border overflow-hidden">
+        <ScrollArea className="h-[500px]">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="font-semibold">Employee</TableHead>
+                <TableHead className="font-semibold">Category</TableHead>
+                <TableHead className="font-semibold">Description</TableHead>
+                <TableHead className="font-semibold text-right">Amount</TableHead>
+                <TableHead className="font-semibold">Expense Date</TableHead>
+                <TableHead className="font-semibold">Submitted</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold">Payroll Run</TableHead>
+                <TableHead className="font-semibold text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length > 0 ? filtered.map(exp => {
+                const payrollLabel = getPayrollLabel(exp.payrollRunId);
+                const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
+                const isInCompletedRun = exp.payrollRunId ? completedRunIds.has(exp.payrollRunId) : false;
+                const isPending = exp.status === "pending";
+                return (
+                  <TableRow key={exp.id}>
+                    <TableCell className="font-medium">{exp.employeeName}</TableCell>
+                    <TableCell>{exp.category}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-[180px] truncate">{exp.description}</TableCell>
+                    <TableCell className="text-right">{formatExpenseAmount(exp)}</TableCell>
+                    <TableCell>{new Date(exp.expenseDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(exp.submissionDate).toLocaleDateString()}</TableCell>
+                    <TableCell><StatusBadge status={exp.status} /></TableCell>
+                    <TableCell>
+                      {payrollLabel ? (
+                        <Badge variant="outline" className="text-xs">{payrollLabel}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedExp(exp); setDetailOpen(true); }} title="View Details">
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        {isPending && (
                           <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700" onClick={() => handleApprove(exp)} title="Approve">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-success hover:text-success" onClick={() => handleApprove(exp)} title="Approve">
                               <CheckCircle2 className="h-3.5 w-3.5" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
                               <XCircle className="h-3.5 w-3.5" />
                             </Button>
-                          </>
-                        )}
-                        {canEdit && (
-                          <>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(exp)} title="Edit">
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -352,72 +358,22 @@ export default function ExpensesPage() {
                             </Button>
                           </>
                         )}
-                        {exp.status === "approved" && canEdit && (
+                        {exp.status === "approved" && !isInCompletedRun && (
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleReject(exp)} title="Reject">
                             <XCircle className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </TableCell>
-            </TableRow>
-          );
-        };
-
-        const tableHeaders = (
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold">Employee</TableHead>
-              <TableHead className="font-semibold">Category</TableHead>
-              <TableHead className="font-semibold">Description</TableHead>
-              <TableHead className="font-semibold text-right">Amount</TableHead>
-              <TableHead className="font-semibold">Expense Date</TableHead>
-              <TableHead className="font-semibold">Submitted</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="font-semibold">Payroll Run</TableHead>
-              <TableHead className="font-semibold text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-        );
-
-        return (
-          <>
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Pending Approval ({pendingExpenses.length})</h3>
-              <div className="bg-card rounded-xl border overflow-hidden">
-                <ScrollArea className="h-[300px]">
-                  <Table>
-                    {tableHeaders}
-                    <TableBody>
-                      {pendingExpenses.length > 0 ? pendingExpenses.map(renderRow) : (
-                        <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No pending expense claims.</TableCell></TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Approved / Rejected ({processedExpenses.length})</h3>
-              <div className="bg-card rounded-xl border overflow-hidden">
-                <ScrollArea className="h-[300px]">
-                  <Table>
-                    {tableHeaders}
-                    <TableBody>
-                      {processedExpenses.length > 0 ? processedExpenses.map(renderRow) : (
-                        <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No approved or rejected expense claims.</TableCell></TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </div>
-            </div>
-          </>
-        );
-      })()}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              }) : (
+                <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No expense claims found.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </div>
 
       {/* New Expense Dialog */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
