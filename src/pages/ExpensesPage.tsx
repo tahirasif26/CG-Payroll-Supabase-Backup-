@@ -133,12 +133,30 @@ export default function ExpensesPage() {
   const handleEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExp) return;
+    const emp = employees.find(em => em.id === formEmployee);
+    if (!emp || !formExpenseDate) return;
+    const payCurrency = getEmployeePayCurrency(emp.id, employees);
+    const expCurrency = formCurrency || payCurrency;
+    const isMultiCurrency = expCurrency !== payCurrency;
+    const convertedAmount = isMultiCurrency ? computeConvertedAmount() : Number(formAmount);
+
     const updated: ExpenseReimbursement = {
       ...selectedExp,
-      category: formCategory || selectedExp.category,
-      amount: formAmount ? Number(formAmount) : selectedExp.amount,
-      description: formDescription || selectedExp.description,
-      expenseDate: formExpenseDate ? formExpenseDate.toISOString().split("T")[0] : selectedExp.expenseDate,
+      employeeId: emp.id,
+      employeeName: `${emp.firstName} ${emp.lastName}`,
+      category: formCategory,
+      amount: convertedAmount,
+      description: formDescription,
+      expenseDate: formExpenseDate.toISOString().split("T")[0],
+      ...(isMultiCurrency ? {
+        currency: expCurrency,
+        exchangeRate: Number(formExchangeRate),
+        originalAmount: Number(formAmount),
+      } : {
+        currency: undefined,
+        exchangeRate: undefined,
+        originalAmount: undefined,
+      }),
     };
     setExpenseList(prev => prev.map(ex => ex.id === updated.id ? updated : ex));
     const idx = expenses.findIndex(ex => ex.id === updated.id);
