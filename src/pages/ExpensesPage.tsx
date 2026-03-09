@@ -196,7 +196,12 @@ export default function ExpensesPage() {
             originalAmount: Number(formAmount),
           }
         : {}),
+      ...(formAdvanceId ? { advanceId: formAdvanceId } : {}),
     };
+    // Update advance used amount
+    if (formAdvanceId) {
+      useAdvanceAmount(formAdvanceId, convertedAmount);
+    }
     setExpenseList((prev) => [...prev, newExp]);
     expenses.push(newExp);
     setNewOpen(false);
