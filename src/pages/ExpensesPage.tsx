@@ -418,15 +418,11 @@ export default function ExpensesPage() {
             <Navigation className="h-4 w-4 mr-2" />
             GPS Tracking
           </Button>
-          <Button size="sm" variant="outline" onClick={handleExport} disabled={exporting}>
-            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-            Export Data
-          </Button>
         </div>
       </div>
 
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -461,6 +457,12 @@ export default function ExpensesPage() {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
+          <div className="sm:ml-auto">
+            <Button size="sm" variant="outline" onClick={handleExport} disabled={exporting}>
+              {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Export Data
+            </Button>
+          </div>
         </div>
 
         {/* Unified Claims List */}
