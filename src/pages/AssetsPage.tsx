@@ -520,7 +520,7 @@ export default function AssetsPage() {
                       <TableCell className="text-right">
                         {req.status === "pending" ? (
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => { approveRequest(req.id); toast({ title: "Request Approved" }); }}><CheckCircle className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => { approveRequest(req.id); toast({ title: "Request Approved" }); }}><CheckCircle className="h-4 w-4" /></Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { rejectRequest(req.id); toast({ title: "Request Rejected" }); }}><XCircle className="h-4 w-4" /></Button>
                           </div>
                         ) : (
