@@ -24,7 +24,10 @@ import {
   BarChart3,
   ScanLine,
   Navigation,
+  Download,
+  Loader2,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { AutoScanDialog } from "@/components/expenses/AutoScanDialog";
 import { useNavigate } from "react-router-dom";
 import ExpenseAnalytics from "@/components/expenses/ExpenseAnalytics";
