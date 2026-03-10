@@ -183,3 +183,42 @@ export interface MileageEntry {
   status: "pending" | "approved" | "rejected";
   attachments?: string[];
 }
+
+export interface AssetCategory {
+  id: string;
+  name: string;
+  description: string;
+  status: "active" | "inactive";
+  createdDate: string;
+}
+
+export interface AssetStoreItem {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  brand: string;
+  model: string;
+  description: string;
+  image: string;
+  status: "active" | "inactive";
+  sku?: string;
+  estimatedCost?: number;
+  warrantyPeriod?: string;
+  specifications?: string;
+  publishToStore: boolean;
+  createdDate: string;
+}
+
+export interface AssetRequest {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  storeItemId: string;
+  storeItemName: string;
+  category: string;
+  requestDate: string;
+  reason: string;
+  priority: "low" | "medium" | "high";
+  status: "pending" | "approved" | "rejected";
+}

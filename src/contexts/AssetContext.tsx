@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import { Asset } from "@/types/hcm";
+import { Asset, AssetCategory, AssetStoreItem, AssetRequest } from "@/types/hcm";
 import { assets as initialAssets } from "@/data/mockData";
 
 export interface AssetHistoryEntry {
@@ -14,6 +14,31 @@ export interface AssetHistoryEntry {
   note?: string;
 }
 
+const seedCategories: AssetCategory[] = [
+  { id: "cat-1", name: "Laptops", description: "Portable computers and notebooks", status: "active", createdDate: "2025-01-15" },
+  { id: "cat-2", name: "Keyboards", description: "Wired and wireless keyboards", status: "active", createdDate: "2025-01-15" },
+  { id: "cat-3", name: "Monitors", description: "Desktop monitors and displays", status: "active", createdDate: "2025-01-15" },
+  { id: "cat-4", name: "Mobile Phones", description: "Company mobile devices", status: "active", createdDate: "2025-01-15" },
+  { id: "cat-5", name: "Printers", description: "Office printers and scanners", status: "active", createdDate: "2025-01-15" },
+  { id: "cat-6", name: "Tablets", description: "Tablet devices", status: "active", createdDate: "2025-02-01" },
+  { id: "cat-7", name: "Accessories", description: "Mice, headsets, cables and other accessories", status: "active", createdDate: "2025-02-01" },
+];
+
+const seedStoreItems: AssetStoreItem[] = [
+  { id: "si-1", name: "HP Core i7 Laptop", categoryId: "cat-1", categoryName: "Laptops", brand: "HP", model: "ProBook 450 G10", description: "High-performance business laptop with Intel Core i7 processor, 16GB RAM, 512GB SSD.", image: "", status: "active", sku: "HP-PB450-I7", estimatedCost: 4500, warrantyPeriod: "3 years", publishToStore: true, createdDate: "2025-03-01" },
+  { id: "si-2", name: "Dell XPS 15", categoryId: "cat-1", categoryName: "Laptops", brand: "Dell", model: "XPS 15 9530", description: "Premium ultrabook with stunning 15.6\" OLED display and powerful performance.", image: "", status: "active", sku: "DELL-XPS15", estimatedCost: 6200, warrantyPeriod: "3 years", publishToStore: true, createdDate: "2025-03-01" },
+  { id: "si-3", name: "MacBook Pro 14", categoryId: "cat-1", categoryName: "Laptops", brand: "Apple", model: "MacBook Pro 14\" M3", description: "Apple M3 chip, 18GB unified memory, 512GB SSD. Professional-grade performance.", image: "", status: "active", sku: "APPLE-MBP14", estimatedCost: 7500, warrantyPeriod: "1 year", publishToStore: true, createdDate: "2025-03-01" },
+  { id: "si-4", name: "Dell 27\" Monitor", categoryId: "cat-3", categoryName: "Monitors", brand: "Dell", model: "U2723QE", description: "27-inch 4K UltraSharp USB-C Hub monitor with excellent color accuracy.", image: "", status: "active", sku: "DELL-U2723", estimatedCost: 2200, warrantyPeriod: "3 years", publishToStore: true, createdDate: "2025-03-01" },
+  { id: "si-5", name: "Logitech K380", categoryId: "cat-2", categoryName: "Keyboards", brand: "Logitech", model: "K380", description: "Compact multi-device Bluetooth keyboard with quiet keys.", image: "", status: "active", sku: "LOG-K380", estimatedCost: 150, warrantyPeriod: "1 year", publishToStore: true, createdDate: "2025-03-01" },
+  { id: "si-6", name: "iPhone 15 Pro", categoryId: "cat-4", categoryName: "Mobile Phones", brand: "Apple", model: "iPhone 15 Pro", description: "Company mobile phone with A17 Pro chip.", image: "", status: "active", publishToStore: false, createdDate: "2025-03-05" },
+];
+
+const seedRequests: AssetRequest[] = [
+  { id: "req-1", employeeId: "2", employeeName: "Omar Hassan", storeItemId: "si-3", storeItemName: "MacBook Pro 14", category: "Laptops", requestDate: "2026-03-01", reason: "Current laptop is outdated and cannot run required software efficiently.", priority: "high", status: "pending" },
+  { id: "req-2", employeeId: "1", employeeName: "Aisha Rahman", storeItemId: "si-4", storeItemName: "Dell 27\" Monitor", category: "Monitors", requestDate: "2026-02-25", reason: "Need an external monitor for better productivity.", priority: "medium", status: "approved" },
+  { id: "req-3", employeeId: "3", employeeName: "Fatima Al-Sayed", storeItemId: "si-5", storeItemName: "Logitech K380", category: "Keyboards", requestDate: "2026-02-28", reason: "Ergonomic keyboard replacement needed.", priority: "low", status: "rejected" },
+];
+
 interface AssetContextType {
   assets: Asset[];
   history: AssetHistoryEntry[];
@@ -23,6 +48,25 @@ interface AssetContextType {
   reassignAsset: (id: string, toEmployeeId: string | null, toEmployeeName: string | null) => void;
   getAssetHistory: (assetId: string) => AssetHistoryEntry[];
   getAssetsForEmployee: (employeeId: string) => Asset[];
+  // Categories
+  categories: AssetCategory[];
+  addCategory: (cat: AssetCategory) => void;
+  updateCategory: (id: string, data: Partial<AssetCategory>) => void;
+  deleteCategory: (id: string) => boolean;
+  canDeleteCategory: (id: string) => boolean;
+  // Store Items
+  storeItems: AssetStoreItem[];
+  addStoreItem: (item: AssetStoreItem) => void;
+  updateStoreItem: (id: string, data: Partial<AssetStoreItem>) => void;
+  deleteStoreItem: (id: string) => boolean;
+  canDeleteStoreItem: (id: string) => boolean;
+  getStoreItemsForDisplay: () => AssetStoreItem[];
+  // Requests
+  assetRequests: AssetRequest[];
+  addAssetRequest: (req: AssetRequest) => void;
+  approveRequest: (id: string) => void;
+  rejectRequest: (id: string) => void;
+  getEmployeeRequests: (employeeId: string) => AssetRequest[];
 }
 
 const AssetContext = createContext<AssetContextType | undefined>(undefined);
@@ -31,9 +75,8 @@ let historyIdCounter = 100;
 
 export function AssetProvider({ children }: { children: ReactNode }) {
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
-  const [history, setHistory] = useState<AssetHistoryEntry[]>(() => {
-    // Seed initial history from existing assigned assets
-    return initialAssets
+  const [history, setHistory] = useState<AssetHistoryEntry[]>(() =>
+    initialAssets
       .filter(a => a.employeeId)
       .map((a, i) => ({
         id: String(i + 1),
@@ -44,94 +87,81 @@ export function AssetProvider({ children }: { children: ReactNode }) {
         toEmployeeId: a.employeeId,
         toEmployeeName: a.employeeName,
         date: a.assignedDate || new Date().toISOString().split("T")[0],
-      }));
-  });
+      }))
+  );
+  const [categories, setCategories] = useState<AssetCategory[]>(seedCategories);
+  const [storeItems, setStoreItems] = useState<AssetStoreItem[]>(seedStoreItems);
+  const [assetRequests, setAssetRequests] = useState<AssetRequest[]>(seedRequests);
 
   const addHistoryEntry = (entry: Omit<AssetHistoryEntry, "id">) => {
     setHistory(prev => [...prev, { ...entry, id: String(++historyIdCounter) }]);
   };
 
+  // ---- Asset CRUD (existing) ----
   const addAsset = (asset: Asset) => {
     setAssets(prev => [...prev, asset]);
-    addHistoryEntry({
-      assetId: asset.id,
-      action: "created",
-      toEmployeeId: asset.employeeId,
-      toEmployeeName: asset.employeeName,
-      date: new Date().toISOString().split("T")[0],
-      note: `Asset "${asset.name}" created`,
-    });
+    addHistoryEntry({ assetId: asset.id, action: "created", toEmployeeId: asset.employeeId, toEmployeeName: asset.employeeName, date: new Date().toISOString().split("T")[0], note: `Asset "${asset.name}" created` });
     if (asset.employeeId) {
-      addHistoryEntry({
-        assetId: asset.id,
-        action: "assigned",
-        toEmployeeId: asset.employeeId,
-        toEmployeeName: asset.employeeName,
-        date: new Date().toISOString().split("T")[0],
-      });
+      addHistoryEntry({ assetId: asset.id, action: "assigned", toEmployeeId: asset.employeeId, toEmployeeName: asset.employeeName, date: new Date().toISOString().split("T")[0] });
     }
   };
 
   const updateAsset = (id: string, data: Partial<Asset>, note?: string) => {
     setAssets(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
-    addHistoryEntry({
-      assetId: id,
-      action: "edited",
-      date: new Date().toISOString().split("T")[0],
-      note: note || "Asset details updated",
-    });
+    addHistoryEntry({ assetId: id, action: "edited", date: new Date().toISOString().split("T")[0], note: note || "Asset details updated" });
   };
 
   const deleteAsset = (id: string) => {
     const asset = assets.find(a => a.id === id);
     setAssets(prev => prev.filter(a => a.id !== id));
-    addHistoryEntry({
-      assetId: id,
-      action: "deleted",
-      date: new Date().toISOString().split("T")[0],
-      note: `Asset "${asset?.name}" deleted`,
-    });
+    addHistoryEntry({ assetId: id, action: "deleted", date: new Date().toISOString().split("T")[0], note: `Asset "${asset?.name}" deleted` });
   };
 
   const reassignAsset = (id: string, toEmployeeId: string | null, toEmployeeName: string | null) => {
     const asset = assets.find(a => a.id === id);
     if (!asset) return;
-
-    const action: AssetHistoryEntry["action"] = toEmployeeId
-      ? (asset.employeeId ? "reassigned" : "assigned")
-      : "unassigned";
-
-    addHistoryEntry({
-      assetId: id,
-      action,
-      fromEmployeeId: asset.employeeId,
-      fromEmployeeName: asset.employeeName,
-      toEmployeeId,
-      toEmployeeName,
-      date: new Date().toISOString().split("T")[0],
-    });
-
-    setAssets(prev => prev.map(a =>
-      a.id === id
-        ? {
-            ...a,
-            employeeId: toEmployeeId,
-            employeeName: toEmployeeName,
-            assignedDate: toEmployeeId ? new Date().toISOString().split("T")[0] : null,
-            status: toEmployeeId ? "assigned" : "available",
-          }
-        : a
-    ));
+    const action: AssetHistoryEntry["action"] = toEmployeeId ? (asset.employeeId ? "reassigned" : "assigned") : "unassigned";
+    addHistoryEntry({ assetId: id, action, fromEmployeeId: asset.employeeId, fromEmployeeName: asset.employeeName, toEmployeeId, toEmployeeName, date: new Date().toISOString().split("T")[0] });
+    setAssets(prev => prev.map(a => a.id === id ? { ...a, employeeId: toEmployeeId, employeeName: toEmployeeName, assignedDate: toEmployeeId ? new Date().toISOString().split("T")[0] : null, status: toEmployeeId ? "assigned" : "available" } : a));
   };
 
-  const getAssetHistory = (assetId: string) =>
-    history.filter(h => h.assetId === assetId).sort((a, b) => b.date.localeCompare(a.date));
+  const getAssetHistory = (assetId: string) => history.filter(h => h.assetId === assetId).sort((a, b) => b.date.localeCompare(a.date));
+  const getAssetsForEmployee = (employeeId: string) => assets.filter(a => a.employeeId === employeeId);
 
-  const getAssetsForEmployee = (employeeId: string) =>
-    assets.filter(a => a.employeeId === employeeId);
+  // ---- Categories ----
+  const addCategory = (cat: AssetCategory) => setCategories(prev => [...prev, cat]);
+  const updateCategory = (id: string, data: Partial<AssetCategory>) => setCategories(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+  const canDeleteCategory = (id: string) => !storeItems.some(si => si.categoryId === id) && !assets.some(a => a.category === categories.find(c => c.id === id)?.name);
+  const deleteCategory = (id: string) => {
+    if (!canDeleteCategory(id)) return false;
+    setCategories(prev => prev.filter(c => c.id !== id));
+    return true;
+  };
+
+  // ---- Store Items ----
+  const addStoreItem = (item: AssetStoreItem) => setStoreItems(prev => [...prev, item]);
+  const updateStoreItem = (id: string, data: Partial<AssetStoreItem>) => setStoreItems(prev => prev.map(si => si.id === id ? { ...si, ...data } : si));
+  const canDeleteStoreItem = (id: string) => !assetRequests.some(r => r.storeItemId === id && r.status !== "rejected");
+  const deleteStoreItem = (id: string) => {
+    if (!canDeleteStoreItem(id)) return false;
+    setStoreItems(prev => prev.filter(si => si.id !== id));
+    return true;
+  };
+  const getStoreItemsForDisplay = () => storeItems.filter(si => si.publishToStore && si.status === "active");
+
+  // ---- Requests ----
+  const addAssetRequest = (req: AssetRequest) => setAssetRequests(prev => [...prev, req]);
+  const approveRequest = (id: string) => setAssetRequests(prev => prev.map(r => r.id === id ? { ...r, status: "approved" } : r));
+  const rejectRequest = (id: string) => setAssetRequests(prev => prev.map(r => r.id === id ? { ...r, status: "rejected" } : r));
+  const getEmployeeRequests = (employeeId: string) => assetRequests.filter(r => r.employeeId === employeeId);
 
   return (
-    <AssetContext.Provider value={{ assets, history, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory, getAssetsForEmployee }}>
+    <AssetContext.Provider value={{
+      assets, history, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory, getAssetsForEmployee,
+      categories, addCategory, updateCategory, deleteCategory, canDeleteCategory,
+      storeItems, addStoreItem, updateStoreItem, deleteStoreItem, canDeleteStoreItem, getStoreItemsForDisplay,
+      assetRequests, addAssetRequest, approveRequest, rejectRequest, getEmployeeRequests,
+    }}>
       {children}
     </AssetContext.Provider>
   );
