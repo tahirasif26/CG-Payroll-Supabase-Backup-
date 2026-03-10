@@ -418,10 +418,6 @@ export default function ExpensesPage() {
             <Navigation className="h-4 w-4 mr-2" />
             GPS Tracking
           </Button>
-          <Button size="sm" variant="outline" onClick={handleExport} disabled={exporting}>
-            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-            Export Data
-          </Button>
         </div>
       </div>
 
