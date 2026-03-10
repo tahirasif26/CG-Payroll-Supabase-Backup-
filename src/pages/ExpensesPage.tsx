@@ -314,6 +314,7 @@ export default function ExpensesPage() {
 
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [exporting, setExporting] = useState(false);
 
   const filtered = expenseList
     .filter((exp) => {
@@ -328,6 +329,41 @@ export default function ExpensesPage() {
       return matchesSearch && matchesCategory && matchesStatus;
     })
     .sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
+
+  const handleExport = async () => {
+    setExporting(true);
+    // Small delay to show loading state
+    await new Promise((r) => setTimeout(r, 300));
+    try {
+      const rows = filtered.map((exp) => {
+        const payCurrency = getEmployeePayCurrency(exp.employeeId, employees);
+        const amountStr = exp.currency && exp.originalAmount && exp.currency !== payCurrency
+          ? `${exp.currency} ${exp.originalAmount} (${payCurrency} ${exp.amount})`
+          : `${payCurrency} ${exp.amount}`;
+        const payrollLabel = getPayrollLabel(exp.payrollRunId);
+        return {
+          "Employee": exp.employeeName,
+          "Category": exp.category,
+          "Description": exp.description,
+          "Amount": amountStr,
+          "Expense Date": new Date(exp.expenseDate).toLocaleDateString(),
+          "Submitted": new Date(exp.submissionDate).toLocaleDateString(),
+          "Status": exp.status.charAt(0).toUpperCase() + exp.status.slice(1),
+          "Payroll Run": payrollLabel || "—",
+        };
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Expenses");
+      const today = format(new Date(), "yyyy_MM_dd");
+      XLSX.writeFile(wb, `Expenses_Export_${today}.xlsx`);
+      toast({ title: "Exported", description: `${rows.length} records exported successfully.` });
+    } catch {
+      toast({ title: "Export Failed", description: "Could not generate the export file.", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const getPayrollLabel = (payrollRunId?: string) => {
     if (!payrollRunId) return null;
