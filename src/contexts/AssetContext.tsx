@@ -41,7 +41,7 @@ const seedRequests: AssetRequest[] = [
 ];
 
 const seedMaintenanceRecords: MaintenanceRecord[] = [
-  { id: "mnt-1", assetId: "6", type: "repair", date: "2026-02-15", vendor: "Dell Service Center", cost: 450, notes: "Screen replacement due to crack", nextServiceDate: "2026-06-15", performedBy: "IT Admin" },
+  { id: "mnt-1", assetId: "6", type: "repair", date: "2026-02-15", notes: "Screen replacement due to crack", nextServiceDate: "2026-06-15", performedBy: "IT Admin" },
 ];
 
 interface AssetContextType {
