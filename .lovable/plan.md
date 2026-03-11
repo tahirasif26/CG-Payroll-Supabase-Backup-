@@ -1,19 +1,64 @@
 
 
-## Professional Page Transition
+## Plan: Separate Asset Tracking into Sidebar Sub-Navigation
 
-Add a subtle, clean fade-in animation to page content on route changes — no bouncy slides, just a refined opacity + slight scale transition.
+### What Changes
 
-### Changes
+Currently all 4 sections (Inventory, Categories, Store, Requests) live as `<Tabs>` inside a single `AssetsPage.tsx`. The user wants them as **separate sidebar nav items** under the "Asset Tracking" collapsible group, each loading its own route/page — matching how Payroll, Expense Tracking, etc. work.
 
-1. **`src/components/AppLayout.tsx`**
-   - Import `useLocation` from react-router-dom
-   - Use `location.pathname` as a `key` on a wrapper div around `{children}` inside `<main>`
-   - Apply a `page-transition` CSS class to that wrapper
+### Approach
 
-2. **`src/index.css`**
-   - Add `@keyframes page-enter`: opacity 0→1 + scale 0.985→1 over 250ms ease-out
-   - Add `.page-transition` class applying the animation
+**1. Update Sidebar Navigation** (`src/components/AppSidebar.tsx`)
 
-The scale is intentionally minimal (0.985) — just enough to feel alive without being distracting. Fast 250ms duration keeps it snappy and professional.
+Change `assetTrackingNav` from one item to four:
+- Asset Inventory → `/assets/inventory`
+- Asset Categories → `/assets/categories`
+- Asset Store → `/assets/store`
+- Asset Requests → `/assets/requests`
+
+**2. Create 4 Separate Page Components**
+
+Extract the content of each `TabsContent` from the current `AssetsPage.tsx` into its own page file:
+- `src/pages/assets/AssetInventoryPage.tsx` — existing inventory table + dialogs
+- `src/pages/assets/AssetCategoriesPage.tsx` — categories CRUD table
+- `src/pages/assets/AssetStorePage.tsx` — card grid (employee) / list (admin) + store dialogs
+- `src/pages/assets/AssetRequestsPage.tsx` — requests table + request dialog
+
+Each page will:
+- Have its own `PageHeader`
+- Pull from the shared `AssetContext` (no context changes needed)
+- Contain only the state and dialogs relevant to that section
+
+**3. Update Routes** (`src/App.tsx`)
+
+Replace the single `/assets` route with:
+```
+/assets/inventory → AssetInventoryPage
+/assets/categories → AssetCategoriesPage
+/assets/store → AssetStorePage
+/assets/requests → AssetRequestsPage
+```
+
+**4. Delete old `AssetsPage.tsx`** (or redirect `/assets` to `/assets/inventory`)
+
+**5. Role-based visibility**
+- Sidebar: Employee sees only "Asset Store" and "Asset Requests" 
+- Or keep all visible but guard content inside pages (simpler — matches current pattern where role checks happen inside pages)
+
+### Files to Modify
+- `src/components/AppSidebar.tsx` — expand `assetTrackingNav` to 4 items
+- `src/App.tsx` — add 4 new routes, remove old `/assets` route
+
+### Files to Create
+- `src/pages/assets/AssetInventoryPage.tsx`
+- `src/pages/assets/AssetCategoriesPage.tsx`
+- `src/pages/assets/AssetStorePage.tsx`
+- `src/pages/assets/AssetRequestsPage.tsx`
+
+### Files to Remove
+- `src/pages/AssetsPage.tsx` (replaced by the 4 new pages)
+
+### No Changes Needed
+- `src/contexts/AssetContext.tsx` — shared context stays as-is
+- `src/types/hcm.ts` — no type changes
 
