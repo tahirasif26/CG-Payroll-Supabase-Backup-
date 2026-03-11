@@ -401,23 +401,25 @@ export default function AssetInventoryPage() {
             <DialogDescription>Create multiple asset records at once with auto-generated or imported serial numbers.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Asset Category</Label>
+              <Select value={bulkCategory} onValueChange={v => { setBulkCategory(v); setBulkPreviewSerials([]); }}>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>{activeCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Asset Name</Label>
+              <Input placeholder='e.g. MacBook Pro 14"' required value={bulkName} onChange={e => setBulkName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Asset Category</Label>
-                <Select value={bulkCategory} onValueChange={v => { setBulkCategory(v); setBulkStoreItem(""); setBulkPreviewSerials([]); }}>
-                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>{activeCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Label>Brand</Label>
+                <Input placeholder="e.g. Apple" value={bulkBrand} onChange={e => setBulkBrand(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Asset Model</Label>
-                <Select value={bulkStoreItem} onValueChange={setBulkStoreItem} disabled={!bulkCategory}>
-                  <SelectTrigger><SelectValue placeholder={bulkCategory ? "Select model" : "Select category first"} /></SelectTrigger>
-                  <SelectContent>
-                    {filteredStoreItems.map(si => <SelectItem key={si.id} value={si.id}>{si.name} ({si.brand} {si.model})</SelectItem>)}
-                    {filteredStoreItems.length === 0 && <SelectItem value="_none" disabled>No models in this category</SelectItem>}
-                  </SelectContent>
-                </Select>
+                <Label>Model</Label>
+                <Input placeholder="e.g. M3 Pro" value={bulkModel2} onChange={e => setBulkModel2(e.target.value)} />
               </div>
             </div>
 
