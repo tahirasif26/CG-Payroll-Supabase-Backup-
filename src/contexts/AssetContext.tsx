@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { Asset, AssetCategory, AssetStoreItem, AssetRequest } from "@/types/hcm";
+import { MaintenanceRecord, AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
 import { assets as initialAssets } from "@/data/mockData";
 
 export interface AssetHistoryEntry {
   id: string;
   assetId: string;
-  action: "assigned" | "unassigned" | "reassigned" | "created" | "deleted" | "edited" | "maintenance";
+  action: "assigned" | "unassigned" | "reassigned" | "created" | "deleted" | "edited" | "maintenance" | "retired" | "condition-updated" | "audit-verified";
   fromEmployeeId?: string | null;
   fromEmployeeName?: string | null;
   toEmployeeId?: string | null;
@@ -39,6 +40,10 @@ const seedRequests: AssetRequest[] = [
   { id: "req-3", employeeId: "3", employeeName: "Fatima Al-Sayed", storeItemId: "si-5", storeItemName: "Logitech K380", category: "Keyboards", requestDate: "2026-02-28", reason: "Ergonomic keyboard replacement needed.", priority: "low", status: "rejected" },
 ];
 
+const seedMaintenanceRecords: MaintenanceRecord[] = [
+  { id: "mnt-1", assetId: "6", type: "repair", date: "2026-02-15", vendor: "Dell Service Center", cost: 450, notes: "Screen replacement due to crack", nextServiceDate: "2026-06-15", performedBy: "IT Admin" },
+];
+
 interface AssetContextType {
   assets: Asset[];
   history: AssetHistoryEntry[];
@@ -49,6 +54,18 @@ interface AssetContextType {
   getAssetHistory: (assetId: string) => AssetHistoryEntry[];
   getAssetsForEmployee: (employeeId: string) => Asset[];
   bulkAddAssets: (assets: Asset[]) => void;
+  // Maintenance
+  maintenanceRecords: MaintenanceRecord[];
+  addMaintenanceRecord: (record: MaintenanceRecord) => void;
+  getMaintenanceForAsset: (assetId: string) => MaintenanceRecord[];
+  // Audits
+  audits: AssetAudit[];
+  addAudit: (audit: AssetAudit) => void;
+  updateAuditEntry: (auditId: string, entryId: string, data: Partial<AssetAuditEntry>) => void;
+  completeAudit: (auditId: string) => void;
+  // Logs
+  assetLogs: AssetLogEntry[];
+  addAssetLog: (log: AssetLogEntry) => void;
   // Categories
   categories: AssetCategory[];
   addCategory: (cat: AssetCategory) => void;
@@ -73,6 +90,7 @@ interface AssetContextType {
 const AssetContext = createContext<AssetContextType | undefined>(undefined);
 
 let historyIdCounter = 100;
+let logIdCounter = 100;
 
 export function AssetProvider({ children }: { children: ReactNode }) {
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
@@ -93,23 +111,49 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<AssetCategory[]>(seedCategories);
   const [storeItems, setStoreItems] = useState<AssetStoreItem[]>(seedStoreItems);
   const [assetRequests, setAssetRequests] = useState<AssetRequest[]>(seedRequests);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>(seedMaintenanceRecords);
+  const [audits, setAudits] = useState<AssetAudit[]>([]);
+  const [assetLogs, setAssetLogs] = useState<AssetLogEntry[]>(() =>
+    initialAssets.map((a, i) => ({
+      id: `log-seed-${i}`,
+      assetId: a.id,
+      assetTag: a.assetTag,
+      assetName: a.name,
+      activity: "Asset Created",
+      performedBy: "System",
+      date: a.purchaseDate || "2025-01-01",
+      details: `Asset "${a.name}" registered in inventory`,
+    }))
+  );
 
   const addHistoryEntry = (entry: Omit<AssetHistoryEntry, "id">) => {
     setHistory(prev => [...prev, { ...entry, id: String(++historyIdCounter) }]);
   };
 
-  // ---- Asset CRUD (existing) ----
+  const addLogEntry = (log: Omit<AssetLogEntry, "id">) => {
+    setAssetLogs(prev => [{ ...log, id: `log-${++logIdCounter}` }, ...prev]);
+  };
+
   const addAsset = (asset: Asset) => {
     setAssets(prev => [...prev, asset]);
     addHistoryEntry({ assetId: asset.id, action: "created", toEmployeeId: asset.employeeId, toEmployeeName: asset.employeeName, date: new Date().toISOString().split("T")[0], note: `Asset "${asset.name}" created` });
+    addLogEntry({ assetId: asset.id, assetTag: asset.assetTag, assetName: asset.name, activity: "Asset Created", performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Asset "${asset.name}" (${asset.assetTag}) registered` });
     if (asset.employeeId) {
       addHistoryEntry({ assetId: asset.id, action: "assigned", toEmployeeId: asset.employeeId, toEmployeeName: asset.employeeName, date: new Date().toISOString().split("T")[0] });
+      addLogEntry({ assetId: asset.id, assetTag: asset.assetTag, assetName: asset.name, activity: "Assigned", employeeName: asset.employeeName || undefined, performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Assigned to ${asset.employeeName}` });
     }
   };
 
   const updateAsset = (id: string, data: Partial<Asset>, note?: string) => {
+    const asset = assets.find(a => a.id === id);
     setAssets(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
     addHistoryEntry({ assetId: id, action: "edited", date: new Date().toISOString().split("T")[0], note: note || "Asset details updated" });
+    if (data.condition && asset && data.condition !== asset.condition) {
+      addLogEntry({ assetId: id, assetTag: asset.assetTag, assetName: asset.name, activity: "Condition Updated", performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Condition changed from "${asset.condition}" to "${data.condition}"` });
+    }
+    if (data.status === "retired" && asset) {
+      addLogEntry({ assetId: id, assetTag: asset.assetTag, assetName: asset.name, activity: "Asset Retired", performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Asset "${asset.name}" retired` });
+    }
   };
 
   const deleteAsset = (id: string) => {
@@ -123,6 +167,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     if (!asset) return;
     const action: AssetHistoryEntry["action"] = toEmployeeId ? (asset.employeeId ? "reassigned" : "assigned") : "unassigned";
     addHistoryEntry({ assetId: id, action, fromEmployeeId: asset.employeeId, fromEmployeeName: asset.employeeName, toEmployeeId, toEmployeeName, date: new Date().toISOString().split("T")[0] });
+    const logActivity = toEmployeeId ? (asset.employeeId ? "Reassigned" : "Assigned") : "Returned";
+    addLogEntry({ assetId: id, assetTag: asset.assetTag, assetName: asset.name, activity: logActivity, employeeName: toEmployeeName || asset.employeeName || undefined, performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: toEmployeeId ? `${logActivity} to ${toEmployeeName}` : `Returned by ${asset.employeeName}` });
     setAssets(prev => prev.map(a => a.id === id ? { ...a, employeeId: toEmployeeId, employeeName: toEmployeeName, assignedDate: toEmployeeId ? new Date().toISOString().split("T")[0] : null, status: toEmployeeId ? "assigned" : "available" } : a));
   };
 
@@ -134,10 +180,50 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     const today = new Date().toISOString().split("T")[0];
     newAssets.forEach(asset => {
       addHistoryEntry({ assetId: asset.id, action: "created", toEmployeeId: null, toEmployeeName: null, date: today, note: `Asset "${asset.name}" bulk created` });
+      addLogEntry({ assetId: asset.id, assetTag: asset.assetTag, assetName: asset.name, activity: "Asset Created", performedBy: "Admin", date: today, details: `Bulk created: "${asset.name}" (${asset.assetTag})` });
     });
   };
 
-  // ---- Categories ----
+  // Maintenance
+  const addMaintenanceRecord = (record: MaintenanceRecord) => {
+    setMaintenanceRecords(prev => [...prev, record]);
+    const asset = assets.find(a => a.id === record.assetId);
+    if (asset) {
+      addHistoryEntry({ assetId: record.assetId, action: "maintenance", date: record.date, note: `${record.type}: ${record.notes}` });
+      addLogEntry({ assetId: record.assetId, assetTag: asset.assetTag, assetName: asset.name, activity: "Maintenance Recorded", performedBy: record.performedBy, date: record.date, details: `${record.type} by ${record.vendor} - Cost: ${record.cost}` });
+      if (record.nextServiceDate) {
+        setAssets(prev => prev.map(a => a.id === record.assetId ? { ...a, serviceDueDate: record.nextServiceDate } : a));
+      }
+    }
+  };
+  const getMaintenanceForAsset = (assetId: string) => maintenanceRecords.filter(m => m.assetId === assetId).sort((a, b) => b.date.localeCompare(a.date));
+
+  // Audits
+  const addAudit = (audit: AssetAudit) => setAudits(prev => [...prev, audit]);
+  const updateAuditEntry = (auditId: string, entryId: string, data: Partial<AssetAuditEntry>) => {
+    setAudits(prev => prev.map(a => {
+      if (a.id !== auditId) return a;
+      const updatedEntries = a.entries.map(e => e.id === entryId ? { ...e, ...data } : e);
+      const verified = updatedEntries.filter(e => e.verification === "verified").length;
+      const missing = updatedEntries.filter(e => e.verification === "missing").length;
+      const damaged = updatedEntries.filter(e => e.verification === "damaged").length;
+      return { ...a, entries: updatedEntries, verified, missing, damaged };
+    }));
+    // Log
+    const audit = audits.find(a => a.id === auditId);
+    const entry = audit?.entries.find(e => e.id === entryId);
+    if (entry && data.verification) {
+      addLogEntry({ assetId: entry.assetId, assetTag: entry.assetTag, assetName: entry.assetName, activity: "Audit Verified", performedBy: data.verifiedBy || "Admin", date: new Date().toISOString().split("T")[0], details: `Audit verification: ${data.verification}` });
+    }
+  };
+  const completeAudit = (auditId: string) => {
+    setAudits(prev => prev.map(a => a.id === auditId ? { ...a, status: "completed", endDate: new Date().toISOString().split("T")[0] } : a));
+  };
+
+  // Logs
+  const addAssetLog = (log: AssetLogEntry) => setAssetLogs(prev => [log, ...prev]);
+
+  // Categories
   const addCategory = (cat: AssetCategory) => setCategories(prev => [...prev, cat]);
   const updateCategory = (id: string, data: Partial<AssetCategory>) => setCategories(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
   const canDeleteCategory = (id: string) => !storeItems.some(si => si.categoryId === id) && !assets.some(a => a.category === categories.find(c => c.id === id)?.name);
@@ -147,7 +233,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  // ---- Store Items ----
+  // Store Items
   const addStoreItem = (item: AssetStoreItem) => setStoreItems(prev => [...prev, item]);
   const updateStoreItem = (id: string, data: Partial<AssetStoreItem>) => setStoreItems(prev => prev.map(si => si.id === id ? { ...si, ...data } : si));
   const canDeleteStoreItem = (id: string) => !assetRequests.some(r => r.storeItemId === id && r.status !== "rejected");
@@ -158,7 +244,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   };
   const getStoreItemsForDisplay = () => storeItems.filter(si => si.publishToStore && si.status === "active");
 
-  // ---- Requests ----
+  // Requests
   const addAssetRequest = (req: AssetRequest) => setAssetRequests(prev => [...prev, req]);
   const approveRequest = (id: string) => setAssetRequests(prev => prev.map(r => r.id === id ? { ...r, status: "approved" } : r));
   const rejectRequest = (id: string) => setAssetRequests(prev => prev.map(r => r.id === id ? { ...r, status: "rejected" } : r));
@@ -167,6 +253,9 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   return (
     <AssetContext.Provider value={{
       assets, history, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory, getAssetsForEmployee, bulkAddAssets,
+      maintenanceRecords, addMaintenanceRecord, getMaintenanceForAsset,
+      audits, addAudit, updateAuditEntry, completeAudit,
+      assetLogs, addAssetLog,
       categories, addCategory, updateCategory, deleteCategory, canDeleteCategory,
       storeItems, addStoreItem, updateStoreItem, deleteStoreItem, canDeleteStoreItem, getStoreItemsForDisplay,
       assetRequests, addAssetRequest, approveRequest, rejectRequest, getEmployeeRequests,

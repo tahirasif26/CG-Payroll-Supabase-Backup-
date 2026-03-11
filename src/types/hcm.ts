@@ -136,14 +136,23 @@ export interface CostAllocation {
 
 export interface Asset {
   id: string;
+  assetTag: string;
   name: string;
   category: string;
+  model?: string;
+  brand?: string;
   serialNumber: string;
+  condition: "new" | "good" | "fair" | "needs-repair" | "damaged" | "retired";
+  location?: string;
   employeeId: string | null;
   employeeName: string | null;
   assignedDate: string | null;
   status: "assigned" | "available" | "maintenance" | "retired";
   returnDate?: string | null;
+  purchaseDate?: string;
+  warrantyExpiry?: string;
+  serviceDueDate?: string;
+  reminderDays?: number;
 }
 
 export interface Project {

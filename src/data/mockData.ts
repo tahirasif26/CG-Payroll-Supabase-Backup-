@@ -96,12 +96,12 @@ export const costAllocations: CostAllocation[] = [
 ];
 
 export const assets: Asset[] = [
-  { id: "1", name: "MacBook Pro 16\"", category: "Laptop", serialNumber: "MBP-2024-001", employeeId: "1", employeeName: "Aisha Rahman", assignedDate: "2021-03-15", status: "assigned" },
-  { id: "2", name: "Dell Ultrasharp 27\"", category: "Monitor", serialNumber: "DU27-2024-002", employeeId: "1", employeeName: "Aisha Rahman", assignedDate: "2021-03-15", status: "assigned" },
-  { id: "3", name: "ThinkPad X1 Carbon", category: "Laptop", serialNumber: "TPX1-2024-003", employeeId: "2", employeeName: "Omar Al-Faisal", assignedDate: "2019-06-01", status: "assigned" },
-  { id: "4", name: "iPhone 15 Pro", category: "Phone", serialNumber: "IP15-2024-004", employeeId: "4", employeeName: "Khalid Nasser", assignedDate: "2024-01-15", status: "assigned" },
-  { id: "5", name: "Surface Pro 9", category: "Laptop", serialNumber: "SP9-2024-005", employeeId: null, employeeName: null, assignedDate: null, status: "available" },
-  { id: "6", name: "Dell XPS 15", category: "Laptop", serialNumber: "DXP-2024-006", employeeId: null, employeeName: null, assignedDate: null, status: "maintenance" },
+  { id: "1", assetTag: "AST-001", name: "MacBook Pro 16\"", category: "Laptop", brand: "Apple", model: "MacBook Pro 16\" M3", serialNumber: "MBP-2024-001", condition: "good", location: "Riyadh HQ", employeeId: "1", employeeName: "Aisha Rahman", assignedDate: "2021-03-15", status: "assigned", purchaseDate: "2021-03-01", warrantyExpiry: "2024-03-01", serviceDueDate: "2026-06-01" },
+  { id: "2", assetTag: "AST-002", name: "Dell Ultrasharp 27\"", category: "Monitor", brand: "Dell", model: "U2723QE", serialNumber: "DU27-2024-002", condition: "good", location: "Riyadh HQ", employeeId: "1", employeeName: "Aisha Rahman", assignedDate: "2021-03-15", status: "assigned", purchaseDate: "2021-03-01", warrantyExpiry: "2024-03-01" },
+  { id: "3", assetTag: "AST-003", name: "ThinkPad X1 Carbon", category: "Laptop", brand: "Lenovo", model: "X1 Carbon Gen 11", serialNumber: "TPX1-2024-003", condition: "fair", location: "Riyadh HQ", employeeId: "2", employeeName: "Omar Al-Faisal", assignedDate: "2019-06-01", status: "assigned", purchaseDate: "2019-05-15", warrantyExpiry: "2022-05-15" },
+  { id: "4", assetTag: "AST-004", name: "iPhone 15 Pro", category: "Phone", brand: "Apple", model: "iPhone 15 Pro", serialNumber: "IP15-2024-004", condition: "new", location: "Riyadh HQ", employeeId: "4", employeeName: "Khalid Nasser", assignedDate: "2024-01-15", status: "assigned", purchaseDate: "2024-01-10", warrantyExpiry: "2025-01-10" },
+  { id: "5", assetTag: "AST-005", name: "Surface Pro 9", category: "Laptop", brand: "Microsoft", model: "Surface Pro 9", serialNumber: "SP9-2024-005", condition: "new", location: "Dubai Office", employeeId: null, employeeName: null, assignedDate: null, status: "available", purchaseDate: "2024-06-01", warrantyExpiry: "2027-06-01" },
+  { id: "6", assetTag: "AST-006", name: "Dell XPS 15", category: "Laptop", brand: "Dell", model: "XPS 15 9530", serialNumber: "DXP-2024-006", condition: "needs-repair", location: "Riyadh HQ", employeeId: null, employeeName: null, assignedDate: null, status: "maintenance", purchaseDate: "2023-09-01", warrantyExpiry: "2026-09-01", serviceDueDate: "2026-04-01" },
 ];
 
 export const projects: Project[] = [

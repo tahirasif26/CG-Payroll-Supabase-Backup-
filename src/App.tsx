@@ -38,6 +38,9 @@ import AssetInventoryPage from "@/pages/assets/AssetInventoryPage";
 import AssetCategoriesPage from "@/pages/assets/AssetCategoriesPage";
 import AssetStorePage from "@/pages/assets/AssetStorePage";
 import AssetRequestsPage from "@/pages/assets/AssetRequestsPage";
+import AssetAuditsPage from "@/pages/assets/AssetAuditsPage";
+import AssetLogsPage from "@/pages/assets/AssetLogsPage";
+import AssetDashboardPage from "@/pages/assets/AssetDashboardPage";
 import OrgChartPage from "@/pages/OrgChartPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import TimesheetsPage from "@/pages/TimesheetsPage";
@@ -112,6 +115,9 @@ const App = () => {
               <Route path="/assets/categories" element={<AssetCategoriesPage />} />
               <Route path="/assets/store" element={<AssetStorePage />} />
               <Route path="/assets/requests" element={<AssetRequestsPage />} />
+              <Route path="/assets/audits" element={<AssetAuditsPage />} />
+              <Route path="/assets/logs" element={<AssetLogsPage />} />
+              <Route path="/assets/dashboard" element={<AssetDashboardPage />} />
               <Route path="/org-chart" element={<OrgChartPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/timesheets" element={<TimesheetsPage />} />
