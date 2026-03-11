@@ -7,8 +7,6 @@ export interface MaintenanceRecord {
   assetId: string;
   type: "repair" | "service" | "inspection" | "upgrade" | "replacement";
   date: string;
-  vendor: string;
-  cost: number;
   notes: string;
   nextServiceDate?: string;
   performedBy: string;
