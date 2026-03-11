@@ -93,12 +93,6 @@ export default function AssetInventoryPage() {
   const activeCats = categories.filter(c => c.status === "active");
   const inventoryCategories = [...new Set(assets.map(a => a.category))];
 
-  // Bulk helpers
-  const filteredStoreItems = storeItems.filter(si => {
-    if (!bulkCategory) return false;
-    const cat = categories.find(c => c.id === bulkCategory);
-    return cat && si.categoryName === cat.name && si.status === "active";
-  });
 
   const generatePreview = () => {
     if (bulkSerialMode === "auto") {
