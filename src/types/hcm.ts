@@ -142,7 +142,8 @@ export interface Asset {
   employeeId: string | null;
   employeeName: string | null;
   assignedDate: string | null;
-  status: "assigned" | "available" | "maintenance";
+  status: "assigned" | "available" | "maintenance" | "retired";
+  returnDate?: string | null;
 }
 
 export interface Project {

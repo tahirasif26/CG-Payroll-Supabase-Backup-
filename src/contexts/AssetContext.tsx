@@ -48,6 +48,7 @@ interface AssetContextType {
   reassignAsset: (id: string, toEmployeeId: string | null, toEmployeeName: string | null) => void;
   getAssetHistory: (assetId: string) => AssetHistoryEntry[];
   getAssetsForEmployee: (employeeId: string) => Asset[];
+  bulkAddAssets: (assets: Asset[]) => void;
   // Categories
   categories: AssetCategory[];
   addCategory: (cat: AssetCategory) => void;
@@ -128,6 +129,14 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   const getAssetHistory = (assetId: string) => history.filter(h => h.assetId === assetId).sort((a, b) => b.date.localeCompare(a.date));
   const getAssetsForEmployee = (employeeId: string) => assets.filter(a => a.employeeId === employeeId);
 
+  const bulkAddAssets = (newAssets: Asset[]) => {
+    setAssets(prev => [...prev, ...newAssets]);
+    const today = new Date().toISOString().split("T")[0];
+    newAssets.forEach(asset => {
+      addHistoryEntry({ assetId: asset.id, action: "created", toEmployeeId: null, toEmployeeName: null, date: today, note: `Asset "${asset.name}" bulk created` });
+    });
+  };
+
   // ---- Categories ----
   const addCategory = (cat: AssetCategory) => setCategories(prev => [...prev, cat]);
   const updateCategory = (id: string, data: Partial<AssetCategory>) => setCategories(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
@@ -157,7 +166,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
 
   return (
     <AssetContext.Provider value={{
-      assets, history, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory, getAssetsForEmployee,
+      assets, history, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory, getAssetsForEmployee, bulkAddAssets,
       categories, addCategory, updateCategory, deleteCategory, canDeleteCategory,
       storeItems, addStoreItem, updateStoreItem, deleteStoreItem, canDeleteStoreItem, getStoreItemsForDisplay,
       assetRequests, addAssetRequest, approveRequest, rejectRequest, getEmployeeRequests,
