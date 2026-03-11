@@ -132,8 +132,6 @@ export default function AssetInventoryPage() {
   const [mntAsset, setMntAsset] = useState<Asset | null>(null);
   const [mntType, setMntType] = useState("repair");
   const [mntDate, setMntDate] = useState(new Date().toISOString().split("T")[0]);
-  const [mntVendor, setMntVendor] = useState("");
-  const [mntCost, setMntCost] = useState("");
   const [mntNotes, setMntNotes] = useState("");
   const [mntNextService, setMntNextService] = useState("");
 
@@ -339,7 +337,7 @@ export default function AssetInventoryPage() {
   // Maintenance
   const openMaintenance = (asset: Asset) => {
     setMntAsset(asset); setMntType("repair"); setMntDate(new Date().toISOString().split("T")[0]);
-    setMntVendor(""); setMntCost(""); setMntNotes(""); setMntNextService("");
+    setMntNotes(""); setMntNextService("");
     setMntOpen(true);
   };
   const handleMntSave = (e: React.FormEvent) => {
@@ -350,8 +348,6 @@ export default function AssetInventoryPage() {
       assetId: mntAsset.id,
       type: mntType as MaintenanceRecord["type"],
       date: mntDate,
-      vendor: mntVendor,
-      cost: Number(mntCost) || 0,
       notes: mntNotes,
       nextServiceDate: mntNextService || undefined,
       performedBy: "Admin",
@@ -510,11 +506,9 @@ export default function AssetInventoryPage() {
                             <Badge variant="secondary" className="capitalize">{rec.type}</Badge>
                             <span className="text-xs text-muted-foreground">{new Date(rec.date).toLocaleDateString()}</span>
                           </div>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div><span className="text-muted-foreground">Vendor:</span> {rec.vendor}</div>
-                            <div><span className="text-muted-foreground">Cost:</span> {rec.cost.toLocaleString()}</div>
-                            <div className="col-span-2"><span className="text-muted-foreground">Notes:</span> {rec.notes}</div>
-                            {rec.nextServiceDate && <div className="col-span-2"><span className="text-muted-foreground">Next Service:</span> {new Date(rec.nextServiceDate).toLocaleDateString()}</div>}
+                          <div className="text-sm space-y-1">
+                            <div><span className="text-muted-foreground">Notes:</span> {rec.notes}</div>
+                            {rec.nextServiceDate && <div><span className="text-muted-foreground">Next Service:</span> {new Date(rec.nextServiceDate).toLocaleDateString()}</div>}
                           </div>
                         </CardContent>
                       </Card>
@@ -757,11 +751,7 @@ export default function AssetInventoryPage() {
                 <SelectContent>{maintenanceTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Date</Label><Input type="date" required value={mntDate} onChange={e => setMntDate(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Cost</Label><Input type="number" placeholder="0" value={mntCost} onChange={e => setMntCost(e.target.value)} /></div>
-            </div>
-            <div className="space-y-2"><Label>Vendor</Label><Input required placeholder="e.g. Dell Service Center" value={mntVendor} onChange={e => setMntVendor(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Date</Label><Input type="date" required value={mntDate} onChange={e => setMntDate(e.target.value)} /></div>
             <div className="space-y-2"><Label>Notes</Label><Textarea placeholder="Details about maintenance..." value={mntNotes} onChange={e => setMntNotes(e.target.value)} /></div>
             <div className="space-y-2"><Label>Next Service Date</Label><Input type="date" value={mntNextService} onChange={e => setMntNextService(e.target.value)} /></div>
             <DialogFooter>
