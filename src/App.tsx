@@ -115,6 +115,9 @@ const App = () => {
               <Route path="/assets/categories" element={<AssetCategoriesPage />} />
               <Route path="/assets/store" element={<AssetStorePage />} />
               <Route path="/assets/requests" element={<AssetRequestsPage />} />
+              <Route path="/assets/audits" element={<AssetAuditsPage />} />
+              <Route path="/assets/logs" element={<AssetLogsPage />} />
+              <Route path="/assets/dashboard" element={<AssetDashboardPage />} />
               <Route path="/org-chart" element={<OrgChartPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/timesheets" element={<TimesheetsPage />} />
