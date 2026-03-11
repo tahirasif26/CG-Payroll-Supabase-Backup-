@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
@@ -7,7 +7,7 @@ import { useAssets, AssetHistoryEntry } from "@/contexts/AssetContext";
 import { Asset, AssetStoreItem } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter } from "lucide-react";
+import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter, Upload, Package } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatCard } from "@/components/StatCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import * as XLSX from "xlsx";
 
 let assetIdCounter = 100;
 let storeIdCounter = 200;
@@ -29,7 +30,7 @@ export default function AssetInventoryPage() {
   const activeEmps = useActiveEmployees();
   const {
     assets, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory,
-    categories, addStoreItem,
+    categories, storeItems, addStoreItem, bulkAddAssets,
   } = useAssets();
   const { toast } = useToast();
 
@@ -41,6 +42,7 @@ export default function AssetInventoryPage() {
   const [reassignOpen, setReassignOpen] = useState(false);
   const [reassignItem, setReassignItem] = useState<Asset | null>(null);
   const [reassignTo, setReassignTo] = useState<string>("none");
+  const [reassignReturnDate, setReassignReturnDate] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyAsset, setHistoryAsset] = useState<Asset | null>(null);
   const [historyEntries, setHistoryEntries] = useState<AssetHistoryEntry[]>([]);
@@ -60,6 +62,17 @@ export default function AssetInventoryPage() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
+  // Bulk add state
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkCategory, setBulkCategory] = useState("");
+  const [bulkStoreItem, setBulkStoreItem] = useState("");
+  const [bulkQuantity, setBulkQuantity] = useState(1);
+  const [bulkSerialMode, setBulkSerialMode] = useState<"auto" | "manual">("auto");
+  const [bulkPrefix, setBulkPrefix] = useState("");
+  const [bulkStartNum, setBulkStartNum] = useState("001");
+  const [bulkPreviewSerials, setBulkPreviewSerials] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const allAssets = role === "employee" ? assets.filter(a => a.employeeId === currentEmployeeId) : assets;
   const displayAssets = allAssets.filter(a => {
     const q = search.toLowerCase();
@@ -74,6 +87,80 @@ export default function AssetInventoryPage() {
 
   const activeCats = categories.filter(c => c.status === "active");
   const inventoryCategories = [...new Set(assets.map(a => a.category))];
+
+  // Bulk helpers
+  const filteredStoreItems = storeItems.filter(si => {
+    if (!bulkCategory) return false;
+    const cat = categories.find(c => c.id === bulkCategory);
+    return cat && si.categoryName === cat.name && si.status === "active";
+  });
+
+  const generatePreview = () => {
+    if (bulkSerialMode === "auto") {
+      const start = parseInt(bulkStartNum) || 1;
+      const padLen = bulkStartNum.length;
+      const serials = Array.from({ length: bulkQuantity }, (_, i) =>
+        `${bulkPrefix}${String(start + i).padStart(padLen, "0")}`
+      );
+      setBulkPreviewSerials(serials);
+    }
+  };
+
+  const handleBulkFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const data = evt.target?.result;
+      const workbook = XLSX.read(data, { type: "binary" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet);
+      const serials = rows
+        .map(r => r["Serial Number"] || r["serial_number"] || r["SerialNumber"] || r["serial number"] || Object.values(r)[0])
+        .filter(Boolean)
+        .map(String);
+      if (serials.length === 0) {
+        toast({ title: "No serials found", description: "Ensure the file has a 'Serial Number' column.", variant: "destructive" });
+        return;
+      }
+      setBulkPreviewSerials(serials);
+      setBulkQuantity(serials.length);
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = "";
+  };
+
+  const handleBulkSave = () => {
+    if (bulkPreviewSerials.length === 0) {
+      toast({ title: "No serials", description: "Generate or import serial numbers first.", variant: "destructive" });
+      return;
+    }
+    const selectedItem = storeItems.find(si => si.id === bulkStoreItem);
+    const catObj = categories.find(c => c.id === bulkCategory);
+    if (!catObj) return;
+
+    const newAssets: Asset[] = bulkPreviewSerials.map(serial => ({
+      id: String(++assetIdCounter),
+      name: selectedItem?.name || catObj.name,
+      category: catObj.name,
+      serialNumber: serial,
+      employeeId: null,
+      employeeName: null,
+      assignedDate: null,
+      status: "available" as const,
+    }));
+
+    bulkAddAssets(newAssets);
+    setBulkOpen(false);
+    setBulkCategory("");
+    setBulkStoreItem("");
+    setBulkQuantity(1);
+    setBulkPrefix("");
+    setBulkStartNum("001");
+    setBulkPreviewSerials([]);
+    setBulkSerialMode("auto");
+    toast({ title: "Bulk Assets Created", description: `${newAssets.length} assets added to inventory.` });
+  };
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,8 +205,17 @@ export default function AssetInventoryPage() {
   const openEdit = (asset: Asset) => { setEditItem(asset); setEditName(asset.name); setEditCategory2(asset.category); setEditSerial(asset.serialNumber); setEditOpen(true); };
   const handleEdit = (e: React.FormEvent) => { e.preventDefault(); if (!editItem) return; updateAsset(editItem.id, { name: editName, category: editCategory2, serialNumber: editSerial }); setEditOpen(false); toast({ title: "Asset Updated", description: `"${editName}" has been updated.` }); };
   const handleDelete = () => { if (!deleteId) return; const asset = assets.find(a => a.id === deleteId); deleteAsset(deleteId); setDeleteConfirmOpen(false); setDeleteId(null); toast({ title: "Asset Deleted", description: `"${asset?.name}" has been removed.` }); };
-  const openReassign = (asset: Asset) => { setReassignItem(asset); setReassignTo(asset.employeeId || "none"); setReassignOpen(true); };
-  const handleReassign = () => { if (!reassignItem) return; const emp = reassignTo !== "none" ? activeEmps.find(e => e.id === reassignTo) : null; reassignAsset(reassignItem.id, emp?.id || null, emp ? `${emp.firstName} ${emp.lastName}` : null); setReassignOpen(false); toast({ title: emp ? "Asset Reassigned" : "Asset Unassigned", description: emp ? `"${reassignItem.name}" assigned to ${emp.firstName} ${emp.lastName}.` : `"${reassignItem.name}" is now unassigned.` }); };
+  const openReassign = (asset: Asset) => { setReassignItem(asset); setReassignTo(asset.employeeId || "none"); setReassignReturnDate(asset.returnDate || ""); setReassignOpen(true); };
+  const handleReassign = () => {
+    if (!reassignItem) return;
+    const emp = reassignTo !== "none" ? activeEmps.find(e => e.id === reassignTo) : null;
+    reassignAsset(reassignItem.id, emp?.id || null, emp ? `${emp.firstName} ${emp.lastName}` : null);
+    if (reassignReturnDate) {
+      updateAsset(reassignItem.id, { returnDate: reassignReturnDate }, "Return date set");
+    }
+    setReassignOpen(false);
+    toast({ title: emp ? "Asset Reassigned" : "Asset Unassigned", description: emp ? `"${reassignItem.name}" assigned to ${emp.firstName} ${emp.lastName}.` : `"${reassignItem.name}" is now unassigned.` });
+  };
   const openHistory = (asset: Asset) => { setHistoryAsset(asset); setHistoryEntries(getAssetHistory(asset.id)); setHistoryOpen(true); };
 
   const actionLabel = (action: AssetHistoryEntry["action"]) => {
@@ -136,9 +232,14 @@ export default function AssetInventoryPage() {
         description={role === "employee" ? "View your assigned assets." : "Manage company asset inventory."}
       >
         {role === "employer" && (
-          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />Add Asset
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)}>
+              <Package className="h-4 w-4 mr-2" />Bulk Add Assets
+            </Button>
+            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />Add Asset
+            </Button>
+          </div>
         )}
       </PageHeader>
 
@@ -167,6 +268,7 @@ export default function AssetInventoryPage() {
             <SelectItem value="assigned">Assigned</SelectItem>
             <SelectItem value="available">Available</SelectItem>
             <SelectItem value="maintenance">Maintenance</SelectItem>
+            <SelectItem value="retired">Retired</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -264,6 +366,105 @@ export default function AssetInventoryPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Bulk Add Assets Dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Add Assets</DialogTitle>
+            <DialogDescription>Create multiple asset records at once with auto-generated or imported serial numbers.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Asset Category</Label>
+                <Select value={bulkCategory} onValueChange={v => { setBulkCategory(v); setBulkStoreItem(""); setBulkPreviewSerials([]); }}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>{activeCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Asset Model</Label>
+                <Select value={bulkStoreItem} onValueChange={setBulkStoreItem} disabled={!bulkCategory}>
+                  <SelectTrigger><SelectValue placeholder={bulkCategory ? "Select model" : "Select category first"} /></SelectTrigger>
+                  <SelectContent>
+                    {filteredStoreItems.map(si => <SelectItem key={si.id} value={si.id}>{si.name} ({si.brand} {si.model})</SelectItem>)}
+                    {filteredStoreItems.length === 0 && <SelectItem value="_none" disabled>No models in this category</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Serial Number Generation</Label>
+              <RadioGroup value={bulkSerialMode} onValueChange={v => { setBulkSerialMode(v as "auto" | "manual"); setBulkPreviewSerials([]); }} className="flex gap-6">
+                <div className="flex items-center gap-2"><RadioGroupItem value="auto" id="serial-auto" /><Label htmlFor="serial-auto" className="font-normal">Auto Generate</Label></div>
+                <div className="flex items-center gap-2"><RadioGroupItem value="manual" id="serial-manual" /><Label htmlFor="serial-manual" className="font-normal">Manual Import</Label></div>
+              </RadioGroup>
+            </div>
+
+            {bulkSerialMode === "auto" && (
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label>Serial Prefix</Label>
+                    <Input placeholder="e.g. LAP" value={bulkPrefix} onChange={e => setBulkPrefix(e.target.value.toUpperCase())} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Starting Number</Label>
+                    <Input placeholder="e.g. 001" value={bulkStartNum} onChange={e => setBulkStartNum(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Quantity</Label>
+                    <Input type="number" min={1} max={500} value={bulkQuantity} onChange={e => setBulkQuantity(Math.max(1, parseInt(e.target.value) || 1))} />
+                  </div>
+                </div>
+                <Button type="button" variant="outline" onClick={generatePreview} disabled={!bulkPrefix || !bulkStartNum}>
+                  Generate Preview
+                </Button>
+              </div>
+            )}
+
+            {bulkSerialMode === "manual" && (
+              <div className="space-y-3 p-4 bg-muted/30 rounded-lg border">
+                <Label>Upload CSV or Excel File</Label>
+                <p className="text-sm text-muted-foreground">File must contain a "Serial Number" column.</p>
+                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleBulkFileUpload} className="hidden" />
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" />Choose File
+                </Button>
+              </div>
+            )}
+
+            {bulkPreviewSerials.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Preview ({bulkPreviewSerials.length} serials)</Label>
+                  <Badge variant="secondary">{bulkPreviewSerials.length} assets</Badge>
+                </div>
+                <ScrollArea className="h-48 rounded-lg border bg-muted/20 p-3">
+                  <div className="space-y-1">
+                    {bulkPreviewSerials.map((serial, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm font-mono py-1 px-2 rounded hover:bg-muted/50">
+                        <span className="text-muted-foreground w-8 text-right">{i + 1}.</span>
+                        <span>{serial}</span>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancel</Button>
+            <Button onClick={handleBulkSave} disabled={bulkPreviewSerials.length === 0 || !bulkCategory}>
+              <Package className="h-4 w-4 mr-2" />Create {bulkPreviewSerials.length} Assets
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Asset Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
@@ -312,6 +513,10 @@ export default function AssetInventoryPage() {
                   {activeEmps.map(emp => <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Return Date (Optional)</Label>
+              <Input type="date" value={reassignReturnDate} onChange={e => setReassignReturnDate(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
