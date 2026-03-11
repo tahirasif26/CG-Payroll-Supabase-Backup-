@@ -65,7 +65,7 @@ export default function AssetDashboardPage() {
         <StatCard title="Assigned" value={assignedAssets} icon={Laptop} variant="info" />
         <StatCard title="Available" value={availableAssets} icon={Key} variant="success" />
         <StatCard title="Maintenance" value={maintenanceAssets} icon={Wrench} variant="warning" />
-        <StatCard title="Warranty Expiring" value={warrantyExpiring} icon={AlertTriangle} variant="danger" />
+        <StatCard title="Warranty Expiring" value={warrantyExpiring} icon={AlertTriangle} variant="warning" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
