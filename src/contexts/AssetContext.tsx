@@ -129,6 +129,14 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   const getAssetHistory = (assetId: string) => history.filter(h => h.assetId === assetId).sort((a, b) => b.date.localeCompare(a.date));
   const getAssetsForEmployee = (employeeId: string) => assets.filter(a => a.employeeId === employeeId);
 
+  const bulkAddAssets = (newAssets: Asset[]) => {
+    setAssets(prev => [...prev, ...newAssets]);
+    const today = new Date().toISOString().split("T")[0];
+    newAssets.forEach(asset => {
+      addHistoryEntry({ assetId: asset.id, action: "created", toEmployeeId: null, toEmployeeName: null, date: today, note: `Asset "${asset.name}" bulk created` });
+    });
+  };
+
   // ---- Categories ----
   const addCategory = (cat: AssetCategory) => setCategories(prev => [...prev, cat]);
   const updateCategory = (id: string, data: Partial<AssetCategory>) => setCategories(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
