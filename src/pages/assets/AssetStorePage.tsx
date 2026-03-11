@@ -6,7 +6,7 @@ import { useAssets } from "@/contexts/AssetContext";
 import { AssetStoreItem } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit2, Trash2, Search, ShoppingBag, ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, ShoppingBag, ImageIcon, LayoutGrid, List } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 let storeIdCounter = 100;
 let reqIdCounter = 100;
@@ -29,6 +30,7 @@ export default function AssetStorePage() {
   } = useAssets();
   const { toast } = useToast();
 
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [storeDialogOpen, setStoreDialogOpen] = useState(false);
   const [storeEditItem, setStoreEditItem] = useState<AssetStoreItem | null>(null);
   const [siName, setSiName] = useState("");
@@ -110,19 +112,105 @@ export default function AssetStorePage() {
     toast({ title: "Request Submitted", description: `Your request for "${reqStoreItem.name}" has been submitted.` });
   };
 
+  const renderStoreCard = (item: AssetStoreItem) => (
+    <Card key={item.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-border/60">
+      <div className="relative h-48 bg-muted/50 overflow-hidden">
+        {item.image ? (
+          <img
+            src={item.image}
+            alt={item.name}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+            <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
+            <span className="text-xs text-muted-foreground/40">No image</span>
+          </div>
+        )}
+        {role === "employer" && (
+          <Badge
+            variant={item.status === "active" ? "default" : "secondary"}
+            className="absolute top-2 right-2 text-[10px]"
+          >
+            {item.status === "active" ? "Active" : "Inactive"}
+          </Badge>
+        )}
+      </div>
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <h3 className="font-semibold text-sm leading-tight truncate">{item.name}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{item.categoryName}</p>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <span className="font-medium text-foreground">{item.brand}</span>
+          </span>
+          <span className="text-border">•</span>
+          <span>{item.model}</span>
+        </div>
+        {item.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{item.description}</p>
+        )}
+        <div className="pt-1">
+          {role === "employee" ? (
+            <Button size="sm" className="w-full" onClick={() => openRequestDialog(item)}>
+              <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />Request Asset
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1" onClick={() => openRequestDialog(item)}>
+                <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />Request
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => openStoreDialog(item)}>
+                <Edit2 className="h-3.5 w-3.5" />
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => handleStoreDelete(item.id)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Asset Store"
-        description={role === "employee" ? "Browse and request company assets." : "Manage the asset store catalog."}
+        description="Browse and request company assets."
       >
-        {role === "employer" && (
-          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => openStoreDialog()}>
-            <Plus className="h-4 w-4 mr-2" />Add to Store
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {role === "employer" && (
+            <>
+              <div className="flex items-center rounded-md border border-input bg-background p-0.5">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant={viewMode === "table" ? "default" : "ghost"}
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setViewMode("table")}
+                >
+                  <List className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => openStoreDialog()}>
+                <Plus className="h-4 w-4 mr-2" />Add to Store
+              </Button>
+            </>
+          )}
+        </div>
       </PageHeader>
 
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -144,37 +232,23 @@ export default function AssetStorePage() {
         </Select>
       </div>
 
-      {/* Employee: Card Grid */}
-      {role === "employee" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {displayStoreItems.length > 0 ? displayStoreItems.map(item => (
-            <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <div className="aspect-[4/3] bg-muted flex items-center justify-center">
-                {item.image ? (
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                ) : (
-                  <ImageIcon className="h-12 w-12 text-muted-foreground/40" />
-                )}
-              </div>
-              <CardContent className="p-4 space-y-2">
-                <h3 className="font-semibold text-base leading-tight">{item.name}</h3>
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>Category: {item.categoryName}</p>
-                  <p>Brand: {item.brand}</p>
-                  <p>Model: {item.model}</p>
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
-                <Button size="sm" className="w-full mt-2" onClick={() => openRequestDialog(item)}>
-                  <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />Request
-                </Button>
-              </CardContent>
-            </Card>
-          )) : (
-            <div className="col-span-full text-center py-12 text-muted-foreground">No assets available in the store.</div>
-          )}
-        </div>
+      {/* Grid View (default for both roles) */}
+      {(role === "employee" || viewMode === "grid") ? (
+        displayStoreItems.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {displayStoreItems.map(renderStoreCard)}
+          </div>
+        ) : (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <ShoppingBag className="h-12 w-12 text-muted-foreground/30 mb-3" />
+              <p className="text-muted-foreground font-medium">No assets available in the store.</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Check back later or adjust your filters.</p>
+            </CardContent>
+          </Card>
+        )
       ) : (
-        /* Admin: Table */
+        /* Admin Table View */
         <div className="bg-card rounded-xl border overflow-hidden">
           <Table>
             <TableHeader>
