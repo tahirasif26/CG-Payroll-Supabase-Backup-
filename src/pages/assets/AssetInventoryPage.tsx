@@ -132,8 +132,6 @@ export default function AssetInventoryPage() {
   const [mntAsset, setMntAsset] = useState<Asset | null>(null);
   const [mntType, setMntType] = useState("repair");
   const [mntDate, setMntDate] = useState(new Date().toISOString().split("T")[0]);
-  const [mntVendor, setMntVendor] = useState("");
-  const [mntCost, setMntCost] = useState("");
   const [mntNotes, setMntNotes] = useState("");
   const [mntNextService, setMntNextService] = useState("");
 
