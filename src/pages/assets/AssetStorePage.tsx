@@ -307,7 +307,7 @@ export default function AssetStorePage() {
               <div className="space-y-2"><Label>Model</Label><Input required value={siModel} onChange={e => setSiModel(e.target.value)} placeholder="e.g. MacBook Pro" /></div>
             </div>
             <div className="space-y-2"><Label>Description</Label><Textarea required value={siDesc} onChange={e => setSiDesc(e.target.value)} placeholder="Describe this asset..." /></div>
-            <div className="space-y-2"><Label>Image URL</Label><Input value={siImage} onChange={e => setSiImage(e.target.value)} placeholder="https://..." /></div>
+            <ImageUpload value={siImage} onChange={setSiImage} label="Product Image" />
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={siStatus} onValueChange={(v: "active" | "inactive") => setSiStatus(v)}>
