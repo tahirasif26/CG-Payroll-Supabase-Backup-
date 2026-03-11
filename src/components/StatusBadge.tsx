@@ -20,6 +20,7 @@ const styles: Record<StatusVariant, string> = {
   maintenance: "bg-warning/15 text-warning",
   submitted: "bg-info/15 text-info",
   "on-hold": "bg-warning/15 text-warning",
+  retired: "bg-muted text-muted-foreground",
 };
 
 export function StatusBadge({ status }: { status: StatusVariant }) {
