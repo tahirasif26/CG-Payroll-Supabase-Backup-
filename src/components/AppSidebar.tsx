@@ -31,7 +31,7 @@ const employeesSubNav = [
 ];
 
 const assetTrackingNav = [
-  { title: "Asset Inventory", url: "/assets/inventory", icon: Monitor },
+  { title: "Asset Management", url: "/assets/inventory", icon: Monitor },
   { title: "Asset Categories", url: "/assets/categories", icon: Layers },
   { title: "Asset Store", url: "/assets/store", icon: Tag },
   { title: "Asset Requests", url: "/assets/requests", icon: Shield },
