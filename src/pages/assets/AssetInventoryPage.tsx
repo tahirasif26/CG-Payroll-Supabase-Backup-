@@ -65,12 +65,17 @@ export default function AssetInventoryPage() {
   // Bulk add state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkCategory, setBulkCategory] = useState("");
-  const [bulkStoreItem, setBulkStoreItem] = useState("");
+  const [bulkName, setBulkName] = useState("");
+  const [bulkBrand, setBulkBrand] = useState("");
+  const [bulkModel2, setBulkModel2] = useState("");
   const [bulkQuantity, setBulkQuantity] = useState(1);
   const [bulkSerialMode, setBulkSerialMode] = useState<"auto" | "manual">("auto");
   const [bulkPrefix, setBulkPrefix] = useState("");
   const [bulkStartNum, setBulkStartNum] = useState("001");
   const [bulkPreviewSerials, setBulkPreviewSerials] = useState<string[]>([]);
+  const [bulkPublish, setBulkPublish] = useState("none");
+  const [bulkImage, setBulkImage] = useState("");
+  const [bulkDescription, setBulkDescription] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const allAssets = role === "employee" ? assets.filter(a => a.employeeId === currentEmployeeId) : assets;
