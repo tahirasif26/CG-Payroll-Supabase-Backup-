@@ -751,11 +751,7 @@ export default function AssetInventoryPage() {
                 <SelectContent>{maintenanceTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Date</Label><Input type="date" required value={mntDate} onChange={e => setMntDate(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Cost</Label><Input type="number" placeholder="0" value={mntCost} onChange={e => setMntCost(e.target.value)} /></div>
-            </div>
-            <div className="space-y-2"><Label>Vendor</Label><Input required placeholder="e.g. Dell Service Center" value={mntVendor} onChange={e => setMntVendor(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Date</Label><Input type="date" required value={mntDate} onChange={e => setMntDate(e.target.value)} /></div>
             <div className="space-y-2"><Label>Notes</Label><Textarea placeholder="Details about maintenance..." value={mntNotes} onChange={e => setMntNotes(e.target.value)} /></div>
             <div className="space-y-2"><Label>Next Service Date</Label><Input type="date" value={mntNextService} onChange={e => setMntNextService(e.target.value)} /></div>
             <DialogFooter>

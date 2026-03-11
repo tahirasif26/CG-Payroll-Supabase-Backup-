@@ -190,7 +190,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     const asset = assets.find(a => a.id === record.assetId);
     if (asset) {
       addHistoryEntry({ assetId: record.assetId, action: "maintenance", date: record.date, note: `${record.type}: ${record.notes}` });
-      addLogEntry({ assetId: record.assetId, assetTag: asset.assetTag, assetName: asset.name, activity: "Maintenance Recorded", performedBy: record.performedBy, date: record.date, details: `${record.type} by ${record.vendor} - Cost: ${record.cost}` });
+      addLogEntry({ assetId: record.assetId, assetTag: asset.assetTag, assetName: asset.name, activity: "Maintenance Recorded", performedBy: record.performedBy, date: record.date, details: `${record.type} - ${record.notes}` });
       if (record.nextServiceDate) {
         setAssets(prev => prev.map(a => a.id === record.assetId ? { ...a, serviceDueDate: record.nextServiceDate } : a));
       }
