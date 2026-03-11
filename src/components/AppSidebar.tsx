@@ -31,10 +31,13 @@ const employeesSubNav = [
 ];
 
 const assetTrackingNav = [
-  { title: "Asset Management", url: "/assets/inventory", icon: Monitor },
+  { title: "Dashboard", url: "/assets/dashboard", icon: PieChart },
+  { title: "Asset Inventory", url: "/assets/inventory", icon: Monitor },
   { title: "Asset Categories", url: "/assets/categories", icon: Layers },
   { title: "Asset Store", url: "/assets/store", icon: Tag },
   { title: "Asset Requests", url: "/assets/requests", icon: Shield },
+  { title: "Asset Audits", url: "/assets/audits", icon: ClipboardList },
+  { title: "Asset Logs", url: "/assets/logs", icon: Activity },
 ];
 
 const accessManagementNav = [
