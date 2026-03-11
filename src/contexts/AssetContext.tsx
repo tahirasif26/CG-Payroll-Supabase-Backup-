@@ -166,7 +166,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
 
   return (
     <AssetContext.Provider value={{
-      assets, history, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory, getAssetsForEmployee,
+      assets, history, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory, getAssetsForEmployee, bulkAddAssets,
       categories, addCategory, updateCategory, deleteCategory, canDeleteCategory,
       storeItems, addStoreItem, updateStoreItem, deleteStoreItem, canDeleteStoreItem, getStoreItemsForDisplay,
       assetRequests, addAssetRequest, approveRequest, rejectRequest, getEmployeeRequests,
