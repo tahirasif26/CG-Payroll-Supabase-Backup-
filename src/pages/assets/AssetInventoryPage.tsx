@@ -65,12 +65,17 @@ export default function AssetInventoryPage() {
   // Bulk add state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkCategory, setBulkCategory] = useState("");
-  const [bulkStoreItem, setBulkStoreItem] = useState("");
+  const [bulkName, setBulkName] = useState("");
+  const [bulkBrand, setBulkBrand] = useState("");
+  const [bulkModel2, setBulkModel2] = useState("");
   const [bulkQuantity, setBulkQuantity] = useState(1);
   const [bulkSerialMode, setBulkSerialMode] = useState<"auto" | "manual">("auto");
   const [bulkPrefix, setBulkPrefix] = useState("");
   const [bulkStartNum, setBulkStartNum] = useState("001");
   const [bulkPreviewSerials, setBulkPreviewSerials] = useState<string[]>([]);
+  const [bulkPublish, setBulkPublish] = useState("none");
+  const [bulkImage, setBulkImage] = useState("");
+  const [bulkDescription, setBulkDescription] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const allAssets = role === "employee" ? assets.filter(a => a.employeeId === currentEmployeeId) : assets;
@@ -88,12 +93,6 @@ export default function AssetInventoryPage() {
   const activeCats = categories.filter(c => c.status === "active");
   const inventoryCategories = [...new Set(assets.map(a => a.category))];
 
-  // Bulk helpers
-  const filteredStoreItems = storeItems.filter(si => {
-    if (!bulkCategory) return false;
-    const cat = categories.find(c => c.id === bulkCategory);
-    return cat && si.categoryName === cat.name && si.status === "active";
-  });
 
   const generatePreview = () => {
     if (bulkSerialMode === "auto") {
@@ -135,13 +134,20 @@ export default function AssetInventoryPage() {
       toast({ title: "No serials", description: "Generate or import serial numbers first.", variant: "destructive" });
       return;
     }
-    const selectedItem = storeItems.find(si => si.id === bulkStoreItem);
+    if (!bulkName.trim()) {
+      toast({ title: "Missing name", description: "Please enter an asset name.", variant: "destructive" });
+      return;
+    }
+    if (bulkPublish === "publish" && (!bulkImage || !bulkDescription)) {
+      toast({ title: "Missing Fields", description: "Image and description are required when publishing to store.", variant: "destructive" });
+      return;
+    }
     const catObj = categories.find(c => c.id === bulkCategory);
     if (!catObj) return;
 
     const newAssets: Asset[] = bulkPreviewSerials.map(serial => ({
       id: String(++assetIdCounter),
-      name: selectedItem?.name || catObj.name,
+      name: bulkName,
       category: catObj.name,
       serialNumber: serial,
       employeeId: null,
@@ -151,14 +157,29 @@ export default function AssetInventoryPage() {
     }));
 
     bulkAddAssets(newAssets);
+
+    if (bulkPublish === "publish") {
+      const si: AssetStoreItem = {
+        id: `si-${++storeIdCounter}`,
+        name: bulkName,
+        categoryId: catObj.id,
+        categoryName: catObj.name,
+        brand: bulkBrand,
+        model: bulkModel2,
+        description: bulkDescription,
+        image: bulkImage,
+        status: "active",
+        publishToStore: true,
+        createdDate: new Date().toISOString().split("T")[0],
+      };
+      addStoreItem(si);
+    }
+
     setBulkOpen(false);
-    setBulkCategory("");
-    setBulkStoreItem("");
-    setBulkQuantity(1);
-    setBulkPrefix("");
-    setBulkStartNum("001");
-    setBulkPreviewSerials([]);
-    setBulkSerialMode("auto");
+    setBulkCategory(""); setBulkName(""); setBulkBrand(""); setBulkModel2("");
+    setBulkQuantity(1); setBulkPrefix(""); setBulkStartNum("001");
+    setBulkPreviewSerials([]); setBulkSerialMode("auto");
+    setBulkPublish("none"); setBulkImage(""); setBulkDescription("");
     toast({ title: "Bulk Assets Created", description: `${newAssets.length} assets added to inventory.` });
   };
 
@@ -374,23 +395,25 @@ export default function AssetInventoryPage() {
             <DialogDescription>Create multiple asset records at once with auto-generated or imported serial numbers.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Asset Category</Label>
+              <Select value={bulkCategory} onValueChange={v => { setBulkCategory(v); setBulkPreviewSerials([]); }}>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>{activeCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Asset Name</Label>
+              <Input placeholder='e.g. MacBook Pro 14"' required value={bulkName} onChange={e => setBulkName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Asset Category</Label>
-                <Select value={bulkCategory} onValueChange={v => { setBulkCategory(v); setBulkStoreItem(""); setBulkPreviewSerials([]); }}>
-                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>{activeCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Label>Brand</Label>
+                <Input placeholder="e.g. Apple" value={bulkBrand} onChange={e => setBulkBrand(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Asset Model</Label>
-                <Select value={bulkStoreItem} onValueChange={setBulkStoreItem} disabled={!bulkCategory}>
-                  <SelectTrigger><SelectValue placeholder={bulkCategory ? "Select model" : "Select category first"} /></SelectTrigger>
-                  <SelectContent>
-                    {filteredStoreItems.map(si => <SelectItem key={si.id} value={si.id}>{si.name} ({si.brand} {si.model})</SelectItem>)}
-                    {filteredStoreItems.length === 0 && <SelectItem value="_none" disabled>No models in this category</SelectItem>}
-                  </SelectContent>
-                </Select>
+                <Label>Model</Label>
+                <Input placeholder="e.g. M3 Pro" value={bulkModel2} onChange={e => setBulkModel2(e.target.value)} />
               </div>
             </div>
 
@@ -455,10 +478,25 @@ export default function AssetInventoryPage() {
                 </ScrollArea>
               </div>
             )}
+
+            <Separator />
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Publish to Store</Label>
+              <RadioGroup value={bulkPublish} onValueChange={setBulkPublish} className="flex gap-4">
+                <div className="flex items-center gap-2"><RadioGroupItem value="none" id="bulk-pub-none" /><Label htmlFor="bulk-pub-none" className="font-normal">None</Label></div>
+                <div className="flex items-center gap-2"><RadioGroupItem value="publish" id="bulk-pub-store" /><Label htmlFor="bulk-pub-store" className="font-normal">Publish to Store</Label></div>
+              </RadioGroup>
+            </div>
+            {bulkPublish === "publish" && (
+              <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
+                <ImageUpload value={bulkImage} onChange={setBulkImage} label="Product Image" required />
+                <div className="space-y-2"><Label>Description <span className="text-destructive">*</span></Label><Textarea placeholder="Describe this asset for the store catalog..." required value={bulkDescription} onChange={e => setBulkDescription(e.target.value)} /></div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancel</Button>
-            <Button onClick={handleBulkSave} disabled={bulkPreviewSerials.length === 0 || !bulkCategory}>
+            <Button onClick={handleBulkSave} disabled={bulkPreviewSerials.length === 0 || !bulkCategory || !bulkName.trim()}>
               <Package className="h-4 w-4 mr-2" />Create {bulkPreviewSerials.length} Assets
             </Button>
           </DialogFooter>
