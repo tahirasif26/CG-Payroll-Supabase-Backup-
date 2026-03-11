@@ -348,8 +348,6 @@ export default function AssetInventoryPage() {
       assetId: mntAsset.id,
       type: mntType as MaintenanceRecord["type"],
       date: mntDate,
-      vendor: mntVendor,
-      cost: Number(mntCost) || 0,
       notes: mntNotes,
       nextServiceDate: mntNextService || undefined,
       performedBy: "Admin",
