@@ -108,7 +108,10 @@ const App = () => {
               <Route path="/cost-allocation" element={<CostAllocationPage />} />
               <Route path="/leave" element={<LeavePage />} />
               <Route path="/birthdays" element={<BirthdaysPage />} />
-              <Route path="/assets" element={<AssetsPage />} />
+              <Route path="/assets/inventory" element={<AssetInventoryPage />} />
+              <Route path="/assets/categories" element={<AssetCategoriesPage />} />
+              <Route path="/assets/store" element={<AssetStorePage />} />
+              <Route path="/assets/requests" element={<AssetRequestsPage />} />
               <Route path="/org-chart" element={<OrgChartPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/timesheets" element={<TimesheetsPage />} />
