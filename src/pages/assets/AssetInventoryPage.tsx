@@ -337,7 +337,7 @@ export default function AssetInventoryPage() {
   // Maintenance
   const openMaintenance = (asset: Asset) => {
     setMntAsset(asset); setMntType("repair"); setMntDate(new Date().toISOString().split("T")[0]);
-    setMntVendor(""); setMntCost(""); setMntNotes(""); setMntNextService("");
+    setMntNotes(""); setMntNextService("");
     setMntOpen(true);
   };
   const handleMntSave = (e: React.FormEvent) => {
