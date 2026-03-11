@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ImageUpload } from "@/components/ImageUpload";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
@@ -251,7 +252,7 @@ export default function AssetInventoryPage() {
             </div>
             {newPublish === "publish" && (
               <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
-                <div className="space-y-2"><Label>Product Image URL <span className="text-destructive">*</span></Label><Input placeholder="https://..." required value={newImage} onChange={e => setNewImage(e.target.value)} /></div>
+                <ImageUpload value={newImage} onChange={setNewImage} label="Product Image" required />
                 <div className="space-y-2"><Label>Description <span className="text-destructive">*</span></Label><Textarea placeholder="Describe this asset for the store catalog..." required value={newDescription} onChange={e => setNewDescription(e.target.value)} /></div>
               </div>
             )}
