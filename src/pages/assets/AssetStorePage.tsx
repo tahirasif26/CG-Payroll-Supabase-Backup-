@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ImageUpload } from "@/components/ImageUpload";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
