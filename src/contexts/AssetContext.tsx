@@ -48,6 +48,7 @@ interface AssetContextType {
   reassignAsset: (id: string, toEmployeeId: string | null, toEmployeeName: string | null) => void;
   getAssetHistory: (assetId: string) => AssetHistoryEntry[];
   getAssetsForEmployee: (employeeId: string) => Asset[];
+  bulkAddAssets: (assets: Asset[]) => void;
   // Categories
   categories: AssetCategory[];
   addCategory: (cat: AssetCategory) => void;
