@@ -140,13 +140,20 @@ export default function AssetInventoryPage() {
       toast({ title: "No serials", description: "Generate or import serial numbers first.", variant: "destructive" });
       return;
     }
-    const selectedItem = storeItems.find(si => si.id === bulkStoreItem);
+    if (!bulkName.trim()) {
+      toast({ title: "Missing name", description: "Please enter an asset name.", variant: "destructive" });
+      return;
+    }
+    if (bulkPublish === "publish" && (!bulkImage || !bulkDescription)) {
+      toast({ title: "Missing Fields", description: "Image and description are required when publishing to store.", variant: "destructive" });
+      return;
+    }
     const catObj = categories.find(c => c.id === bulkCategory);
     if (!catObj) return;
 
     const newAssets: Asset[] = bulkPreviewSerials.map(serial => ({
       id: String(++assetIdCounter),
-      name: selectedItem?.name || catObj.name,
+      name: bulkName,
       category: catObj.name,
       serialNumber: serial,
       employeeId: null,
@@ -156,14 +163,29 @@ export default function AssetInventoryPage() {
     }));
 
     bulkAddAssets(newAssets);
+
+    if (bulkPublish === "publish") {
+      const si: AssetStoreItem = {
+        id: `si-${++storeIdCounter}`,
+        name: bulkName,
+        categoryId: catObj.id,
+        categoryName: catObj.name,
+        brand: bulkBrand,
+        model: bulkModel2,
+        description: bulkDescription,
+        image: bulkImage,
+        status: "active",
+        publishToStore: true,
+        createdDate: new Date().toISOString().split("T")[0],
+      };
+      addStoreItem(si);
+    }
+
     setBulkOpen(false);
-    setBulkCategory("");
-    setBulkStoreItem("");
-    setBulkQuantity(1);
-    setBulkPrefix("");
-    setBulkStartNum("001");
-    setBulkPreviewSerials([]);
-    setBulkSerialMode("auto");
+    setBulkCategory(""); setBulkName(""); setBulkBrand(""); setBulkModel2("");
+    setBulkQuantity(1); setBulkPrefix(""); setBulkStartNum("001");
+    setBulkPreviewSerials([]); setBulkSerialMode("auto");
+    setBulkPublish("none"); setBulkImage(""); setBulkDescription("");
     toast({ title: "Bulk Assets Created", description: `${newAssets.length} assets added to inventory.` });
   };
 
