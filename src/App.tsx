@@ -34,7 +34,10 @@ import CostAllocationPage from "@/pages/CostAllocationPage";
 import LeavePage from "@/pages/LeavePage";
 import BirthdaysPage from "@/pages/BirthdaysPage";
 import PayslipsPage from "@/pages/PayslipsPage";
-import AssetsPage from "@/pages/AssetsPage";
+import AssetInventoryPage from "@/pages/assets/AssetInventoryPage";
+import AssetCategoriesPage from "@/pages/assets/AssetCategoriesPage";
+import AssetStorePage from "@/pages/assets/AssetStorePage";
+import AssetRequestsPage from "@/pages/assets/AssetRequestsPage";
 import OrgChartPage from "@/pages/OrgChartPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import TimesheetsPage from "@/pages/TimesheetsPage";
@@ -105,7 +108,10 @@ const App = () => {
               <Route path="/cost-allocation" element={<CostAllocationPage />} />
               <Route path="/leave" element={<LeavePage />} />
               <Route path="/birthdays" element={<BirthdaysPage />} />
-              <Route path="/assets" element={<AssetsPage />} />
+              <Route path="/assets/inventory" element={<AssetInventoryPage />} />
+              <Route path="/assets/categories" element={<AssetCategoriesPage />} />
+              <Route path="/assets/store" element={<AssetStorePage />} />
+              <Route path="/assets/requests" element={<AssetRequestsPage />} />
               <Route path="/org-chart" element={<OrgChartPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/timesheets" element={<TimesheetsPage />} />
