@@ -484,10 +484,25 @@ export default function AssetInventoryPage() {
                 </ScrollArea>
               </div>
             )}
+
+            <Separator />
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Publish to Store</Label>
+              <RadioGroup value={bulkPublish} onValueChange={setBulkPublish} className="flex gap-4">
+                <div className="flex items-center gap-2"><RadioGroupItem value="none" id="bulk-pub-none" /><Label htmlFor="bulk-pub-none" className="font-normal">None</Label></div>
+                <div className="flex items-center gap-2"><RadioGroupItem value="publish" id="bulk-pub-store" /><Label htmlFor="bulk-pub-store" className="font-normal">Publish to Store</Label></div>
+              </RadioGroup>
+            </div>
+            {bulkPublish === "publish" && (
+              <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
+                <ImageUpload value={bulkImage} onChange={setBulkImage} label="Product Image" required />
+                <div className="space-y-2"><Label>Description <span className="text-destructive">*</span></Label><Textarea placeholder="Describe this asset for the store catalog..." required value={bulkDescription} onChange={e => setBulkDescription(e.target.value)} /></div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancel</Button>
-            <Button onClick={handleBulkSave} disabled={bulkPreviewSerials.length === 0 || !bulkCategory}>
+            <Button onClick={handleBulkSave} disabled={bulkPreviewSerials.length === 0 || !bulkCategory || !bulkName.trim()}>
               <Package className="h-4 w-4 mr-2" />Create {bulkPreviewSerials.length} Assets
             </Button>
           </DialogFooter>
