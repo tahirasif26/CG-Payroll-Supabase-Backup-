@@ -4,7 +4,7 @@ import { useAssets } from "@/contexts/AssetContext";
 import { AssetAudit, AssetAuditEntry } from "@/types/asset";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, ClipboardCheck, CheckCircle, AlertTriangle, XCircle, Eye } from "lucide-react";
+import { Plus, ClipboardCheck, CheckCircle, AlertTriangle, XCircle, Eye, ScanLine } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import { StatCard } from "@/components/StatCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { StatusBadge } from "@/components/StatusBadge";
+import { QRScannerDialog } from "@/components/assets/QRScannerDialog";
 
 let auditIdCounter = 100;
 let auditEntryIdCounter = 1000;
