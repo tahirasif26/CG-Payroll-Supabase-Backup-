@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { Asset, AssetCategory, AssetStoreItem, AssetRequest } from "@/types/hcm";
-import { MaintenanceRecord, AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
+import { AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
 import { assets as initialAssets } from "@/data/mockData";
 
 export interface AssetHistoryEntry {
