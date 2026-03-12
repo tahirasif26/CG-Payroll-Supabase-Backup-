@@ -374,28 +374,6 @@ export default function AssetInventoryPage() {
     setLabelOpen(true);
   };
 
-  // Maintenance
-  const openMaintenance = (asset: Asset) => {
-    setMntAsset(asset); setMntType("repair"); setMntDate(new Date().toISOString().split("T")[0]);
-    setMntNotes(""); setMntNextService("");
-    setMntOpen(true);
-  };
-  const handleMntSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mntAsset) return;
-    const record: MaintenanceRecord = {
-      id: `mnt-${++mntIdCounter}`,
-      assetId: mntAsset.id,
-      type: mntType as MaintenanceRecord["type"],
-      date: mntDate,
-      notes: mntNotes,
-      nextServiceDate: mntNextService || undefined,
-      performedBy: "Admin",
-    };
-    addMaintenanceRecord(record);
-    setMntOpen(false);
-    toast({ title: "Maintenance Recorded", description: `${mntType} record added for "${mntAsset.name}".` });
-  };
 
   const actionLabel = (action: AssetHistoryEntry["action"]) => {
     const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
