@@ -51,10 +51,6 @@ interface AssetContextType {
   getAssetHistory: (assetId: string) => AssetHistoryEntry[];
   getAssetsForEmployee: (employeeId: string) => Asset[];
   bulkAddAssets: (assets: Asset[]) => void;
-  // Maintenance
-  maintenanceRecords: MaintenanceRecord[];
-  addMaintenanceRecord: (record: MaintenanceRecord) => void;
-  getMaintenanceForAsset: (assetId: string) => MaintenanceRecord[];
   // Audits
   audits: AssetAudit[];
   addAudit: (audit: AssetAudit) => void;
