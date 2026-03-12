@@ -348,6 +348,47 @@ export default function AssetInventoryPage() {
   const openHistory = (asset: Asset) => { setHistoryAsset(asset); setHistoryEntries(getAssetHistory(asset.id)); setHistoryOpen(true); };
   const openDetail = (asset: Asset) => { setDetailAsset(asset); setDetailOpen(true); };
 
+  // QR scan handlers
+  const handleQrScanResult = (payload: { asset_tag: string; asset_id: string }) => {
+    const found = assets.find(a => a.assetTag === payload.asset_tag || a.id === payload.asset_id || a.assetTag.toLowerCase() === payload.asset_tag.toLowerCase());
+    if (!found) {
+      toast({ title: "Asset Not Found", description: `No asset found with tag "${payload.asset_tag}".`, variant: "destructive" });
+      return;
+    }
+    if (qrScanMode === "assign") {
+      setAssignAsset(found);
+      setAssignOpen(true);
+    } else {
+      setVerifyAsset(found);
+      setVerifyOpen(true);
+    }
+  };
+
+  const handleQrVerify = (asset: Asset) => {
+    addAssetLog({ id: `log-qr-${Date.now()}`, assetId: asset.id, assetTag: asset.assetTag, assetName: asset.name, activity: "QR Verified", performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Asset verified via QR scan` });
+    toast({ title: "Asset Verified", description: `${asset.name} (${asset.assetTag}) verified successfully.` });
+  };
+
+  const handleQrReportIssue = (asset: Asset) => {
+    updateAsset(asset.id, { condition: "needs-repair" }, "Issue reported via QR scan");
+    addAssetLog({ id: `log-qr-${Date.now()}`, assetId: asset.id, assetTag: asset.assetTag, assetName: asset.name, activity: "QR Issue Reported", performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Issue reported via QR scan` });
+    toast({ title: "Issue Reported", description: `Issue reported for ${asset.name}.`, variant: "destructive" });
+  };
+
+  const handleQrAssign = (assetId: string, employeeId: string, employeeName: string, notes: string) => {
+    reassignAsset(assetId, employeeId, employeeName);
+    const asset = assets.find(a => a.id === assetId);
+    if (asset) {
+      addAssetLog({ id: `log-qr-${Date.now()}`, assetId, assetTag: asset.assetTag, assetName: asset.name, activity: "QR Assignment", employeeName, performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Assigned to ${employeeName} via QR scan${notes ? `. Notes: ${notes}` : ""}` });
+    }
+    toast({ title: "Asset Assigned via QR", description: `Assigned to ${employeeName}.` });
+  };
+
+  const openLabelSingle = (asset: Asset) => {
+    setLabelPreSelectedIds([asset.id]);
+    setLabelOpen(true);
+  };
+
   // Maintenance
   const openMaintenance = (asset: Asset) => {
     setMntAsset(asset); setMntType("repair"); setMntDate(new Date().toISOString().split("T")[0]);
