@@ -499,53 +499,17 @@ export default function AssetInventoryPage() {
             <DialogDescription>Asset Tag: {detailAsset?.assetTag} | Serial: {detailAsset?.serialNumber}</DialogDescription>
           </DialogHeader>
           {detailAsset && (
-            <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="maintenance">Maintenance History</TabsTrigger>
-              </TabsList>
-              <TabsContent value="details" className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Category</p><p className="font-medium text-sm">{detailAsset.category}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Brand / Model</p><p className="font-medium text-sm">{detailAsset.brand || "—"} {detailAsset.model || ""}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Condition</p><Badge variant={conditionBadgeVariant(detailAsset.condition)}>{detailAsset.condition.replace("-", " ")}</Badge></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Location</p><p className="font-medium text-sm">{detailAsset.location || "—"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Status</p><StatusBadge status={detailAsset.status} /></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Assigned To</p><p className="font-medium text-sm">{detailAsset.employeeName || "Unassigned"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Purchase Date</p><p className="font-medium text-sm">{detailAsset.purchaseDate ? new Date(detailAsset.purchaseDate).toLocaleDateString() : "—"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Warranty Expiry</p><p className="font-medium text-sm">{detailAsset.warrantyExpiry ? new Date(detailAsset.warrantyExpiry).toLocaleDateString() : "—"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Service Due Date</p><p className="font-medium text-sm">{detailAsset.serviceDueDate ? new Date(detailAsset.serviceDueDate).toLocaleDateString() : "—"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Return Date</p><p className="font-medium text-sm">{detailAsset.returnDate ? new Date(detailAsset.returnDate).toLocaleDateString() : "—"}</p></div>
-                </div>
-              </TabsContent>
-              <TabsContent value="maintenance" className="space-y-4 mt-4">
-                {role === "employer" && (
-                  <Button size="sm" variant="outline" onClick={() => openMaintenance(detailAsset)}>
-                    <Plus className="h-4 w-4 mr-2" />Add Maintenance Record
-                  </Button>
-                )}
-                {getMaintenanceForAsset(detailAsset.id).length > 0 ? (
-                  <div className="space-y-3">
-                    {getMaintenanceForAsset(detailAsset.id).map(rec => (
-                      <Card key={rec.id} className="border">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <Badge variant="secondary" className="capitalize">{rec.type}</Badge>
-                            <span className="text-xs text-muted-foreground">{new Date(rec.date).toLocaleDateString()}</span>
-                          </div>
-                          <div className="text-sm space-y-1">
-                            <div><span className="text-muted-foreground">Notes:</span> {rec.notes}</div>
-                            {rec.nextServiceDate && <div><span className="text-muted-foreground">Next Service:</span> {new Date(rec.nextServiceDate).toLocaleDateString()}</div>}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground py-6">No maintenance records.</p>
-                )}
-              </TabsContent>
-            </Tabs>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Category</p><p className="font-medium text-sm">{detailAsset.category}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Brand / Model</p><p className="font-medium text-sm">{detailAsset.brand || "—"} {detailAsset.model || ""}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Condition</p><Badge variant={conditionBadgeVariant(detailAsset.condition)}>{detailAsset.condition.replace("-", " ")}</Badge></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Location</p><p className="font-medium text-sm">{detailAsset.location || "—"}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Status</p><StatusBadge status={detailAsset.status} /></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Assigned To</p><p className="font-medium text-sm">{detailAsset.employeeName || "Unassigned"}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Purchase Date</p><p className="font-medium text-sm">{detailAsset.purchaseDate ? new Date(detailAsset.purchaseDate).toLocaleDateString() : "—"}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Warranty Expiry</p><p className="font-medium text-sm">{detailAsset.warrantyExpiry ? new Date(detailAsset.warrantyExpiry).toLocaleDateString() : "—"}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Return Date</p><p className="font-medium text-sm">{detailAsset.returnDate ? new Date(detailAsset.returnDate).toLocaleDateString() : "—"}</p></div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
