@@ -133,13 +133,6 @@ export default function AssetInventoryPage() {
   const [bulkLocation, setBulkLocation] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Maintenance dialog
-  const [mntOpen, setMntOpen] = useState(false);
-  const [mntAsset, setMntAsset] = useState<Asset | null>(null);
-  const [mntType, setMntType] = useState("repair");
-  const [mntDate, setMntDate] = useState(new Date().toISOString().split("T")[0]);
-  const [mntNotes, setMntNotes] = useState("");
-  const [mntNextService, setMntNextService] = useState("");
 
   const allAssets = role === "employee" ? assets.filter(a => a.employeeId === currentEmployeeId) : assets;
   const displayAssets = allAssets.filter(a => {
