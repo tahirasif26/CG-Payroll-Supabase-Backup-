@@ -6,7 +6,7 @@ import { assets as initialAssets } from "@/data/mockData";
 export interface AssetHistoryEntry {
   id: string;
   assetId: string;
-  action: "assigned" | "unassigned" | "reassigned" | "created" | "deleted" | "edited" | "maintenance" | "retired" | "condition-updated" | "audit-verified";
+  action: "assigned" | "unassigned" | "reassigned" | "created" | "deleted" | "edited" | "retired" | "condition-updated" | "audit-verified";
   fromEmployeeId?: string | null;
   fromEmployeeName?: string | null;
   toEmployeeId?: string | null;

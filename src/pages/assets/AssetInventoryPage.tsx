@@ -377,7 +377,7 @@ export default function AssetInventoryPage() {
 
   const actionLabel = (action: AssetHistoryEntry["action"]) => {
     const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-      assigned: { label: "Assigned", variant: "default" }, unassigned: { label: "Unassigned", variant: "secondary" }, reassigned: { label: "Reassigned", variant: "default" }, created: { label: "Created", variant: "outline" }, deleted: { label: "Deleted", variant: "destructive" }, edited: { label: "Edited", variant: "secondary" }, maintenance: { label: "Maintenance", variant: "secondary" }, retired: { label: "Retired", variant: "destructive" }, "condition-updated": { label: "Condition", variant: "secondary" }, "audit-verified": { label: "Audit", variant: "outline" },
+      assigned: { label: "Assigned", variant: "default" }, unassigned: { label: "Unassigned", variant: "secondary" }, reassigned: { label: "Reassigned", variant: "default" }, created: { label: "Created", variant: "outline" }, deleted: { label: "Deleted", variant: "destructive" }, edited: { label: "Edited", variant: "secondary" }, retired: { label: "Retired", variant: "destructive" }, "condition-updated": { label: "Condition", variant: "secondary" }, "audit-verified": { label: "Audit", variant: "outline" },
     };
     return map[action] || { label: action, variant: "secondary" as const };
   };
