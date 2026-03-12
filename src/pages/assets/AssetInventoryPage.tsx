@@ -910,6 +910,37 @@ export default function AssetInventoryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Label Generator */}
+      <AssetLabelGenerator assets={displayAssets} open={labelOpen} onOpenChange={setLabelOpen} preSelectedIds={labelPreSelectedIds} />
+
+      {/* QR Scanner */}
+      <QRScannerDialog
+        open={qrScanOpen}
+        onOpenChange={setQrScanOpen}
+        onScanResult={handleQrScanResult}
+        title={qrScanMode === "assign" ? "Scan QR to Assign" : "Scan QR to Verify"}
+        description={qrScanMode === "assign" ? "Scan asset QR code to assign to an employee." : "Scan asset QR code to verify or view details."}
+      />
+
+      {/* Verification Panel */}
+      <AssetVerificationPanel
+        asset={verifyAsset}
+        open={verifyOpen}
+        onOpenChange={setVerifyOpen}
+        onVerify={handleQrVerify}
+        onReportIssue={handleQrReportIssue}
+        onViewDetails={(a) => { setVerifyOpen(false); openDetail(a); }}
+      />
+
+      {/* QR Assignment */}
+      <QRAssignmentDialog
+        asset={assignAsset}
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        employees={activeEmps.map(e => ({ id: e.id, firstName: e.firstName, lastName: e.lastName }))}
+        onAssign={handleQrAssign}
+      />
     </div>
   );
 }
