@@ -5,7 +5,6 @@ import { useRole } from "@/contexts/RoleContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useAssets, AssetHistoryEntry } from "@/contexts/AssetContext";
 import { Asset, AssetStoreItem } from "@/types/hcm";
-import { MaintenanceRecord } from "@/types/asset";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter, Upload, Package, Wrench, QrCode, Download, Eye, Tag, ScanLine } from "lucide-react";
