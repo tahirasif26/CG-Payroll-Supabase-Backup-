@@ -30,7 +30,7 @@ import * as XLSX from "xlsx";
 
 let assetIdCounter = 100;
 let storeIdCounter = 200;
-let mntIdCounter = 200;
+
 
 const conditionOptions = [
   { value: "new", label: "New" },
