@@ -85,7 +85,7 @@ export interface ExpenseReimbursement {
   amount: number;
   expenseDate: string;
   submissionDate: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "paid";
   description: string;
   attachments?: string[];
   payrollRunId?: string;
@@ -93,6 +93,8 @@ export interface ExpenseReimbursement {
   exchangeRate?: number;
   originalAmount?: number;
   advanceId?: string;
+  paidDate?: string;
+  paymentMethod?: string;
 }
 
 export interface OneOffAdjustment {

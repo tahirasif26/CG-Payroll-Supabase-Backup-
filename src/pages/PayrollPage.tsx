@@ -271,9 +271,18 @@ export default function PayrollPage() {
       employeeCount: runEmployeeCount, totalGross: runGross, totalDeductions: runDed, totalNet: runGross - runDed,
     } : r));
 
+    const paidDate = new Date().toISOString().split("T")[0];
     expenses.forEach(exp => {
+      if (exp.payrollRunId === id && exp.status === "approved") {
+        exp.status = "paid";
+        exp.paidDate = paidDate;
+        exp.paymentMethod = "Payroll";
+      }
       if (exp.status === "approved" && !exp.payrollRunId) {
         exp.payrollRunId = id;
+        exp.status = "paid";
+        exp.paidDate = paidDate;
+        exp.paymentMethod = "Payroll";
       }
     });
 
