@@ -475,7 +475,7 @@ export default function AssetInventoryPage() {
                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-end gap-0.5">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openLabelSingle(asset)} title="Download Label"><Tag className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openMaintenance(asset)} title="Add Maintenance"><Wrench className="h-3.5 w-3.5" /></Button>
+                      
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openHistory(asset)} title="History"><History className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openReassign(asset)} title="Reassign"><ArrowRightLeft className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(asset)} title="Edit"><Edit2 className="h-3.5 w-3.5" /></Button>
