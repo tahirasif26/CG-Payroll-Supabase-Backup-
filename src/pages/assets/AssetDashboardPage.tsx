@@ -51,7 +51,6 @@ export default function AssetDashboardPage() {
   const statusData = [
     { name: "Assigned", value: assignedAssets },
     { name: "Available", value: availableAssets },
-    { name: "Maintenance", value: maintenanceAssets },
     { name: "Retired", value: assets.filter(a => a.status === "retired").length },
   ].filter(d => d.value > 0);
 
