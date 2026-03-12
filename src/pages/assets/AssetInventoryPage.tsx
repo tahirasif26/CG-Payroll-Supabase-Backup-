@@ -41,13 +41,6 @@ const conditionOptions = [
   { value: "retired", label: "Retired" },
 ];
 
-const maintenanceTypes = [
-  { value: "repair", label: "Repair" },
-  { value: "service", label: "Service" },
-  { value: "inspection", label: "Inspection" },
-  { value: "upgrade", label: "Upgrade" },
-  { value: "replacement", label: "Replacement" },
-];
 
 function generateAssetTag() {
   return `AST-${String(++assetIdCounter).padStart(3, "0")}`;
