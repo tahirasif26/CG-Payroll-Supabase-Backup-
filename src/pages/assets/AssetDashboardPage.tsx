@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAssets } from "@/contexts/AssetContext";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Monitor, Laptop, Key, Wrench, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Monitor, Laptop, Key, AlertTriangle, ShieldCheck } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const COLORS = [
