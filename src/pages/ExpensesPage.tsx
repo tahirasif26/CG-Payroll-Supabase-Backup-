@@ -972,6 +972,18 @@ export default function ExpensesPage() {
                       </p>
                     </div>
                   )}
+                  {selectedExp.paidDate && (
+                    <div>
+                      <span className="text-muted-foreground">Paid Date:</span>
+                      <p className="font-medium">{new Date(selectedExp.paidDate).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {selectedExp.paymentMethod && (
+                    <div>
+                      <span className="text-muted-foreground">Payment Method:</span>
+                      <p className="font-medium">{selectedExp.paymentMethod}</p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <span className="text-sm text-muted-foreground">Description:</span>
