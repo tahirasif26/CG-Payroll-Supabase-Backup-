@@ -7,7 +7,7 @@ import { useAssets, AssetHistoryEntry } from "@/contexts/AssetContext";
 import { Asset, AssetStoreItem } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter, Upload, Package, Wrench, QrCode, Download, Eye, Tag, ScanLine } from "lucide-react";
+import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter, Upload, Package, QrCode, Download, Eye, Tag, ScanLine } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AssetLabelGenerator } from "@/components/assets/AssetLabelGenerator";
 import { QRScannerDialog } from "@/components/assets/QRScannerDialog";
