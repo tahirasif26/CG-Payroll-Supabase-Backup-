@@ -103,6 +103,22 @@ export default function AssetAuditsPage() {
     toast({ title: "Audit Completed" });
   };
 
+  const handleQrAuditScan = (payload: { asset_tag: string; asset_id: string }) => {
+    if (!viewAudit || viewAudit.status !== "in-progress") return;
+    const entry = viewAudit.entries.find(e => e.assetTag === payload.asset_tag || e.assetId === payload.asset_id || e.assetTag.toLowerCase() === payload.asset_tag.toLowerCase());
+    if (!entry) {
+      toast({ title: "Asset Not in Audit", description: `Asset "${payload.asset_tag}" is not part of this audit.`, variant: "destructive" });
+      return;
+    }
+    if (entry.verification !== "pending") {
+      toast({ title: "Already Verified", description: `Asset "${entry.assetName}" was already marked as ${entry.verification}.` });
+      return;
+    }
+    handleVerify(entry.id, "verified");
+    addAssetLog({ id: `log-qr-audit-${Date.now()}`, assetId: entry.assetId, assetTag: entry.assetTag, assetName: entry.assetName, activity: "QR Audit Verification", performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Verified via QR scan in audit "${viewAudit.name}"` });
+    toast({ title: "Asset Verified via QR", description: `${entry.assetName} (${entry.assetTag}) verified.` });
+  };
+
   const totalAudits = audits.length;
   const activeAudits = audits.filter(a => a.status === "in-progress").length;
 
