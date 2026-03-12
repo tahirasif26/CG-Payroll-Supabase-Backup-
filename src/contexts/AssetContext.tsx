@@ -104,7 +104,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<AssetCategory[]>(seedCategories);
   const [storeItems, setStoreItems] = useState<AssetStoreItem[]>(seedStoreItems);
   const [assetRequests, setAssetRequests] = useState<AssetRequest[]>(seedRequests);
-  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>(seedMaintenanceRecords);
+  
   const [audits, setAudits] = useState<AssetAudit[]>([]);
   const [assetLogs, setAssetLogs] = useState<AssetLogEntry[]>(() =>
     initialAssets.map((a, i) => ({
