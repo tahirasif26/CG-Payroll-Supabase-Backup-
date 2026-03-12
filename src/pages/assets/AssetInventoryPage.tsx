@@ -80,6 +80,16 @@ export default function AssetInventoryPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailAsset, setDetailAsset] = useState<Asset | null>(null);
 
+  // Label & QR states
+  const [labelOpen, setLabelOpen] = useState(false);
+  const [labelPreSelectedIds, setLabelPreSelectedIds] = useState<string[]>([]);
+  const [qrScanOpen, setQrScanOpen] = useState(false);
+  const [qrScanMode, setQrScanMode] = useState<"verify" | "assign">("verify");
+  const [verifyAsset, setVerifyAsset] = useState<Asset | null>(null);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [assignAsset, setAssignAsset] = useState<Asset | null>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
+
   // New asset fields
   const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] = useState("");
