@@ -21,7 +21,7 @@ let auditIdCounter = 100;
 let auditEntryIdCounter = 1000;
 
 export default function AssetAuditsPage() {
-  const { assets, audits, addAudit, updateAuditEntry, completeAudit } = useAssets();
+  const { assets, audits, addAudit, updateAuditEntry, completeAudit, addAssetLog } = useAssets();
   const { toast } = useToast();
 
   const [newOpen, setNewOpen] = useState(false);
@@ -31,6 +31,7 @@ export default function AssetAuditsPage() {
 
   const [viewOpen, setViewOpen] = useState(false);
   const [viewAudit, setViewAudit] = useState<AssetAudit | null>(null);
+  const [qrScanOpen, setQrScanOpen] = useState(false);
 
   const departments = [...new Set(assets.map(a => a.category))];
   const locations = [...new Set(assets.map(a => a.location).filter(Boolean))];
