@@ -17,7 +17,7 @@ const styles: Record<StatusVariant, string> = {
   defaulted: "bg-destructive/15 text-destructive",
   assigned: "bg-info/15 text-info",
   available: "bg-success/15 text-success",
-  maintenance: "bg-warning/15 text-warning",
+  
   submitted: "bg-info/15 text-info",
   "on-hold": "bg-warning/15 text-warning",
   retired: "bg-muted text-muted-foreground",
