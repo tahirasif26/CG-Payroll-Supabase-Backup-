@@ -40,9 +40,6 @@ const seedRequests: AssetRequest[] = [
   { id: "req-3", employeeId: "3", employeeName: "Fatima Al-Sayed", storeItemId: "si-5", storeItemName: "Logitech K380", category: "Keyboards", requestDate: "2026-02-28", reason: "Ergonomic keyboard replacement needed.", priority: "low", status: "rejected" },
 ];
 
-const seedMaintenanceRecords: MaintenanceRecord[] = [
-  { id: "mnt-1", assetId: "6", type: "repair", date: "2026-02-15", notes: "Screen replacement due to crack", nextServiceDate: "2026-06-15", performedBy: "IT Admin" },
-];
 
 interface AssetContextType {
   assets: Asset[];
