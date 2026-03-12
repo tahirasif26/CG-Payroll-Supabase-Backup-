@@ -42,7 +42,6 @@ export default function AdvancesPage() {
   const [formPurpose, setFormPurpose] = useState("");
   const [formName, setFormName] = useState("");
   const [formExpectedDate, setFormExpectedDate] = useState<Date | undefined>();
-  const [formSettlementDate, setFormSettlementDate] = useState<Date | undefined>();
   const [formNotes, setFormNotes] = useState("");
   const [formAttachments, setFormAttachments] = useState<string[]>([]);
 
@@ -50,12 +49,12 @@ export default function AdvancesPage() {
 
   const resetForm = () => {
     setFormAmount(""); setFormCurrency("SAR"); setFormPurpose("");
-    setFormName(""); setFormExpectedDate(undefined); setFormSettlementDate(undefined);
+    setFormName(""); setFormExpectedDate(undefined);
     setFormNotes(""); setFormAttachments([]);
   };
 
   const handleSubmit = () => {
-    if (!formName || !formAmount || !formPurpose || !formExpectedDate || !formSettlementDate) {
+    if (!formName || !formAmount || !formPurpose || !formExpectedDate) {
       toast({ title: "Missing Fields", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
@@ -71,7 +70,7 @@ export default function AdvancesPage() {
       status: "pending",
       requestDate: format(new Date(), "yyyy-MM-dd"),
       expectedSpendDate: format(formExpectedDate, "yyyy-MM-dd"),
-      settlementDueDate: format(formSettlementDate, "yyyy-MM-dd"),
+      settlementDueDate: "",
       attachments: formAttachments,
       notes: formNotes,
     });
@@ -247,7 +246,6 @@ export default function AdvancesPage() {
                 <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={viewAdv.status} /></div>
                 <div><span className="text-muted-foreground">Request Date:</span> <span className="font-medium">{viewAdv.requestDate}</span></div>
                 <div><span className="text-muted-foreground">Expected Spend:</span> <span className="font-medium">{viewAdv.expectedSpendDate}</span></div>
-                <div><span className="text-muted-foreground">Settlement Due:</span> <span className="font-medium">{viewAdv.settlementDueDate}</span></div>
               </div>
               <div><span className="text-muted-foreground">Purpose:</span> <p className="mt-1">{viewAdv.purpose}</p></div>
               {viewAdv.notes && <div><span className="text-muted-foreground">Notes:</span> <p className="mt-1">{viewAdv.notes}</p></div>}
@@ -325,20 +323,6 @@ export default function AdvancesPage() {
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar mode="single" selected={formExpectedDate} onSelect={setFormExpectedDate} initialFocus className="p-3 pointer-events-auto" />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Settlement Due Date <span className="text-destructive">*</span></Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full mt-1 h-8 text-xs justify-start", !formSettlementDate && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-1 h-3 w-3" />
-                          {formSettlementDate ? format(formSettlementDate, "PPP") : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={formSettlementDate} onSelect={setFormSettlementDate} initialFocus className="p-3 pointer-events-auto" />
                       </PopoverContent>
                     </Popover>
                   </div>
