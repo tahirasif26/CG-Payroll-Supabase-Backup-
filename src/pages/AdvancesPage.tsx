@@ -70,7 +70,7 @@ export default function AdvancesPage() {
       status: "pending",
       requestDate: format(new Date(), "yyyy-MM-dd"),
       expectedSpendDate: format(formExpectedDate, "yyyy-MM-dd"),
-      settlementDueDate: format(formSettlementDate, "yyyy-MM-dd"),
+      settlementDueDate: "",
       attachments: formAttachments,
       notes: formNotes,
     });
