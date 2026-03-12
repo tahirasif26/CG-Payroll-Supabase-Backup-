@@ -37,7 +37,7 @@ const assetTrackingNav = [
   { title: "Asset Store", url: "/assets/store", icon: Tag },
   { title: "Asset Requests", url: "/assets/requests", icon: Shield },
   { title: "Asset Audits", url: "/assets/audits", icon: ClipboardList },
-  { title: "Asset Logs", url: "/assets/logs", icon: Activity },
+  
 ];
 
 const accessManagementNav = [
