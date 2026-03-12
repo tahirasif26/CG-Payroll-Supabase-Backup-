@@ -17,6 +17,10 @@ const activityColors: Record<string, "default" | "secondary" | "destructive" | "
   "Maintenance Recorded": "secondary",
   "Audit Verified": "outline",
   "Asset Retired": "destructive",
+  "QR Verified": "default",
+  "QR Assignment": "default",
+  "QR Audit Verification": "outline",
+  "QR Issue Reported": "destructive",
 };
 
 export default function AssetLogsPage() {
