@@ -5,10 +5,9 @@ import { useRole } from "@/contexts/RoleContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useAssets, AssetHistoryEntry } from "@/contexts/AssetContext";
 import { Asset, AssetStoreItem } from "@/types/hcm";
-import { MaintenanceRecord } from "@/types/asset";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter, Upload, Package, Wrench, QrCode, Download, Eye, Tag, ScanLine } from "lucide-react";
+import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter, Upload, Package, QrCode, Download, Eye, Tag, ScanLine } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AssetLabelGenerator } from "@/components/assets/AssetLabelGenerator";
 import { QRScannerDialog } from "@/components/assets/QRScannerDialog";
@@ -31,7 +30,7 @@ import * as XLSX from "xlsx";
 
 let assetIdCounter = 100;
 let storeIdCounter = 200;
-let mntIdCounter = 200;
+
 
 const conditionOptions = [
   { value: "new", label: "New" },
@@ -42,13 +41,6 @@ const conditionOptions = [
   { value: "retired", label: "Retired" },
 ];
 
-const maintenanceTypes = [
-  { value: "repair", label: "Repair" },
-  { value: "service", label: "Service" },
-  { value: "inspection", label: "Inspection" },
-  { value: "upgrade", label: "Upgrade" },
-  { value: "replacement", label: "Replacement" },
-];
 
 function generateAssetTag() {
   return `AST-${String(++assetIdCounter).padStart(3, "0")}`;
@@ -60,7 +52,6 @@ export default function AssetInventoryPage() {
   const {
     assets, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory,
     categories, storeItems, addStoreItem, bulkAddAssets,
-    maintenanceRecords, addMaintenanceRecord, getMaintenanceForAsset,
     addAssetLog,
   } = useAssets();
   const { toast } = useToast();
@@ -142,13 +133,6 @@ export default function AssetInventoryPage() {
   const [bulkLocation, setBulkLocation] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Maintenance dialog
-  const [mntOpen, setMntOpen] = useState(false);
-  const [mntAsset, setMntAsset] = useState<Asset | null>(null);
-  const [mntType, setMntType] = useState("repair");
-  const [mntDate, setMntDate] = useState(new Date().toISOString().split("T")[0]);
-  const [mntNotes, setMntNotes] = useState("");
-  const [mntNextService, setMntNextService] = useState("");
 
   const allAssets = role === "employee" ? assets.filter(a => a.employeeId === currentEmployeeId) : assets;
   const displayAssets = allAssets.filter(a => {
@@ -161,7 +145,7 @@ export default function AssetInventoryPage() {
   const totalAssets = allAssets.length;
   const assignedAssets = allAssets.filter(a => a.status === "assigned").length;
   const availableAssets = allAssets.filter(a => a.status === "available").length;
-  const maintenanceAssets = allAssets.filter(a => a.status === "maintenance").length;
+  
 
   const activeCats = categories.filter(c => c.status === "active");
   const inventoryCategories = [...new Set(assets.map(a => a.category))];
@@ -390,32 +374,10 @@ export default function AssetInventoryPage() {
     setLabelOpen(true);
   };
 
-  // Maintenance
-  const openMaintenance = (asset: Asset) => {
-    setMntAsset(asset); setMntType("repair"); setMntDate(new Date().toISOString().split("T")[0]);
-    setMntNotes(""); setMntNextService("");
-    setMntOpen(true);
-  };
-  const handleMntSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mntAsset) return;
-    const record: MaintenanceRecord = {
-      id: `mnt-${++mntIdCounter}`,
-      assetId: mntAsset.id,
-      type: mntType as MaintenanceRecord["type"],
-      date: mntDate,
-      notes: mntNotes,
-      nextServiceDate: mntNextService || undefined,
-      performedBy: "Admin",
-    };
-    addMaintenanceRecord(record);
-    setMntOpen(false);
-    toast({ title: "Maintenance Recorded", description: `${mntType} record added for "${mntAsset.name}".` });
-  };
 
   const actionLabel = (action: AssetHistoryEntry["action"]) => {
     const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-      assigned: { label: "Assigned", variant: "default" }, unassigned: { label: "Unassigned", variant: "secondary" }, reassigned: { label: "Reassigned", variant: "default" }, created: { label: "Created", variant: "outline" }, deleted: { label: "Deleted", variant: "destructive" }, edited: { label: "Edited", variant: "secondary" }, maintenance: { label: "Maintenance", variant: "secondary" }, retired: { label: "Retired", variant: "destructive" }, "condition-updated": { label: "Condition", variant: "secondary" }, "audit-verified": { label: "Audit", variant: "outline" },
+      assigned: { label: "Assigned", variant: "default" }, unassigned: { label: "Unassigned", variant: "secondary" }, reassigned: { label: "Reassigned", variant: "default" }, created: { label: "Created", variant: "outline" }, deleted: { label: "Deleted", variant: "destructive" }, edited: { label: "Edited", variant: "secondary" }, retired: { label: "Retired", variant: "destructive" }, "condition-updated": { label: "Condition", variant: "secondary" }, "audit-verified": { label: "Audit", variant: "outline" },
     };
     return map[action] || { label: action, variant: "secondary" as const };
   };
@@ -453,11 +415,10 @@ export default function AssetInventoryPage() {
         )}
       </PageHeader>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard title="Total Assets" value={totalAssets} icon={Monitor} variant="primary" />
         <StatCard title="Assigned" value={assignedAssets} icon={Laptop} variant="info" />
         <StatCard title="Available" value={availableAssets} icon={Key} variant="success" />
-        <StatCard title="Maintenance" value={maintenanceAssets} icon={Wrench} variant="warning" />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -478,7 +439,7 @@ export default function AssetInventoryPage() {
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="assigned">Assigned</SelectItem>
             <SelectItem value="available">Available</SelectItem>
-            <SelectItem value="maintenance">Maintenance</SelectItem>
+            
             <SelectItem value="retired">Retired</SelectItem>
           </SelectContent>
         </Select>
@@ -514,7 +475,7 @@ export default function AssetInventoryPage() {
                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-end gap-0.5">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openLabelSingle(asset)} title="Download Label"><Tag className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openMaintenance(asset)} title="Add Maintenance"><Wrench className="h-3.5 w-3.5" /></Button>
+                      
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openHistory(asset)} title="History"><History className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openReassign(asset)} title="Reassign"><ArrowRightLeft className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(asset)} title="Edit"><Edit2 className="h-3.5 w-3.5" /></Button>
@@ -538,53 +499,17 @@ export default function AssetInventoryPage() {
             <DialogDescription>Asset Tag: {detailAsset?.assetTag} | Serial: {detailAsset?.serialNumber}</DialogDescription>
           </DialogHeader>
           {detailAsset && (
-            <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="maintenance">Maintenance History</TabsTrigger>
-              </TabsList>
-              <TabsContent value="details" className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Category</p><p className="font-medium text-sm">{detailAsset.category}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Brand / Model</p><p className="font-medium text-sm">{detailAsset.brand || "—"} {detailAsset.model || ""}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Condition</p><Badge variant={conditionBadgeVariant(detailAsset.condition)}>{detailAsset.condition.replace("-", " ")}</Badge></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Location</p><p className="font-medium text-sm">{detailAsset.location || "—"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Status</p><StatusBadge status={detailAsset.status} /></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Assigned To</p><p className="font-medium text-sm">{detailAsset.employeeName || "Unassigned"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Purchase Date</p><p className="font-medium text-sm">{detailAsset.purchaseDate ? new Date(detailAsset.purchaseDate).toLocaleDateString() : "—"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Warranty Expiry</p><p className="font-medium text-sm">{detailAsset.warrantyExpiry ? new Date(detailAsset.warrantyExpiry).toLocaleDateString() : "—"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Service Due Date</p><p className="font-medium text-sm">{detailAsset.serviceDueDate ? new Date(detailAsset.serviceDueDate).toLocaleDateString() : "—"}</p></div>
-                  <div className="space-y-1"><p className="text-xs text-muted-foreground">Return Date</p><p className="font-medium text-sm">{detailAsset.returnDate ? new Date(detailAsset.returnDate).toLocaleDateString() : "—"}</p></div>
-                </div>
-              </TabsContent>
-              <TabsContent value="maintenance" className="space-y-4 mt-4">
-                {role === "employer" && (
-                  <Button size="sm" variant="outline" onClick={() => openMaintenance(detailAsset)}>
-                    <Plus className="h-4 w-4 mr-2" />Add Maintenance Record
-                  </Button>
-                )}
-                {getMaintenanceForAsset(detailAsset.id).length > 0 ? (
-                  <div className="space-y-3">
-                    {getMaintenanceForAsset(detailAsset.id).map(rec => (
-                      <Card key={rec.id} className="border">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <Badge variant="secondary" className="capitalize">{rec.type}</Badge>
-                            <span className="text-xs text-muted-foreground">{new Date(rec.date).toLocaleDateString()}</span>
-                          </div>
-                          <div className="text-sm space-y-1">
-                            <div><span className="text-muted-foreground">Notes:</span> {rec.notes}</div>
-                            {rec.nextServiceDate && <div><span className="text-muted-foreground">Next Service:</span> {new Date(rec.nextServiceDate).toLocaleDateString()}</div>}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground py-6">No maintenance records.</p>
-                )}
-              </TabsContent>
-            </Tabs>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Category</p><p className="font-medium text-sm">{detailAsset.category}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Brand / Model</p><p className="font-medium text-sm">{detailAsset.brand || "—"} {detailAsset.model || ""}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Condition</p><Badge variant={conditionBadgeVariant(detailAsset.condition)}>{detailAsset.condition.replace("-", " ")}</Badge></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Location</p><p className="font-medium text-sm">{detailAsset.location || "—"}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Status</p><StatusBadge status={detailAsset.status} /></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Assigned To</p><p className="font-medium text-sm">{detailAsset.employeeName || "Unassigned"}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Purchase Date</p><p className="font-medium text-sm">{detailAsset.purchaseDate ? new Date(detailAsset.purchaseDate).toLocaleDateString() : "—"}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Warranty Expiry</p><p className="font-medium text-sm">{detailAsset.warrantyExpiry ? new Date(detailAsset.warrantyExpiry).toLocaleDateString() : "—"}</p></div>
+              <div className="space-y-1"><p className="text-xs text-muted-foreground">Return Date</p><p className="font-medium text-sm">{detailAsset.returnDate ? new Date(detailAsset.returnDate).toLocaleDateString() : "—"}</p></div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -802,31 +727,6 @@ export default function AssetInventoryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Maintenance Dialog */}
-      <Dialog open={mntOpen} onOpenChange={setMntOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Maintenance Record</DialogTitle>
-            <DialogDescription>Record maintenance for "{mntAsset?.name}" ({mntAsset?.assetTag})</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleMntSave} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Maintenance Type</Label>
-              <Select value={mntType} onValueChange={setMntType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{maintenanceTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>Date</Label><Input type="date" required value={mntDate} onChange={e => setMntDate(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Notes</Label><Textarea placeholder="Details about maintenance..." value={mntNotes} onChange={e => setMntNotes(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Next Service Date</Label><Input type="date" value={mntNextService} onChange={e => setMntNextService(e.target.value)} /></div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setMntOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Record</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Reassign Dialog */}
       <Dialog open={reassignOpen} onOpenChange={setReassignOpen}>

@@ -149,7 +149,7 @@ export interface Asset {
   employeeId: string | null;
   employeeName: string | null;
   assignedDate: string | null;
-  status: "assigned" | "available" | "maintenance" | "retired";
+  status: "assigned" | "available" | "retired";
   returnDate?: string | null;
   purchaseDate?: string;
   warrantyExpiry?: string;

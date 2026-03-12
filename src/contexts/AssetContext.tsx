@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { Asset, AssetCategory, AssetStoreItem, AssetRequest } from "@/types/hcm";
-import { MaintenanceRecord, AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
+import { AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
 import { assets as initialAssets } from "@/data/mockData";
 
 export interface AssetHistoryEntry {
   id: string;
   assetId: string;
-  action: "assigned" | "unassigned" | "reassigned" | "created" | "deleted" | "edited" | "maintenance" | "retired" | "condition-updated" | "audit-verified";
+  action: "assigned" | "unassigned" | "reassigned" | "created" | "deleted" | "edited" | "retired" | "condition-updated" | "audit-verified";
   fromEmployeeId?: string | null;
   fromEmployeeName?: string | null;
   toEmployeeId?: string | null;
@@ -40,9 +40,6 @@ const seedRequests: AssetRequest[] = [
   { id: "req-3", employeeId: "3", employeeName: "Fatima Al-Sayed", storeItemId: "si-5", storeItemName: "Logitech K380", category: "Keyboards", requestDate: "2026-02-28", reason: "Ergonomic keyboard replacement needed.", priority: "low", status: "rejected" },
 ];
 
-const seedMaintenanceRecords: MaintenanceRecord[] = [
-  { id: "mnt-1", assetId: "6", type: "repair", date: "2026-02-15", notes: "Screen replacement due to crack", nextServiceDate: "2026-06-15", performedBy: "IT Admin" },
-];
 
 interface AssetContextType {
   assets: Asset[];
@@ -54,10 +51,6 @@ interface AssetContextType {
   getAssetHistory: (assetId: string) => AssetHistoryEntry[];
   getAssetsForEmployee: (employeeId: string) => Asset[];
   bulkAddAssets: (assets: Asset[]) => void;
-  // Maintenance
-  maintenanceRecords: MaintenanceRecord[];
-  addMaintenanceRecord: (record: MaintenanceRecord) => void;
-  getMaintenanceForAsset: (assetId: string) => MaintenanceRecord[];
   // Audits
   audits: AssetAudit[];
   addAudit: (audit: AssetAudit) => void;
@@ -111,7 +104,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<AssetCategory[]>(seedCategories);
   const [storeItems, setStoreItems] = useState<AssetStoreItem[]>(seedStoreItems);
   const [assetRequests, setAssetRequests] = useState<AssetRequest[]>(seedRequests);
-  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>(seedMaintenanceRecords);
+  
   const [audits, setAudits] = useState<AssetAudit[]>([]);
   const [assetLogs, setAssetLogs] = useState<AssetLogEntry[]>(() =>
     initialAssets.map((a, i) => ({
@@ -184,19 +177,6 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Maintenance
-  const addMaintenanceRecord = (record: MaintenanceRecord) => {
-    setMaintenanceRecords(prev => [...prev, record]);
-    const asset = assets.find(a => a.id === record.assetId);
-    if (asset) {
-      addHistoryEntry({ assetId: record.assetId, action: "maintenance", date: record.date, note: `${record.type}: ${record.notes}` });
-      addLogEntry({ assetId: record.assetId, assetTag: asset.assetTag, assetName: asset.name, activity: "Maintenance Recorded", performedBy: record.performedBy, date: record.date, details: `${record.type} - ${record.notes}` });
-      if (record.nextServiceDate) {
-        setAssets(prev => prev.map(a => a.id === record.assetId ? { ...a, serviceDueDate: record.nextServiceDate } : a));
-      }
-    }
-  };
-  const getMaintenanceForAsset = (assetId: string) => maintenanceRecords.filter(m => m.assetId === assetId).sort((a, b) => b.date.localeCompare(a.date));
 
   // Audits
   const addAudit = (audit: AssetAudit) => setAudits(prev => [...prev, audit]);
@@ -253,7 +233,6 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   return (
     <AssetContext.Provider value={{
       assets, history, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory, getAssetsForEmployee, bulkAddAssets,
-      maintenanceRecords, addMaintenanceRecord, getMaintenanceForAsset,
       audits, addAudit, updateAuditEntry, completeAudit,
       assetLogs, addAssetLog,
       categories, addCategory, updateCategory, deleteCategory, canDeleteCategory,

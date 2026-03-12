@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAssets } from "@/contexts/AssetContext";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Monitor, Laptop, Key, Wrench, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Monitor, Laptop, Key, AlertTriangle, ShieldCheck } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const COLORS = [
@@ -21,7 +21,6 @@ export default function AssetDashboardPage() {
   const totalAssets = assets.length;
   const assignedAssets = assets.filter(a => a.status === "assigned").length;
   const availableAssets = assets.filter(a => a.status === "available").length;
-  const maintenanceAssets = assets.filter(a => a.status === "maintenance").length;
 
   const today = new Date();
   const warrantyExpiring = assets.filter(a => {
@@ -52,7 +51,6 @@ export default function AssetDashboardPage() {
   const statusData = [
     { name: "Assigned", value: assignedAssets },
     { name: "Available", value: availableAssets },
-    { name: "Maintenance", value: maintenanceAssets },
     { name: "Retired", value: assets.filter(a => a.status === "retired").length },
   ].filter(d => d.value > 0);
 
@@ -60,11 +58,10 @@ export default function AssetDashboardPage() {
     <div className="space-y-6">
       <PageHeader title="Asset Dashboard" description="Overview of all company assets and trends." />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Assets" value={totalAssets} icon={Monitor} variant="primary" />
         <StatCard title="Assigned" value={assignedAssets} icon={Laptop} variant="info" />
         <StatCard title="Available" value={availableAssets} icon={Key} variant="success" />
-        <StatCard title="Maintenance" value={maintenanceAssets} icon={Wrench} variant="warning" />
         <StatCard title="Warranty Expiring" value={warrantyExpiring} icon={AlertTriangle} variant="warning" />
       </div>
 

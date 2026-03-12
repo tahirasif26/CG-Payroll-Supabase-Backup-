@@ -1,16 +1,6 @@
 export type AssetCondition = "new" | "good" | "fair" | "needs-repair" | "damaged" | "retired";
 
-export type AssetStatus = "available" | "assigned" | "maintenance" | "retired";
-
-export interface MaintenanceRecord {
-  id: string;
-  assetId: string;
-  type: "repair" | "service" | "inspection" | "upgrade" | "replacement";
-  date: string;
-  notes: string;
-  nextServiceDate?: string;
-  performedBy: string;
-}
+export type AssetStatus = "available" | "assigned" | "retired";
 
 export interface AssetAudit {
   id: string;
