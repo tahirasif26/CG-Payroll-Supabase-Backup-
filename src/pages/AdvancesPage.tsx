@@ -49,7 +49,7 @@ export default function AdvancesPage() {
 
   const resetForm = () => {
     setFormAmount(""); setFormCurrency("SAR"); setFormPurpose("");
-    setFormName(""); setFormExpectedDate(undefined); setFormSettlementDate(undefined);
+    setFormName(""); setFormExpectedDate(undefined);
     setFormNotes(""); setFormAttachments([]);
   };
 
