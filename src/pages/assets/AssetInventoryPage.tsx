@@ -145,7 +145,7 @@ export default function AssetInventoryPage() {
   const totalAssets = allAssets.length;
   const assignedAssets = allAssets.filter(a => a.status === "assigned").length;
   const availableAssets = allAssets.filter(a => a.status === "available").length;
-  const maintenanceAssets = allAssets.filter(a => a.status === "maintenance").length;
+  
 
   const activeCats = categories.filter(c => c.status === "active");
   const inventoryCategories = [...new Set(assets.map(a => a.category))];
