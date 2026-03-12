@@ -42,7 +42,6 @@ export default function AdvancesPage() {
   const [formPurpose, setFormPurpose] = useState("");
   const [formName, setFormName] = useState("");
   const [formExpectedDate, setFormExpectedDate] = useState<Date | undefined>();
-  const [formSettlementDate, setFormSettlementDate] = useState<Date | undefined>();
   const [formNotes, setFormNotes] = useState("");
   const [formAttachments, setFormAttachments] = useState<string[]>([]);
 
