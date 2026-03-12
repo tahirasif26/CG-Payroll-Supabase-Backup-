@@ -8,8 +8,12 @@ import { Asset, AssetStoreItem } from "@/types/hcm";
 import { MaintenanceRecord } from "@/types/asset";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter, Upload, Package, Wrench, QrCode, Download, Eye } from "lucide-react";
+import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter, Upload, Package, Wrench, QrCode, Download, Eye, Tag, ScanLine } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { AssetLabelGenerator } from "@/components/assets/AssetLabelGenerator";
+import { QRScannerDialog } from "@/components/assets/QRScannerDialog";
+import { AssetVerificationPanel } from "@/components/assets/AssetVerificationPanel";
+import { QRAssignmentDialog } from "@/components/assets/QRAssignmentDialog";
 import { StatCard } from "@/components/StatCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -57,6 +61,7 @@ export default function AssetInventoryPage() {
     assets, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory,
     categories, storeItems, addStoreItem, bulkAddAssets,
     maintenanceRecords, addMaintenanceRecord, getMaintenanceForAsset,
+    addAssetLog,
   } = useAssets();
   const { toast } = useToast();
 
@@ -75,6 +80,16 @@ export default function AssetInventoryPage() {
   const [historyEntries, setHistoryEntries] = useState<AssetHistoryEntry[]>([]);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailAsset, setDetailAsset] = useState<Asset | null>(null);
+
+  // Label & QR states
+  const [labelOpen, setLabelOpen] = useState(false);
+  const [labelPreSelectedIds, setLabelPreSelectedIds] = useState<string[]>([]);
+  const [qrScanOpen, setQrScanOpen] = useState(false);
+  const [qrScanMode, setQrScanMode] = useState<"verify" | "assign">("verify");
+  const [verifyAsset, setVerifyAsset] = useState<Asset | null>(null);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [assignAsset, setAssignAsset] = useState<Asset | null>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   // New asset fields
   const [newName, setNewName] = useState("");
@@ -334,6 +349,47 @@ export default function AssetInventoryPage() {
   const openHistory = (asset: Asset) => { setHistoryAsset(asset); setHistoryEntries(getAssetHistory(asset.id)); setHistoryOpen(true); };
   const openDetail = (asset: Asset) => { setDetailAsset(asset); setDetailOpen(true); };
 
+  // QR scan handlers
+  const handleQrScanResult = (payload: { asset_tag: string; asset_id: string }) => {
+    const found = assets.find(a => a.assetTag === payload.asset_tag || a.id === payload.asset_id || a.assetTag.toLowerCase() === payload.asset_tag.toLowerCase());
+    if (!found) {
+      toast({ title: "Asset Not Found", description: `No asset found with tag "${payload.asset_tag}".`, variant: "destructive" });
+      return;
+    }
+    if (qrScanMode === "assign") {
+      setAssignAsset(found);
+      setAssignOpen(true);
+    } else {
+      setVerifyAsset(found);
+      setVerifyOpen(true);
+    }
+  };
+
+  const handleQrVerify = (asset: Asset) => {
+    addAssetLog({ id: `log-qr-${Date.now()}`, assetId: asset.id, assetTag: asset.assetTag, assetName: asset.name, activity: "QR Verified", performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Asset verified via QR scan` });
+    toast({ title: "Asset Verified", description: `${asset.name} (${asset.assetTag}) verified successfully.` });
+  };
+
+  const handleQrReportIssue = (asset: Asset) => {
+    updateAsset(asset.id, { condition: "needs-repair" }, "Issue reported via QR scan");
+    addAssetLog({ id: `log-qr-${Date.now()}`, assetId: asset.id, assetTag: asset.assetTag, assetName: asset.name, activity: "QR Issue Reported", performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Issue reported via QR scan` });
+    toast({ title: "Issue Reported", description: `Issue reported for ${asset.name}.`, variant: "destructive" });
+  };
+
+  const handleQrAssign = (assetId: string, employeeId: string, employeeName: string, notes: string) => {
+    reassignAsset(assetId, employeeId, employeeName);
+    const asset = assets.find(a => a.id === assetId);
+    if (asset) {
+      addAssetLog({ id: `log-qr-${Date.now()}`, assetId, assetTag: asset.assetTag, assetName: asset.name, activity: "QR Assignment", employeeName, performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Assigned to ${employeeName} via QR scan${notes ? `. Notes: ${notes}` : ""}` });
+    }
+    toast({ title: "Asset Assigned via QR", description: `Assigned to ${employeeName}.` });
+  };
+
+  const openLabelSingle = (asset: Asset) => {
+    setLabelPreSelectedIds([asset.id]);
+    setLabelOpen(true);
+  };
+
   // Maintenance
   const openMaintenance = (asset: Asset) => {
     setMntAsset(asset); setMntType("repair"); setMntDate(new Date().toISOString().split("T")[0]);
@@ -377,9 +433,18 @@ export default function AssetInventoryPage() {
         description={role === "employee" ? "View your assigned assets." : "Manage company asset inventory."}
       >
         {role === "employer" && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={() => { setQrScanMode("verify"); setQrScanOpen(true); }}>
+              <ScanLine className="h-4 w-4 mr-2" />Scan QR
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setQrScanMode("assign"); setQrScanOpen(true); }}>
+              <QrCode className="h-4 w-4 mr-2" />Assign via QR
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setLabelPreSelectedIds([]); setLabelOpen(true); }}>
+              <Tag className="h-4 w-4 mr-2" />Generate Labels
+            </Button>
             <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)}>
-              <Package className="h-4 w-4 mr-2" />Bulk Add Assets
+              <Package className="h-4 w-4 mr-2" />Bulk Add
             </Button>
             <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />Add Asset
@@ -448,6 +513,7 @@ export default function AssetInventoryPage() {
                 {role === "employer" && (
                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-end gap-0.5">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openLabelSingle(asset)} title="Download Label"><Tag className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openMaintenance(asset)} title="Add Maintenance"><Wrench className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openHistory(asset)} title="History"><History className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openReassign(asset)} title="Reassign"><ArrowRightLeft className="h-3.5 w-3.5" /></Button>
@@ -844,6 +910,37 @@ export default function AssetInventoryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Label Generator */}
+      <AssetLabelGenerator assets={displayAssets} open={labelOpen} onOpenChange={setLabelOpen} preSelectedIds={labelPreSelectedIds} />
+
+      {/* QR Scanner */}
+      <QRScannerDialog
+        open={qrScanOpen}
+        onOpenChange={setQrScanOpen}
+        onScanResult={handleQrScanResult}
+        title={qrScanMode === "assign" ? "Scan QR to Assign" : "Scan QR to Verify"}
+        description={qrScanMode === "assign" ? "Scan asset QR code to assign to an employee." : "Scan asset QR code to verify or view details."}
+      />
+
+      {/* Verification Panel */}
+      <AssetVerificationPanel
+        asset={verifyAsset}
+        open={verifyOpen}
+        onOpenChange={setVerifyOpen}
+        onVerify={handleQrVerify}
+        onReportIssue={handleQrReportIssue}
+        onViewDetails={(a) => { setVerifyOpen(false); openDetail(a); }}
+      />
+
+      {/* QR Assignment */}
+      <QRAssignmentDialog
+        asset={assignAsset}
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        employees={activeEmps.map(e => ({ id: e.id, firstName: e.firstName, lastName: e.lastName }))}
+        onAssign={handleQrAssign}
+      />
     </div>
   );
 }

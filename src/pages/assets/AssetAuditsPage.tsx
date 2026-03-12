@@ -4,7 +4,7 @@ import { useAssets } from "@/contexts/AssetContext";
 import { AssetAudit, AssetAuditEntry } from "@/types/asset";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, ClipboardCheck, CheckCircle, AlertTriangle, XCircle, Eye } from "lucide-react";
+import { Plus, ClipboardCheck, CheckCircle, AlertTriangle, XCircle, Eye, ScanLine } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,12 +15,13 @@ import { StatCard } from "@/components/StatCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { StatusBadge } from "@/components/StatusBadge";
+import { QRScannerDialog } from "@/components/assets/QRScannerDialog";
 
 let auditIdCounter = 100;
 let auditEntryIdCounter = 1000;
 
 export default function AssetAuditsPage() {
-  const { assets, audits, addAudit, updateAuditEntry, completeAudit } = useAssets();
+  const { assets, audits, addAudit, updateAuditEntry, completeAudit, addAssetLog } = useAssets();
   const { toast } = useToast();
 
   const [newOpen, setNewOpen] = useState(false);
@@ -30,6 +31,7 @@ export default function AssetAuditsPage() {
 
   const [viewOpen, setViewOpen] = useState(false);
   const [viewAudit, setViewAudit] = useState<AssetAudit | null>(null);
+  const [qrScanOpen, setQrScanOpen] = useState(false);
 
   const departments = [...new Set(assets.map(a => a.category))];
   const locations = [...new Set(assets.map(a => a.location).filter(Boolean))];
@@ -99,6 +101,22 @@ export default function AssetAuditsPage() {
     completeAudit(viewAudit.id);
     setViewOpen(false);
     toast({ title: "Audit Completed" });
+  };
+
+  const handleQrAuditScan = (payload: { asset_tag: string; asset_id: string }) => {
+    if (!viewAudit || viewAudit.status !== "in-progress") return;
+    const entry = viewAudit.entries.find(e => e.assetTag === payload.asset_tag || e.assetId === payload.asset_id || e.assetTag.toLowerCase() === payload.asset_tag.toLowerCase());
+    if (!entry) {
+      toast({ title: "Asset Not in Audit", description: `Asset "${payload.asset_tag}" is not part of this audit.`, variant: "destructive" });
+      return;
+    }
+    if (entry.verification !== "pending") {
+      toast({ title: "Already Verified", description: `Asset "${entry.assetName}" was already marked as ${entry.verification}.` });
+      return;
+    }
+    handleVerify(entry.id, "verified");
+    addAssetLog({ id: `log-qr-audit-${Date.now()}`, assetId: entry.assetId, assetTag: entry.assetTag, assetName: entry.assetName, activity: "QR Audit Verification", performedBy: "Admin", date: new Date().toISOString().split("T")[0], details: `Verified via QR scan in audit "${viewAudit.name}"` });
+    toast({ title: "Asset Verified via QR", description: `${entry.assetName} (${entry.assetTag}) verified.` });
   };
 
   const totalAudits = audits.length;
@@ -264,11 +282,25 @@ export default function AssetAuditsPage() {
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setViewOpen(false)}>Close</Button>
             {viewAudit?.status === "in-progress" && (
-              <Button onClick={handleCompleteAudit}>Complete Audit</Button>
+              <>
+                <Button variant="outline" onClick={() => setQrScanOpen(true)}>
+                  <ScanLine className="h-4 w-4 mr-2" />Scan QR
+                </Button>
+                <Button onClick={handleCompleteAudit}>Complete Audit</Button>
+              </>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* QR Scanner for Audit */}
+      <QRScannerDialog
+        open={qrScanOpen}
+        onOpenChange={setQrScanOpen}
+        onScanResult={handleQrAuditScan}
+        title="Scan Asset for Audit"
+        description="Scan asset QR codes to verify them in this audit."
+      />
     </div>
   );
 }
