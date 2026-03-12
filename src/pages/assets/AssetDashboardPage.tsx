@@ -58,11 +58,10 @@ export default function AssetDashboardPage() {
     <div className="space-y-6">
       <PageHeader title="Asset Dashboard" description="Overview of all company assets and trends." />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Assets" value={totalAssets} icon={Monitor} variant="primary" />
         <StatCard title="Assigned" value={assignedAssets} icon={Laptop} variant="info" />
         <StatCard title="Available" value={availableAssets} icon={Key} variant="success" />
-        <StatCard title="Maintenance" value={maintenanceAssets} icon={Wrench} variant="warning" />
         <StatCard title="Warranty Expiring" value={warrantyExpiring} icon={AlertTriangle} variant="warning" />
       </div>
 
