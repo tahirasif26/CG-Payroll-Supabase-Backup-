@@ -21,7 +21,6 @@ export default function AssetDashboardPage() {
   const totalAssets = assets.length;
   const assignedAssets = assets.filter(a => a.status === "assigned").length;
   const availableAssets = assets.filter(a => a.status === "available").length;
-  const maintenanceAssets = assets.filter(a => a.status === "maintenance").length;
 
   const today = new Date();
   const warrantyExpiring = assets.filter(a => {
