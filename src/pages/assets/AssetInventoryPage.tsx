@@ -433,9 +433,18 @@ export default function AssetInventoryPage() {
         description={role === "employee" ? "View your assigned assets." : "Manage company asset inventory."}
       >
         {role === "employer" && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={() => { setQrScanMode("verify"); setQrScanOpen(true); }}>
+              <ScanLine className="h-4 w-4 mr-2" />Scan QR
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setQrScanMode("assign"); setQrScanOpen(true); }}>
+              <QrCode className="h-4 w-4 mr-2" />Assign via QR
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setLabelPreSelectedIds([]); setLabelOpen(true); }}>
+              <Tag className="h-4 w-4 mr-2" />Generate Labels
+            </Button>
             <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)}>
-              <Package className="h-4 w-4 mr-2" />Bulk Add Assets
+              <Package className="h-4 w-4 mr-2" />Bulk Add
             </Button>
             <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />Add Asset
