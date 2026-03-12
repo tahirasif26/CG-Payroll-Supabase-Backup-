@@ -39,7 +39,7 @@ import AssetCategoriesPage from "@/pages/assets/AssetCategoriesPage";
 import AssetStorePage from "@/pages/assets/AssetStorePage";
 import AssetRequestsPage from "@/pages/assets/AssetRequestsPage";
 import AssetAuditsPage from "@/pages/assets/AssetAuditsPage";
-import AssetLogsPage from "@/pages/assets/AssetLogsPage";
+
 import AssetDashboardPage from "@/pages/assets/AssetDashboardPage";
 import OrgChartPage from "@/pages/OrgChartPage";
 import ProjectsPage from "@/pages/ProjectsPage";
