@@ -246,7 +246,6 @@ export default function AdvancesPage() {
                 <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={viewAdv.status} /></div>
                 <div><span className="text-muted-foreground">Request Date:</span> <span className="font-medium">{viewAdv.requestDate}</span></div>
                 <div><span className="text-muted-foreground">Expected Spend:</span> <span className="font-medium">{viewAdv.expectedSpendDate}</span></div>
-                <div><span className="text-muted-foreground">Settlement Due:</span> <span className="font-medium">{viewAdv.settlementDueDate}</span></div>
               </div>
               <div><span className="text-muted-foreground">Purpose:</span> <p className="mt-1">{viewAdv.purpose}</p></div>
               {viewAdv.notes && <div><span className="text-muted-foreground">Notes:</span> <p className="mt-1">{viewAdv.notes}</p></div>}
