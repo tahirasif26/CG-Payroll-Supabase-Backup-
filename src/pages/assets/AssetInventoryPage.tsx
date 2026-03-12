@@ -727,31 +727,6 @@ export default function AssetInventoryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Maintenance Dialog */}
-      <Dialog open={mntOpen} onOpenChange={setMntOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Maintenance Record</DialogTitle>
-            <DialogDescription>Record maintenance for "{mntAsset?.name}" ({mntAsset?.assetTag})</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleMntSave} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Maintenance Type</Label>
-              <Select value={mntType} onValueChange={setMntType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{maintenanceTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>Date</Label><Input type="date" required value={mntDate} onChange={e => setMntDate(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Notes</Label><Textarea placeholder="Details about maintenance..." value={mntNotes} onChange={e => setMntNotes(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Next Service Date</Label><Input type="date" value={mntNextService} onChange={e => setMntNextService(e.target.value)} /></div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setMntOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Record</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Reassign Dialog */}
       <Dialog open={reassignOpen} onOpenChange={setReassignOpen}>
