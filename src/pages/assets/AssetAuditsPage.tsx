@@ -292,6 +292,15 @@ export default function AssetAuditsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* QR Scanner for Audit */}
+      <QRScannerDialog
+        open={qrScanOpen}
+        onOpenChange={setQrScanOpen}
+        onScanResult={handleQrAuditScan}
+        title="Scan Asset for Audit"
+        description="Scan asset QR codes to verify them in this audit."
+      />
     </div>
   );
 }
