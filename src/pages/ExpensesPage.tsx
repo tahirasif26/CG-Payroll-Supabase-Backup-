@@ -350,6 +350,8 @@ export default function ExpensesPage() {
           "Submitted": new Date(exp.submissionDate).toLocaleDateString(),
           "Status": exp.status.charAt(0).toUpperCase() + exp.status.slice(1),
           "Payroll Run": payrollLabel || "—",
+          "Paid Date": exp.paidDate ? new Date(exp.paidDate).toLocaleDateString() : "—",
+          "Payment Method": exp.paymentMethod || "—",
         };
       });
       const ws = XLSX.utils.json_to_sheet(rows);
