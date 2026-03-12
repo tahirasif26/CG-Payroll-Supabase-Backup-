@@ -327,20 +327,6 @@ export default function AdvancesPage() {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <div>
-                    <Label className="text-xs">Settlement Due Date <span className="text-destructive">*</span></Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full mt-1 h-8 text-xs justify-start", !formSettlementDate && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-1 h-3 w-3" />
-                          {formSettlementDate ? format(formSettlementDate, "PPP") : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={formSettlementDate} onSelect={setFormSettlementDate} initialFocus className="p-3 pointer-events-auto" />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
                 </div>
               </div>
 
