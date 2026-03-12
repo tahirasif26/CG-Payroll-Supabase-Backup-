@@ -282,7 +282,12 @@ export default function AssetAuditsPage() {
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setViewOpen(false)}>Close</Button>
             {viewAudit?.status === "in-progress" && (
-              <Button onClick={handleCompleteAudit}>Complete Audit</Button>
+              <>
+                <Button variant="outline" onClick={() => setQrScanOpen(true)}>
+                  <ScanLine className="h-4 w-4 mr-2" />Scan QR
+                </Button>
+                <Button onClick={handleCompleteAudit}>Complete Audit</Button>
+              </>
             )}
           </DialogFooter>
         </DialogContent>
