@@ -439,7 +439,7 @@ export default function AssetInventoryPage() {
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="assigned">Assigned</SelectItem>
             <SelectItem value="available">Available</SelectItem>
-            <SelectItem value="maintenance">Maintenance</SelectItem>
+            
             <SelectItem value="retired">Retired</SelectItem>
           </SelectContent>
         </Select>
