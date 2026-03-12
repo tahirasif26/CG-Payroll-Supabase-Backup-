@@ -415,11 +415,10 @@ export default function AssetInventoryPage() {
         )}
       </PageHeader>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard title="Total Assets" value={totalAssets} icon={Monitor} variant="primary" />
         <StatCard title="Assigned" value={assignedAssets} icon={Laptop} variant="info" />
         <StatCard title="Available" value={availableAssets} icon={Key} variant="success" />
-        <StatCard title="Maintenance" value={maintenanceAssets} icon={Wrench} variant="warning" />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
