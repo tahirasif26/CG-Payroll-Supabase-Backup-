@@ -19,7 +19,7 @@ function getCompletedRuns() {
 }
 
 function getExpensesForRun(runId: string, allExpenses: ExpenseReimbursement[]): ExpenseReimbursement[] {
-  return allExpenses.filter(exp => exp.payrollRunId === runId && exp.status === "approved");
+  return allExpenses.filter(exp => exp.payrollRunId === runId && (exp.status === "approved" || exp.status === "paid"));
 }
 
 function groupExpenses(

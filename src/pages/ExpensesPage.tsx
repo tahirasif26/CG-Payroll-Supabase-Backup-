@@ -350,6 +350,8 @@ export default function ExpensesPage() {
           "Submitted": new Date(exp.submissionDate).toLocaleDateString(),
           "Status": exp.status.charAt(0).toUpperCase() + exp.status.slice(1),
           "Payroll Run": payrollLabel || "—",
+          "Paid Date": exp.paidDate ? new Date(exp.paidDate).toLocaleDateString() : "—",
+          "Payment Method": exp.paymentMethod || "—",
         };
       });
       const ws = XLSX.utils.json_to_sheet(rows);
@@ -455,6 +457,7 @@ export default function ExpensesPage() {
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
             </SelectContent>
           </Select>
           <div className="sm:ml-auto">
@@ -969,6 +972,18 @@ export default function ExpensesPage() {
                       <p>
                         <Badge variant="outline">{getPayrollLabel(selectedExp.payrollRunId)}</Badge>
                       </p>
+                    </div>
+                  )}
+                  {selectedExp.paidDate && (
+                    <div>
+                      <span className="text-muted-foreground">Paid Date:</span>
+                      <p className="font-medium">{new Date(selectedExp.paidDate).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {selectedExp.paymentMethod && (
+                    <div>
+                      <span className="text-muted-foreground">Payment Method:</span>
+                      <p className="font-medium">{selectedExp.paymentMethod}</p>
                     </div>
                   )}
                 </div>
