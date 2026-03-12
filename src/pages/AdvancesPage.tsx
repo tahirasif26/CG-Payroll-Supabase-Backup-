@@ -54,7 +54,7 @@ export default function AdvancesPage() {
   };
 
   const handleSubmit = () => {
-    if (!formName || !formAmount || !formPurpose || !formExpectedDate || !formSettlementDate) {
+    if (!formName || !formAmount || !formPurpose || !formExpectedDate) {
       toast({ title: "Missing Fields", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
