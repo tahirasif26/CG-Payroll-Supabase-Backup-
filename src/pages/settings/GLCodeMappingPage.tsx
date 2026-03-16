@@ -26,7 +26,8 @@ const buildMappings = (): GLMapping[] => {
     { id: "8", entry: "Medical Insurance", category: "Deduction", glCode: "" },
     { id: "9", entry: "Loan Deduction", category: "Deduction", glCode: "" },
     { id: "10", entry: "Loan Disbursement", category: "Loan", glCode: "" },
-    { id: "11", entry: "Net Pay", category: "Payable", glCode: "" },
+    { id: "11", entry: "Advance Given", category: "Advance", glCode: "" },
+    { id: "12", entry: "Net Pay", category: "Payable", glCode: "" },
   ];
 
   // Dynamically add expense categories
