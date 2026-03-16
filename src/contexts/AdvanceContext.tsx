@@ -100,6 +100,8 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
 
 export function useAdvances() {
   const ctx = useContext(AdvanceContext);
-  if (!ctx) throw new Error("useAdvances must be used within AdvanceProvider");
+  if (ctx === undefined) {
+    throw new Error("useAdvances must be used within AdvanceProvider");
+  }
   return ctx;
 }
