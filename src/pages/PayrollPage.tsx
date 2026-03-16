@@ -242,7 +242,7 @@ export default function PayrollPage() {
       toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
       return;
     }
-    const breakdown = buildBreakdown(employees, deductions, [], {}, processedSeps);
+    const breakdown = buildBreakdown(employees, deductions, [], {}, processedSeps, undefined, approvedAdvances);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
