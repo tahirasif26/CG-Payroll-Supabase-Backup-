@@ -250,14 +250,3 @@ export interface AssetRequest {
   priority: "low" | "medium" | "high";
   status: "pending" | "approved" | "rejected";
 }
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  storeItemId: string;
-  storeItemName: string;
-  category: string;
-  requestDate: string;
-  reason: string;
-  priority: "low" | "medium" | "high";
-  status: "pending" | "approved" | "rejected";
-}
