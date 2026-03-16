@@ -333,6 +333,34 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
             </div>
           </div>
 
+          {/* Additions: Expense Reimbursement & Advance Given */}
+          {(expenseReimbursement > 0 || advanceGiven > 0) && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Additions</p>
+                <div className="bg-muted/30 rounded-lg overflow-hidden">
+                  {expenseReimbursement > 0 && (
+                    <div className="flex justify-between text-sm px-3 py-2 border-b border-border/50 last:border-0">
+                      <span>Expense Reimbursement</span>
+                      <span className="font-medium text-success">{payCurrency} {expenseReimbursement.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {advanceGiven > 0 && (
+                    <div className="flex justify-between text-sm px-3 py-2 border-b border-border/50 last:border-0">
+                      <span>Advance Given</span>
+                      <span className="font-medium text-success">{payCurrency} {advanceGiven.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-between text-sm font-bold px-3 pt-1">
+                  <span>Total Additions</span>
+                  <span className="text-success">{payCurrency} {(expenseReimbursement + advanceGiven).toLocaleString()}</span>
+                </div>
+              </div>
+            </>
+          )}
+
           <Separator />
 
           {/* Separation Settlement (if applicable) */}
