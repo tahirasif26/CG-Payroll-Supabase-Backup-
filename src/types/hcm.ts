@@ -222,7 +222,34 @@ export interface AssetStoreItem {
   createdDate: string;
 }
 
+export interface AssetConditionItem {
+  id: string;
+  name: string;
+  description: string;
+  status: "active" | "inactive";
+  createdDate: string;
+}
+
+export interface AssetLocationItem {
+  id: string;
+  name: string;
+  description: string;
+  status: "active" | "inactive";
+  createdDate: string;
+}
+
 export interface AssetRequest {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  storeItemId: string;
+  storeItemName: string;
+  category: string;
+  requestDate: string;
+  reason: string;
+  priority: "low" | "medium" | "high";
+  status: "pending" | "approved" | "rejected";
+}
   id: string;
   employeeId: string;
   employeeName: string;
