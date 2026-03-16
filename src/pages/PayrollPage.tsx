@@ -507,12 +507,13 @@ export default function PayrollPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-9 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-2">
           <StatCard compact title="Employees" value={breakdown.length} icon={Users} variant="info" />
           <StatCard compact title={`Gross (${REPORTING_CURRENCY})`} value={`${rptGross.toLocaleString()}`} icon={DollarSign} variant="primary" />
           <StatCard compact title={`Deductions (${REPORTING_CURRENCY})`} value={`${rptDeductions.toLocaleString()}`} icon={TrendingDown} variant="warning" />
           <StatCard compact title={`Loan Ded. (${REPORTING_CURRENCY})`} value={`${rptLoan.toLocaleString()}`} icon={TrendingDown} variant="warning" />
           <StatCard compact title={`Exp. Reimb. (${REPORTING_CURRENCY})`} value={`${rptExpense.toLocaleString()}`} icon={DollarSign} variant="success" />
+          {rptAdvance > 0 && <StatCard compact title={`Advance (${REPORTING_CURRENCY})`} value={`${rptAdvance.toLocaleString()}`} icon={DollarSign} variant="info" />}
           <StatCard compact title={`One-Off + (${REPORTING_CURRENCY})`} value={`${rptOneOffBen.toLocaleString()}`} icon={DollarSign} variant="success" />
           <StatCard compact title={`One-Off - (${REPORTING_CURRENCY})`} value={`${rptOneOffDed.toLocaleString()}`} icon={TrendingDown} variant="warning" />
           {rptSepSettlement > 0 && <StatCard compact title={`Sep. EOS (${REPORTING_CURRENCY})`} value={`${rptSepSettlement.toLocaleString()}`} icon={DollarSign} variant="primary" />}
