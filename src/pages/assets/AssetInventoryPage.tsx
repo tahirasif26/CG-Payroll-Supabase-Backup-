@@ -32,14 +32,8 @@ let assetIdCounter = 100;
 let storeIdCounter = 200;
 
 
-const conditionOptions = [
-  { value: "new", label: "New" },
-  { value: "good", label: "Good" },
-  { value: "fair", label: "Fair" },
-  { value: "needs-repair", label: "Needs Repair" },
-  { value: "damaged", label: "Damaged" },
-  { value: "retired", label: "Retired" },
-];
+
+
 
 
 function generateAssetTag() {
@@ -52,6 +46,7 @@ export default function AssetInventoryPage() {
   const {
     assets, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory,
     categories, storeItems, addStoreItem, bulkAddAssets,
+    conditions, locations,
     addAssetLog,
   } = useAssets();
   const { toast } = useToast();
@@ -149,6 +144,9 @@ export default function AssetInventoryPage() {
 
   const activeCats = categories.filter(c => c.status === "active");
   const inventoryCategories = [...new Set(assets.map(a => a.category))];
+  const activeConditions = conditions.filter(c => c.status === "active");
+  const conditionOptions = activeConditions.map(c => ({ value: c.name.toLowerCase().replace(/\s+/g, "-"), label: c.name }));
+  const activeLocations = locations.filter(l => l.status === "active");
 
   const generatePreview = () => {
     if (bulkSerialMode === "auto") {
@@ -543,7 +541,15 @@ export default function AssetInventoryPage() {
                   <SelectContent>{conditionOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Location</Label><Input placeholder="e.g. Riyadh HQ" value={newLocation} onChange={e => setNewLocation(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Select value={newLocation} onValueChange={setNewLocation}>
+                  <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                  <SelectContent>
+                    {activeLocations.map(l => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2"><Label>Purchase Date</Label><Input type="date" value={newPurchaseDate} onChange={e => setNewPurchaseDate(e.target.value)} /></div>
@@ -610,7 +616,15 @@ export default function AssetInventoryPage() {
                   <SelectContent>{conditionOptions.filter(o => o.value !== "retired").map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Location</Label><Input placeholder="e.g. Riyadh HQ" value={bulkLocation} onChange={e => setBulkLocation(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Select value={bulkLocation} onValueChange={setBulkLocation}>
+                  <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                  <SelectContent>
+                    {activeLocations.map(l => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <Separator />
             <div className="space-y-3">
@@ -712,7 +726,16 @@ export default function AssetInventoryPage() {
                   <SelectContent>{conditionOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Location</Label><Input value={editLocation} onChange={e => setEditLocation(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Select value={editLocation} onValueChange={setEditLocation}>
+                  <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                  <SelectContent>
+                    {activeLocations.map(l => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}
+                    {editLocation && !activeLocations.find(l => l.name === editLocation) && <SelectItem value={editLocation}>{editLocation}</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2"><Label>Purchase Date</Label><Input type="date" value={editPurchaseDate} onChange={e => setEditPurchaseDate(e.target.value)} /></div>

@@ -35,7 +35,7 @@ import LeavePage from "@/pages/LeavePage";
 import BirthdaysPage from "@/pages/BirthdaysPage";
 import PayslipsPage from "@/pages/PayslipsPage";
 import AssetInventoryPage from "@/pages/assets/AssetInventoryPage";
-import AssetCategoriesPage from "@/pages/assets/AssetCategoriesPage";
+import AssetMasterDataPage from "@/pages/assets/AssetMasterDataPage";
 import AssetStorePage from "@/pages/assets/AssetStorePage";
 import AssetRequestsPage from "@/pages/assets/AssetRequestsPage";
 import AssetAuditsPage from "@/pages/assets/AssetAuditsPage";
@@ -112,7 +112,8 @@ const App = () => {
               <Route path="/leave" element={<LeavePage />} />
               <Route path="/birthdays" element={<BirthdaysPage />} />
               <Route path="/assets/inventory" element={<AssetInventoryPage />} />
-              <Route path="/assets/categories" element={<AssetCategoriesPage />} />
+              <Route path="/assets/master-data" element={<AssetMasterDataPage />} />
+              <Route path="/assets/categories" element={<AssetMasterDataPage />} />
               <Route path="/assets/store" element={<AssetStorePage />} />
               <Route path="/assets/requests" element={<AssetRequestsPage />} />
               <Route path="/assets/audits" element={<AssetAuditsPage />} />

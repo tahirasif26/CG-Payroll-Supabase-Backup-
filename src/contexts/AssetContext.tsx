@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import { Asset, AssetCategory, AssetStoreItem, AssetRequest } from "@/types/hcm";
+import { Asset, AssetCategory, AssetStoreItem, AssetRequest, AssetConditionItem, AssetLocationItem } from "@/types/hcm";
 import { AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
 import { assets as initialAssets } from "@/data/mockData";
 
@@ -24,6 +24,25 @@ const seedCategories: AssetCategory[] = [
   { id: "cat-6", name: "Tablets", description: "Tablet devices", status: "active", createdDate: "2025-02-01" },
   { id: "cat-7", name: "Accessories", description: "Mice, headsets, cables and other accessories", status: "active", createdDate: "2025-02-01" },
 ];
+
+const seedConditions: AssetConditionItem[] = [
+  { id: "cond-1", name: "New", description: "Brand new, unused asset", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-2", name: "Good", description: "In good working condition", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-3", name: "Used", description: "Previously used but functional", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-4", name: "Old", description: "Aging asset, may need replacement soon", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-5", name: "Damaged", description: "Asset is damaged and may need repair", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-6", name: "Under Maintenance", description: "Currently being serviced or repaired", status: "active", createdDate: "2025-02-01" },
+];
+
+const seedLocations: AssetLocationItem[] = [
+  { id: "loc-1", name: "Karachi", description: "Karachi office", status: "active", createdDate: "2025-01-15" },
+  { id: "loc-2", name: "Lahore", description: "Lahore office", status: "active", createdDate: "2025-01-15" },
+  { id: "loc-3", name: "Riyadh", description: "Riyadh headquarters", status: "active", createdDate: "2025-01-15" },
+  { id: "loc-4", name: "Dubai", description: "Dubai branch", status: "active", createdDate: "2025-01-15" },
+  { id: "loc-5", name: "Warehouse", description: "Central warehouse storage", status: "active", createdDate: "2025-02-01" },
+  { id: "loc-6", name: "Head Office", description: "Main head office", status: "active", createdDate: "2025-02-01" },
+];
+
 
 const seedStoreItems: AssetStoreItem[] = [
   { id: "si-1", name: "HP Core i7 Laptop", categoryId: "cat-1", categoryName: "Laptops", brand: "HP", model: "ProBook 450 G10", description: "High-performance business laptop with Intel Core i7 processor, 16GB RAM, 512GB SSD.", image: "/assets/hp-laptop.png", status: "active", sku: "HP-PB450-I7", estimatedCost: 4500, warrantyPeriod: "3 years", publishToStore: true, createdDate: "2025-03-01" },
@@ -65,6 +84,18 @@ interface AssetContextType {
   updateCategory: (id: string, data: Partial<AssetCategory>) => void;
   deleteCategory: (id: string) => boolean;
   canDeleteCategory: (id: string) => boolean;
+  // Conditions
+  conditions: AssetConditionItem[];
+  addCondition: (item: AssetConditionItem) => void;
+  updateCondition: (id: string, data: Partial<AssetConditionItem>) => void;
+  deleteCondition: (id: string) => boolean;
+  canDeleteCondition: (id: string) => boolean;
+  // Locations
+  locations: AssetLocationItem[];
+  addLocation: (item: AssetLocationItem) => void;
+  updateLocation: (id: string, data: Partial<AssetLocationItem>) => void;
+  deleteLocation: (id: string) => boolean;
+  canDeleteLocation: (id: string) => boolean;
   // Store Items
   storeItems: AssetStoreItem[];
   addStoreItem: (item: AssetStoreItem) => void;
@@ -102,6 +133,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       }))
   );
   const [categories, setCategories] = useState<AssetCategory[]>(seedCategories);
+  const [conditions, setConditions] = useState<AssetConditionItem[]>(seedConditions);
+  const [locations, setLocations] = useState<AssetLocationItem[]>(seedLocations);
   const [storeItems, setStoreItems] = useState<AssetStoreItem[]>(seedStoreItems);
   const [assetRequests, setAssetRequests] = useState<AssetRequest[]>(seedRequests);
   
@@ -213,6 +246,25 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  // Conditions
+  const addCondition = (item: AssetConditionItem) => setConditions(prev => [...prev, item]);
+  const updateCondition = (id: string, data: Partial<AssetConditionItem>) => setConditions(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+  const canDeleteCondition = (id: string) => {
+    const cond = conditions.find(c => c.id === id);
+    return !cond || !assets.some(a => a.condition.toLowerCase() === cond.name.toLowerCase());
+  };
+  const deleteCondition = (id: string) => { if (!canDeleteCondition(id)) return false; setConditions(prev => prev.filter(c => c.id !== id)); return true; };
+
+  // Locations
+  const addLocation = (item: AssetLocationItem) => setLocations(prev => [...prev, item]);
+  const updateLocation = (id: string, data: Partial<AssetLocationItem>) => setLocations(prev => prev.map(l => l.id === id ? { ...l, ...data } : l));
+  const canDeleteLocation = (id: string) => {
+    const loc = locations.find(l => l.id === id);
+    return !loc || !assets.some(a => a.location?.toLowerCase() === loc.name.toLowerCase());
+  };
+  const deleteLocation = (id: string) => { if (!canDeleteLocation(id)) return false; setLocations(prev => prev.filter(l => l.id !== id)); return true; };
+
+
   // Store Items
   const addStoreItem = (item: AssetStoreItem) => setStoreItems(prev => [...prev, item]);
   const updateStoreItem = (id: string, data: Partial<AssetStoreItem>) => setStoreItems(prev => prev.map(si => si.id === id ? { ...si, ...data } : si));
@@ -236,6 +288,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       audits, addAudit, updateAuditEntry, completeAudit,
       assetLogs, addAssetLog,
       categories, addCategory, updateCategory, deleteCategory, canDeleteCategory,
+      conditions, addCondition, updateCondition, deleteCondition, canDeleteCondition,
+      locations, addLocation, updateLocation, deleteLocation, canDeleteLocation,
       storeItems, addStoreItem, updateStoreItem, deleteStoreItem, canDeleteStoreItem, getStoreItemsForDisplay,
       assetRequests, addAssetRequest, approveRequest, rejectRequest, getEmployeeRequests,
     }}>
