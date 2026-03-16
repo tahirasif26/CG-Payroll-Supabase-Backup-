@@ -16,6 +16,7 @@ export interface Advance {
   attachments: string[];
   notes: string;
   payrollRunId?: string;
+  lastReminderSent?: string;
 }
 
 const initialAdvances: Advance[] = [
@@ -45,6 +46,8 @@ const initialAdvances: Advance[] = [
   },
 ];
 
+export type AutoReminderInterval = "off" | "7" | "15" | "30";
+
 interface AdvanceContextType {
   advances: Advance[];
   addAdvance: (adv: Advance) => void;
@@ -52,12 +55,16 @@ interface AdvanceContextType {
   rejectAdvance: (id: string) => void;
   useAdvanceAmount: (id: string, amount: number) => void;
   getEmployeeAdvances: (employeeId: string) => Advance[];
+  sendReminder: (ids: string[]) => void;
+  autoReminderInterval: AutoReminderInterval;
+  setAutoReminderInterval: (interval: AutoReminderInterval) => void;
 }
 
 const AdvanceContext = createContext<AdvanceContextType | undefined>(undefined);
 
 export function AdvanceProvider({ children }: { children: React.ReactNode }) {
   const [advances, setAdvances] = useState<Advance[]>(initialAdvances);
+  const [autoReminderInterval, setAutoReminderInterval] = useState<AutoReminderInterval>("off");
 
   const addAdvance = useCallback((adv: Advance) => {
     setAdvances(prev => [adv, ...prev]);
@@ -79,8 +86,13 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
     return advances.filter(a => a.employeeId === employeeId && a.status === "approved" && (a.amount - a.amountUsed) > 0);
   }, [advances]);
 
+  const sendReminder = useCallback((ids: string[]) => {
+    const now = new Date().toISOString();
+    setAdvances(prev => prev.map(a => ids.includes(a.id) ? { ...a, lastReminderSent: now } : a));
+  }, []);
+
   return (
-    <AdvanceContext.Provider value={{ advances, addAdvance, approveAdvance, rejectAdvance, useAdvanceAmount, getEmployeeAdvances }}>
+    <AdvanceContext.Provider value={{ advances, addAdvance, approveAdvance, rejectAdvance, useAdvanceAmount, getEmployeeAdvances, sendReminder, autoReminderInterval, setAutoReminderInterval }}>
       {children}
     </AdvanceContext.Provider>
   );
