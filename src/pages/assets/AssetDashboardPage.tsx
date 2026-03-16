@@ -260,7 +260,7 @@ export default function AssetDashboardPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>{a.location || "—"}</TableCell>
-                        <TableCell>{a.assignedEmployee || "—"}</TableCell>
+                        <TableCell>{a.employeeName || "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
