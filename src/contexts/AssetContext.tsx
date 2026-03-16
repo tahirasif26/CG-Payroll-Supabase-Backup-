@@ -246,6 +246,25 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  // Conditions
+  const addCondition = (item: AssetConditionItem) => setConditions(prev => [...prev, item]);
+  const updateCondition = (id: string, data: Partial<AssetConditionItem>) => setConditions(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+  const canDeleteCondition = (id: string) => {
+    const cond = conditions.find(c => c.id === id);
+    return !cond || !assets.some(a => a.condition.toLowerCase() === cond.name.toLowerCase());
+  };
+  const deleteCondition = (id: string) => { if (!canDeleteCondition(id)) return false; setConditions(prev => prev.filter(c => c.id !== id)); return true; };
+
+  // Locations
+  const addLocation = (item: AssetLocationItem) => setLocations(prev => [...prev, item]);
+  const updateLocation = (id: string, data: Partial<AssetLocationItem>) => setLocations(prev => prev.map(l => l.id === id ? { ...l, ...data } : l));
+  const canDeleteLocation = (id: string) => {
+    const loc = locations.find(l => l.id === id);
+    return !loc || !assets.some(a => a.location?.toLowerCase() === loc.name.toLowerCase());
+  };
+  const deleteLocation = (id: string) => { if (!canDeleteLocation(id)) return false; setLocations(prev => prev.filter(l => l.id !== id)); return true; };
+
+
   // Store Items
   const addStoreItem = (item: AssetStoreItem) => setStoreItems(prev => [...prev, item]);
   const updateStoreItem = (id: string, data: Partial<AssetStoreItem>) => setStoreItems(prev => prev.map(si => si.id === id ? { ...si, ...data } : si));
