@@ -557,6 +557,7 @@ export default function PayrollPage() {
                   <TableHead className="font-semibold text-right">Deductions</TableHead>
                   <TableHead className="font-semibold text-right">Loan Ded.</TableHead>
                   <TableHead className="font-semibold text-right">Expense Reimb.</TableHead>
+                  <TableHead className="font-semibold text-right">Advance Given</TableHead>
                   <TableHead className="font-semibold text-right">One-Off +/-</TableHead>
                   <TableHead className="font-semibold text-right">EOS Settlement</TableHead>
                   <TableHead className="font-semibold text-right">Net Pay</TableHead>
