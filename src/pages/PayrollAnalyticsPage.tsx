@@ -4,11 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { getCompletedRuns, computeComparison, PayrollEmployeeDetail } from "@/data/payrollAnalyticsData";
-import { ArrowUpRight, ArrowDownRight, Users, DollarSign, TrendingUp, Minus, UserPlus, UserMinus, RefreshCw } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Users, DollarSign, TrendingUp, Minus, UserPlus, UserMinus, RefreshCw, X } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, Legend,
@@ -39,6 +39,10 @@ export default function PayrollAnalyticsPage() {
   type GroupByOption = "department" | "division" | "workLocation" | "payCurrency" | "category";
   const [compGroupBy, setCompGroupBy] = useState<GroupByOption>("department");
   const [compMetric, setCompMetric] = useState<"gross" | "count">("gross");
+
+  // Interactive filter states
+  const [deptFilter, setDeptFilter] = useState<string | null>(null);
+  const [compositionFilter, setCompositionFilter] = useState<string | null>(null);
 
   const comparison = useMemo(
     () => (baseRunId && compareRunId ? computeComparison(baseRunId, compareRunId) : null),
@@ -76,7 +80,14 @@ export default function PayrollAnalyticsPage() {
     }));
   }, [comparison]);
 
-  // Composition bar chart (grouped by selected dimension, sorted desc)
+  // Filtered department table
+  const filteredDeptBreakdown = useMemo(() => {
+    if (!comparison) return [];
+    if (!deptFilter) return comparison.departmentBreakdown;
+    return comparison.departmentBreakdown.filter(d => d.department === deptFilter);
+  }, [comparison, deptFilter]);
+
+  // Composition bar chart
   const compositionData = useMemo(() => {
     if (!comparison) return [];
     const emps = comparison.compareRun.employees;
@@ -108,6 +119,22 @@ export default function PayrollAnalyticsPage() {
       .sort((a, b) => b.value - a.value);
   }, [comparison, compGroupBy, compMetric]);
 
+  // Filtered composition employees
+  const filteredCompositionEmps = useMemo(() => {
+    if (!comparison || !compositionFilter) return [];
+    const emps = comparison.compareRun.employees;
+    const groupKey = (e: PayrollEmployeeDetail): string => {
+      switch (compGroupBy) {
+        case "division": return e.division;
+        case "workLocation": return e.workLocationCountry;
+        case "payCurrency": return e.payCurrency;
+        case "category": return e.category === "direct" ? "Direct Employee" : "Contractor";
+        default: return e.department;
+      }
+    };
+    return emps.filter(e => groupKey(e) === compositionFilter);
+  }, [comparison, compositionFilter, compGroupBy]);
+
   if (runs.length < 2) {
     return (
       <div>
@@ -123,7 +150,7 @@ export default function PayrollAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payroll Analytics" description="Compare payroll runs to identify trends and changes." />
+      <PageHeader title="Payroll Analytics" description="Compare payroll runs to identify trends and changes. Click chart bars to filter." />
 
       {/* Run Selector */}
       <Card>
@@ -132,14 +159,10 @@ export default function PayrollAnalyticsPage() {
             <div className="flex items-center gap-2 flex-1">
               <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Base Period</span>
               <Select value={baseRunId} onValueChange={setBaseRunId}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {runs.map((r) => (
-                    <SelectItem key={r.id} value={r.id} disabled={r.id === compareRunId}>
-                      {r.label}
-                    </SelectItem>
+                    <SelectItem key={r.id} value={r.id} disabled={r.id === compareRunId}>{r.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -148,14 +171,10 @@ export default function PayrollAnalyticsPage() {
             <div className="flex items-center gap-2 flex-1">
               <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Compare Period</span>
               <Select value={compareRunId} onValueChange={setCompareRunId}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {runs.map((r) => (
-                    <SelectItem key={r.id} value={r.id} disabled={r.id === baseRunId}>
-                      {r.label}
-                    </SelectItem>
+                    <SelectItem key={r.id} value={r.id} disabled={r.id === baseRunId}>{r.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -267,12 +286,22 @@ export default function PayrollAnalyticsPage() {
             <TabsContent value="department">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Department Cost Comparison</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    Department Cost Comparison
+                    {deptFilter && (
+                      <Badge variant="secondary" className="gap-1 pl-2 pr-1 py-0.5 text-xs">
+                        {deptFilter}
+                        <Button variant="ghost" size="icon" className="h-3.5 w-3.5 hover:bg-transparent" onClick={() => setDeptFilter(null)}>
+                          <X className="h-2.5 w-2.5" />
+                        </Button>
+                      </Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={deptChartData} barCategoryGap="20%">
+                      <BarChart data={deptChartData} barCategoryGap="20%" className="cursor-pointer">
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                         <XAxis dataKey="department" tick={{ fontSize: 12 }} className="fill-muted-foreground" />
                         <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} className="fill-muted-foreground" />
@@ -281,8 +310,30 @@ export default function PayrollAnalyticsPage() {
                           contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "0.5rem" }}
                         />
                         <Legend />
-                        <Bar dataKey={comparison.baseRun.runLabel} fill="hsl(233, 90%, 60%)" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey={comparison.compareRun.runLabel} fill="hsl(213, 94%, 55%)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey={comparison.baseRun.runLabel} radius={[4, 4, 0, 0]}
+                          onClick={(data) => setDeptFilter(prev => prev === data.department ? null : data.department)}
+                        >
+                          {deptChartData.map((entry) => (
+                            <Cell
+                              key={entry.department}
+                              fill="hsl(233, 90%, 60%)"
+                              opacity={deptFilter && deptFilter !== entry.department ? 0.3 : 1}
+                              className="cursor-pointer"
+                            />
+                          ))}
+                        </Bar>
+                        <Bar dataKey={comparison.compareRun.runLabel} radius={[4, 4, 0, 0]}
+                          onClick={(data) => setDeptFilter(prev => prev === data.department ? null : data.department)}
+                        >
+                          {deptChartData.map((entry) => (
+                            <Cell
+                              key={entry.department}
+                              fill="hsl(213, 94%, 55%)"
+                              opacity={deptFilter && deptFilter !== entry.department ? 0.3 : 1}
+                              className="cursor-pointer"
+                            />
+                          ))}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -298,7 +349,7 @@ export default function PayrollAnalyticsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {comparison.departmentBreakdown.map((d) => (
+                      {filteredDeptBreakdown.map((d) => (
                         <TableRow key={d.department}>
                           <TableCell className="font-medium">{d.department}</TableCell>
                           <TableCell className="text-right">{fmtCurrency(d.base)}</TableCell>
@@ -323,8 +374,16 @@ export default function PayrollAnalyticsPage() {
             <TabsContent value="composition">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">
+                  <CardTitle className="text-base flex items-center gap-2">
                     Composition — {comparison.compareRun.runLabel}
+                    {compositionFilter && (
+                      <Badge variant="secondary" className="gap-1 pl-2 pr-1 py-0.5 text-xs">
+                        {compositionFilter}
+                        <Button variant="ghost" size="icon" className="h-3.5 w-3.5 hover:bg-transparent" onClick={() => setCompositionFilter(null)}>
+                          <X className="h-2.5 w-2.5" />
+                        </Button>
+                      </Badge>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -332,7 +391,7 @@ export default function PayrollAnalyticsPage() {
                   <div className="flex flex-wrap items-end gap-4">
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Group By</Label>
-                      <Select value={compGroupBy} onValueChange={(v) => setCompGroupBy(v as GroupByOption)}>
+                      <Select value={compGroupBy} onValueChange={(v) => { setCompGroupBy(v as GroupByOption); setCompositionFilter(null); }}>
                         <SelectTrigger className="h-8 text-xs w-44"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="department">Department</SelectItem>
@@ -359,7 +418,7 @@ export default function PayrollAnalyticsPage() {
                   {compositionData.length > 0 ? (
                     <div className="h-96">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={compositionData} layout="vertical" margin={{ left: 20, right: 80 }} barCategoryGap="20%">
+                        <BarChart data={compositionData} layout="vertical" margin={{ left: 20, right: 80 }} barCategoryGap="20%" className="cursor-pointer">
                           <CartesianGrid strokeDasharray="3 3" className="stroke-border" horizontal={false} />
                           <XAxis
                             type="number"
@@ -379,6 +438,7 @@ export default function PayrollAnalyticsPage() {
                             contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "0.5rem" }}
                           />
                           <Bar dataKey="value" radius={[0, 4, 4, 0]}
+                            onClick={(data) => setCompositionFilter(prev => prev === data.name ? null : data.name)}
                             label={({ x, y, width: w, height: h, value, index }: any) => {
                               const item = compositionData[index];
                               const labelText = compMetric === "gross"
@@ -391,8 +451,13 @@ export default function PayrollAnalyticsPage() {
                               );
                             }}
                           >
-                            {compositionData.map((entry, index) => (
-                              <Cell key={index} fill={entry.fill} />
+                            {compositionData.map((entry) => (
+                              <Cell
+                                key={entry.name}
+                                fill={entry.fill}
+                                opacity={compositionFilter && compositionFilter !== entry.name ? 0.3 : 1}
+                                className="cursor-pointer"
+                              />
                             ))}
                           </Bar>
                         </BarChart>
@@ -403,6 +468,40 @@ export default function PayrollAnalyticsPage() {
                       No data available.
                     </div>
                   )}
+
+                  {/* Filtered employee list */}
+                  {compositionFilter && filteredCompositionEmps.length > 0 && (
+                    <Card className="border-dashed">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          Employees in "{compositionFilter}"
+                          <Badge variant="outline" className="text-xs">{filteredCompositionEmps.length}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead>Employee</TableHead>
+                              <TableHead>Department</TableHead>
+                              <TableHead>Designation</TableHead>
+                              <TableHead className="text-right">Gross Pay</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredCompositionEmps.slice(0, 20).map((e) => (
+                              <TableRow key={e.employeeId}>
+                                <TableCell className="font-medium">{e.name}</TableCell>
+                                <TableCell>{e.department}</TableCell>
+                                <TableCell>{e.designation}</TableCell>
+                                <TableCell className="text-right">{fmtCurrency(e.grossPay)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -410,7 +509,6 @@ export default function PayrollAnalyticsPage() {
             {/* Employee Changes */}
             <TabsContent value="changes">
               <div className="space-y-4">
-                {/* New Hires */}
                 {comparison.newHires.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -444,7 +542,6 @@ export default function PayrollAnalyticsPage() {
                   </Card>
                 )}
 
-                {/* Separations */}
                 {comparison.separations.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -478,7 +575,6 @@ export default function PayrollAnalyticsPage() {
                   </Card>
                 )}
 
-                {/* Salary Changes */}
                 {comparison.salaryChanges.length > 0 && (
                   <Card>
                     <CardHeader>
