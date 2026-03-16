@@ -67,6 +67,7 @@ interface EmployeePayrollLine {
   otherDeductions: number;
   totalDeductions: number;
   expenseReimbursement: number;
+  advanceGiven: number;
   oneOffBenefits: number;
   oneOffDeductions: number;
   separationSettlement: number;
