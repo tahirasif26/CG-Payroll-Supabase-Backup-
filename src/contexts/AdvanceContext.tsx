@@ -63,8 +63,8 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
     setAdvances(prev => [adv, ...prev]);
   }, []);
 
-  const approveAdvance = useCallback((id: string) => {
-    setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: "approved" as const } : a));
+  const approveAdvance = useCallback((id: string, payrollRunId?: string) => {
+    setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: "approved" as const, payrollRunId } : a));
   }, []);
 
   const rejectAdvance = useCallback((id: string) => {
