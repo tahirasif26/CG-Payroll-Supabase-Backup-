@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
-import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp, DollarSign, Users, Layers } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp, DollarSign, Layers, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type GroupBy = "category" | "employee";
@@ -22,10 +23,7 @@ function getExpensesForRun(runId: string, allExpenses: ExpenseReimbursement[]): 
   return allExpenses.filter(exp => exp.payrollRunId === runId && (exp.status === "approved" || exp.status === "paid"));
 }
 
-function groupExpenses(
-  exps: ExpenseReimbursement[],
-  groupBy: GroupBy
-): Map<string, number> {
+function groupExpenses(exps: ExpenseReimbursement[], groupBy: GroupBy): Map<string, number> {
   const map = new Map<string, number>();
   for (const exp of exps) {
     const key = groupBy === "category" ? exp.category : exp.employeeName;
@@ -35,12 +33,13 @@ function groupExpenses(
 }
 
 export default function ExpenseAnalytics() {
-  const { employees } = useEmployees();
+  const { employees: emps } = useEmployees();
   const completedRuns = getCompletedRuns();
 
   const [baseRunId, setBaseRunId] = useState(completedRuns[0]?.id || "");
   const [compareRunId, setCompareRunId] = useState(completedRuns[1]?.id || completedRuns[0]?.id || "");
   const [groupBy, setGroupBy] = useState<GroupBy>("category");
+  const [chartFilter, setChartFilter] = useState<string | null>(null);
 
   const allExpenses = useMemo(() => [...expenses], []);
 
@@ -77,20 +76,42 @@ export default function ExpenseAnalytics() {
   }, [allKeys, baseGrouped, compareGrouped, baseLabel, compareLabel]);
 
   const tableData = useMemo(() => {
-    return allKeys.map(key => {
+    let data = allKeys.map(key => {
       const base = baseGrouped.get(key) || 0;
       const compare = compareGrouped.get(key) || 0;
       const change = compare - base;
       const changePct = base > 0 ? (change / base) * 100 : compare > 0 ? 100 : 0;
       return { key, base, compare, change, changePct };
     }).sort((a, b) => b.compare - a.compare);
-  }, [allKeys, baseGrouped, compareGrouped]);
+
+    if (chartFilter) {
+      data = data.filter(d => d.key === chartFilter);
+    }
+    return data;
+  }, [allKeys, baseGrouped, compareGrouped, chartFilter]);
+
+  const handleBarClick = (data: any) => {
+    if (data?.name) {
+      setChartFilter(prev => prev === data.name ? null : data.name);
+    }
+  };
+
+  // Reset filter when groupBy changes
+  const handleGroupByChange = (v: string) => {
+    setGroupBy(v as GroupBy);
+    setChartFilter(null);
+  };
+
+  const filteredBaseTotal = tableData.reduce((s, d) => s + d.base, 0);
+  const filteredCompareTotal = tableData.reduce((s, d) => s + d.compare, 0);
+  const filteredTotalChange = filteredCompareTotal - filteredBaseTotal;
+  const filteredTotalChangePct = filteredBaseTotal > 0 ? (filteredTotalChange / filteredBaseTotal) * 100 : filteredCompareTotal > 0 ? 100 : 0;
 
   const ChangeIndicator = ({ value, percent }: { value: number; percent: number }) => {
     if (value === 0) return <span className="flex items-center gap-1 text-muted-foreground"><Minus className="h-3 w-3" />No change</span>;
     const isUp = value > 0;
     return (
-      <span className={cn("flex items-center gap-1 text-xs font-semibold", isUp ? "text-red-600" : "text-green-600")}>
+      <span className={cn("flex items-center gap-1 text-xs font-semibold", isUp ? "text-destructive" : "text-success")}>
         {isUp ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
         {isUp ? "+" : ""}{value.toLocaleString()} ({percent.toFixed(1)}%)
       </span>
@@ -131,7 +152,7 @@ export default function ExpenseAnalytics() {
         </div>
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Group By</label>
-          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+          <Select value={groupBy} onValueChange={handleGroupByChange}>
             <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="category">Category</SelectItem>
@@ -167,7 +188,7 @@ export default function ExpenseAnalytics() {
             <div className="flex items-baseline gap-3">
               <span className="text-2xl font-bold">{compareCount}</span>
               {compareCount !== baseCount && (
-                <span className={cn("text-xs font-semibold", compareCount > baseCount ? "text-red-600" : "text-green-600")}>
+                <span className={cn("text-xs font-semibold", compareCount > baseCount ? "text-destructive" : "text-success")}>
                   {compareCount > baseCount ? "+" : ""}{compareCount - baseCount} vs prior
                 </span>
               )}
@@ -195,21 +216,47 @@ export default function ExpenseAnalytics() {
       {chartData.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               Spend by {groupBy === "category" ? "Category" : "Employee"}
+              {chartFilter && (
+                <Badge variant="secondary" className="gap-1 pl-2 pr-1 py-0.5 text-xs">
+                  {chartFilter}
+                  <Button variant="ghost" size="icon" className="h-3.5 w-3.5 hover:bg-transparent" onClick={() => setChartFilter(null)}>
+                    <X className="h-2.5 w-2.5" />
+                  </Button>
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
+                <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }} className="cursor-pointer">
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                   <XAxis type="number" tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
                   <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(value: number) => `SAR ${value.toLocaleString()}`} />
                   <Legend />
-                  <Bar dataKey={baseLabel} fill="hsl(var(--muted-foreground) / 0.3)" radius={[0, 4, 4, 0]} />
-                  <Bar dataKey={compareLabel} fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey={baseLabel} radius={[0, 4, 4, 0]} onClick={handleBarClick}>
+                    {chartData.map((entry) => (
+                      <Cell
+                        key={entry.name}
+                        fill="hsl(var(--muted-foreground) / 0.3)"
+                        opacity={chartFilter && chartFilter !== entry.name ? 0.3 : 1}
+                        className="cursor-pointer"
+                      />
+                    ))}
+                  </Bar>
+                  <Bar dataKey={compareLabel} radius={[0, 4, 4, 0]} onClick={handleBarClick}>
+                    {chartData.map((entry) => (
+                      <Cell
+                        key={entry.name}
+                        fill="hsl(var(--primary))"
+                        opacity={chartFilter && chartFilter !== entry.name ? 0.3 : 1}
+                        className="cursor-pointer"
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -220,8 +267,9 @@ export default function ExpenseAnalytics() {
       {/* Detail Table */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
             Detailed Comparison — by {groupBy === "category" ? "Category" : "Employee"}
+            {chartFilter && <Badge variant="outline" className="text-xs">Filtered</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -244,7 +292,7 @@ export default function ExpenseAnalytics() {
                   <TableCell className="text-right">
                     <span className={cn(
                       "font-semibold",
-                      row.change > 0 ? "text-red-600" : row.change < 0 ? "text-green-600" : "text-muted-foreground"
+                      row.change > 0 ? "text-destructive" : row.change < 0 ? "text-success" : "text-muted-foreground"
                     )}>
                       {row.change > 0 ? "+" : ""}{row.change.toLocaleString()}
                     </span>
@@ -252,7 +300,7 @@ export default function ExpenseAnalytics() {
                   <TableCell className="text-right">
                     <Badge variant="outline" className={cn(
                       "text-xs",
-                      row.change > 0 ? "border-red-200 text-red-700" : row.change < 0 ? "border-green-200 text-green-700" : ""
+                      row.change > 0 ? "border-destructive/30 text-destructive" : row.change < 0 ? "border-success/30 text-success" : ""
                     )}>
                       {row.changePct > 0 ? "+" : ""}{row.changePct.toFixed(1)}%
                     </Badge>
@@ -268,16 +316,16 @@ export default function ExpenseAnalytics() {
               {tableData.length > 0 && (
                 <TableRow className="bg-muted/30 font-semibold">
                   <TableCell>Total</TableCell>
-                  <TableCell className="text-right">SAR {baseTotal.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">SAR {compareTotal.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">SAR {filteredBaseTotal.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">SAR {filteredCompareTotal.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
-                    <span className={cn(totalChange > 0 ? "text-red-600" : totalChange < 0 ? "text-green-600" : "")}>
-                      {totalChange > 0 ? "+" : ""}{totalChange.toLocaleString()}
+                    <span className={cn(filteredTotalChange > 0 ? "text-destructive" : filteredTotalChange < 0 ? "text-success" : "")}>
+                      {filteredTotalChange > 0 ? "+" : ""}{filteredTotalChange.toLocaleString()}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge variant="outline" className="text-xs">
-                      {totalChangePct > 0 ? "+" : ""}{totalChangePct.toFixed(1)}%
+                      {filteredTotalChangePct > 0 ? "+" : ""}{filteredTotalChangePct.toFixed(1)}%
                     </Badge>
                   </TableCell>
                 </TableRow>

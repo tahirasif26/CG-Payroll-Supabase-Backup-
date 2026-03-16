@@ -1,11 +1,15 @@
-import { useMemo } from "react";
-import { Users, DollarSign, Calendar, TrendingUp, Gift, CreditCard, Clock, PiggyBank, FileText, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Users, DollarSign, Calendar, TrendingUp, Gift, CreditCard, Clock, PiggyBank, FileText, ArrowUpRight, ArrowDownRight, X } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { employees, payrollRuns, leaveRequests, expenses, loans, getUpcomingBirthdays } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRole } from "@/contexts/RoleContext";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell } from "recharts";
 
@@ -59,6 +63,21 @@ function EmployerDashboard() {
     { name: "On Leave", value: activeEmps.filter(e => e.status === "on-leave").length },
     { name: "Inactive", value: activeEmps.filter(e => e.status === "inactive").length },
   ].filter(d => d.value > 0);
+
+  // Interactive filter state
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  const handleStatusClick = (_: any, index: number) => {
+    const clicked = statusData[index]?.name;
+    setStatusFilter(prev => prev === clicked ? null : clicked);
+  };
+
+  // Map pie label to employee status value
+  const statusValueMap: Record<string, string> = { "Active": "active", "On Leave": "on-leave", "Inactive": "inactive" };
+
+  const displayEmps = statusFilter
+    ? activeEmps.filter(e => e.status === statusValueMap[statusFilter])
+    : null;
 
   return (
     <div className="space-y-6">
@@ -135,15 +154,33 @@ function EmployerDashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-foreground">Employee Status</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+              Employee Status
+              {statusFilter && (
+                <Badge variant="secondary" className="gap-1 pl-2 pr-1 py-0.5 text-xs">
+                  {statusFilter}
+                  <Button variant="ghost" size="icon" className="h-3.5 w-3.5 hover:bg-transparent" onClick={() => setStatusFilter(null)}>
+                    <X className="h-2.5 w-2.5" />
+                  </Button>
+                </Badge>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[200px] flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={45}>
-                    {statusData.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                  <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={45}
+                    onClick={handleStatusClick}
+                    className="cursor-pointer"
+                  >
+                    {statusData.map((entry, i) => (
+                      <Cell
+                        key={i}
+                        fill={CHART_COLORS[i % CHART_COLORS.length]}
+                        opacity={statusFilter && statusFilter !== entry.name ? 0.3 : 1}
+                        className="cursor-pointer"
+                      />
                     ))}
                   </Pie>
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(0,0%,88%)" }} />
@@ -152,8 +189,12 @@ function EmployerDashboard() {
             </div>
             <div className="flex flex-wrap gap-3 justify-center mt-1">
               {statusData.map((d, i) => (
-                <div key={d.name} className="flex items-center gap-1.5 text-xs">
-                  <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                <div
+                  key={d.name}
+                  className="flex items-center gap-1.5 text-xs cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setStatusFilter(prev => prev === d.name ? null : d.name)}
+                >
+                  <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length], opacity: statusFilter && statusFilter !== d.name ? 0.3 : 1 }} />
                   <span className="text-muted-foreground">{d.name} ({d.value})</span>
                 </div>
               ))}
@@ -161,6 +202,44 @@ function EmployerDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Filtered Employee Table */}
+      {displayEmps && displayEmps.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              {statusFilter} Employees
+              <Badge variant="outline" className="text-xs">{displayEmps.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead>Name</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Designation</TableHead>
+                    <TableHead>Joining Date</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {displayEmps.map(emp => (
+                    <TableRow key={emp.id}>
+                      <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
+                      <TableCell>{emp.department}</TableCell>
+                      <TableCell>{emp.designation}</TableCell>
+                      <TableCell>{new Date(emp.joiningDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</TableCell>
+                      <TableCell><StatusBadge status={emp.status} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
