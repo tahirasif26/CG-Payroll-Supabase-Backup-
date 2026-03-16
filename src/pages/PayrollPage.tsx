@@ -6,6 +6,7 @@ import { payrollRuns, loans, expenses } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { PayrollRun, OneOffAdjustment, Employee, Deduction } from "@/types/hcm";
 import { defaultExchangeRates } from "@/data/settingsData";
+import { useAdvances } from "@/contexts/AdvanceContext";
 import { useDeductions } from "@/contexts/DeductionContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSeparations } from "@/contexts/SeparationContext";
@@ -66,6 +67,7 @@ interface EmployeePayrollLine {
   otherDeductions: number;
   totalDeductions: number;
   expenseReimbursement: number;
+  advanceGiven: number;
   oneOffBenefits: number;
   oneOffDeductions: number;
   separationSettlement: number;
@@ -74,7 +76,7 @@ interface EmployeePayrollLine {
   payCurrency: string;
 }
 
-function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string): EmployeePayrollLine[] {
+function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string, advancesData?: { employeeId: string; amount: number; payrollRunId?: string }[]): EmployeePayrollLine[] {
   const activeEmployees = allEmployees.filter(emp => {
     if (processedSepIds.has(emp.id)) return false;
     return true;
@@ -86,7 +88,6 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], on
     const allowances = gross - basic;
     const activeLoan = loans.find(l => l.employeeId === emp.id && l.status === "active");
     const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
-    // Calculate deductions from actual deduction rules
     const applicableDeductions = allDeductions.filter(d => {
       if (!d.isActive) return false;
       if (d.type === "one-off") return false;
@@ -100,18 +101,23 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], on
       if (d.fixedAmount) return sum + d.fixedAmount;
       return sum;
     }, 0);
+    // Only reimburse expenses NOT linked to an advance
     const approvedExpenses = expenses
-      .filter(e => e.employeeId === emp.id && e.status === "approved" && e.payrollRunId === runId)
+      .filter(e => e.employeeId === emp.id && e.status === "approved" && e.payrollRunId === runId && !e.advanceId)
       .reduce((s, e) => s + e.amount, 0);
+    // Advance given through payroll
+    const advanceGiven = (advancesData || [])
+      .filter(a => a.employeeId === emp.id && a.payrollRunId === runId)
+      .reduce((s, a) => s + a.amount, 0);
     const empOneOffs = oneOffs.filter(o => o.employeeId === emp.id);
     const oneOffBenefits = empOneOffs.filter(o => o.type === "benefit").reduce((s, o) => s + o.amount, 0);
     const oneOffDeductions = empOneOffs.filter(o => o.type === "deduction").reduce((s, o) => s + o.amount, 0);
     const separationSettlement = separationMap[emp.id] || 0;
     const isSeparated = !!separationMap[emp.id];
     const totalDeductions = otherDeductions + loanDeduction + oneOffDeductions;
-    const net = gross - totalDeductions + approvedExpenses + oneOffBenefits + separationSettlement;
+    const net = gross - totalDeductions + approvedExpenses + advanceGiven + oneOffBenefits + separationSettlement;
     const payCurrency = getEmployeePayCurrency(emp);
-    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency };
+    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, advanceGiven, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency };
   });
 }
 
@@ -128,7 +134,7 @@ function generateAccountingCSV(run: PayrollRun, lines: EmployeePayrollLine[]): s
   const rows: string[] = ["Date,GL Code,Account,Currency,Debit,Credit,Reporting Currency Amount,Employee,Description"];
   const date = run.runDate || new Date().toISOString().split("T")[0];
 
-  lines.forEach(({ emp, basic, allowances, loanDeduction, otherDeductions, expenseReimbursement, net, payCurrency }) => {
+  lines.forEach(({ emp, basic, allowances, loanDeduction, otherDeductions, expenseReimbursement, advanceGiven, net, payCurrency }) => {
     const name = `${emp.firstName} ${emp.lastName}`;
     const rate = getToReportingRate(payCurrency);
     const rptAmt = (amt: number) => payCurrency !== REPORTING_CURRENCY ? Math.round(amt * rate).toString() : "";
@@ -137,6 +143,7 @@ function generateAccountingCSV(run: PayrollRun, lines: EmployeePayrollLine[]): s
     if (otherDeductions > 0) rows.push(`${date},${glMap["GOSI (Employee)"] || ""},Statutory Deductions,${payCurrency},0,${otherDeductions},${rptAmt(otherDeductions)},${name},${run.month} ${run.year}`);
     if (loanDeduction > 0) rows.push(`${date},${glMap["Loan Deduction"] || ""},Loan Deduction,${payCurrency},0,${loanDeduction},${rptAmt(loanDeduction)},${name},${run.month} ${run.year}`);
     if (expenseReimbursement > 0) rows.push(`${date},${glMap["Expense Reimbursement"] || ""},Expense Reimbursement,${payCurrency},${expenseReimbursement},0,${rptAmt(expenseReimbursement)},${name},${run.month} ${run.year}`);
+    if (advanceGiven > 0) rows.push(`${date},${glMap["Advance Given"] || ""},Advance Given,${payCurrency},${advanceGiven},0,${rptAmt(advanceGiven)},${name},${run.month} ${run.year}`);
     rows.push(`${date},${glMap["Net Pay"] || ""},Net Pay,${payCurrency},0,${net},${rptAmt(net)},${name},${run.month} ${run.year}`);
   });
 
@@ -158,6 +165,8 @@ export default function PayrollPage() {
   const { deductions } = useDeductions();
   const { canUserApprovePayroll } = useApprovals();
   const { currentEmployeeId } = useRole();
+  const { advances } = useAdvances();
+  const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
   const [runs, setRuns] = useState<PayrollRun[]>(() => [...payrollRuns]);
 
   const syncRuns = (updater: (prev: PayrollRun[]) => PayrollRun[]) => {
@@ -234,7 +243,7 @@ export default function PayrollPage() {
       toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
       return;
     }
-    const breakdown = buildBreakdown(employees, deductions, [], {}, processedSeps);
+    const breakdown = buildBreakdown(employees, deductions, [], {}, processedSeps, undefined, approvedAdvances);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
@@ -261,7 +270,7 @@ export default function PayrollPage() {
     if (!run) return;
 
     const currentSepMap = getSepMap(run.id);
-    const currentBreakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id);
+    const currentBreakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
     const runEmployeeCount = currentBreakdown.length;
     const runGross = currentBreakdown.reduce((s, l) => s + l.gross, 0);
     const runDed = currentBreakdown.reduce((s, l) => s + l.totalDeductions, 0);
@@ -292,7 +301,7 @@ export default function PayrollPage() {
     setProcessedSeps(updatedProcessedSeps);
 
     const next = getNextMonth(run.month, run.year);
-    const breakdown = buildBreakdown(employees, deductions, [], {}, updatedProcessedSeps);
+    const breakdown = buildBreakdown(employees, deductions, [], {}, updatedProcessedSeps, undefined, approvedAdvances);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const nextRun: PayrollRun = {
@@ -404,7 +413,7 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const breakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id);
+    const breakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances);
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
@@ -440,9 +449,10 @@ export default function PayrollPage() {
 
   if (selectedRun) {
     const sepMap = getSepMap(selectedRun.id);
-    const breakdown = buildBreakdown(employees, deductions, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id);
+    const breakdown = buildBreakdown(employees, deductions, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
+    const totalAdvance = breakdown.reduce((s, l) => s + l.advanceGiven, 0);
     const totalOneOffBen = breakdown.reduce((s, l) => s + l.oneOffBenefits, 0);
     const totalOneOffDed = breakdown.reduce((s, l) => s + l.oneOffDeductions, 0);
     const totalSepSettlement = breakdown.reduce((s, l) => s + l.separationSettlement, 0);
@@ -454,6 +464,7 @@ export default function PayrollPage() {
     const rptNet = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.net), 0));
     const rptLoan = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.loanDeduction), 0));
     const rptExpense = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.expenseReimbursement), 0));
+    const rptAdvance = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.advanceGiven), 0));
     const rptOneOffBen = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.oneOffBenefits), 0));
     const rptOneOffDed = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.oneOffDeductions), 0));
     const rptSepSettlement = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.separationSettlement), 0));
@@ -497,12 +508,13 @@ export default function PayrollPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-9 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-2">
           <StatCard compact title="Employees" value={breakdown.length} icon={Users} variant="info" />
           <StatCard compact title={`Gross (${REPORTING_CURRENCY})`} value={`${rptGross.toLocaleString()}`} icon={DollarSign} variant="primary" />
           <StatCard compact title={`Deductions (${REPORTING_CURRENCY})`} value={`${rptDeductions.toLocaleString()}`} icon={TrendingDown} variant="warning" />
           <StatCard compact title={`Loan Ded. (${REPORTING_CURRENCY})`} value={`${rptLoan.toLocaleString()}`} icon={TrendingDown} variant="warning" />
           <StatCard compact title={`Exp. Reimb. (${REPORTING_CURRENCY})`} value={`${rptExpense.toLocaleString()}`} icon={DollarSign} variant="success" />
+          {rptAdvance > 0 && <StatCard compact title={`Advance (${REPORTING_CURRENCY})`} value={`${rptAdvance.toLocaleString()}`} icon={DollarSign} variant="info" />}
           <StatCard compact title={`One-Off + (${REPORTING_CURRENCY})`} value={`${rptOneOffBen.toLocaleString()}`} icon={DollarSign} variant="success" />
           <StatCard compact title={`One-Off - (${REPORTING_CURRENCY})`} value={`${rptOneOffDed.toLocaleString()}`} icon={TrendingDown} variant="warning" />
           {rptSepSettlement > 0 && <StatCard compact title={`Sep. EOS (${REPORTING_CURRENCY})`} value={`${rptSepSettlement.toLocaleString()}`} icon={DollarSign} variant="primary" />}
@@ -546,6 +558,7 @@ export default function PayrollPage() {
                   <TableHead className="font-semibold text-right">Deductions</TableHead>
                   <TableHead className="font-semibold text-right">Loan Ded.</TableHead>
                   <TableHead className="font-semibold text-right">Expense Reimb.</TableHead>
+                  <TableHead className="font-semibold text-right">Advance Given</TableHead>
                   <TableHead className="font-semibold text-right">One-Off +/-</TableHead>
                   <TableHead className="font-semibold text-right">EOS Settlement</TableHead>
                   <TableHead className="font-semibold text-right">Net Pay</TableHead>
@@ -563,13 +576,13 @@ export default function PayrollPage() {
                     <React.Fragment key={groupKey}>
                       {/* Country + Currency header */}
                       <TableRow className="bg-muted/30">
-                        <TableCell colSpan={13} className="py-2">
+                        <TableCell colSpan={15} className="py-2">
                           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                             {country} — Pay Currency: {groupCurrency} ({lines.length} employee{lines.length > 1 ? "s" : ""})
                           </span>
                         </TableCell>
                       </TableRow>
-                      {lines.map(({ emp, basic, allowances, gross, otherDeductions, loanDeduction, expenseReimbursement, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency }) => (
+                      {lines.map(({ emp, basic, allowances, gross, otherDeductions, loanDeduction, expenseReimbursement, advanceGiven, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency }) => (
                         <TableRow
                           key={emp.id}
                           className={`hover:bg-muted/30 transition-colors ${!isLocked ? "cursor-pointer" : ""} ${isSeparated ? "bg-destructive/5" : ""}`}
@@ -587,6 +600,7 @@ export default function PayrollPage() {
                           <TableCell className="text-right text-destructive">{otherDeductions.toLocaleString()}</TableCell>
                           <TableCell className="text-right text-destructive">{loanDeduction > 0 ? loanDeduction.toLocaleString() : "—"}</TableCell>
                           <TableCell className="text-right text-success">{expenseReimbursement > 0 ? expenseReimbursement.toLocaleString() : "—"}</TableCell>
+                          <TableCell className="text-right text-info">{advanceGiven > 0 ? advanceGiven.toLocaleString() : "—"}</TableCell>
                           <TableCell className="text-right">
                             {(oneOffBenefits > 0 || oneOffDeductions > 0) ? (
                               <span>
@@ -608,12 +622,12 @@ export default function PayrollPage() {
                       {/* Country subtotal */}
                       <TableRow className="bg-muted/20 border-b-2">
                         <TableCell colSpan={3} className="text-right text-xs font-bold text-muted-foreground">Subtotal {country} — {groupCurrency}</TableCell>
-                        <TableCell colSpan={2} />
-                        <TableCell className="text-right font-bold text-xs">{subtotalGross.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-bold text-xs text-destructive">{subtotalDeductions.toLocaleString()}</TableCell>
-                        <TableCell colSpan={4} />
-                        <TableCell className="text-right font-bold text-xs">{subtotalNet.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-bold text-xs bg-primary/5 text-foreground">{Math.round(subtotalNet * getToReportingRate(groupCurrency)).toLocaleString()}</TableCell>
+                         <TableCell colSpan={2} />
+                         <TableCell className="text-right font-bold text-xs">{subtotalGross.toLocaleString()}</TableCell>
+                         <TableCell className="text-right font-bold text-xs text-destructive">{subtotalDeductions.toLocaleString()}</TableCell>
+                         <TableCell colSpan={5} />
+                         <TableCell className="text-right font-bold text-xs">{subtotalNet.toLocaleString()}</TableCell>
+                         <TableCell className="text-right font-bold text-xs bg-primary/5 text-foreground">{Math.round(subtotalNet * getToReportingRate(groupCurrency)).toLocaleString()}</TableCell>
                       </TableRow>
                     </React.Fragment>
                   );
@@ -621,12 +635,12 @@ export default function PayrollPage() {
                 {/* Grand total in reporting currency */}
                 <TableRow className="bg-primary/10 font-bold">
                   <TableCell colSpan={3} className="text-right text-sm">Grand Total ({REPORTING_CURRENCY})</TableCell>
-                  <TableCell colSpan={2} />
-                  <TableCell className="text-right text-sm">{rptGross.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-sm text-destructive">{rptDeductions.toLocaleString()}</TableCell>
-                  <TableCell colSpan={4} />
-                  <TableCell className="text-right text-sm">{rptNet.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-sm font-bold bg-primary/5 text-foreground">{rptNet.toLocaleString()}</TableCell>
+                   <TableCell colSpan={2} />
+                   <TableCell className="text-right text-sm">{rptGross.toLocaleString()}</TableCell>
+                   <TableCell className="text-right text-sm text-destructive">{rptDeductions.toLocaleString()}</TableCell>
+                   <TableCell colSpan={5} />
+                   <TableCell className="text-right text-sm">{rptNet.toLocaleString()}</TableCell>
+                   <TableCell className="text-right text-sm font-bold bg-primary/5 text-foreground">{rptNet.toLocaleString()}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -650,6 +664,7 @@ export default function PayrollPage() {
             {sheetEmp && (() => {
               const empLoans = loans.filter(l => l.employeeId === sheetEmp.id && l.status === "active");
               const empExpenses = expenses.filter(e => e.employeeId === sheetEmp.id);
+              const empAdvances = advances.filter(a => a.employeeId === sheetEmp.id && a.status === "approved" && a.payrollRunId === selectedRun.id);
               const empDeductions = Math.round(sheetEmp.salary * 0.15);
               const empPayCurrency = getEmployeePayCurrency(sheetEmp);
               return (
@@ -693,7 +708,7 @@ export default function PayrollPage() {
                       {/* Expense Reimbursements */}
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Expense Reimbursements</p>
-                        {empExpenses.length > 0 ? empExpenses.map(exp => (
+                        {empExpenses.filter(e => !e.advanceId).length > 0 ? empExpenses.filter(e => !e.advanceId).map(exp => (
                           <div key={exp.id} className="bg-muted/50 rounded-lg px-3 py-2 text-sm space-y-1">
                             <div className="flex justify-between">
                               <span className="font-medium">{exp.description}</span>
@@ -706,10 +721,36 @@ export default function PayrollPage() {
                               </span>
                             </div>
                           </div>
-                        )) : <p className="text-xs text-muted-foreground">No expense claims.</p>}
+                        )) : <p className="text-xs text-muted-foreground">No reimbursable expense claims.</p>}
+                        {empExpenses.filter(e => e.advanceId).length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-[10px] font-medium text-muted-foreground mb-1">Deducted from Advance (no payroll impact)</p>
+                            {empExpenses.filter(e => e.advanceId).map(exp => (
+                              <div key={exp.id} className="bg-muted/30 rounded-lg px-3 py-1.5 text-xs space-y-0.5 mb-1 opacity-70">
+                                <div className="flex justify-between">
+                                  <span>{exp.description}</span>
+                                  <span className="font-medium">{empPayCurrency} {exp.amount.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {/* One-Off Adjustments */}
+                      {/* Advances Given */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Advances Given</p>
+                        {empAdvances.length > 0 ? empAdvances.map(adv => (
+                          <div key={adv.id} className="bg-muted/50 rounded-lg px-3 py-2 text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span className="font-medium">{adv.advanceName}</span>
+                              <span className="font-medium text-success">+{empPayCurrency} {adv.amount.toLocaleString()}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{adv.purpose}</p>
+                          </div>
+                        )) : <p className="text-xs text-muted-foreground">No advances for this run.</p>}
+                      </div>
+
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">One-Off Adjustments</p>
                         {sheetOneOffs.length > 0 && sheetOneOffs.map(adj => (
@@ -872,7 +913,7 @@ export default function PayrollPage() {
                   <TableBody>
                     {filtered.length > 0 ? filtered.map((run) => {
                       const liveBreakdown = run.status !== "completed"
-                        ? buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id)
+                        ? buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances)
                         : null;
                       const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
                       const dispGross = liveBreakdown

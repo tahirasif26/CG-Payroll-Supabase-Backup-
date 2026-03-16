@@ -2,7 +2,8 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useClient } from "@/contexts/ClientContext";
-import { payrollRuns, loans } from "@/data/mockData";
+import { payrollRuns, loans, expenses } from "@/data/mockData";
+import { useAdvances } from "@/contexts/AdvanceContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -201,6 +202,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
   const { employees } = useEmployees();
   const { client } = useClient();
   const { separations } = useSeparations();
+  const { advances } = useAdvances();
   if (!payslip) return null;
 
   const payCurrency = payslip.payCurrency || REPORTING_CURRENCY;
@@ -220,8 +222,19 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
   const empLoans = loans.filter(l => l.employeeId === payslip.employeeId);
   const activeLoan = empLoans.find(l => l.status === "active");
   const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
+  
+  // Expense reimbursement (only non-advance-linked expenses)
+  const expenseReimbursement = expenses
+    .filter(e => e.employeeId === payslip.employeeId && e.status === "paid" && !e.advanceId)
+    .reduce((s, e) => s + e.amount, 0);
+  
+  // Advance given through payroll
+  const advanceGiven = advances
+    .filter(a => a.employeeId === payslip.employeeId && a.status === "approved" && a.payrollRunId)
+    .reduce((s, a) => s + a.amount, 0);
+  
   const totalDeductions = gosiDeduction + loanDeduction;
-  const adjustedNet = payslip.gross - totalDeductions;
+  const adjustedNet = payslip.gross - totalDeductions + expenseReimbursement + advanceGiven;
 
   const companyName = client.companyName || "Your Company";
 
@@ -319,6 +332,34 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
               </div>
             </div>
           </div>
+
+          {/* Additions: Expense Reimbursement & Advance Given */}
+          {(expenseReimbursement > 0 || advanceGiven > 0) && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Additions</p>
+                <div className="bg-muted/30 rounded-lg overflow-hidden">
+                  {expenseReimbursement > 0 && (
+                    <div className="flex justify-between text-sm px-3 py-2 border-b border-border/50 last:border-0">
+                      <span>Expense Reimbursement</span>
+                      <span className="font-medium text-success">{payCurrency} {expenseReimbursement.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {advanceGiven > 0 && (
+                    <div className="flex justify-between text-sm px-3 py-2 border-b border-border/50 last:border-0">
+                      <span>Advance Given</span>
+                      <span className="font-medium text-success">{payCurrency} {advanceGiven.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-between text-sm font-bold px-3 pt-1">
+                  <span>Total Additions</span>
+                  <span className="text-success">{payCurrency} {(expenseReimbursement + advanceGiven).toLocaleString()}</span>
+                </div>
+              </div>
+            </>
+          )}
 
           <Separator />
 

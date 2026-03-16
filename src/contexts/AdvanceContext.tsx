@@ -15,6 +15,7 @@ export interface Advance {
   settlementDueDate: string;
   attachments: string[];
   notes: string;
+  payrollRunId?: string;
 }
 
 const initialAdvances: Advance[] = [
@@ -47,7 +48,7 @@ const initialAdvances: Advance[] = [
 interface AdvanceContextType {
   advances: Advance[];
   addAdvance: (adv: Advance) => void;
-  approveAdvance: (id: string) => void;
+  approveAdvance: (id: string, payrollRunId?: string) => void;
   rejectAdvance: (id: string) => void;
   useAdvanceAmount: (id: string, amount: number) => void;
   getEmployeeAdvances: (employeeId: string) => Advance[];
@@ -62,8 +63,8 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
     setAdvances(prev => [adv, ...prev]);
   }, []);
 
-  const approveAdvance = useCallback((id: string) => {
-    setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: "approved" as const } : a));
+  const approveAdvance = useCallback((id: string, payrollRunId?: string) => {
+    setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: "approved" as const, payrollRunId } : a));
   }, []);
 
   const rejectAdvance = useCallback((id: string) => {

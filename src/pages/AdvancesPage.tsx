@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useRole } from "@/contexts/RoleContext";
 import { useAdvances } from "@/contexts/AdvanceContext";
+import { payrollRuns } from "@/data/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Eye, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight } from "lucide-react";
@@ -80,8 +81,14 @@ export default function AdvancesPage() {
   };
 
   const handleApprove = (id: string, name: string) => {
-    approveAdvance(id);
-    toast({ title: "Advance Approved", description: `${name} has been approved.` });
+    const openRun = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
+    approveAdvance(id, openRun?.id);
+    toast({
+      title: "Advance Approved",
+      description: openRun
+        ? `${name} approved and linked to ${openRun.month} ${openRun.year} payroll.`
+        : `${name} approved. Will be disbursed in the next payroll run.`,
+    });
   };
 
   const handleReject = (id: string, name: string) => {
