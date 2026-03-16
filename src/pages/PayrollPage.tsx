@@ -134,7 +134,7 @@ function generateAccountingCSV(run: PayrollRun, lines: EmployeePayrollLine[]): s
   const rows: string[] = ["Date,GL Code,Account,Currency,Debit,Credit,Reporting Currency Amount,Employee,Description"];
   const date = run.runDate || new Date().toISOString().split("T")[0];
 
-  lines.forEach(({ emp, basic, allowances, loanDeduction, otherDeductions, expenseReimbursement, net, payCurrency }) => {
+  lines.forEach(({ emp, basic, allowances, loanDeduction, otherDeductions, expenseReimbursement, advanceGiven, net, payCurrency }) => {
     const name = `${emp.firstName} ${emp.lastName}`;
     const rate = getToReportingRate(payCurrency);
     const rptAmt = (amt: number) => payCurrency !== REPORTING_CURRENCY ? Math.round(amt * rate).toString() : "";
@@ -143,6 +143,7 @@ function generateAccountingCSV(run: PayrollRun, lines: EmployeePayrollLine[]): s
     if (otherDeductions > 0) rows.push(`${date},${glMap["GOSI (Employee)"] || ""},Statutory Deductions,${payCurrency},0,${otherDeductions},${rptAmt(otherDeductions)},${name},${run.month} ${run.year}`);
     if (loanDeduction > 0) rows.push(`${date},${glMap["Loan Deduction"] || ""},Loan Deduction,${payCurrency},0,${loanDeduction},${rptAmt(loanDeduction)},${name},${run.month} ${run.year}`);
     if (expenseReimbursement > 0) rows.push(`${date},${glMap["Expense Reimbursement"] || ""},Expense Reimbursement,${payCurrency},${expenseReimbursement},0,${rptAmt(expenseReimbursement)},${name},${run.month} ${run.year}`);
+    if (advanceGiven > 0) rows.push(`${date},${glMap["Advance Given"] || ""},Advance Given,${payCurrency},${advanceGiven},0,${rptAmt(advanceGiven)},${name},${run.month} ${run.year}`);
     rows.push(`${date},${glMap["Net Pay"] || ""},Net Pay,${payCurrency},0,${net},${rptAmt(net)},${name},${run.month} ${run.year}`);
   });
 
