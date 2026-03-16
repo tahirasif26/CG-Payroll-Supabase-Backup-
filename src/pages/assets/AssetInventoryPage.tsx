@@ -144,6 +144,9 @@ export default function AssetInventoryPage() {
 
   const activeCats = categories.filter(c => c.status === "active");
   const inventoryCategories = [...new Set(assets.map(a => a.category))];
+  const activeConditions = conditions.filter(c => c.status === "active");
+  const conditionOptions = activeConditions.map(c => ({ value: c.name.toLowerCase().replace(/\s+/g, "-"), label: c.name }));
+  const activeLocations = locations.filter(l => l.status === "active");
 
   const generatePreview = () => {
     if (bulkSerialMode === "auto") {
