@@ -621,12 +621,12 @@ export default function PayrollPage() {
                       {/* Country subtotal */}
                       <TableRow className="bg-muted/20 border-b-2">
                         <TableCell colSpan={3} className="text-right text-xs font-bold text-muted-foreground">Subtotal {country} — {groupCurrency}</TableCell>
-                        <TableCell colSpan={2} />
-                        <TableCell className="text-right font-bold text-xs">{subtotalGross.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-bold text-xs text-destructive">{subtotalDeductions.toLocaleString()}</TableCell>
-                        <TableCell colSpan={4} />
-                        <TableCell className="text-right font-bold text-xs">{subtotalNet.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-bold text-xs bg-primary/5 text-foreground">{Math.round(subtotalNet * getToReportingRate(groupCurrency)).toLocaleString()}</TableCell>
+                         <TableCell colSpan={2} />
+                         <TableCell className="text-right font-bold text-xs">{subtotalGross.toLocaleString()}</TableCell>
+                         <TableCell className="text-right font-bold text-xs text-destructive">{subtotalDeductions.toLocaleString()}</TableCell>
+                         <TableCell colSpan={5} />
+                         <TableCell className="text-right font-bold text-xs">{subtotalNet.toLocaleString()}</TableCell>
+                         <TableCell className="text-right font-bold text-xs bg-primary/5 text-foreground">{Math.round(subtotalNet * getToReportingRate(groupCurrency)).toLocaleString()}</TableCell>
                       </TableRow>
                     </React.Fragment>
                   );
