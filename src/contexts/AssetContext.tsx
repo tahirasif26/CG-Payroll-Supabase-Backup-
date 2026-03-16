@@ -84,6 +84,18 @@ interface AssetContextType {
   updateCategory: (id: string, data: Partial<AssetCategory>) => void;
   deleteCategory: (id: string) => boolean;
   canDeleteCategory: (id: string) => boolean;
+  // Conditions
+  conditions: AssetConditionItem[];
+  addCondition: (item: AssetConditionItem) => void;
+  updateCondition: (id: string, data: Partial<AssetConditionItem>) => void;
+  deleteCondition: (id: string) => boolean;
+  canDeleteCondition: (id: string) => boolean;
+  // Locations
+  locations: AssetLocationItem[];
+  addLocation: (item: AssetLocationItem) => void;
+  updateLocation: (id: string, data: Partial<AssetLocationItem>) => void;
+  deleteLocation: (id: string) => boolean;
+  canDeleteLocation: (id: string) => boolean;
   // Store Items
   storeItems: AssetStoreItem[];
   addStoreItem: (item: AssetStoreItem) => void;
