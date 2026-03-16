@@ -48,7 +48,7 @@ const initialAdvances: Advance[] = [
 interface AdvanceContextType {
   advances: Advance[];
   addAdvance: (adv: Advance) => void;
-  approveAdvance: (id: string) => void;
+  approveAdvance: (id: string, payrollRunId?: string) => void;
   rejectAdvance: (id: string) => void;
   useAdvanceAmount: (id: string, amount: number) => void;
   getEmployeeAdvances: (employeeId: string) => Advance[];
