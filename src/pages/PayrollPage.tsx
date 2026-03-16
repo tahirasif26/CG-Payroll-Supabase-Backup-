@@ -708,7 +708,7 @@ export default function PayrollPage() {
                       {/* Expense Reimbursements */}
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Expense Reimbursements</p>
-                        {empExpenses.length > 0 ? empExpenses.map(exp => (
+                        {empExpenses.filter(e => !e.advanceId).length > 0 ? empExpenses.filter(e => !e.advanceId).map(exp => (
                           <div key={exp.id} className="bg-muted/50 rounded-lg px-3 py-2 text-sm space-y-1">
                             <div className="flex justify-between">
                               <span className="font-medium">{exp.description}</span>
@@ -721,10 +721,36 @@ export default function PayrollPage() {
                               </span>
                             </div>
                           </div>
-                        )) : <p className="text-xs text-muted-foreground">No expense claims.</p>}
+                        )) : <p className="text-xs text-muted-foreground">No reimbursable expense claims.</p>}
+                        {empExpenses.filter(e => e.advanceId).length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-[10px] font-medium text-muted-foreground mb-1">Deducted from Advance (no payroll impact)</p>
+                            {empExpenses.filter(e => e.advanceId).map(exp => (
+                              <div key={exp.id} className="bg-muted/30 rounded-lg px-3 py-1.5 text-xs space-y-0.5 mb-1 opacity-70">
+                                <div className="flex justify-between">
+                                  <span>{exp.description}</span>
+                                  <span className="font-medium">{empPayCurrency} {exp.amount.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {/* One-Off Adjustments */}
+                      {/* Advances Given */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Advances Given</p>
+                        {empAdvances.length > 0 ? empAdvances.map(adv => (
+                          <div key={adv.id} className="bg-muted/50 rounded-lg px-3 py-2 text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span className="font-medium">{adv.advanceName}</span>
+                              <span className="font-medium text-success">+{empPayCurrency} {adv.amount.toLocaleString()}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{adv.purpose}</p>
+                          </div>
+                        )) : <p className="text-xs text-muted-foreground">No advances for this run.</p>}
+                      </div>
+
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">One-Off Adjustments</p>
                         {sheetOneOffs.length > 0 && sheetOneOffs.map(adj => (
