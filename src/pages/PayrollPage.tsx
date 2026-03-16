@@ -300,7 +300,7 @@ export default function PayrollPage() {
     setProcessedSeps(updatedProcessedSeps);
 
     const next = getNextMonth(run.month, run.year);
-    const breakdown = buildBreakdown(employees, deductions, [], {}, updatedProcessedSeps);
+    const breakdown = buildBreakdown(employees, deductions, [], {}, updatedProcessedSeps, undefined, approvedAdvances);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const nextRun: PayrollRun = {
