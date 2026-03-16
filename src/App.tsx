@@ -35,7 +35,7 @@ import LeavePage from "@/pages/LeavePage";
 import BirthdaysPage from "@/pages/BirthdaysPage";
 import PayslipsPage from "@/pages/PayslipsPage";
 import AssetInventoryPage from "@/pages/assets/AssetInventoryPage";
-import AssetCategoriesPage from "@/pages/assets/AssetCategoriesPage";
+import AssetMasterDataPage from "@/pages/assets/AssetMasterDataPage";
 import AssetStorePage from "@/pages/assets/AssetStorePage";
 import AssetRequestsPage from "@/pages/assets/AssetRequestsPage";
 import AssetAuditsPage from "@/pages/assets/AssetAuditsPage";
