@@ -46,6 +46,8 @@ const initialAdvances: Advance[] = [
   },
 ];
 
+export type AutoReminderInterval = "off" | "7" | "15" | "30";
+
 interface AdvanceContextType {
   advances: Advance[];
   addAdvance: (adv: Advance) => void;
@@ -53,6 +55,9 @@ interface AdvanceContextType {
   rejectAdvance: (id: string) => void;
   useAdvanceAmount: (id: string, amount: number) => void;
   getEmployeeAdvances: (employeeId: string) => Advance[];
+  sendReminder: (ids: string[]) => void;
+  autoReminderInterval: AutoReminderInterval;
+  setAutoReminderInterval: (interval: AutoReminderInterval) => void;
 }
 
 const AdvanceContext = createContext<AdvanceContextType | undefined>(undefined);
