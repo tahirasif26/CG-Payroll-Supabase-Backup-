@@ -32,14 +32,8 @@ let assetIdCounter = 100;
 let storeIdCounter = 200;
 
 
-const conditionOptions = [
-  { value: "new", label: "New" },
-  { value: "good", label: "Good" },
-  { value: "fair", label: "Fair" },
-  { value: "needs-repair", label: "Needs Repair" },
-  { value: "damaged", label: "Damaged" },
-  { value: "retired", label: "Retired" },
-];
+
+
 
 
 function generateAssetTag() {
