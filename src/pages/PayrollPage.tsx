@@ -599,6 +599,7 @@ export default function PayrollPage() {
                           <TableCell className="text-right text-destructive">{otherDeductions.toLocaleString()}</TableCell>
                           <TableCell className="text-right text-destructive">{loanDeduction > 0 ? loanDeduction.toLocaleString() : "—"}</TableCell>
                           <TableCell className="text-right text-success">{expenseReimbursement > 0 ? expenseReimbursement.toLocaleString() : "—"}</TableCell>
+                          <TableCell className="text-right text-info">{advanceGiven > 0 ? advanceGiven.toLocaleString() : "—"}</TableCell>
                           <TableCell className="text-right">
                             {(oneOffBenefits > 0 || oneOffDeductions > 0) ? (
                               <span>
