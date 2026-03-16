@@ -16,6 +16,7 @@ export interface Advance {
   attachments: string[];
   notes: string;
   payrollRunId?: string;
+  lastReminderSent?: string;
 }
 
 const initialAdvances: Advance[] = [
