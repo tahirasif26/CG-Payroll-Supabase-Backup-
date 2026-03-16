@@ -269,7 +269,7 @@ export default function PayrollPage() {
     if (!run) return;
 
     const currentSepMap = getSepMap(run.id);
-    const currentBreakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id);
+    const currentBreakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
     const runEmployeeCount = currentBreakdown.length;
     const runGross = currentBreakdown.reduce((s, l) => s + l.gross, 0);
     const runDed = currentBreakdown.reduce((s, l) => s + l.totalDeductions, 0);
