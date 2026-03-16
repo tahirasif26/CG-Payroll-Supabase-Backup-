@@ -91,7 +91,11 @@ export default function AdvancesPage() {
     });
   };
 
-  const filtered = advances
+  const handleReject = (id: string, name: string) => {
+    rejectAdvance(id);
+    toast({ title: "Advance Rejected", description: `${name} has been rejected.` });
+  };
+
     .filter(a => {
       const matchesSearch = a.advanceName.toLowerCase().includes(search.toLowerCase()) ||
         a.employeeName.toLowerCase().includes(search.toLowerCase()) ||
