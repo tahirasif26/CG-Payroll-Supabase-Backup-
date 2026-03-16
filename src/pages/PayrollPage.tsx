@@ -880,7 +880,7 @@ export default function PayrollPage() {
                   <TableBody>
                     {filtered.length > 0 ? filtered.map((run) => {
                       const liveBreakdown = run.status !== "completed"
-                        ? buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id)
+                        ? buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances)
                         : null;
                       const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
                       const dispGross = liveBreakdown
