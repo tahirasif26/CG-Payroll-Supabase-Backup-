@@ -64,6 +64,7 @@ const AdvanceContext = createContext<AdvanceContextType | undefined>(undefined);
 
 export function AdvanceProvider({ children }: { children: React.ReactNode }) {
   const [advances, setAdvances] = useState<Advance[]>(initialAdvances);
+  const [autoReminderInterval, setAutoReminderInterval] = useState<AutoReminderInterval>("off");
 
   const addAdvance = useCallback((adv: Advance) => {
     setAdvances(prev => [adv, ...prev]);
@@ -85,8 +86,13 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
     return advances.filter(a => a.employeeId === employeeId && a.status === "approved" && (a.amount - a.amountUsed) > 0);
   }, [advances]);
 
+  const sendReminder = useCallback((ids: string[]) => {
+    const now = new Date().toISOString();
+    setAdvances(prev => prev.map(a => ids.includes(a.id) ? { ...a, lastReminderSent: now } : a));
+  }, []);
+
   return (
-    <AdvanceContext.Provider value={{ advances, addAdvance, approveAdvance, rejectAdvance, useAdvanceAmount, getEmployeeAdvances }}>
+    <AdvanceContext.Provider value={{ advances, addAdvance, approveAdvance, rejectAdvance, useAdvanceAmount, getEmployeeAdvances, sendReminder, autoReminderInterval, setAutoReminderInterval }}>
       {children}
     </AdvanceContext.Provider>
   );
