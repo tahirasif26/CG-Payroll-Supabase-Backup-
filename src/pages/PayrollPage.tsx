@@ -6,6 +6,7 @@ import { payrollRuns, loans, expenses } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { PayrollRun, OneOffAdjustment, Employee, Deduction } from "@/types/hcm";
 import { defaultExchangeRates } from "@/data/settingsData";
+import { useAdvances } from "@/contexts/AdvanceContext";
 import { useDeductions } from "@/contexts/DeductionContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSeparations } from "@/contexts/SeparationContext";
