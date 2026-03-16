@@ -412,7 +412,7 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const breakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id);
+    const breakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances);
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
