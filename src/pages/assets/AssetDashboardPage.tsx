@@ -280,14 +280,14 @@ export default function AssetDashboardPage() {
                     {filteredRequests.map(r => (
                       <TableRow key={r.id}>
                         <TableCell className="font-medium">{r.employeeName}</TableCell>
-                        <TableCell>{r.assetType}</TableCell>
+                        <TableCell>{r.storeItemName}</TableCell>
                         <TableCell>
                           <Badge variant={r.status === "approved" ? "default" : r.status === "pending" ? "secondary" : "destructive"} className="text-xs capitalize">
                             {r.status}
                           </Badge>
                         </TableCell>
                         <TableCell>{r.requestDate}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{r.notes || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{r.reason || "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
