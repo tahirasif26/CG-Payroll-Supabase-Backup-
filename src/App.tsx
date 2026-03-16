@@ -112,7 +112,8 @@ const App = () => {
               <Route path="/leave" element={<LeavePage />} />
               <Route path="/birthdays" element={<BirthdaysPage />} />
               <Route path="/assets/inventory" element={<AssetInventoryPage />} />
-              <Route path="/assets/categories" element={<AssetCategoriesPage />} />
+              <Route path="/assets/master-data" element={<AssetMasterDataPage />} />
+              <Route path="/assets/categories" element={<AssetMasterDataPage />} />
               <Route path="/assets/store" element={<AssetStorePage />} />
               <Route path="/assets/requests" element={<AssetRequestsPage />} />
               <Route path="/assets/audits" element={<AssetAuditsPage />} />

@@ -288,6 +288,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       audits, addAudit, updateAuditEntry, completeAudit,
       assetLogs, addAssetLog,
       categories, addCategory, updateCategory, deleteCategory, canDeleteCategory,
+      conditions, addCondition, updateCondition, deleteCondition, canDeleteCondition,
+      locations, addLocation, updateLocation, deleteLocation, canDeleteLocation,
       storeItems, addStoreItem, updateStoreItem, deleteStoreItem, canDeleteStoreItem, getStoreItemsForDisplay,
       assetRequests, addAssetRequest, approveRequest, rejectRequest, getEmployeeRequests,
     }}>
