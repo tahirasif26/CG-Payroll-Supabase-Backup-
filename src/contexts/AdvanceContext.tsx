@@ -15,6 +15,7 @@ export interface Advance {
   settlementDueDate: string;
   attachments: string[];
   notes: string;
+  payrollRunId?: string;
 }
 
 const initialAdvances: Advance[] = [
