@@ -25,6 +25,25 @@ const seedCategories: AssetCategory[] = [
   { id: "cat-7", name: "Accessories", description: "Mice, headsets, cables and other accessories", status: "active", createdDate: "2025-02-01" },
 ];
 
+const seedConditions: AssetConditionItem[] = [
+  { id: "cond-1", name: "New", description: "Brand new, unused asset", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-2", name: "Good", description: "In good working condition", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-3", name: "Used", description: "Previously used but functional", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-4", name: "Old", description: "Aging asset, may need replacement soon", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-5", name: "Damaged", description: "Asset is damaged and may need repair", status: "active", createdDate: "2025-01-15" },
+  { id: "cond-6", name: "Under Maintenance", description: "Currently being serviced or repaired", status: "active", createdDate: "2025-02-01" },
+];
+
+const seedLocations: AssetLocationItem[] = [
+  { id: "loc-1", name: "Karachi", description: "Karachi office", status: "active", createdDate: "2025-01-15" },
+  { id: "loc-2", name: "Lahore", description: "Lahore office", status: "active", createdDate: "2025-01-15" },
+  { id: "loc-3", name: "Riyadh", description: "Riyadh headquarters", status: "active", createdDate: "2025-01-15" },
+  { id: "loc-4", name: "Dubai", description: "Dubai branch", status: "active", createdDate: "2025-01-15" },
+  { id: "loc-5", name: "Warehouse", description: "Central warehouse storage", status: "active", createdDate: "2025-02-01" },
+  { id: "loc-6", name: "Head Office", description: "Main head office", status: "active", createdDate: "2025-02-01" },
+];
+
+
 const seedStoreItems: AssetStoreItem[] = [
   { id: "si-1", name: "HP Core i7 Laptop", categoryId: "cat-1", categoryName: "Laptops", brand: "HP", model: "ProBook 450 G10", description: "High-performance business laptop with Intel Core i7 processor, 16GB RAM, 512GB SSD.", image: "/assets/hp-laptop.png", status: "active", sku: "HP-PB450-I7", estimatedCost: 4500, warrantyPeriod: "3 years", publishToStore: true, createdDate: "2025-03-01" },
   { id: "si-2", name: "Dell XPS 15", categoryId: "cat-1", categoryName: "Laptops", brand: "Dell", model: "XPS 15 9530", description: "Premium ultrabook with stunning 15.6\" OLED display and powerful performance.", image: "/assets/dell-xps.png", status: "active", sku: "DELL-XPS15", estimatedCost: 6200, warrantyPeriod: "3 years", publishToStore: true, createdDate: "2025-03-01" },
