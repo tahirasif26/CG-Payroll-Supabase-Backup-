@@ -575,7 +575,7 @@ export default function PayrollPage() {
                     <React.Fragment key={groupKey}>
                       {/* Country + Currency header */}
                       <TableRow className="bg-muted/30">
-                        <TableCell colSpan={13} className="py-2">
+                        <TableCell colSpan={15} className="py-2">
                           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                             {country} — Pay Currency: {groupCurrency} ({lines.length} employee{lines.length > 1 ? "s" : ""})
                           </span>
