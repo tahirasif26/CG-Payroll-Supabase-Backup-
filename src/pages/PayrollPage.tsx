@@ -581,7 +581,7 @@ export default function PayrollPage() {
                           </span>
                         </TableCell>
                       </TableRow>
-                      {lines.map(({ emp, basic, allowances, gross, otherDeductions, loanDeduction, expenseReimbursement, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency }) => (
+                      {lines.map(({ emp, basic, allowances, gross, otherDeductions, loanDeduction, expenseReimbursement, advanceGiven, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency }) => (
                         <TableRow
                           key={emp.id}
                           className={`hover:bg-muted/30 transition-colors ${!isLocked ? "cursor-pointer" : ""} ${isSeparated ? "bg-destructive/5" : ""}`}
