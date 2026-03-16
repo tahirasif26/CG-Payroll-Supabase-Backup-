@@ -46,6 +46,7 @@ export default function AssetInventoryPage() {
   const {
     assets, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory,
     categories, storeItems, addStoreItem, bulkAddAssets,
+    conditions, locations,
     addAssetLog,
   } = useAssets();
   const { toast } = useToast();
