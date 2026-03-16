@@ -634,12 +634,12 @@ export default function PayrollPage() {
                 {/* Grand total in reporting currency */}
                 <TableRow className="bg-primary/10 font-bold">
                   <TableCell colSpan={3} className="text-right text-sm">Grand Total ({REPORTING_CURRENCY})</TableCell>
-                  <TableCell colSpan={2} />
-                  <TableCell className="text-right text-sm">{rptGross.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-sm text-destructive">{rptDeductions.toLocaleString()}</TableCell>
-                  <TableCell colSpan={4} />
-                  <TableCell className="text-right text-sm">{rptNet.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-sm font-bold bg-primary/5 text-foreground">{rptNet.toLocaleString()}</TableCell>
+                   <TableCell colSpan={2} />
+                   <TableCell className="text-right text-sm">{rptGross.toLocaleString()}</TableCell>
+                   <TableCell className="text-right text-sm text-destructive">{rptDeductions.toLocaleString()}</TableCell>
+                   <TableCell colSpan={5} />
+                   <TableCell className="text-right text-sm">{rptNet.toLocaleString()}</TableCell>
+                   <TableCell className="text-right text-sm font-bold bg-primary/5 text-foreground">{rptNet.toLocaleString()}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
