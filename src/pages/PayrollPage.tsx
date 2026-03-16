@@ -664,6 +664,7 @@ export default function PayrollPage() {
             {sheetEmp && (() => {
               const empLoans = loans.filter(l => l.employeeId === sheetEmp.id && l.status === "active");
               const empExpenses = expenses.filter(e => e.employeeId === sheetEmp.id);
+              const empAdvances = advances.filter(a => a.employeeId === sheetEmp.id && a.status === "approved" && a.payrollRunId === selectedRun.id);
               const empDeductions = Math.round(sheetEmp.salary * 0.15);
               const empPayCurrency = getEmployeePayCurrency(sheetEmp);
               return (
