@@ -451,6 +451,7 @@ export default function PayrollPage() {
     const breakdown = buildBreakdown(employees, deductions, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
+    const totalAdvance = breakdown.reduce((s, l) => s + l.advanceGiven, 0);
     const totalOneOffBen = breakdown.reduce((s, l) => s + l.oneOffBenefits, 0);
     const totalOneOffDed = breakdown.reduce((s, l) => s + l.oneOffDeductions, 0);
     const totalSepSettlement = breakdown.reduce((s, l) => s + l.separationSettlement, 0);
@@ -462,6 +463,7 @@ export default function PayrollPage() {
     const rptNet = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.net), 0));
     const rptLoan = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.loanDeduction), 0));
     const rptExpense = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.expenseReimbursement), 0));
+    const rptAdvance = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.advanceGiven), 0));
     const rptOneOffBen = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.oneOffBenefits), 0));
     const rptOneOffDed = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.oneOffDeductions), 0));
     const rptSepSettlement = Math.round(breakdown.reduce((s, l) => s + toReporting(l, l.separationSettlement), 0));
