@@ -96,6 +96,7 @@ export default function AdvancesPage() {
     toast({ title: "Advance Rejected", description: `${name} has been rejected.` });
   };
 
+  const filtered = advances
     .filter(a => {
       const matchesSearch = a.advanceName.toLowerCase().includes(search.toLowerCase()) ||
         a.employeeName.toLowerCase().includes(search.toLowerCase()) ||
