@@ -133,6 +133,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       }))
   );
   const [categories, setCategories] = useState<AssetCategory[]>(seedCategories);
+  const [conditions, setConditions] = useState<AssetConditionItem[]>(seedConditions);
+  const [locations, setLocations] = useState<AssetLocationItem[]>(seedLocations);
   const [storeItems, setStoreItems] = useState<AssetStoreItem[]>(seedStoreItems);
   const [assetRequests, setAssetRequests] = useState<AssetRequest[]>(seedRequests);
   
