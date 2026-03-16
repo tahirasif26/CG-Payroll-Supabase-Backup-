@@ -202,6 +202,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
   const { employees } = useEmployees();
   const { client } = useClient();
   const { separations } = useSeparations();
+  const { advances } = useAdvances();
   if (!payslip) return null;
 
   const payCurrency = payslip.payCurrency || REPORTING_CURRENCY;
@@ -221,8 +222,19 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
   const empLoans = loans.filter(l => l.employeeId === payslip.employeeId);
   const activeLoan = empLoans.find(l => l.status === "active");
   const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
+  
+  // Expense reimbursement (only non-advance-linked expenses)
+  const expenseReimbursement = expenses
+    .filter(e => e.employeeId === payslip.employeeId && e.status === "paid" && !e.advanceId)
+    .reduce((s, e) => s + e.amount, 0);
+  
+  // Advance given through payroll
+  const advanceGiven = advances
+    .filter(a => a.employeeId === payslip.employeeId && a.status === "approved" && a.payrollRunId)
+    .reduce((s, a) => s + a.amount, 0);
+  
   const totalDeductions = gosiDeduction + loanDeduction;
-  const adjustedNet = payslip.gross - totalDeductions;
+  const adjustedNet = payslip.gross - totalDeductions + expenseReimbursement + advanceGiven;
 
   const companyName = client.companyName || "Your Company";
 
