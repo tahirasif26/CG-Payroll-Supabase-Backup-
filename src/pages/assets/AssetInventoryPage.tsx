@@ -541,7 +541,15 @@ export default function AssetInventoryPage() {
                   <SelectContent>{conditionOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Location</Label><Input placeholder="e.g. Riyadh HQ" value={newLocation} onChange={e => setNewLocation(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Select value={newLocation} onValueChange={setNewLocation}>
+                  <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                  <SelectContent>
+                    {activeLocations.map(l => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2"><Label>Purchase Date</Label><Input type="date" value={newPurchaseDate} onChange={e => setNewPurchaseDate(e.target.value)} /></div>
