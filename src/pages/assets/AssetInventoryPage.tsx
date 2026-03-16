@@ -616,7 +616,15 @@ export default function AssetInventoryPage() {
                   <SelectContent>{conditionOptions.filter(o => o.value !== "retired").map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Location</Label><Input placeholder="e.g. Riyadh HQ" value={bulkLocation} onChange={e => setBulkLocation(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Select value={bulkLocation} onValueChange={setBulkLocation}>
+                  <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                  <SelectContent>
+                    {activeLocations.map(l => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <Separator />
             <div className="space-y-3">
