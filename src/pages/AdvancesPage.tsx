@@ -81,13 +81,14 @@ export default function AdvancesPage() {
   };
 
   const handleApprove = (id: string, name: string) => {
-    approveAdvance(id);
-    toast({ title: "Advance Approved", description: `${name} has been approved.` });
-  };
-
-  const handleReject = (id: string, name: string) => {
-    rejectAdvance(id);
-    toast({ title: "Advance Rejected", description: `${name} has been rejected.` });
+    const openRun = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
+    approveAdvance(id, openRun?.id);
+    toast({
+      title: "Advance Approved",
+      description: openRun
+        ? `${name} approved and linked to ${openRun.month} ${openRun.year} payroll.`
+        : `${name} approved. Will be disbursed in the next payroll run.`,
+    });
   };
 
   const filtered = advances
