@@ -164,6 +164,8 @@ export default function PayrollPage() {
   const { deductions } = useDeductions();
   const { canUserApprovePayroll } = useApprovals();
   const { currentEmployeeId } = useRole();
+  const { advances } = useAdvances();
+  const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
   const [runs, setRuns] = useState<PayrollRun[]>(() => [...payrollRuns]);
 
   const syncRuns = (updater: (prev: PayrollRun[]) => PayrollRun[]) => {
