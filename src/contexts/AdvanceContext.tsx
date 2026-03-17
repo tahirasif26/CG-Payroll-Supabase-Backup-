@@ -53,7 +53,7 @@ const initialAdvances: Advance[] = [
     id: "ADV-004", advanceName: "Training Materials", employeeId: "3", employeeName: "Fatima Hassan",
     purpose: "Books and online course subscriptions", amount: 1200, amountUsed: 0, currency: "SAR",
     status: "rejected", requestDate: "2025-03-02", expectedSpendDate: "2025-03-20", settlementDueDate: "2025-04-15",
-    attachments: [], notes: "Rejected: covered by L&D budget",
+    attachments: [], notes: "Rejected: covered by L&D budget", reminderHistory: [],
   },
 ];
 
