@@ -141,7 +141,6 @@ export default function AssetMasterDataPage() {
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Name</TableHead>
               <TableHead className="font-semibold">Description</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold">Created Date</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
