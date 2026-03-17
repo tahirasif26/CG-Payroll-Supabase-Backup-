@@ -332,6 +332,55 @@ export default function OutstandingAdvancesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reminder History Dialog */}
+      <Dialog open={!!historyAdvance} onOpenChange={(open) => !open && setHistoryAdvance(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reminder History</DialogTitle>
+            <DialogDescription>
+              {historyAdvance && (
+                <>History for <span className="font-medium text-foreground">{historyAdvance.employeeName}</span> — <Badge variant="outline">{historyAdvance.id}</Badge></>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[350px] overflow-y-auto">
+            {historyAdvance && (historyAdvance.reminderHistory || []).length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No reminders have been sent for this advance.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead>Sent By</TableHead>
+                    <TableHead>Type</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyAdvance && [...(historyAdvance.reminderHistory || [])].reverse().map((entry, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="text-muted-foreground">{(historyAdvance.reminderHistory || []).length - idx}</TableCell>
+                      <TableCell className="text-sm">{format(parseISO(entry.sentAt), "dd MMM yyyy, HH:mm")}</TableCell>
+                      <TableCell className="text-sm">{entry.sentBy}</TableCell>
+                      <TableCell>
+                        <Badge variant={entry.type === "auto" ? "secondary" : "default"} className="text-xs capitalize">
+                          {entry.type}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryAdvance(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
