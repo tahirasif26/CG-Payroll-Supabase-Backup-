@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { useAdvances, AutoReminderInterval } from "@/contexts/AdvanceContext";
+import { useAdvances, AutoReminderInterval, Advance } from "@/contexts/AdvanceContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, Bell, Download, Settings2, AlertTriangle } from "lucide-react";
+import { Search, Bell, Download, Settings2, AlertTriangle, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, isPast, parseISO } from "date-fns";
 
@@ -32,6 +32,7 @@ export default function OutstandingAdvancesPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyAdvance, setHistoryAdvance] = useState<Advance | null>(null);
 
   // Outstanding = approved & remaining > 0
   const outstanding = useMemo(() => {
