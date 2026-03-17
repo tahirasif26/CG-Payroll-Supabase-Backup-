@@ -99,7 +99,8 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
 
   const sendReminder = useCallback((ids: string[]) => {
     const now = new Date().toISOString();
-    setAdvances(prev => prev.map(a => ids.includes(a.id) ? { ...a, lastReminderSent: now } : a));
+    const entry: ReminderEntry = { sentAt: now, sentBy: "Admin", type: "manual" };
+    setAdvances(prev => prev.map(a => ids.includes(a.id) ? { ...a, lastReminderSent: now, reminderHistory: [...(a.reminderHistory || []), entry] } : a));
   }, []);
 
   return (
