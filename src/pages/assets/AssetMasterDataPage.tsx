@@ -67,10 +67,10 @@ export default function AssetMasterDataPage() {
       }
     } else if (dialogType === "condition") {
       if (editId) {
-        updateCondition(editId, { name: formName, description: formDesc, status: formStatus });
+        updateCondition(editId, { name: formName, description: formDesc });
         toast({ title: "Condition Updated", description: `"${formName}" updated.` });
       } else {
-        addCondition({ id: `cond-${++condIdCounter}`, name: formName, description: formDesc, status: formStatus, createdDate: today });
+        addCondition({ id: `cond-${++condIdCounter}`, name: formName, description: formDesc, status: "active", createdDate: today });
         toast({ title: "Condition Created", description: `"${formName}" created.` });
       }
     } else {
