@@ -208,16 +208,6 @@ export default function AssetMasterDataPage() {
               <Label>Description</Label>
               <Textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="Optional description..." />
             </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={formStatus} onValueChange={(v: "active" | "inactive") => setFormStatus(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button type="submit">{editId ? "Save Changes" : `Create ${label.singular}`}</Button>
