@@ -150,7 +150,6 @@ export default function AssetMasterDataPage() {
               <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="text-muted-foreground">{item.description || "—"}</TableCell>
-                <TableCell><Badge variant={item.status === "active" ? "default" : "secondary"}>{item.status === "active" ? "Active" : "Inactive"}</Badge></TableCell>
                 <TableCell>{new Date(item.createdDate).toLocaleDateString()}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
