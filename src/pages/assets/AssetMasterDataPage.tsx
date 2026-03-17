@@ -119,7 +119,7 @@ export default function AssetMasterDataPage() {
   const filteredLocations = locations.filter(l => !locSearch || l.name.toLowerCase().includes(locSearch.toLowerCase()) || l.description.toLowerCase().includes(locSearch.toLowerCase()));
 
   const renderTable = (
-    items: Array<{ id: string; name: string; description: string; status: "active" | "inactive"; createdDate: string }>,
+    items: Array<{ id: string; name: string; description: string; createdDate: string }>,
     type: "category" | "condition" | "location",
     onDelete: (id: string) => void,
     search: string,
