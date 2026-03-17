@@ -38,16 +38,6 @@ export default function OutstandingAdvancesPage() {
     return advances.filter(a => a.status === "approved" && (a.amount - a.amountUsed) > 0);
   }, [advances]);
 
-  const departments = useMemo(() => {
-    const depts = new Set(employees.map(e => e.department));
-    return Array.from(depts).sort();
-  }, [employees]);
-
-  const employeeMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    employees.forEach(e => { map[e.id] = e.department; });
-    return map;
-  }, [employees]);
 
   const filtered = useMemo(() => {
     return outstanding.filter(a => {
