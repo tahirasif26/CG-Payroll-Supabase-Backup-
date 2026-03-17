@@ -210,7 +210,7 @@ export default function AdvancesPage() {
 
       {/* Filters */}
       <Card className="mb-4">
-        <CardContent className="py-3 flex flex-wrap items-center gap-3">
+        <CardContent className="py-3 flex flex-wrap items-end gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search advances..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
@@ -224,8 +224,50 @@ export default function AdvancesPage() {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterReminderActivity} onValueChange={setFilterReminderActivity}>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Reminders</SelectItem>
+              <SelectItem value="reminded">Has Reminders</SelectItem>
+              <SelectItem value="no-reminder">No Reminders</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterRemaining} onValueChange={setFilterRemaining}>
+            <SelectTrigger className="w-[170px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Remaining</SelectItem>
+              <SelectItem value="gt0">Greater than 0</SelectItem>
+              <SelectItem value="eq0">Equal to 0</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+          {filterRemaining === "custom" && (
+            <>
+              <Input type="number" placeholder="Min" value={customMin} onChange={e => setCustomMin(e.target.value)} className="w-[100px] h-9 text-xs" />
+              <Input type="number" placeholder="Max" value={customMax} onChange={e => setCustomMax(e.target.value)} className="w-[100px] h-9 text-xs" />
+            </>
+          )}
+          {activeFilters.length > 0 && (
+            <Button variant="ghost" size="sm" className="h-9 text-xs text-muted-foreground" onClick={clearAllFilters}>
+              <FilterX className="h-3.5 w-3.5 mr-1" /> Clear All
+            </Button>
+          )}
         </CardContent>
       </Card>
+
+      {/* Active Filter Tags */}
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {activeFilters.map(tag => (
+            <Badge key={tag.key} variant="secondary" className="gap-1 pl-2.5 pr-1.5 py-1 text-xs cursor-pointer hover:bg-secondary/80">
+              {tag.label}
+              <button onClick={() => clearFilter(tag.key)} className="ml-0.5 rounded-full hover:bg-muted p-0.5">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {/* Table */}
       <Card>
