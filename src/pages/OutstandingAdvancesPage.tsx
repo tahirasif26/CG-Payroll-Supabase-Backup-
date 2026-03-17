@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useAdvances, AutoReminderInterval, Advance } from "@/contexts/AdvanceContext";
-import { useEmployees } from "@/contexts/EmployeeContext";
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,11 @@ import { format, isPast, parseISO } from "date-fns";
 
 export default function OutstandingAdvancesPage() {
   const { advances, sendReminder, autoReminderInterval, setAutoReminderInterval } = useAdvances();
-  const { employees } = useEmployees();
+  
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
   const [filterEmployee, setFilterEmployee] = useState("all");
-  const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterDue, setFilterDue] = useState("all");
   const [filterOverdue, setFilterOverdue] = useState(false);
   const [filterRemaining, setFilterRemaining] = useState("all");
@@ -39,22 +38,11 @@ export default function OutstandingAdvancesPage() {
     return advances.filter(a => a.status === "approved" && (a.amount - a.amountUsed) > 0);
   }, [advances]);
 
-  const departments = useMemo(() => {
-    const depts = new Set(employees.map(e => e.department));
-    return Array.from(depts).sort();
-  }, [employees]);
-
-  const employeeMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    employees.forEach(e => { map[e.id] = e.department; });
-    return map;
-  }, [employees]);
 
   const filtered = useMemo(() => {
     return outstanding.filter(a => {
       if (search && !a.employeeName.toLowerCase().includes(search.toLowerCase()) && !a.id.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterEmployee !== "all" && a.employeeId !== filterEmployee) return false;
-      if (filterDepartment !== "all" && employeeMap[a.employeeId] !== filterDepartment) return false;
       const remaining = a.amount - a.amountUsed;
       if (filterRemaining === "low" && remaining >= 1000) return false;
       if (filterRemaining === "mid" && (remaining < 1000 || remaining >= 5000)) return false;
@@ -69,7 +57,7 @@ export default function OutstandingAdvancesPage() {
       }
       return true;
     });
-  }, [outstanding, search, filterEmployee, filterDepartment, filterDue, filterOverdue, filterRemaining, employeeMap]);
+  }, [outstanding, search, filterEmployee, filterDue, filterOverdue, filterRemaining]);
 
   const allSelected = filtered.length > 0 && selected.length === filtered.length;
   const toggleAll = () => {
@@ -149,13 +137,6 @@ export default function OutstandingAdvancesPage() {
                 const name = outstanding.find(a => a.employeeId === id)?.employeeName;
                 return <SelectItem key={id} value={id}>{name}</SelectItem>;
               })}
-            </SelectContent>
-          </Select>
-          <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Department" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterDue} onValueChange={setFilterDue}>
