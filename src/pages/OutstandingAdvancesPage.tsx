@@ -57,7 +57,7 @@ export default function OutstandingAdvancesPage() {
       }
       return true;
     });
-  }, [outstanding, search, filterEmployee, filterDepartment, filterDue, filterOverdue, filterRemaining, employeeMap]);
+  }, [outstanding, search, filterEmployee, filterDue, filterOverdue, filterRemaining]);
 
   const allSelected = filtered.length > 0 && selected.length === filtered.length;
   const toggleAll = () => {
