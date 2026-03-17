@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 
+export interface ReminderEntry {
+  sentAt: string;
+  sentBy: string;
+  type: "manual" | "auto";
+}
+
 export interface Advance {
   id: string;
   advanceName: string;
@@ -17,6 +23,7 @@ export interface Advance {
   notes: string;
   payrollRunId?: string;
   lastReminderSent?: string;
+  reminderHistory: ReminderEntry[];
 }
 
 const initialAdvances: Advance[] = [
