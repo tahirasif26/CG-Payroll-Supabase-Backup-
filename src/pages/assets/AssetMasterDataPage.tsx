@@ -9,9 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 let catIdCounter = 100;
@@ -32,25 +30,23 @@ export default function AssetMasterDataPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formDesc, setFormDesc] = useState("");
-  const [formStatus, setFormStatus] = useState<"active" | "inactive">("active");
+  
 
   // Search states
   const [catSearch, setCatSearch] = useState("");
   const [condSearch, setCondSearch] = useState("");
   const [locSearch, setLocSearch] = useState("");
 
-  const openDialog = (type: "category" | "condition" | "location", item?: { id: string; name: string; description: string; status: "active" | "inactive" }) => {
+  const openDialog = (type: "category" | "condition" | "location", item?: { id: string; name: string; description: string }) => {
     setDialogType(type);
     if (item) {
       setEditId(item.id);
       setFormName(item.name);
       setFormDesc(item.description);
-      setFormStatus(item.status);
     } else {
       setEditId(null);
       setFormName("");
       setFormDesc("");
-      setFormStatus("active");
     }
     setDialogOpen(true);
   };
@@ -61,26 +57,26 @@ export default function AssetMasterDataPage() {
 
     if (dialogType === "category") {
       if (editId) {
-        updateCategory(editId, { name: formName, description: formDesc, status: formStatus });
+        updateCategory(editId, { name: formName, description: formDesc });
         toast({ title: "Category Updated", description: `"${formName}" updated.` });
       } else {
-        addCategory({ id: `cat-${++catIdCounter}`, name: formName, description: formDesc, status: formStatus, createdDate: today });
+        addCategory({ id: `cat-${++catIdCounter}`, name: formName, description: formDesc, status: "active", createdDate: today });
         toast({ title: "Category Created", description: `"${formName}" created.` });
       }
     } else if (dialogType === "condition") {
       if (editId) {
-        updateCondition(editId, { name: formName, description: formDesc, status: formStatus });
+        updateCondition(editId, { name: formName, description: formDesc });
         toast({ title: "Condition Updated", description: `"${formName}" updated.` });
       } else {
-        addCondition({ id: `cond-${++condIdCounter}`, name: formName, description: formDesc, status: formStatus, createdDate: today });
+        addCondition({ id: `cond-${++condIdCounter}`, name: formName, description: formDesc, status: "active", createdDate: today });
         toast({ title: "Condition Created", description: `"${formName}" created.` });
       }
     } else {
       if (editId) {
-        updateLocation(editId, { name: formName, description: formDesc, status: formStatus });
+        updateLocation(editId, { name: formName, description: formDesc });
         toast({ title: "Location Updated", description: `"${formName}" updated.` });
       } else {
-        addLocation({ id: `loc-${++locIdCounter}`, name: formName, description: formDesc, status: formStatus, createdDate: today });
+        addLocation({ id: `loc-${++locIdCounter}`, name: formName, description: formDesc, status: "active", createdDate: today });
         toast({ title: "Location Created", description: `"${formName}" created.` });
       }
     }
@@ -121,7 +117,7 @@ export default function AssetMasterDataPage() {
   const filteredLocations = locations.filter(l => !locSearch || l.name.toLowerCase().includes(locSearch.toLowerCase()) || l.description.toLowerCase().includes(locSearch.toLowerCase()));
 
   const renderTable = (
-    items: Array<{ id: string; name: string; description: string; status: "active" | "inactive"; createdDate: string }>,
+    items: Array<{ id: string; name: string; description: string; createdDate: string }>,
     type: "category" | "condition" | "location",
     onDelete: (id: string) => void,
     search: string,
@@ -143,7 +139,6 @@ export default function AssetMasterDataPage() {
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Name</TableHead>
               <TableHead className="font-semibold">Description</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold">Created Date</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
@@ -153,7 +148,6 @@ export default function AssetMasterDataPage() {
               <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="text-muted-foreground">{item.description || "—"}</TableCell>
-                <TableCell><Badge variant={item.status === "active" ? "default" : "secondary"}>{item.status === "active" ? "Active" : "Inactive"}</Badge></TableCell>
                 <TableCell>{new Date(item.createdDate).toLocaleDateString()}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -164,7 +158,7 @@ export default function AssetMasterDataPage() {
               </TableRow>
             ))}
             {items.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No records found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No records found.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -211,16 +205,6 @@ export default function AssetMasterDataPage() {
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="Optional description..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={formStatus} onValueChange={(v: "active" | "inactive") => setFormStatus(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
