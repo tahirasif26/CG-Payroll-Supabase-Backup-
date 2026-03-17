@@ -43,7 +43,6 @@ export default function OutstandingAdvancesPage() {
     return outstanding.filter(a => {
       if (search && !a.employeeName.toLowerCase().includes(search.toLowerCase()) && !a.id.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterEmployee !== "all" && a.employeeId !== filterEmployee) return false;
-      if (filterDepartment !== "all" && employeeMap[a.employeeId] !== filterDepartment) return false;
       const remaining = a.amount - a.amountUsed;
       if (filterRemaining === "low" && remaining >= 1000) return false;
       if (filterRemaining === "mid" && (remaining < 1000 || remaining >= 5000)) return false;
