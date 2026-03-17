@@ -32,6 +32,10 @@ const initialAdvances: Advance[] = [
     purpose: "Travel and accommodation for client site visit", amount: 5000, amountUsed: 3200, currency: "SAR",
     status: "approved", requestDate: "2025-03-01", expectedSpendDate: "2025-03-15", settlementDueDate: "2025-04-01",
     attachments: [], notes: "3-day client engagement trip",
+    reminderHistory: [
+      { sentAt: "2025-03-20T09:00:00.000Z", sentBy: "Admin", type: "manual" },
+      { sentAt: "2025-03-27T09:00:00.000Z", sentBy: "System", type: "auto" },
+    ],
   },
   {
     id: "ADV-002", advanceName: "Conference Registration", employeeId: "2", employeeName: "Omar Al-Faisal",
