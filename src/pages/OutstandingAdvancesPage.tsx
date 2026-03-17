@@ -20,7 +20,7 @@ import { format, isPast, parseISO } from "date-fns";
 
 export default function OutstandingAdvancesPage() {
   const { advances, sendReminder, autoReminderInterval, setAutoReminderInterval } = useAdvances();
-  const { employees } = useEmployees();
+  
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
