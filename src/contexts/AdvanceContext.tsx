@@ -47,7 +47,7 @@ const initialAdvances: Advance[] = [
     id: "ADV-003", advanceName: "Equipment Purchase", employeeId: "4", employeeName: "Khalid Nasser",
     purpose: "Purchase portable projector for client presentations", amount: 3500, amountUsed: 3500, currency: "SAR",
     status: "approved", requestDate: "2025-02-20", expectedSpendDate: "2025-02-28", settlementDueDate: "2025-03-15",
-    attachments: [], notes: "Fully utilized",
+    attachments: [], notes: "Fully utilized", reminderHistory: [],
   },
   {
     id: "ADV-004", advanceName: "Training Materials", employeeId: "3", employeeName: "Fatima Hassan",
