@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 
+export interface ReminderEntry {
+  sentAt: string;
+  sentBy: string;
+  type: "manual" | "auto";
+}
+
 export interface Advance {
   id: string;
   advanceName: string;
@@ -17,6 +23,7 @@ export interface Advance {
   notes: string;
   payrollRunId?: string;
   lastReminderSent?: string;
+  reminderHistory: ReminderEntry[];
 }
 
 const initialAdvances: Advance[] = [
@@ -25,24 +32,28 @@ const initialAdvances: Advance[] = [
     purpose: "Travel and accommodation for client site visit", amount: 5000, amountUsed: 3200, currency: "SAR",
     status: "approved", requestDate: "2025-03-01", expectedSpendDate: "2025-03-15", settlementDueDate: "2025-04-01",
     attachments: [], notes: "3-day client engagement trip",
+    reminderHistory: [
+      { sentAt: "2025-03-20T09:00:00.000Z", sentBy: "Admin", type: "manual" },
+      { sentAt: "2025-03-27T09:00:00.000Z", sentBy: "System", type: "auto" },
+    ],
   },
   {
     id: "ADV-002", advanceName: "Conference Registration", employeeId: "2", employeeName: "Omar Al-Faisal",
     purpose: "Annual tax conference fees and travel", amount: 8000, amountUsed: 0, currency: "SAR",
     status: "pending", requestDate: "2025-03-05", expectedSpendDate: "2025-04-10", settlementDueDate: "2025-04-30",
-    attachments: [], notes: "",
+    attachments: [], notes: "", reminderHistory: [],
   },
   {
     id: "ADV-003", advanceName: "Equipment Purchase", employeeId: "4", employeeName: "Khalid Nasser",
     purpose: "Purchase portable projector for client presentations", amount: 3500, amountUsed: 3500, currency: "SAR",
     status: "approved", requestDate: "2025-02-20", expectedSpendDate: "2025-02-28", settlementDueDate: "2025-03-15",
-    attachments: [], notes: "Fully utilized",
+    attachments: [], notes: "Fully utilized", reminderHistory: [],
   },
   {
     id: "ADV-004", advanceName: "Training Materials", employeeId: "3", employeeName: "Fatima Hassan",
     purpose: "Books and online course subscriptions", amount: 1200, amountUsed: 0, currency: "SAR",
     status: "rejected", requestDate: "2025-03-02", expectedSpendDate: "2025-03-20", settlementDueDate: "2025-04-15",
-    attachments: [], notes: "Rejected: covered by L&D budget",
+    attachments: [], notes: "Rejected: covered by L&D budget", reminderHistory: [],
   },
 ];
 
@@ -88,7 +99,8 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
 
   const sendReminder = useCallback((ids: string[]) => {
     const now = new Date().toISOString();
-    setAdvances(prev => prev.map(a => ids.includes(a.id) ? { ...a, lastReminderSent: now } : a));
+    const entry: ReminderEntry = { sentAt: now, sentBy: "Admin", type: "manual" };
+    setAdvances(prev => prev.map(a => ids.includes(a.id) ? { ...a, lastReminderSent: now, reminderHistory: [...(a.reminderHistory || []), entry] } : a));
   }, []);
 
   return (

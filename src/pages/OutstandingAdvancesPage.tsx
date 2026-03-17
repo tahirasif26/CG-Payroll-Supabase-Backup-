@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { useAdvances, AutoReminderInterval } from "@/contexts/AdvanceContext";
+import { useAdvances, AutoReminderInterval, Advance } from "@/contexts/AdvanceContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, Bell, Download, Settings2, AlertTriangle } from "lucide-react";
+import { Search, Bell, Download, Settings2, AlertTriangle, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, isPast, parseISO } from "date-fns";
 
@@ -32,6 +32,7 @@ export default function OutstandingAdvancesPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyAdvance, setHistoryAdvance] = useState<Advance | null>(null);
 
   // Outstanding = approved & remaining > 0
   const outstanding = useMemo(() => {
@@ -237,8 +238,21 @@ export default function OutstandingAdvancesPage() {
                         {overdue && <Badge variant="destructive" className="text-xs">Overdue</Badge>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {a.lastReminderSent ? format(parseISO(a.lastReminderSent), "dd MMM yyyy, HH:mm") : "—"}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground text-sm">
+                          {a.lastReminderSent ? format(parseISO(a.lastReminderSent), "dd MMM yyyy, HH:mm") : "—"}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => setHistoryAdvance(a)}
+                          title="View reminder history"
+                        >
+                          <History className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -315,6 +329,55 @@ export default function OutstandingAdvancesPage() {
             <Button onClick={() => { setSettingsOpen(false); toast({ title: "Settings Saved", description: `Auto reminder: ${autoReminderInterval === "off" ? "Disabled" : `Every ${autoReminderInterval} days`}` }); }}>
               Save Settings
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reminder History Dialog */}
+      <Dialog open={!!historyAdvance} onOpenChange={(open) => !open && setHistoryAdvance(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reminder History</DialogTitle>
+            <DialogDescription>
+              {historyAdvance && (
+                <>History for <span className="font-medium text-foreground">{historyAdvance.employeeName}</span> — <Badge variant="outline">{historyAdvance.id}</Badge></>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[350px] overflow-y-auto">
+            {historyAdvance && (historyAdvance.reminderHistory || []).length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No reminders have been sent for this advance.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead>Sent By</TableHead>
+                    <TableHead>Type</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyAdvance && [...(historyAdvance.reminderHistory || [])].reverse().map((entry, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="text-muted-foreground">{(historyAdvance.reminderHistory || []).length - idx}</TableCell>
+                      <TableCell className="text-sm">{format(parseISO(entry.sentAt), "dd MMM yyyy, HH:mm")}</TableCell>
+                      <TableCell className="text-sm">{entry.sentBy}</TableCell>
+                      <TableCell>
+                        <Badge variant={entry.type === "auto" ? "secondary" : "default"} className="text-xs capitalize">
+                          {entry.type}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryAdvance(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
