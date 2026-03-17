@@ -39,18 +39,16 @@ export default function AssetMasterDataPage() {
   const [condSearch, setCondSearch] = useState("");
   const [locSearch, setLocSearch] = useState("");
 
-  const openDialog = (type: "category" | "condition" | "location", item?: { id: string; name: string; description: string; status: "active" | "inactive" }) => {
+  const openDialog = (type: "category" | "condition" | "location", item?: { id: string; name: string; description: string }) => {
     setDialogType(type);
     if (item) {
       setEditId(item.id);
       setFormName(item.name);
       setFormDesc(item.description);
-      setFormStatus(item.status);
     } else {
       setEditId(null);
       setFormName("");
       setFormDesc("");
-      setFormStatus("active");
     }
     setDialogOpen(true);
   };
