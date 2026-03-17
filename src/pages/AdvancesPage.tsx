@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useEmployees } from "@/contexts/EmployeeContext";
@@ -7,7 +7,7 @@ import { useAdvances } from "@/contexts/AdvanceContext";
 import { payrollRuns } from "@/data/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Plus, Search, Eye, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, X, FilterX } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -33,6 +34,10 @@ export default function AdvancesPage() {
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterRemaining, setFilterRemaining] = useState<string>("all");
+  const [filterReminderActivity, setFilterReminderActivity] = useState<string>("all");
+  const [customMin, setCustomMin] = useState("");
+  const [customMax, setCustomMax] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [viewAdv, setViewAdv] = useState<ReturnType<typeof useAdvances>["advances"][number] | null>(null);
@@ -97,13 +102,55 @@ export default function AdvancesPage() {
     toast({ title: "Advance Rejected", description: `${name} has been rejected.` });
   };
 
+  const activeFilters = useMemo(() => {
+    const tags: { label: string; key: string }[] = [];
+    if (filterStatus !== "all") tags.push({ label: filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1), key: "status" });
+    if (filterRemaining === "gt0") tags.push({ label: "Remaining > 0", key: "remaining" });
+    if (filterRemaining === "eq0") tags.push({ label: "Remaining = 0", key: "remaining" });
+    if (filterRemaining === "custom") {
+      const parts = [];
+      if (customMin) parts.push(`≥${customMin}`);
+      if (customMax) parts.push(`≤${customMax}`);
+      if (parts.length) tags.push({ label: parts.join(" & "), key: "remaining" });
+    }
+    if (filterReminderActivity === "reminded") tags.push({ label: "Has Reminders", key: "reminder" });
+    if (filterReminderActivity === "no-reminder") tags.push({ label: "No Reminders", key: "reminder" });
+    return tags;
+  }, [filterStatus, filterRemaining, filterReminderActivity, customMin, customMax]);
+
+  const clearFilter = (key: string) => {
+    if (key === "status") setFilterStatus("all");
+    if (key === "remaining") { setFilterRemaining("all"); setCustomMin(""); setCustomMax(""); }
+    if (key === "reminder") setFilterReminderActivity("all");
+  };
+
+  const clearAllFilters = () => {
+    setFilterStatus("all");
+    setFilterRemaining("all");
+    setFilterReminderActivity("all");
+    setCustomMin("");
+    setCustomMax("");
+    setSearch("");
+  };
+
   const filtered = advances
     .filter(a => {
-      const matchesSearch = a.advanceName.toLowerCase().includes(search.toLowerCase()) ||
+      const matchesSearch = !search || a.advanceName.toLowerCase().includes(search.toLowerCase()) ||
         a.employeeName.toLowerCase().includes(search.toLowerCase()) ||
         a.purpose.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = filterStatus === "all" || a.status === filterStatus;
-      return matchesSearch && matchesStatus;
+      const remaining = a.amount - a.amountUsed;
+      let matchesRemaining = true;
+      if (filterRemaining === "gt0") matchesRemaining = remaining > 0;
+      else if (filterRemaining === "eq0") matchesRemaining = remaining === 0;
+      else if (filterRemaining === "custom") {
+        if (customMin && remaining < parseFloat(customMin)) matchesRemaining = false;
+        if (customMax && remaining > parseFloat(customMax)) matchesRemaining = false;
+      }
+      let matchesReminder = true;
+      if (filterReminderActivity === "reminded") matchesReminder = (a.reminderHistory?.length ?? 0) > 0;
+      else if (filterReminderActivity === "no-reminder") matchesReminder = (a.reminderHistory?.length ?? 0) === 0;
+      return matchesSearch && matchesStatus && matchesRemaining && matchesReminder;
     })
     .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
 
@@ -163,7 +210,7 @@ export default function AdvancesPage() {
 
       {/* Filters */}
       <Card className="mb-4">
-        <CardContent className="py-3 flex flex-wrap items-center gap-3">
+        <CardContent className="py-3 flex flex-wrap items-end gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search advances..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
@@ -177,8 +224,50 @@ export default function AdvancesPage() {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterReminderActivity} onValueChange={setFilterReminderActivity}>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Reminders</SelectItem>
+              <SelectItem value="reminded">Has Reminders</SelectItem>
+              <SelectItem value="no-reminder">No Reminders</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterRemaining} onValueChange={setFilterRemaining}>
+            <SelectTrigger className="w-[170px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Remaining</SelectItem>
+              <SelectItem value="gt0">Greater than 0</SelectItem>
+              <SelectItem value="eq0">Equal to 0</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+          {filterRemaining === "custom" && (
+            <>
+              <Input type="number" placeholder="Min" value={customMin} onChange={e => setCustomMin(e.target.value)} className="w-[100px] h-9 text-xs" />
+              <Input type="number" placeholder="Max" value={customMax} onChange={e => setCustomMax(e.target.value)} className="w-[100px] h-9 text-xs" />
+            </>
+          )}
+          {activeFilters.length > 0 && (
+            <Button variant="ghost" size="sm" className="h-9 text-xs text-muted-foreground" onClick={clearAllFilters}>
+              <FilterX className="h-3.5 w-3.5 mr-1" /> Clear All
+            </Button>
+          )}
         </CardContent>
       </Card>
+
+      {/* Active Filter Tags */}
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {activeFilters.map(tag => (
+            <Badge key={tag.key} variant="secondary" className="gap-1 pl-2.5 pr-1.5 py-1 text-xs cursor-pointer hover:bg-secondary/80">
+              {tag.label}
+              <button onClick={() => clearFilter(tag.key)} className="ml-0.5 rounded-full hover:bg-muted p-0.5">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {/* Table */}
       <Card>
