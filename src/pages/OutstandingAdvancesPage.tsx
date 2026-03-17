@@ -25,7 +25,6 @@ export default function OutstandingAdvancesPage() {
 
   const [search, setSearch] = useState("");
   const [filterEmployee, setFilterEmployee] = useState("all");
-  const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterDue, setFilterDue] = useState("all");
   const [filterOverdue, setFilterOverdue] = useState(false);
   const [filterRemaining, setFilterRemaining] = useState("all");
