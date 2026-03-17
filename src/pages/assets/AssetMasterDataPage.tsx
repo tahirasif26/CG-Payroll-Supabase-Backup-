@@ -32,7 +32,7 @@ export default function AssetMasterDataPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formDesc, setFormDesc] = useState("");
-  const [formStatus, setFormStatus] = useState<"active" | "inactive">("active");
+  
 
   // Search states
   const [catSearch, setCatSearch] = useState("");
