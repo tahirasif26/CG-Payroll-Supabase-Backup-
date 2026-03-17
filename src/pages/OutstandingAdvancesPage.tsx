@@ -139,13 +139,6 @@ export default function OutstandingAdvancesPage() {
               })}
             </SelectContent>
           </Select>
-          <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Department" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-            </SelectContent>
-          </Select>
           <Select value={filterDue} onValueChange={setFilterDue}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Due Date" /></SelectTrigger>
             <SelectContent>
