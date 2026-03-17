@@ -74,6 +74,7 @@ export default function AdvancesPage() {
       settlementDueDate: "",
       attachments: formAttachments,
       notes: formNotes,
+      reminderHistory: [],
     });
     setFormOpen(false);
     resetForm();
