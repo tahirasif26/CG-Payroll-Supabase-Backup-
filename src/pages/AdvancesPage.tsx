@@ -101,13 +101,55 @@ export default function AdvancesPage() {
     toast({ title: "Advance Rejected", description: `${name} has been rejected.` });
   };
 
+  const activeFilters = useMemo(() => {
+    const tags: { label: string; key: string }[] = [];
+    if (filterStatus !== "all") tags.push({ label: filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1), key: "status" });
+    if (filterRemaining === "gt0") tags.push({ label: "Remaining > 0", key: "remaining" });
+    if (filterRemaining === "eq0") tags.push({ label: "Remaining = 0", key: "remaining" });
+    if (filterRemaining === "custom") {
+      const parts = [];
+      if (customMin) parts.push(`≥${customMin}`);
+      if (customMax) parts.push(`≤${customMax}`);
+      if (parts.length) tags.push({ label: parts.join(" & "), key: "remaining" });
+    }
+    if (filterReminderActivity === "reminded") tags.push({ label: "Has Reminders", key: "reminder" });
+    if (filterReminderActivity === "no-reminder") tags.push({ label: "No Reminders", key: "reminder" });
+    return tags;
+  }, [filterStatus, filterRemaining, filterReminderActivity, customMin, customMax]);
+
+  const clearFilter = (key: string) => {
+    if (key === "status") setFilterStatus("all");
+    if (key === "remaining") { setFilterRemaining("all"); setCustomMin(""); setCustomMax(""); }
+    if (key === "reminder") setFilterReminderActivity("all");
+  };
+
+  const clearAllFilters = () => {
+    setFilterStatus("all");
+    setFilterRemaining("all");
+    setFilterReminderActivity("all");
+    setCustomMin("");
+    setCustomMax("");
+    setSearch("");
+  };
+
   const filtered = advances
     .filter(a => {
-      const matchesSearch = a.advanceName.toLowerCase().includes(search.toLowerCase()) ||
+      const matchesSearch = !search || a.advanceName.toLowerCase().includes(search.toLowerCase()) ||
         a.employeeName.toLowerCase().includes(search.toLowerCase()) ||
         a.purpose.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = filterStatus === "all" || a.status === filterStatus;
-      return matchesSearch && matchesStatus;
+      const remaining = a.amount - a.amountUsed;
+      let matchesRemaining = true;
+      if (filterRemaining === "gt0") matchesRemaining = remaining > 0;
+      else if (filterRemaining === "eq0") matchesRemaining = remaining === 0;
+      else if (filterRemaining === "custom") {
+        if (customMin && remaining < parseFloat(customMin)) matchesRemaining = false;
+        if (customMax && remaining > parseFloat(customMax)) matchesRemaining = false;
+      }
+      let matchesReminder = true;
+      if (filterReminderActivity === "reminded") matchesReminder = (a.reminderHistory?.length ?? 0) > 0;
+      else if (filterReminderActivity === "no-reminder") matchesReminder = (a.reminderHistory?.length ?? 0) === 0;
+      return matchesSearch && matchesStatus && matchesRemaining && matchesReminder;
     })
     .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
 
