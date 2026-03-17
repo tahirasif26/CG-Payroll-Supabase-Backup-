@@ -41,7 +41,7 @@ const initialAdvances: Advance[] = [
     id: "ADV-002", advanceName: "Conference Registration", employeeId: "2", employeeName: "Omar Al-Faisal",
     purpose: "Annual tax conference fees and travel", amount: 8000, amountUsed: 0, currency: "SAR",
     status: "pending", requestDate: "2025-03-05", expectedSpendDate: "2025-04-10", settlementDueDate: "2025-04-30",
-    attachments: [], notes: "",
+    attachments: [], notes: "", reminderHistory: [],
   },
   {
     id: "ADV-003", advanceName: "Equipment Purchase", employeeId: "4", employeeName: "Khalid Nasser",
