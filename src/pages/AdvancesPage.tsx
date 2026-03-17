@@ -33,6 +33,10 @@ export default function AdvancesPage() {
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterRemaining, setFilterRemaining] = useState<string>("all");
+  const [filterReminderActivity, setFilterReminderActivity] = useState<string>("all");
+  const [customMin, setCustomMin] = useState("");
+  const [customMax, setCustomMax] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [viewAdv, setViewAdv] = useState<ReturnType<typeof useAdvances>["advances"][number] | null>(null);
