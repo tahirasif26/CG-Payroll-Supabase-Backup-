@@ -238,8 +238,21 @@ export default function OutstandingAdvancesPage() {
                         {overdue && <Badge variant="destructive" className="text-xs">Overdue</Badge>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {a.lastReminderSent ? format(parseISO(a.lastReminderSent), "dd MMM yyyy, HH:mm") : "—"}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground text-sm">
+                          {a.lastReminderSent ? format(parseISO(a.lastReminderSent), "dd MMM yyyy, HH:mm") : "—"}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => setHistoryAdvance(a)}
+                          title="View reminder history"
+                        >
+                          <History className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
