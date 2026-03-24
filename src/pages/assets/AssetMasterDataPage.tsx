@@ -168,7 +168,7 @@ export default function AssetMasterDataPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Asset Master Data" description="Manage reference data used across the Asset Tracking module." />
+      <PageHeader title="Asset Settings" description="Manage reference data used across the Asset Tracking module." />
 
       <Tabs defaultValue="categories" className="w-full">
         <TabsList className="grid w-full grid-cols-3 max-w-md">
