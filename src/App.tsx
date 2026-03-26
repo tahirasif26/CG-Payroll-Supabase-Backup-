@@ -157,6 +157,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </ReminderSettingsProvider>
         </AdvanceProvider>
         </CardProvider>
         </ApprovalProvider>
