@@ -19,6 +19,7 @@ import { LeaveTypeProvider } from "@/contexts/LeaveTypeContext";
 import { ApprovalProvider } from "@/contexts/ApprovalContext";
 import { CardProvider } from "@/contexts/CardContext";
 import { AdvanceProvider } from "@/contexts/AdvanceContext";
+import { ReminderSettingsProvider } from "@/contexts/ReminderSettingsContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
