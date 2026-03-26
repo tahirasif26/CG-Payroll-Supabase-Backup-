@@ -835,38 +835,142 @@ function TimeOffTab({ emp }: { emp: Employee }) {
   );
 }
 
-function DocumentsTab({ emp, onUpload }: { emp: Employee; onUpload: () => void }) {
-  const docs = employeeDocs[emp.id] || [];
+function DocumentsTab({ emp, onUpload, documents, onReupload }: { emp: Employee; onUpload: () => void; documents: EmployeeDoc[]; onReupload: (doc: EmployeeDoc) => void }) {
+  const [reminderDays, setReminderDays] = useState(30);
+  const [autoRemind, setAutoRemind] = useState(true);
+  const [reminderFrequency, setReminderFrequency] = useState("7");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
+
+  const docsWithStatus = useMemo(() => documents.map(doc => ({
+    ...doc,
+    expiryStatus: getDocExpiryStatus(doc.expiryDate, reminderDays),
+  })), [documents, reminderDays]);
+
+  const expiredCount = docsWithStatus.filter(d => d.expiryStatus === "expired").length;
+  const expiringCount = docsWithStatus.filter(d => d.expiryStatus === "expiring-soon").length;
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Documents</CardTitle>
-        <Button size="sm" variant="outline" onClick={onUpload}><Upload className="h-4 w-4 mr-2" />Upload</Button>
-      </CardHeader>
-      <CardContent>
-        {docs.length > 0 ? (
-          <div className="space-y-3">
-            {docs.map((doc, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center"><FileText className="h-4 w-4 text-muted-foreground" /></div>
-                  <div>
-                    <p className="text-sm font-medium">{doc.name}</p>
-                    <p className="text-xs text-muted-foreground">{doc.type} · {doc.uploadedDate}</p>
-                  </div>
+    <div className="space-y-4">
+      {/* Reminder Settings */}
+      <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 cursor-pointer hover:bg-muted/30 transition-colors">
+              <CardTitle className="text-sm flex items-center gap-2"><Settings className="h-4 w-4 text-muted-foreground" />Reminder Settings</CardTitle>
+              {settingsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm whitespace-nowrap">Remind</Label>
+                  <Input type="number" min={1} max={180} value={reminderDays} onChange={e => setReminderDays(Number(e.target.value))} className="h-8 w-20 text-sm" />
+                  <span className="text-sm text-muted-foreground">days before expiry</span>
                 </div>
-                <Button variant="ghost" size="sm">View</Button>
+                <Separator orientation="vertical" className="h-8 hidden sm:block" />
+                <div className="flex items-center gap-3">
+                  <Switch checked={autoRemind} onCheckedChange={setAutoRemind} />
+                  <Label className="text-sm">Auto-remind</Label>
+                </div>
+                {autoRemind && (
+                  <Select value={reminderFrequency} onValueChange={setReminderFrequency}>
+                    <SelectTrigger className="w-[130px] h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">Every 7 days</SelectItem>
+                      <SelectItem value="15">Every 15 days</SelectItem>
+                      <SelectItem value="30">Every 30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Summary badges */}
+      {(expiredCount > 0 || expiringCount > 0) && (
+        <div className="flex gap-2">
+          {expiredCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/15 text-destructive">
+              <Bell className="h-3 w-3" />{expiredCount} expired
+            </span>
+          )}
+          {expiringCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-warning/15 text-warning">
+              <Bell className="h-3 w-3" />{expiringCount} expiring soon
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Document list */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Documents</CardTitle>
+          <Button size="sm" variant="outline" onClick={onUpload}><Upload className="h-4 w-4 mr-2" />Upload</Button>
+        </CardHeader>
+        <CardContent>
+          {docsWithStatus.length > 0 ? (
+            <div className="space-y-1">
+              {docsWithStatus.map((doc) => (
+                <div key={doc.id}>
+                  <div className={cn(
+                    "flex items-center justify-between py-3 px-3 rounded-lg transition-colors",
+                    doc.expiryStatus === "expired" && "bg-destructive/5",
+                  )}>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0"><FileText className="h-4 w-4 text-muted-foreground" /></div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{doc.name}</p>
+                          {doc.version > 1 && <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">v{doc.version}</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {doc.type} · {doc.uploadedDate}
+                          {doc.expiryDate ? ` · Exp: ${doc.expiryDate}` : " · No Expiry"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge status={doc.expiryStatus} />
+                      <Button variant="ghost" size="sm" onClick={() => onReupload(doc)} className="text-xs">
+                        <RefreshCw className="h-3.5 w-3.5 mr-1" />Re-upload
+                      </Button>
+                      {doc.previousVersions.length > 0 && (
+                        <Button variant="ghost" size="sm" className="text-xs" onClick={() => setExpandedHistory(expandedHistory === doc.id ? null : doc.id)}>
+                          <History className="h-3.5 w-3.5 mr-1" />History
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm">View</Button>
+                    </div>
+                  </div>
+                  {/* Version history */}
+                  {expandedHistory === doc.id && doc.previousVersions.length > 0 && (
+                    <div className="ml-12 mb-2 border-l-2 border-muted pl-4 space-y-2 py-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Version History</p>
+                      {doc.previousVersions.map((pv, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>v{doc.version - 1 - i} — {pv.name} · {pv.uploadedDate}{pv.expiryDate ? ` · Exp: ${pv.expiryDate}` : ""}</span>
+                          <Button variant="ghost" size="sm" className="h-6 text-xs">View</Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
