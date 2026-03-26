@@ -19,6 +19,7 @@ import { LeaveTypeProvider } from "@/contexts/LeaveTypeContext";
 import { ApprovalProvider } from "@/contexts/ApprovalContext";
 import { CardProvider } from "@/contexts/CardContext";
 import { AdvanceProvider } from "@/contexts/AdvanceContext";
+import { ReminderSettingsProvider } from "@/contexts/ReminderSettingsContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -59,6 +60,7 @@ import SeparationsPage from "@/pages/SeparationsPage";
 import PayrollAnalyticsPage from "@/pages/PayrollAnalyticsPage";
 import AdvancesPage from "@/pages/AdvancesPage";
 import OutstandingAdvancesPage from "@/pages/OutstandingAdvancesPage";
+import ReminderSettingsPage from "@/pages/settings/ReminderSettingsPage";
 
 import GPSTrackingPage from "@/pages/GPSTrackingPage";
 import RatingCalibrationPage from "@/pages/performance/RatingCalibrationPage";
@@ -93,6 +95,7 @@ const App = () => {
         <ApprovalProvider>
         <CardProvider>
         <AdvanceProvider>
+        <ReminderSettingsProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -137,6 +140,7 @@ const App = () => {
               <Route path="/settings/projects" element={<ProjectSettingsPage />} />
               <Route path="/settings/company" element={<CompanyProfilePage />} />
               <Route path="/settings/gl-codes" element={<CompanyProfilePage />} />
+              <Route path="/settings/reminders" element={<ReminderSettingsPage />} />
               <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
               <Route path="/settings/leave-types" element={<PayrollSettingsPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
@@ -154,6 +158,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </ReminderSettingsProvider>
         </AdvanceProvider>
         </CardProvider>
         </ApprovalProvider>

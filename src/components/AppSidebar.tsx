@@ -5,7 +5,7 @@ import {
   FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
   Layers, Tag, Shield, Coins, ChevronDown, Award, UserMinus,
   Target, ClipboardCheck, UserCheck, UsersRound, Star, ListChecks,
-  CreditCard as IdCardIcon, DoorOpen, Activity, ClipboardList, PieChart
+  CreditCard as IdCardIcon, DoorOpen, Activity, ClipboardList, PieChart, Bell
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -87,6 +87,7 @@ const employerSettingsNav = [
   { title: "Projects", url: "/settings/projects", icon: FolderKanban },
   { title: "Expense Categories", url: "/settings/expense-categories", icon: Receipt },
   { title: "Approval Matrix", url: "/settings/approval-matrix", icon: Shield },
+  { title: "Reminder Settings", url: "/settings/reminders", icon: Bell },
 ];
 
 const employeeNav = [

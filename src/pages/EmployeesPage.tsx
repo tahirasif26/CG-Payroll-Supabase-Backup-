@@ -29,6 +29,7 @@ import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBene
 import { useSeparations } from "@/contexts/SeparationContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useReporting } from "@/contexts/ReportingContext";
+import { useReminderSettings } from "@/contexts/ReminderSettingsContext";
 
 interface EmployeeDocVersion {
   name: string;
@@ -836,10 +837,7 @@ function TimeOffTab({ emp }: { emp: Employee }) {
 }
 
 function DocumentsTab({ emp, onUpload, documents, onReupload }: { emp: Employee; onUpload: () => void; documents: EmployeeDoc[]; onReupload: (doc: EmployeeDoc) => void }) {
-  const [reminderDays, setReminderDays] = useState(30);
-  const [autoRemind, setAutoRemind] = useState(true);
-  const [reminderFrequency, setReminderFrequency] = useState("7");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { reminderDays } = useReminderSettings();
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
 
   const docsWithStatus = useMemo(() => documents.map(doc => ({
@@ -852,44 +850,6 @@ function DocumentsTab({ emp, onUpload, documents, onReupload }: { emp: Employee;
 
   return (
     <div className="space-y-4">
-      {/* Reminder Settings */}
-      <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <Card>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="flex flex-row items-center justify-between pb-3 cursor-pointer hover:bg-muted/30 transition-colors">
-              <CardTitle className="text-sm flex items-center gap-2"><Settings className="h-4 w-4 text-muted-foreground" />Reminder Settings</CardTitle>
-              {settingsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="pt-0">
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm whitespace-nowrap">Remind</Label>
-                  <Input type="number" min={1} max={180} value={reminderDays} onChange={e => setReminderDays(Number(e.target.value))} className="h-8 w-20 text-sm" />
-                  <span className="text-sm text-muted-foreground">days before expiry</span>
-                </div>
-                <Separator orientation="vertical" className="h-8 hidden sm:block" />
-                <div className="flex items-center gap-3">
-                  <Switch checked={autoRemind} onCheckedChange={setAutoRemind} />
-                  <Label className="text-sm">Auto-remind</Label>
-                </div>
-                {autoRemind && (
-                  <Select value={reminderFrequency} onValueChange={setReminderFrequency}>
-                    <SelectTrigger className="w-[130px] h-8 text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="7">Every 7 days</SelectItem>
-                      <SelectItem value="15">Every 15 days</SelectItem>
-                      <SelectItem value="30">Every 30 days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-
       {/* Summary badges */}
       {(expiredCount > 0 || expiringCount > 0) && (
         <div className="flex gap-2">
