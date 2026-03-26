@@ -95,6 +95,7 @@ const App = () => {
         <ApprovalProvider>
         <CardProvider>
         <AdvanceProvider>
+        <ReminderSettingsProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
