@@ -103,7 +103,7 @@ export default function CompanyPoliciesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Company Policies" subtitle="Manage policy documents accessible to all employees" />
+      <PageHeader title="Company Policies" description="Manage policy documents accessible to all employees" />
 
       <Card>
         <CardContent className="pt-6">
