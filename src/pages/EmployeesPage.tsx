@@ -297,7 +297,6 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                       {emp.workLocationCountry}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-right font-semibold">{emp.salary.toLocaleString()}</TableCell>
                   <TableCell><StatusBadge status={emp.status} /></TableCell>
                 </TableRow>
               )) : (
