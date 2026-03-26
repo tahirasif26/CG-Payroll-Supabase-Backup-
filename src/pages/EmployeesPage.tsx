@@ -836,10 +836,7 @@ function TimeOffTab({ emp }: { emp: Employee }) {
 }
 
 function DocumentsTab({ emp, onUpload, documents, onReupload }: { emp: Employee; onUpload: () => void; documents: EmployeeDoc[]; onReupload: (doc: EmployeeDoc) => void }) {
-  const [reminderDays, setReminderDays] = useState(30);
-  const [autoRemind, setAutoRemind] = useState(true);
-  const [reminderFrequency, setReminderFrequency] = useState("7");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { reminderDays } = useReminderSettings();
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
 
   const docsWithStatus = useMemo(() => documents.map(doc => ({
