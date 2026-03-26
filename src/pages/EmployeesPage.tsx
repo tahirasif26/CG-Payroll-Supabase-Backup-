@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar as CalendarIcon, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
