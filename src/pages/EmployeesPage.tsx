@@ -30,20 +30,41 @@ import { useSeparations } from "@/contexts/SeparationContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useReporting } from "@/contexts/ReportingContext";
 
+interface EmployeeDocVersion {
+  name: string;
+  uploadedDate: string;
+  expiryDate?: string;
+}
+
 interface EmployeeDoc {
+  id: string;
   name: string;
   type: string;
   uploadedDate: string;
+  expiryDate?: string;
+  version: number;
+  previousVersions: EmployeeDocVersion[];
 }
 
-const employeeDocs: Record<string, EmployeeDoc[]> = {
+type DocExpiryStatus = "active" | "expiring-soon" | "expired" | "no-expiry";
+
+function getDocExpiryStatus(expiryDate?: string, reminderDays: number = 30): DocExpiryStatus {
+  if (!expiryDate) return "no-expiry";
+  const expiry = parseISO(expiryDate);
+  if (isPast(expiry)) return "expired";
+  if (differenceInDays(expiry, new Date()) <= reminderDays) return "expiring-soon";
+  return "active";
+}
+
+const initialEmployeeDocs: Record<string, EmployeeDoc[]> = {
   "1": [
-    { name: "National ID", type: "Identity", uploadedDate: "2021-03-15" },
-    { name: "Employment Contract", type: "Contract", uploadedDate: "2021-03-15" },
+    { id: "d1", name: "National ID", type: "Identity", uploadedDate: "2021-03-15", expiryDate: "2025-06-01", version: 1, previousVersions: [] },
+    { id: "d2", name: "Employment Contract", type: "Contract", uploadedDate: "2021-03-15", version: 1, previousVersions: [] },
+    { id: "d3", name: "Work Permit", type: "Certificate", uploadedDate: "2023-01-10", expiryDate: "2024-12-31", version: 2, previousVersions: [{ name: "Work Permit", uploadedDate: "2021-03-15", expiryDate: "2022-12-31" }] },
   ],
   "2": [
-    { name: "National ID", type: "Identity", uploadedDate: "2019-06-01" },
-    { name: "Tax Certificate", type: "Tax", uploadedDate: "2024-01-10" },
+    { id: "d4", name: "National ID", type: "Identity", uploadedDate: "2019-06-01", expiryDate: "2029-06-01", version: 1, previousVersions: [] },
+    { id: "d5", name: "Tax Certificate", type: "Tax", uploadedDate: "2024-01-10", expiryDate: "2025-12-31", version: 1, previousVersions: [] },
   ],
 };
 
