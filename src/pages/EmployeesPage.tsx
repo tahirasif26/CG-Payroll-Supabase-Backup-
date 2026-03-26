@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAudit } from "@/contexts/AuditContext";
+import { format, differenceInDays, isPast, parseISO } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { employees as importedEmployees, leaveRequests, loans, payrollRuns } from "@/data/mockData";
@@ -9,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList } from "lucide-react";
+import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,25 +20,51 @@ import type { Employee } from "@/types/hcm";
 import { compensationSettings, availableCurrencies } from "@/data/settingsData";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useReporting } from "@/contexts/ReportingContext";
 
+interface EmployeeDocVersion {
+  name: string;
+  uploadedDate: string;
+  expiryDate?: string;
+}
+
 interface EmployeeDoc {
+  id: string;
   name: string;
   type: string;
   uploadedDate: string;
+  expiryDate?: string;
+  version: number;
+  previousVersions: EmployeeDocVersion[];
 }
 
-const employeeDocs: Record<string, EmployeeDoc[]> = {
+type DocExpiryStatus = "active" | "expiring-soon" | "expired" | "no-expiry";
+
+function getDocExpiryStatus(expiryDate?: string, reminderDays: number = 30): DocExpiryStatus {
+  if (!expiryDate) return "no-expiry";
+  const expiry = parseISO(expiryDate);
+  if (isPast(expiry)) return "expired";
+  if (differenceInDays(expiry, new Date()) <= reminderDays) return "expiring-soon";
+  return "active";
+}
+
+const initialEmployeeDocs: Record<string, EmployeeDoc[]> = {
   "1": [
-    { name: "National ID", type: "Identity", uploadedDate: "2021-03-15" },
-    { name: "Employment Contract", type: "Contract", uploadedDate: "2021-03-15" },
+    { id: "d1", name: "National ID", type: "Identity", uploadedDate: "2021-03-15", expiryDate: "2025-06-01", version: 1, previousVersions: [] },
+    { id: "d2", name: "Employment Contract", type: "Contract", uploadedDate: "2021-03-15", version: 1, previousVersions: [] },
+    { id: "d3", name: "Work Permit", type: "Certificate", uploadedDate: "2023-01-10", expiryDate: "2024-12-31", version: 2, previousVersions: [{ name: "Work Permit", uploadedDate: "2021-03-15", expiryDate: "2022-12-31" }] },
   ],
   "2": [
-    { name: "National ID", type: "Identity", uploadedDate: "2019-06-01" },
-    { name: "Tax Certificate", type: "Tax", uploadedDate: "2024-01-10" },
+    { id: "d4", name: "National ID", type: "Identity", uploadedDate: "2019-06-01", expiryDate: "2029-06-01", version: 1, previousVersions: [] },
+    { id: "d5", name: "Tax Certificate", type: "Tax", uploadedDate: "2024-01-10", expiryDate: "2025-12-31", version: 1, previousVersions: [] },
   ],
 };
 
@@ -808,38 +835,142 @@ function TimeOffTab({ emp }: { emp: Employee }) {
   );
 }
 
-function DocumentsTab({ emp, onUpload }: { emp: Employee; onUpload: () => void }) {
-  const docs = employeeDocs[emp.id] || [];
+function DocumentsTab({ emp, onUpload, documents, onReupload }: { emp: Employee; onUpload: () => void; documents: EmployeeDoc[]; onReupload: (doc: EmployeeDoc) => void }) {
+  const [reminderDays, setReminderDays] = useState(30);
+  const [autoRemind, setAutoRemind] = useState(true);
+  const [reminderFrequency, setReminderFrequency] = useState("7");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
+
+  const docsWithStatus = useMemo(() => documents.map(doc => ({
+    ...doc,
+    expiryStatus: getDocExpiryStatus(doc.expiryDate, reminderDays),
+  })), [documents, reminderDays]);
+
+  const expiredCount = docsWithStatus.filter(d => d.expiryStatus === "expired").length;
+  const expiringCount = docsWithStatus.filter(d => d.expiryStatus === "expiring-soon").length;
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Documents</CardTitle>
-        <Button size="sm" variant="outline" onClick={onUpload}><Upload className="h-4 w-4 mr-2" />Upload</Button>
-      </CardHeader>
-      <CardContent>
-        {docs.length > 0 ? (
-          <div className="space-y-3">
-            {docs.map((doc, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center"><FileText className="h-4 w-4 text-muted-foreground" /></div>
-                  <div>
-                    <p className="text-sm font-medium">{doc.name}</p>
-                    <p className="text-xs text-muted-foreground">{doc.type} · {doc.uploadedDate}</p>
-                  </div>
+    <div className="space-y-4">
+      {/* Reminder Settings */}
+      <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 cursor-pointer hover:bg-muted/30 transition-colors">
+              <CardTitle className="text-sm flex items-center gap-2"><Settings className="h-4 w-4 text-muted-foreground" />Reminder Settings</CardTitle>
+              {settingsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm whitespace-nowrap">Remind</Label>
+                  <Input type="number" min={1} max={180} value={reminderDays} onChange={e => setReminderDays(Number(e.target.value))} className="h-8 w-20 text-sm" />
+                  <span className="text-sm text-muted-foreground">days before expiry</span>
                 </div>
-                <Button variant="ghost" size="sm">View</Button>
+                <Separator orientation="vertical" className="h-8 hidden sm:block" />
+                <div className="flex items-center gap-3">
+                  <Switch checked={autoRemind} onCheckedChange={setAutoRemind} />
+                  <Label className="text-sm">Auto-remind</Label>
+                </div>
+                {autoRemind && (
+                  <Select value={reminderFrequency} onValueChange={setReminderFrequency}>
+                    <SelectTrigger className="w-[130px] h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">Every 7 days</SelectItem>
+                      <SelectItem value="15">Every 15 days</SelectItem>
+                      <SelectItem value="30">Every 30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Summary badges */}
+      {(expiredCount > 0 || expiringCount > 0) && (
+        <div className="flex gap-2">
+          {expiredCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/15 text-destructive">
+              <Bell className="h-3 w-3" />{expiredCount} expired
+            </span>
+          )}
+          {expiringCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-warning/15 text-warning">
+              <Bell className="h-3 w-3" />{expiringCount} expiring soon
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Document list */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Documents</CardTitle>
+          <Button size="sm" variant="outline" onClick={onUpload}><Upload className="h-4 w-4 mr-2" />Upload</Button>
+        </CardHeader>
+        <CardContent>
+          {docsWithStatus.length > 0 ? (
+            <div className="space-y-1">
+              {docsWithStatus.map((doc) => (
+                <div key={doc.id}>
+                  <div className={cn(
+                    "flex items-center justify-between py-3 px-3 rounded-lg transition-colors",
+                    doc.expiryStatus === "expired" && "bg-destructive/5",
+                  )}>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0"><FileText className="h-4 w-4 text-muted-foreground" /></div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{doc.name}</p>
+                          {doc.version > 1 && <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">v{doc.version}</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {doc.type} · {doc.uploadedDate}
+                          {doc.expiryDate ? ` · Exp: ${doc.expiryDate}` : " · No Expiry"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge status={doc.expiryStatus} />
+                      <Button variant="ghost" size="sm" onClick={() => onReupload(doc)} className="text-xs">
+                        <RefreshCw className="h-3.5 w-3.5 mr-1" />Re-upload
+                      </Button>
+                      {doc.previousVersions.length > 0 && (
+                        <Button variant="ghost" size="sm" className="text-xs" onClick={() => setExpandedHistory(expandedHistory === doc.id ? null : doc.id)}>
+                          <History className="h-3.5 w-3.5 mr-1" />History
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm">View</Button>
+                    </div>
+                  </div>
+                  {/* Version history */}
+                  {expandedHistory === doc.id && doc.previousVersions.length > 0 && (
+                    <div className="ml-12 mb-2 border-l-2 border-muted pl-4 space-y-2 py-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Version History</p>
+                      {doc.previousVersions.map((pv, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>v{doc.version - 1 - i} — {pv.name} · {pv.uploadedDate}{pv.expiryDate ? ` · Exp: ${pv.expiryDate}` : ""}</span>
+                          <Button variant="ghost" size="sm" className="h-6 text-xs">View</Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -1095,6 +1226,29 @@ export default function EmployeesPage() {
   const { toast } = useToast();
   const { addSeparation } = useSeparations();
 
+  // Document state management
+  const [allDocs, setAllDocs] = useState<Record<string, EmployeeDoc[]>>(initialEmployeeDocs);
+  const [reuploadDoc, setReuploadDoc] = useState<EmployeeDoc | null>(null);
+  const [uploadDocName, setUploadDocName] = useState("");
+  const [uploadDocType, setUploadDocType] = useState("");
+  const [uploadExpiryDate, setUploadExpiryDate] = useState<Date | undefined>(undefined);
+
+  const openUploadDialog = () => {
+    setReuploadDoc(null);
+    setUploadDocName("");
+    setUploadDocType("");
+    setUploadExpiryDate(undefined);
+    setUploadDocOpen(true);
+  };
+
+  const openReuploadDialog = (doc: EmployeeDoc) => {
+    setReuploadDoc(doc);
+    setUploadDocName(doc.name);
+    setUploadDocType(doc.type.toLowerCase());
+    setUploadExpiryDate(doc.expiryDate ? parseISO(doc.expiryDate) : undefined);
+    setUploadDocOpen(true);
+  };
+
   const handleAddEmployee = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -1126,13 +1280,46 @@ export default function EmployeesPage() {
 
   const handleUploadDoc = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedEmployee) {
-      const form = e.target as HTMLFormElement;
-      const docName = (form.querySelector('input[placeholder]') as HTMLInputElement)?.value || "Unknown";
-      auditLog({ employeeId: selectedEmployee.id, employeeName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`, section: "Documents", field: "Upload", oldValue: "", newValue: docName });
+    if (!selectedEmployee) return;
+    const empId = selectedEmployee.id;
+    const today = new Date().toISOString().split("T")[0];
+    const expiryStr = uploadExpiryDate ? format(uploadExpiryDate, "yyyy-MM-dd") : undefined;
+
+    if (reuploadDoc) {
+      // Re-upload: version increment, push old to history
+      setAllDocs(prev => {
+        const empDocs = [...(prev[empId] || [])];
+        const idx = empDocs.findIndex(d => d.id === reuploadDoc.id);
+        if (idx >= 0) {
+          const old = empDocs[idx];
+          empDocs[idx] = {
+            ...old,
+            uploadedDate: today,
+            expiryDate: expiryStr,
+            version: old.version + 1,
+            previousVersions: [{ name: old.name, uploadedDate: old.uploadedDate, expiryDate: old.expiryDate }, ...old.previousVersions],
+          };
+        }
+        return { ...prev, [empId]: empDocs };
+      });
+      auditLog({ employeeId: empId, employeeName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`, section: "Documents", field: "Re-upload", oldValue: `v${reuploadDoc.version}`, newValue: `v${reuploadDoc.version + 1} - ${reuploadDoc.name}` });
+      toast({ title: "Document Re-uploaded", description: `${reuploadDoc.name} updated to version ${reuploadDoc.version + 1}.` });
+    } else {
+      // New upload
+      const newDoc: EmployeeDoc = {
+        id: `d-${Date.now()}`,
+        name: uploadDocName,
+        type: uploadDocType.charAt(0).toUpperCase() + uploadDocType.slice(1),
+        uploadedDate: today,
+        expiryDate: expiryStr,
+        version: 1,
+        previousVersions: [],
+      };
+      setAllDocs(prev => ({ ...prev, [empId]: [...(prev[empId] || []), newDoc] }));
+      auditLog({ employeeId: empId, employeeName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`, section: "Documents", field: "Upload", oldValue: "", newValue: uploadDocName });
+      toast({ title: "Document Uploaded", description: "The document has been uploaded successfully." });
     }
     setUploadDocOpen(false);
-    toast({ title: "Document Uploaded", description: "The document has been uploaded successfully." });
   };
 
   if (selectedEmployee) {
@@ -1174,7 +1361,7 @@ export default function EmployeesPage() {
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
           <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={() => setUploadDocOpen(true)} /></TabsContent>
+          <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={openUploadDialog} documents={allDocs[selectedEmployee.id] || []} onReupload={openReuploadDialog} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>
         </Tabs>
@@ -1182,14 +1369,21 @@ export default function EmployeesPage() {
         <Dialog open={uploadDocOpen} onOpenChange={setUploadDocOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Upload Document</DialogTitle>
-              <DialogDescription>Upload a document for {selectedEmployee.firstName} {selectedEmployee.lastName}.</DialogDescription>
+              <DialogTitle>{reuploadDoc ? `Re-upload: ${reuploadDoc.name}` : "Upload Document"}</DialogTitle>
+              <DialogDescription>
+                {reuploadDoc
+                  ? `Updating version ${reuploadDoc.version} to ${reuploadDoc.version + 1} for ${selectedEmployee.firstName} ${selectedEmployee.lastName}.`
+                  : `Upload a document for ${selectedEmployee.firstName} ${selectedEmployee.lastName}.`}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleUploadDoc} className="space-y-4">
-              <div className="space-y-2"><Label>Document Name</Label><Input placeholder="e.g. Employment Contract" required /></div>
+              <div className="space-y-2">
+                <Label>Document Name</Label>
+                <Input placeholder="e.g. Employment Contract" value={uploadDocName} onChange={e => setUploadDocName(e.target.value)} required disabled={!!reuploadDoc} />
+              </div>
               <div className="space-y-2">
                 <Label>Document Type</Label>
-                <Select required>
+                <Select value={uploadDocType} onValueChange={setUploadDocType} required disabled={!!reuploadDoc}>
                   <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="identity">Identity</SelectItem>
@@ -1200,10 +1394,35 @@ export default function EmployeesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Expiry Date <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !uploadExpiryDate && "text-muted-foreground")}>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      {uploadExpiryDate ? format(uploadExpiryDate, "PPP") : "No expiry date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={uploadExpiryDate}
+                      onSelect={setUploadExpiryDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {uploadExpiryDate && (
+                  <Button type="button" variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => setUploadExpiryDate(undefined)}>
+                    Clear expiry date
+                  </Button>
+                )}
+              </div>
               <div className="space-y-2"><Label>File</Label><Input type="file" accept=".pdf,.jpg,.png,.doc,.docx" required /></div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setUploadDocOpen(false)}>Cancel</Button>
-                <Button type="submit">Upload</Button>
+                <Button type="submit">{reuploadDoc ? "Re-upload" : "Upload"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
