@@ -266,7 +266,6 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                 <SortHeader field="designation">Designation</SortHeader>
                 <TableHead className="font-semibold">Category</TableHead>
                 <TableHead className="font-semibold">Work Location</TableHead>
-                <SortHeader field="salary">Salary (SAR)</SortHeader>
                 <TableHead className="font-semibold">Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -298,7 +297,6 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                       {emp.workLocationCountry}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-right font-semibold">{emp.salary.toLocaleString()}</TableCell>
                   <TableCell><StatusBadge status={emp.status} /></TableCell>
                 </TableRow>
               )) : (
