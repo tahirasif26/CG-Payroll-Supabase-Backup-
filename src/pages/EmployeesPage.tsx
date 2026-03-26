@@ -29,6 +29,7 @@ import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBene
 import { useSeparations } from "@/contexts/SeparationContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useReporting } from "@/contexts/ReportingContext";
+import { useReminderSettings } from "@/contexts/ReminderSettingsContext";
 
 interface EmployeeDocVersion {
   name: string;
