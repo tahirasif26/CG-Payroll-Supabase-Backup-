@@ -1,25 +1,38 @@
 
 
-## Move Reminder Settings to a Separate Settings Tab
+## Company Policies Module
 
-### What Changes
+### Overview
 
-Move the document expiry reminder settings out of each employee's Documents tab into a new standalone "Reminder Settings" entry in the Settings sidebar — making it a single global configuration for all employees.
+Admin manages policies (add/edit/delete/upload) in **Settings → Company Policies**. Employees view policies as a **"Company Policies" tab** in the employee sidebar nav.
 
 ### Files to Create/Modify
 
 | File | Action |
 |------|--------|
-| `src/contexts/ReminderSettingsContext.tsx` | **Create** — context holding `reminderDays`, `autoRemind`, `reminderFrequency` with defaults (30, true, "7") |
-| `src/pages/settings/ReminderSettingsPage.tsx` | **Create** — full settings page with Card UI: numeric input for days, auto-remind switch, frequency selector, Save button with toast |
-| `src/components/AppSidebar.tsx` | **Modify** — add `{ title: "Reminder Settings", url: "/settings/reminders", icon: Bell }` to `employerSettingsNav` |
-| `src/App.tsx` | **Modify** — add `ReminderSettingsProvider` wrapper + route `<Route path="/settings/reminders" element={<ReminderSettingsPage />} />` |
-| `src/pages/EmployeesPage.tsx` | **Modify** — remove lines 839-891 (local reminder state + collapsible settings card), import `useReminderSettings` from context for `getDocExpiryStatus` computation |
+| `src/contexts/PolicyContext.tsx` | **Create** — context with mock policies, CRUD operations, acknowledgment tracking |
+| `src/pages/settings/CompanyPoliciesPage.tsx` | **Create** — admin page: add/edit/delete policies, upload documents, set categories, track acknowledgments |
+| `src/pages/CompanyPoliciesPage.tsx` | **Create** — employee read-only view: searchable list with category filters, view/download, acknowledge button |
+| `src/components/AppSidebar.tsx` | **Modify** — add "Company Policies" to `employerSettingsNav` and `employeeNav` |
+| `src/App.tsx` | **Modify** — add `PolicyProvider`, routes for `/settings/company-policies` and `/company-policies` |
+
+### Data Model
+
+```text
+PolicyDocument {
+  id, title, description,
+  category: "hr" | "finance" | "it" | "health-safety" | "general",
+  fileName, fileUrl,
+  version, effectiveDate, status: "active" | "archived",
+  requiresAck, acknowledgments: string[]  // employee IDs
+}
+```
 
 ### How It Works
 
-1. **Context** provides `reminderDays`, `autoRemind`, `reminderFrequency` globally via `useReminderSettings()` hook
-2. **ReminderSettingsPage** renders a dedicated settings page at `/settings/reminders` with the same inputs currently in the employee DocumentsTab collapsible card, plus a Save button
-3. **Sidebar** shows "Reminder Settings" as its own item under Settings
-4. **EmployeesPage** DocumentsTab reads `reminderDays` from context to compute expiry statuses — all other document functionality (badges, list, version history) stays unchanged
+1. **Settings → Company Policies** (employer): Table listing all policies with Add/Edit/Delete actions. Upload dialog for PDF/docs with category, description, effective date fields. Acknowledgment status column showing "X/Y employees acknowledged"
+
+2. **Employee Nav → Company Policies** (employee): Read-only card/list view with category filter tabs (All, HR, Finance, IT, etc.) and search. Each policy shows title, category badge, effective date, and View/Download + Acknowledge buttons. Pending acknowledgments highlighted
+
+3. **Sidebar**: "Company Policies" with `FileText` icon added to both `employerSettingsNav` and `employeeNav`
 
