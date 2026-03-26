@@ -163,6 +163,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </PolicyProvider>
         </ReminderSettingsProvider>
         </AdvanceProvider>
         </CardProvider>

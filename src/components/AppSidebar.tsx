@@ -99,6 +99,7 @@ const employeeNav = [
   { title: "My Loans", url: "/loans", icon: PiggyBank },
   { title: "My Expenses", url: "/expenses", icon: CreditCard },
   { title: "My Assets", url: "/assets", icon: Monitor },
+  { title: "Company Policies", url: "/company-policies", icon: FileText },
   { title: "My Timesheets", url: "/timesheets", icon: Clock },
   { title: "Directory", url: "/org-chart", icon: Users },
 ];
