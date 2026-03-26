@@ -87,6 +87,7 @@ const employerSettingsNav = [
   { title: "Projects", url: "/settings/projects", icon: FolderKanban },
   { title: "Expense Categories", url: "/settings/expense-categories", icon: Receipt },
   { title: "Approval Matrix", url: "/settings/approval-matrix", icon: Shield },
+  { title: "Company Policies", url: "/settings/company-policies", icon: FileText },
   { title: "Reminder Settings", url: "/settings/reminders", icon: Bell },
 ];
 
