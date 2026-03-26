@@ -98,6 +98,7 @@ const App = () => {
         <CardProvider>
         <AdvanceProvider>
         <ReminderSettingsProvider>
+        <PolicyProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
