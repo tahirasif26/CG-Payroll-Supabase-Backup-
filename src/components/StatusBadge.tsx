@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type StatusVariant = "active" | "inactive" | "on-leave" | "separated" | "pending" | "approved" | "rejected" | "completed" | "processing" | "draft" | "failed" | "defaulted" | "assigned" | "available" | "submitted" | "on-hold" | "retired" | "paid";
+type StatusVariant = "active" | "inactive" | "on-leave" | "separated" | "pending" | "approved" | "rejected" | "completed" | "processing" | "draft" | "failed" | "defaulted" | "assigned" | "available" | "submitted" | "on-hold" | "retired" | "paid" | "expiring-soon" | "expired" | "no-expiry";
 
 const styles: Record<StatusVariant, string> = {
   active: "bg-success/15 text-success",
