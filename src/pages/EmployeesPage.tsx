@@ -1226,6 +1226,29 @@ export default function EmployeesPage() {
   const { toast } = useToast();
   const { addSeparation } = useSeparations();
 
+  // Document state management
+  const [allDocs, setAllDocs] = useState<Record<string, EmployeeDoc[]>>(initialEmployeeDocs);
+  const [reuploadDoc, setReuploadDoc] = useState<EmployeeDoc | null>(null);
+  const [uploadDocName, setUploadDocName] = useState("");
+  const [uploadDocType, setUploadDocType] = useState("");
+  const [uploadExpiryDate, setUploadExpiryDate] = useState<Date | undefined>(undefined);
+
+  const openUploadDialog = () => {
+    setReuploadDoc(null);
+    setUploadDocName("");
+    setUploadDocType("");
+    setUploadExpiryDate(undefined);
+    setUploadDocOpen(true);
+  };
+
+  const openReuploadDialog = (doc: EmployeeDoc) => {
+    setReuploadDoc(doc);
+    setUploadDocName(doc.name);
+    setUploadDocType(doc.type.toLowerCase());
+    setUploadExpiryDate(doc.expiryDate ? parseISO(doc.expiryDate) : undefined);
+    setUploadDocOpen(true);
+  };
+
   const handleAddEmployee = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -1257,13 +1280,46 @@ export default function EmployeesPage() {
 
   const handleUploadDoc = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedEmployee) {
-      const form = e.target as HTMLFormElement;
-      const docName = (form.querySelector('input[placeholder]') as HTMLInputElement)?.value || "Unknown";
-      auditLog({ employeeId: selectedEmployee.id, employeeName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`, section: "Documents", field: "Upload", oldValue: "", newValue: docName });
+    if (!selectedEmployee) return;
+    const empId = selectedEmployee.id;
+    const today = new Date().toISOString().split("T")[0];
+    const expiryStr = uploadExpiryDate ? format(uploadExpiryDate, "yyyy-MM-dd") : undefined;
+
+    if (reuploadDoc) {
+      // Re-upload: version increment, push old to history
+      setAllDocs(prev => {
+        const empDocs = [...(prev[empId] || [])];
+        const idx = empDocs.findIndex(d => d.id === reuploadDoc.id);
+        if (idx >= 0) {
+          const old = empDocs[idx];
+          empDocs[idx] = {
+            ...old,
+            uploadedDate: today,
+            expiryDate: expiryStr,
+            version: old.version + 1,
+            previousVersions: [{ name: old.name, uploadedDate: old.uploadedDate, expiryDate: old.expiryDate }, ...old.previousVersions],
+          };
+        }
+        return { ...prev, [empId]: empDocs };
+      });
+      auditLog({ employeeId: empId, employeeName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`, section: "Documents", field: "Re-upload", oldValue: `v${reuploadDoc.version}`, newValue: `v${reuploadDoc.version + 1} - ${reuploadDoc.name}` });
+      toast({ title: "Document Re-uploaded", description: `${reuploadDoc.name} updated to version ${reuploadDoc.version + 1}.` });
+    } else {
+      // New upload
+      const newDoc: EmployeeDoc = {
+        id: `d-${Date.now()}`,
+        name: uploadDocName,
+        type: uploadDocType.charAt(0).toUpperCase() + uploadDocType.slice(1),
+        uploadedDate: today,
+        expiryDate: expiryStr,
+        version: 1,
+        previousVersions: [],
+      };
+      setAllDocs(prev => ({ ...prev, [empId]: [...(prev[empId] || []), newDoc] }));
+      auditLog({ employeeId: empId, employeeName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`, section: "Documents", field: "Upload", oldValue: "", newValue: uploadDocName });
+      toast({ title: "Document Uploaded", description: "The document has been uploaded successfully." });
     }
     setUploadDocOpen(false);
-    toast({ title: "Document Uploaded", description: "The document has been uploaded successfully." });
   };
 
   if (selectedEmployee) {
