@@ -51,7 +51,7 @@ export default function CompanyPoliciesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Company Policies"
-        subtitle="View and acknowledge company policy documents"
+        description="View and acknowledge company policy documents"
       />
 
       {pendingCount > 0 && (

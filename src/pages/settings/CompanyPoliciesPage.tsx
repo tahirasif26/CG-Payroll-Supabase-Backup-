@@ -279,7 +279,7 @@ export default function CompanyPoliciesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Status</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as "active" | "archived" })}>
+                <Select value={form.status} onValueChange={(v: string) => setForm({ ...form, status: v as "active" | "archived" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
