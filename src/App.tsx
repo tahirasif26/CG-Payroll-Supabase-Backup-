@@ -20,6 +20,7 @@ import { ApprovalProvider } from "@/contexts/ApprovalContext";
 import { CardProvider } from "@/contexts/CardContext";
 import { AdvanceProvider } from "@/contexts/AdvanceContext";
 import { ReminderSettingsProvider } from "@/contexts/ReminderSettingsContext";
+import { PolicyProvider } from "@/contexts/PolicyContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
