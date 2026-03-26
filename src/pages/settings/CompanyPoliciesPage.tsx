@@ -42,7 +42,7 @@ const emptyForm = {
   version: 1,
   effectiveDate: new Date().toISOString().split("T")[0],
   requiresAck: false,
-  status: "active" as const,
+  status: "active" as "active" | "archived",
 };
 
 export default function CompanyPoliciesPage() {
