@@ -62,7 +62,8 @@ import PayrollAnalyticsPage from "@/pages/PayrollAnalyticsPage";
 import AdvancesPage from "@/pages/AdvancesPage";
 import OutstandingAdvancesPage from "@/pages/OutstandingAdvancesPage";
 import ReminderSettingsPage from "@/pages/settings/ReminderSettingsPage";
-
+import CompanyPoliciesSettingsPage from "@/pages/settings/CompanyPoliciesPage";
+import CompanyPoliciesPage from "@/pages/CompanyPoliciesPage";
 import GPSTrackingPage from "@/pages/GPSTrackingPage";
 import RatingCalibrationPage from "@/pages/performance/RatingCalibrationPage";
 import SelfAssessmentPage from "@/pages/performance/SelfAssessmentPage";
