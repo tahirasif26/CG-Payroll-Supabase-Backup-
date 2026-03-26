@@ -144,6 +144,8 @@ const App = () => {
               <Route path="/settings/company" element={<CompanyProfilePage />} />
               <Route path="/settings/gl-codes" element={<CompanyProfilePage />} />
               <Route path="/settings/reminders" element={<ReminderSettingsPage />} />
+              <Route path="/settings/company-policies" element={<CompanyPoliciesSettingsPage />} />
+              <Route path="/company-policies" element={<CompanyPoliciesPage />} />
               <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
               <Route path="/settings/leave-types" element={<PayrollSettingsPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
