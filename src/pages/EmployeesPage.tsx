@@ -1369,14 +1369,21 @@ export default function EmployeesPage() {
         <Dialog open={uploadDocOpen} onOpenChange={setUploadDocOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Upload Document</DialogTitle>
-              <DialogDescription>Upload a document for {selectedEmployee.firstName} {selectedEmployee.lastName}.</DialogDescription>
+              <DialogTitle>{reuploadDoc ? `Re-upload: ${reuploadDoc.name}` : "Upload Document"}</DialogTitle>
+              <DialogDescription>
+                {reuploadDoc
+                  ? `Updating version ${reuploadDoc.version} to ${reuploadDoc.version + 1} for ${selectedEmployee.firstName} ${selectedEmployee.lastName}.`
+                  : `Upload a document for ${selectedEmployee.firstName} ${selectedEmployee.lastName}.`}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleUploadDoc} className="space-y-4">
-              <div className="space-y-2"><Label>Document Name</Label><Input placeholder="e.g. Employment Contract" required /></div>
+              <div className="space-y-2">
+                <Label>Document Name</Label>
+                <Input placeholder="e.g. Employment Contract" value={uploadDocName} onChange={e => setUploadDocName(e.target.value)} required disabled={!!reuploadDoc} />
+              </div>
               <div className="space-y-2">
                 <Label>Document Type</Label>
-                <Select required>
+                <Select value={uploadDocType} onValueChange={setUploadDocType} required disabled={!!reuploadDoc}>
                   <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="identity">Identity</SelectItem>
@@ -1387,10 +1394,35 @@ export default function EmployeesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Expiry Date <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !uploadExpiryDate && "text-muted-foreground")}>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      {uploadExpiryDate ? format(uploadExpiryDate, "PPP") : "No expiry date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={uploadExpiryDate}
+                      onSelect={setUploadExpiryDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {uploadExpiryDate && (
+                  <Button type="button" variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => setUploadExpiryDate(undefined)}>
+                    Clear expiry date
+                  </Button>
+                )}
+              </div>
               <div className="space-y-2"><Label>File</Label><Input type="file" accept=".pdf,.jpg,.png,.doc,.docx" required /></div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setUploadDocOpen(false)}>Cancel</Button>
-                <Button type="submit">Upload</Button>
+                <Button type="submit">{reuploadDoc ? "Re-upload" : "Upload"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
