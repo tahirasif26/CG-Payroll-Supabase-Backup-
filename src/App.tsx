@@ -20,6 +20,7 @@ import { ApprovalProvider } from "@/contexts/ApprovalContext";
 import { CardProvider } from "@/contexts/CardContext";
 import { AdvanceProvider } from "@/contexts/AdvanceContext";
 import { ReminderSettingsProvider } from "@/contexts/ReminderSettingsContext";
+import { PolicyProvider } from "@/contexts/PolicyContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -61,7 +62,8 @@ import PayrollAnalyticsPage from "@/pages/PayrollAnalyticsPage";
 import AdvancesPage from "@/pages/AdvancesPage";
 import OutstandingAdvancesPage from "@/pages/OutstandingAdvancesPage";
 import ReminderSettingsPage from "@/pages/settings/ReminderSettingsPage";
-
+import CompanyPoliciesSettingsPage from "@/pages/settings/CompanyPoliciesPage";
+import CompanyPoliciesPage from "@/pages/CompanyPoliciesPage";
 import GPSTrackingPage from "@/pages/GPSTrackingPage";
 import RatingCalibrationPage from "@/pages/performance/RatingCalibrationPage";
 import SelfAssessmentPage from "@/pages/performance/SelfAssessmentPage";
@@ -96,6 +98,7 @@ const App = () => {
         <CardProvider>
         <AdvanceProvider>
         <ReminderSettingsProvider>
+        <PolicyProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -141,6 +144,8 @@ const App = () => {
               <Route path="/settings/company" element={<CompanyProfilePage />} />
               <Route path="/settings/gl-codes" element={<CompanyProfilePage />} />
               <Route path="/settings/reminders" element={<ReminderSettingsPage />} />
+              <Route path="/settings/company-policies" element={<CompanyPoliciesSettingsPage />} />
+              <Route path="/company-policies" element={<CompanyPoliciesPage />} />
               <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
               <Route path="/settings/leave-types" element={<PayrollSettingsPage />} />
               <Route path="/separations" element={<SeparationsPage />} />
@@ -158,6 +163,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </PolicyProvider>
         </ReminderSettingsProvider>
         </AdvanceProvider>
         </CardProvider>

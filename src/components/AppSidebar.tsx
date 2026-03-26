@@ -87,6 +87,7 @@ const employerSettingsNav = [
   { title: "Projects", url: "/settings/projects", icon: FolderKanban },
   { title: "Expense Categories", url: "/settings/expense-categories", icon: Receipt },
   { title: "Approval Matrix", url: "/settings/approval-matrix", icon: Shield },
+  { title: "Company Policies", url: "/settings/company-policies", icon: FileText },
   { title: "Reminder Settings", url: "/settings/reminders", icon: Bell },
 ];
 
@@ -98,6 +99,7 @@ const employeeNav = [
   { title: "My Loans", url: "/loans", icon: PiggyBank },
   { title: "My Expenses", url: "/expenses", icon: CreditCard },
   { title: "My Assets", url: "/assets", icon: Monitor },
+  { title: "Company Policies", url: "/company-policies", icon: FileText },
   { title: "My Timesheets", url: "/timesheets", icon: Clock },
   { title: "Directory", url: "/org-chart", icon: Users },
 ];
