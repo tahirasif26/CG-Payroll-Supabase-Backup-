@@ -60,6 +60,7 @@ import SeparationsPage from "@/pages/SeparationsPage";
 import PayrollAnalyticsPage from "@/pages/PayrollAnalyticsPage";
 import AdvancesPage from "@/pages/AdvancesPage";
 import OutstandingAdvancesPage from "@/pages/OutstandingAdvancesPage";
+import ReminderSettingsPage from "@/pages/settings/ReminderSettingsPage";
 
 import GPSTrackingPage from "@/pages/GPSTrackingPage";
 import RatingCalibrationPage from "@/pages/performance/RatingCalibrationPage";
