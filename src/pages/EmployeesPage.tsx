@@ -193,7 +193,7 @@ function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onC
 type SortField = "name" | "empId" | "department" | "designation" | "joiningDate" | "salary";
 type SortDir = "asc" | "desc";
 
-function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: Employee[]; onSelect: (emp: Employee) => void }) {
+function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; isEmployee?: boolean }) {
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
