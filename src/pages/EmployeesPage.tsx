@@ -1543,16 +1543,22 @@ export default function EmployeesPage() {
     );
   }
 
+  const isEmployee = role === "employee";
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Employee Directory" description="Manage employee records and documentation.">
-        <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />Export</Button>
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setAddEmpOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />Add Employee
-        </Button>
+      <PageHeader title="Employee Directory" description={isEmployee ? "Browse the employee directory." : "Manage employee records and documentation."}>
+        {!isEmployee && (
+          <>
+            <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />Export</Button>
+            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setAddEmpOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />Add Employee
+            </Button>
+          </>
+        )}
       </PageHeader>
 
-      <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} />
+      <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
 
       <Dialog open={addEmpOpen} onOpenChange={setAddEmpOpen}>
         <DialogContent className="max-w-lg">
