@@ -1,38 +1,26 @@
 
 
-## Company Policies Module
+## Fix: Policy Form File Upload Overlapping All Fields
 
-### Overview
+### Problem
 
-Admin manages policies (add/edit/delete/upload) in **Settings → Company Policies**. Employees view policies as a **"Company Policies" tab** in the employee sidebar nav.
+The hidden file `<input>` on line 260-269 uses `position: absolute; inset: 0` to overlay the upload drop zone, but its parent `<div>` (line 256) does not have `position: relative`. This causes the invisible file input to cover the entire dialog, so clicking anywhere (title field, description, etc.) triggers the file picker.
 
-### Files to Create/Modify
+### Fix
 
-| File | Action |
-|------|--------|
-| `src/contexts/PolicyContext.tsx` | **Create** — context with mock policies, CRUD operations, acknowledgment tracking |
-| `src/pages/settings/CompanyPoliciesPage.tsx` | **Create** — admin page: add/edit/delete policies, upload documents, set categories, track acknowledgments |
-| `src/pages/CompanyPoliciesPage.tsx` | **Create** — employee read-only view: searchable list with category filters, view/download, acknowledge button |
-| `src/components/AppSidebar.tsx` | **Modify** — add "Company Policies" to `employerSettingsNav` and `employeeNav` |
-| `src/App.tsx` | **Modify** — add `PolicyProvider`, routes for `/settings/company-policies` and `/company-policies` |
+**File**: `src/pages/settings/CompanyPoliciesPage.tsx`
 
-### Data Model
+Add `relative` to the upload zone's parent `<div>` class on line 256:
 
-```text
-PolicyDocument {
-  id, title, description,
-  category: "hr" | "finance" | "it" | "health-safety" | "general",
-  fileName, fileUrl,
-  version, effectiveDate, status: "active" | "archived",
-  requiresAck, acknowledgments: string[]  // employee IDs
-}
+```
+// Before
+<div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors">
+
+// After
+<div className="relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors">
 ```
 
-### How It Works
+Also remove the redundant inline `style` prop on line 268 since the class already handles positioning.
 
-1. **Settings → Company Policies** (employer): Table listing all policies with Add/Edit/Delete actions. Upload dialog for PDF/docs with category, description, effective date fields. Acknowledgment status column showing "X/Y employees acknowledged"
-
-2. **Employee Nav → Company Policies** (employee): Read-only card/list view with category filter tabs (All, HR, Finance, IT, etc.) and search. Each policy shows title, category badge, effective date, and View/Download + Acknowledge buttons. Pending acknowledgments highlighted
-
-3. **Sidebar**: "Company Policies" with `FileText` icon added to both `employerSettingsNav` and `employeeNav`
+This is a one-line className change — the file input will then only overlay its intended drop zone area.
 
