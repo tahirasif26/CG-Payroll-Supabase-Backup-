@@ -253,7 +253,7 @@ export default function CompanyPoliciesPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Upload Document</Label>
-              <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors">
                 <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1.5" />
                 <p className="text-sm text-muted-foreground">Click to upload PDF, DOCX, or image</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{form.fileName || "No file selected"}</p>
@@ -265,7 +265,7 @@ export default function CompanyPoliciesPage() {
                     const file = e.target.files?.[0];
                     if (file) setForm({ ...form, fileName: file.name, fileUrl: URL.createObjectURL(file) });
                   }}
-                  style={{ position: "absolute", inset: 0, opacity: 0 }}
+                  
                 />
               </div>
             </div>
