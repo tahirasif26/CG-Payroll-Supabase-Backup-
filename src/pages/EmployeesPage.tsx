@@ -30,6 +30,8 @@ import { useSeparations } from "@/contexts/SeparationContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useReporting } from "@/contexts/ReportingContext";
 import { useReminderSettings } from "@/contexts/ReminderSettingsContext";
+import { useRole } from "@/contexts/RoleContext";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface EmployeeDocVersion {
   name: string;
@@ -164,24 +166,26 @@ function EditableField({ label, value, editing, onChange, type = "text" }: {
   );
 }
 
-function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onCancel }: {
+function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onCancel, readOnly = false }: {
   title: string; icon: any; children: React.ReactNode; editing: boolean;
-  onEdit: () => void; onSave: () => void; onCancel: () => void;
+  onEdit: () => void; onSave: () => void; onCancel: () => void; readOnly?: boolean;
 }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-base flex items-center gap-2"><Icon className="h-4 w-4 text-primary" />{title}</CardTitle>
-        <div className="flex gap-1">
-          {editing ? (
-            <>
-              <Button size="sm" variant="ghost" onClick={onCancel}><X className="h-4 w-4" /></Button>
-              <Button size="sm" onClick={onSave}><Save className="h-4 w-4 mr-1" />Save</Button>
-            </>
-          ) : (
-            <Button size="sm" variant="outline" onClick={onEdit}><Edit2 className="h-4 w-4 mr-1" />Edit</Button>
-          )}
-        </div>
+        {!readOnly && (
+          <div className="flex gap-1">
+            {editing ? (
+              <>
+                <Button size="sm" variant="ghost" onClick={onCancel}><X className="h-4 w-4" /></Button>
+                <Button size="sm" onClick={onSave}><Save className="h-4 w-4 mr-1" />Save</Button>
+              </>
+            ) : (
+              <Button size="sm" variant="outline" onClick={onEdit}><Edit2 className="h-4 w-4 mr-1" />Edit</Button>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
@@ -191,7 +195,7 @@ function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onC
 type SortField = "name" | "empId" | "department" | "designation" | "joiningDate" | "salary";
 type SortDir = "asc" | "desc";
 
-function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: Employee[]; onSelect: (emp: Employee) => void }) {
+function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; isEmployee?: boolean }) {
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -264,8 +268,8 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                 <SortHeader field="empId">ID</SortHeader>
                 <SortHeader field="department">Department</SortHeader>
                 <SortHeader field="designation">Designation</SortHeader>
-                <TableHead className="font-semibold">Category</TableHead>
-                <TableHead className="font-semibold">Work Location</TableHead>
+                {!isEmployee && <TableHead className="font-semibold">Category</TableHead>}
+                {!isEmployee && <TableHead className="font-semibold">Work Location</TableHead>}
                 <TableHead className="font-semibold">Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -286,17 +290,21 @@ function EmployeeDirectoryTable({ employees: empList, onSelect }: { employees: E
                   <TableCell className="text-sm font-mono">{emp.empId}</TableCell>
                   <TableCell className="text-sm">{emp.department}</TableCell>
                   <TableCell className="text-sm">{emp.designation}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-foreground" : "bg-accent text-accent-foreground"}`}>
-                      {emp.category === "direct" ? "Direct" : "Contractor"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                      {emp.workLocationCountry}
-                    </div>
-                  </TableCell>
+                  {!isEmployee && (
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-foreground" : "bg-accent text-accent-foreground"}`}>
+                        {emp.category === "direct" ? "Direct" : "Contractor"}
+                      </span>
+                    </TableCell>
+                  )}
+                  {!isEmployee && (
+                    <TableCell className="text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                        {emp.workLocationCountry}
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell><StatusBadge status={emp.status} /></TableCell>
                 </TableRow>
               )) : (
@@ -1169,6 +1177,8 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
 }
 
 export default function EmployeesPage() {
+  const { role, currentEmployeeId } = useRole();
+  const { reportMap, getManagerName } = useReporting();
   const { employees: localEmployees, updateEmployee, addEmployee } = useEmployees();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
@@ -1281,6 +1291,83 @@ export default function EmployeesPage() {
   };
 
   if (selectedEmployee) {
+    const isEmployee = role === "employee";
+    const isOwnProfile = isEmployee && selectedEmployee.id === currentEmployeeId;
+    const isLimitedView = isEmployee && !isOwnProfile;
+
+    // Limited Profile View for employees viewing colleagues
+    if (isLimitedView) {
+      const managerName = getManagerName(selectedEmployee.id);
+      const directReports = localEmployees.filter(e => reportMap[e.id] === selectedEmployee.id && e.status !== "separated");
+      const ext = getExtData(selectedEmployee.id);
+
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedEmployee(null)}>
+              <ChevronLeft className="h-4 w-4 mr-1" />Back to Directory
+            </Button>
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarFallback className="text-xl font-bold bg-secondary text-secondary-foreground">
+                    {selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h2 className="text-xl font-bold">{selectedEmployee.firstName} {selectedEmployee.lastName}</h2>
+                  <p className="text-sm text-muted-foreground">{selectedEmployee.designation}</p>
+                </div>
+              </div>
+              <Separator className="my-6" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Department</p>
+                  <p className="text-sm font-medium flex items-center gap-1.5"><Building className="h-3.5 w-3.5 text-muted-foreground" />{selectedEmployee.department}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="text-sm font-medium">{ext.workEmail || selectedEmployee.email}</p>
+                </div>
+                {managerName && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Reports To</p>
+                    <p className="text-sm font-medium">{managerName}</p>
+                  </div>
+                )}
+              </div>
+              {directReports.length > 0 && (
+                <>
+                  <Separator className="my-6" />
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-3">Direct Reports</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {directReports.map(dr => (
+                        <div key={dr.id} className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
+                          <div className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <span className="text-[9px] font-bold text-secondary-foreground">{dr.firstName[0]}{dr.lastName[0]}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{dr.firstName} {dr.lastName}</p>
+                            <p className="text-xs text-muted-foreground">{dr.designation}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    // Full profile view (employer or own profile)
+    const readOnly = isOwnProfile;
+
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -1298,7 +1385,7 @@ export default function EmployeesPage() {
               <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
             </div>
           </div>
-          {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
+          {!isEmployee && selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
             <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
               <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
             </Button>
@@ -1309,19 +1396,19 @@ export default function EmployeesPage() {
           <TabsList className="flex-wrap">
             <TabsTrigger value="personal"><User className="h-3.5 w-3.5 mr-1.5" />Personal</TabsTrigger>
             <TabsTrigger value="work"><Briefcase className="h-3.5 w-3.5 mr-1.5" />Work</TabsTrigger>
-            <TabsTrigger value="compensation"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>
+            {!isOwnProfile && <TabsTrigger value="compensation"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>}
             <TabsTrigger value="timeoff"><Calendar className="h-3.5 w-3.5 mr-1.5" />Time Off</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-3.5 w-3.5 mr-1.5" />Documents</TabsTrigger>
             <TabsTrigger value="assets"><Monitor className="h-3.5 w-3.5 mr-1.5" />Assets</TabsTrigger>
-            <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>
+            {!isEmployee && <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>}
           </TabsList>
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
+          {!isOwnProfile && <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>}
           <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={openUploadDialog} documents={allDocs[selectedEmployee.id] || []} onReupload={openReuploadDialog} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>
+          {!isEmployee && <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>}
         </Tabs>
 
         <Dialog open={uploadDocOpen} onOpenChange={setUploadDocOpen}>
@@ -1456,16 +1543,22 @@ export default function EmployeesPage() {
     );
   }
 
+  const isEmployee = role === "employee";
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Employee Directory" description="Manage employee records and documentation.">
-        <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />Export</Button>
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setAddEmpOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />Add Employee
-        </Button>
+      <PageHeader title="Employee Directory" description={isEmployee ? "Browse the employee directory." : "Manage employee records and documentation."}>
+        {!isEmployee && (
+          <>
+            <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />Export</Button>
+            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setAddEmpOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />Add Employee
+            </Button>
+          </>
+        )}
       </PageHeader>
 
-      <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} />
+      <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
 
       <Dialog open={addEmpOpen} onOpenChange={setAddEmpOpen}>
         <DialogContent className="max-w-lg">
