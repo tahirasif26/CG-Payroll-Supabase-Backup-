@@ -266,8 +266,8 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                 <SortHeader field="empId">ID</SortHeader>
                 <SortHeader field="department">Department</SortHeader>
                 <SortHeader field="designation">Designation</SortHeader>
-                <TableHead className="font-semibold">Category</TableHead>
-                <TableHead className="font-semibold">Work Location</TableHead>
+                {!isEmployee && <TableHead className="font-semibold">Category</TableHead>}
+                {!isEmployee && <TableHead className="font-semibold">Work Location</TableHead>}
                 <TableHead className="font-semibold">Status</TableHead>
               </TableRow>
             </TableHeader>
