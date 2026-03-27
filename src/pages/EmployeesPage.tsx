@@ -30,6 +30,8 @@ import { useSeparations } from "@/contexts/SeparationContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useReporting } from "@/contexts/ReportingContext";
 import { useReminderSettings } from "@/contexts/ReminderSettingsContext";
+import { useRole } from "@/contexts/RoleContext";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface EmployeeDocVersion {
   name: string;
