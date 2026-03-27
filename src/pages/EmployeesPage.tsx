@@ -288,17 +288,21 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                   <TableCell className="text-sm font-mono">{emp.empId}</TableCell>
                   <TableCell className="text-sm">{emp.department}</TableCell>
                   <TableCell className="text-sm">{emp.designation}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-foreground" : "bg-accent text-accent-foreground"}`}>
-                      {emp.category === "direct" ? "Direct" : "Contractor"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                      {emp.workLocationCountry}
-                    </div>
-                  </TableCell>
+                  {!isEmployee && (
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-foreground" : "bg-accent text-accent-foreground"}`}>
+                        {emp.category === "direct" ? "Direct" : "Contractor"}
+                      </span>
+                    </TableCell>
+                  )}
+                  {!isEmployee && (
+                    <TableCell className="text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                        {emp.workLocationCountry}
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell><StatusBadge status={emp.status} /></TableCell>
                 </TableRow>
               )) : (
