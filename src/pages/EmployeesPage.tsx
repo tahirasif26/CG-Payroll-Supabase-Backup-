@@ -164,24 +164,26 @@ function EditableField({ label, value, editing, onChange, type = "text" }: {
   );
 }
 
-function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onCancel }: {
+function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onCancel, readOnly = false }: {
   title: string; icon: any; children: React.ReactNode; editing: boolean;
-  onEdit: () => void; onSave: () => void; onCancel: () => void;
+  onEdit: () => void; onSave: () => void; onCancel: () => void; readOnly?: boolean;
 }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-base flex items-center gap-2"><Icon className="h-4 w-4 text-primary" />{title}</CardTitle>
-        <div className="flex gap-1">
-          {editing ? (
-            <>
-              <Button size="sm" variant="ghost" onClick={onCancel}><X className="h-4 w-4" /></Button>
-              <Button size="sm" onClick={onSave}><Save className="h-4 w-4 mr-1" />Save</Button>
-            </>
-          ) : (
-            <Button size="sm" variant="outline" onClick={onEdit}><Edit2 className="h-4 w-4 mr-1" />Edit</Button>
-          )}
-        </div>
+        {!readOnly && (
+          <div className="flex gap-1">
+            {editing ? (
+              <>
+                <Button size="sm" variant="ghost" onClick={onCancel}><X className="h-4 w-4" /></Button>
+                <Button size="sm" onClick={onSave}><Save className="h-4 w-4 mr-1" />Save</Button>
+              </>
+            ) : (
+              <Button size="sm" variant="outline" onClick={onEdit}><Edit2 className="h-4 w-4 mr-1" />Edit</Button>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
