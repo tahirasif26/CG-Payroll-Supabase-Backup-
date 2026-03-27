@@ -265,7 +265,7 @@ export default function CompanyPoliciesPage() {
                     const file = e.target.files?.[0];
                     if (file) setForm({ ...form, fileName: file.name, fileUrl: URL.createObjectURL(file) });
                   }}
-                  style={{ position: "absolute", inset: 0, opacity: 0 }}
+                  
                 />
               </div>
             </div>
