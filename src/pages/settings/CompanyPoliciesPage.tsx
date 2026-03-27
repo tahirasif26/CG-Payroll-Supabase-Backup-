@@ -269,28 +269,15 @@ export default function CompanyPoliciesPage() {
                 />
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Require Acknowledgment</Label>
-                <p className="text-xs text-muted-foreground">Employees must confirm they've read this policy</p>
-              </div>
-              <Switch checked={form.requiresAck} onCheckedChange={(v) => setForm({ ...form, requiresAck: v })} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={(v: string) => setForm({ ...form, status: v as "active" | "archived" })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Version</Label>
-                <Input type="number" min={1} value={form.version} onChange={(e) => setForm({ ...form, version: parseInt(e.target.value) || 1 })} />
-              </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(v: string) => setForm({ ...form, status: v as "active" | "archived" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
