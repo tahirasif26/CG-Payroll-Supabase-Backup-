@@ -1177,6 +1177,8 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
 }
 
 export default function EmployeesPage() {
+  const { role, currentEmployeeId } = useRole();
+  const { reportMap, getManagerName } = useReporting();
   const { employees: localEmployees, updateEmployee, addEmployee } = useEmployees();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
