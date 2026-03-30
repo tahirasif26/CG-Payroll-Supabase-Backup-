@@ -134,10 +134,7 @@ export default function CompanyPoliciesPage() {
                 <TableRow>
                   <TableHead>Policy Title</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Version</TableHead>
                   <TableHead>Effective Date</TableHead>
-                  <TableHead>Acknowledgments</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
