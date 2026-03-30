@@ -162,24 +162,7 @@ export default function CompanyPoliciesPage() {
                           {categoryLabels[policy.category]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm">v{policy.version}</TableCell>
                       <TableCell className="text-sm">{policy.effectiveDate}</TableCell>
-                      <TableCell>
-                        {policy.requiresAck ? (
-                          <div className="flex items-center gap-1.5 text-sm">
-                            <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="font-medium">{policy.acknowledgments.length}</span>
-                            <span className="text-muted-foreground">/ {TOTAL_EMPLOYEES}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Not required</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={policy.status === "active" ? "default" : "secondary"} className="text-[11px]">
-                          {policy.status === "active" ? "Active" : "Archived"}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(policy)}>
