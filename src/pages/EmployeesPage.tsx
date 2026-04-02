@@ -1293,13 +1293,19 @@ export default function EmployeesPage() {
   if (selectedEmployee) {
     const isEmployee = role === "employee";
     const isOwnProfile = isEmployee && selectedEmployee.id === currentEmployeeId;
-    const isLimitedView = isEmployee && !isOwnProfile;
 
-    // Limited Profile View for employees viewing colleagues
-    if (isLimitedView) {
-      const managerName = getManagerName(selectedEmployee.id);
-      const directReports = localEmployees.filter(e => reportMap[e.id] === selectedEmployee.id && e.status !== "separated");
+    // Unified Employee Role Profile View — Work tab only with mini org chart
+    if (isEmployee) {
       const ext = getExtData(selectedEmployee.id);
+      const managerId = getManagerId(selectedEmployee.id);
+      const managerEmp = managerId ? localEmployees.find(e => e.id === managerId) : null;
+      const directReports = localEmployees.filter(e => reportMap[e.id] === selectedEmployee.id && e.status !== "separated");
+      // Count total reports recursively
+      const countAllReports = (empId: string): number => {
+        const directs = localEmployees.filter(e => reportMap[e.id] === empId && e.status !== "separated");
+        return directs.reduce((sum, d) => sum + 1 + countAllReports(d.id), 0);
+      };
+      const totalReports = countAllReports(selectedEmployee.id);
 
       return (
         <div className="space-y-6">
@@ -1308,66 +1314,137 @@ export default function EmployeesPage() {
               <ChevronLeft className="h-4 w-4 mr-1" />Back to Directory
             </Button>
           </div>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarFallback className="text-xl font-bold bg-secondary text-secondary-foreground">
-                    {selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h2 className="text-xl font-bold">{selectedEmployee.firstName} {selectedEmployee.lastName}</h2>
-                  <p className="text-sm text-muted-foreground">{selectedEmployee.designation}</p>
-                </div>
-              </div>
-              <Separator className="my-6" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Department</p>
-                  <p className="text-sm font-medium flex items-center gap-1.5"><Building className="h-3.5 w-3.5 text-muted-foreground" />{selectedEmployee.department}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="text-sm font-medium">{ext.workEmail || selectedEmployee.email}</p>
-                </div>
-                {managerName && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Reports To</p>
-                    <p className="text-sm font-medium">{managerName}</p>
-                  </div>
-                )}
-              </div>
-              {directReports.length > 0 && (
-                <>
-                  <Separator className="my-6" />
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-3">Direct Reports</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {directReports.map(dr => (
-                        <div key={dr.id} className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
-                          <div className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                            <span className="text-[9px] font-bold text-secondary-foreground">{dr.firstName[0]}{dr.lastName[0]}</span>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{dr.firstName} {dr.lastName}</p>
-                            <p className="text-xs text-muted-foreground">{dr.designation}</p>
-                          </div>
-                        </div>
-                      ))}
+
+          {/* Employee Header */}
+          <div className="flex items-center gap-4">
+            <Avatar className="h-14 w-14">
+              <AvatarFallback className="text-lg font-bold bg-secondary text-secondary-foreground">
+                {selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="text-xl font-bold">{selectedEmployee.firstName} {selectedEmployee.lastName}</h2>
+              <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department}</p>
+            </div>
+          </div>
+
+          {/* Work Details Card */}
+          <Tabs defaultValue="work">
+            <TabsList>
+              <TabsTrigger value="work"><Briefcase className="h-3.5 w-3.5 mr-1.5" />Work</TabsTrigger>
+            </TabsList>
+            <TabsContent value="work" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Work Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Full Name</p>
+                      <p className="text-sm font-medium">{selectedEmployee.firstName} {selectedEmployee.lastName}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Designation</p>
+                      <p className="text-sm font-medium">{selectedEmployee.designation}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Work Email</p>
+                      <p className="text-sm font-medium">{ext.workEmail || selectedEmployee.email}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Phone</p>
+                      <p className="text-sm font-medium">{selectedEmployee.phone || "—"}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Department</p>
+                      <p className="text-sm font-medium flex items-center gap-1.5"><Building className="h-3.5 w-3.5 text-muted-foreground" />{selectedEmployee.department}</p>
                     </div>
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+
+              {/* Mini Org Chart */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="text-base">Organization</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center gap-0">
+                    {/* Manager Card */}
+                    {managerEmp && (
+                      <>
+                        <div
+                          className="flex items-center gap-3 border rounded-lg p-3 w-full max-w-xs cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setSelectedEmployee(managerEmp)}
+                        >
+                          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <span className="text-xs font-bold text-secondary-foreground">{managerEmp.firstName[0]}{managerEmp.lastName[0]}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{managerEmp.firstName} {managerEmp.lastName}</p>
+                            <p className="text-xs text-muted-foreground">{managerEmp.designation}</p>
+                          </div>
+                        </div>
+                        {/* Connector line */}
+                        <div className="w-px h-6 bg-border" />
+                      </>
+                    )}
+
+                    {/* Selected Employee Card (highlighted) */}
+                    <div className="flex items-center gap-3 border-2 border-primary rounded-lg p-3 w-full max-w-xs bg-primary/5">
+                      <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-primary-foreground">{selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{selectedEmployee.firstName} {selectedEmployee.lastName}</p>
+                        <p className="text-xs text-muted-foreground">{selectedEmployee.designation}</p>
+                        {totalReports > 0 && (
+                          <p className="text-xs text-primary font-medium mt-0.5">
+                            {totalReports} report{totalReports !== 1 ? "s" : ""}, {directReports.length} direct
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Direct Reports */}
+                    {directReports.length > 0 && (
+                      <>
+                        {/* Connector line with label */}
+                        <div className="w-px h-4 bg-border" />
+                        <div className="text-xs text-muted-foreground mb-2 bg-muted px-3 py-1 rounded-full">
+                          People reporting to {selectedEmployee.firstName}
+                        </div>
+                        <div className="w-px h-4 bg-border" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full mt-1">
+                          {directReports.map(dr => (
+                            <div
+                              key={dr.id}
+                              className="flex items-center gap-3 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => setSelectedEmployee(dr)}
+                            >
+                              <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                                <span className="text-xs font-bold text-secondary-foreground">{dr.firstName[0]}{dr.lastName[0]}</span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{dr.firstName} {dr.lastName}</p>
+                                <p className="text-xs text-muted-foreground">{dr.designation}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       );
     }
 
-    // Full profile view (employer or own profile)
-    const readOnly = isOwnProfile;
-
+    // Full profile view (employer only)
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -1385,7 +1462,7 @@ export default function EmployeesPage() {
               <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
             </div>
           </div>
-          {!isEmployee && selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
+          {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
             <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
               <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
             </Button>
@@ -1396,19 +1473,19 @@ export default function EmployeesPage() {
           <TabsList className="flex-wrap">
             <TabsTrigger value="personal"><User className="h-3.5 w-3.5 mr-1.5" />Personal</TabsTrigger>
             <TabsTrigger value="work"><Briefcase className="h-3.5 w-3.5 mr-1.5" />Work</TabsTrigger>
-            {!isOwnProfile && <TabsTrigger value="compensation"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>}
+            <TabsTrigger value="compensation"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>
             <TabsTrigger value="timeoff"><Calendar className="h-3.5 w-3.5 mr-1.5" />Time Off</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-3.5 w-3.5 mr-1.5" />Documents</TabsTrigger>
             <TabsTrigger value="assets"><Monitor className="h-3.5 w-3.5 mr-1.5" />Assets</TabsTrigger>
-            {!isEmployee && <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>}
+            <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>
           </TabsList>
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
-          {!isOwnProfile && <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>}
+          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
           <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={openUploadDialog} documents={allDocs[selectedEmployee.id] || []} onReupload={openReuploadDialog} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
-          {!isEmployee && <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>}
+          <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>
         </Tabs>
 
         <Dialog open={uploadDocOpen} onOpenChange={setUploadDocOpen}>
