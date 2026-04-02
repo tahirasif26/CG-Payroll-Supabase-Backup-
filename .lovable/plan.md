@@ -1,52 +1,41 @@
 
 
-## RBAC for Employee Directory
+## Refactor Employee Profile (Employee Role) — Work Tab Only with Mini Org Chart
 
 ### Overview
 
-When role is **employer** (admin), the current full-access experience remains unchanged. When role is **employee**, viewing a colleague's profile shows only a "Limited Profile" with public attributes. Viewing their own profile shows full details (read-only).
+When viewing any employee profile as an **employee** (both self and others), replace the current view with a single **Work** tab showing limited work info plus a visual mini org chart showing the hierarchy (manager above, selected employee, direct reports below) — matching the reference screenshot style.
 
-### Access Matrix
+### Changes
 
-| Viewer | Target | Directory Table | Profile Detail |
-|--------|--------|----------------|----------------|
-| Employer | Any | Full columns (all current) | All tabs, edit, separation |
-| Employee | Self | Full columns | All tabs (read-only, no edit buttons) |
-| Employee | Others | Name, Dept, Designation, Email only | Limited card: name, photo, title, dept, email, reports-to, direct reports |
+**File: `src/pages/EmployeesPage.tsx`**
 
-### Files to Modify
+1. **Remove the current Limited Profile View** (lines ~1299-1365) and the multi-tab own-profile view distinction
 
-**`src/pages/EmployeesPage.tsx`** — all changes here:
+2. **Replace with a unified employee-role profile view** that shows:
+   - Back button
+   - Employee header (avatar, name, designation)
+   - Single card with work details: Name, Designation, Work Email, Work Phone, Department
+   - **Mini Org Chart section** below the work details:
+     - Manager card at top (who this employee reports to) with connector line
+     - Selected employee card in the middle with "View profile" button and report counts
+     - Divider line with label "People reporting to [Name]"
+     - Grid of direct report cards (avatar, name, designation) below
 
-1. **Import `useRole`** from RoleContext and `useReporting` (already imported)
+3. **Mini Org Chart design** (matching screenshot):
+   - Each card: bordered box with avatar (initials circle), name, title
+   - Vertical connector lines between levels
+   - Manager card → connector → employee card → connector with label → direct reports grid
+   - Report count badge ("X reports, Y direct") on the employee's card
+   - Direct reports shown as horizontal cards in a responsive grid
 
-2. **Directory Table** (`EmployeeDirectoryTable`):
-   - Accept `isEmployee` prop
-   - When `isEmployee=true`: hide Category, Work Location columns; keep Name, ID, Department, Designation, Status
-   - Hide "Add Employee" and "Export" buttons in PageHeader
+4. **Directory table for employee role**: Keep current behavior (limited columns)
 
-3. **Profile Detail View** (the `if (selectedEmployee)` block ~line 1283):
-   - Add access check: `const { role, currentEmployeeId } = useRole()`
-   - Derive `isOwnProfile = role === "employee" && selectedEmployee.id === currentEmployeeId`
-   - Derive `isLimitedView = role === "employee" && !isOwnProfile`
+### Technical Details
 
-4. **Limited Profile View** — when `isLimitedView`:
-   - Show only a single card (no tabs) with: avatar, full name, designation, department, work email
-   - Show "Reports To" from ReportingContext
-   - Show "Direct Reports" — employees whose manager is this person (from `reportMap`)
-   - Hide: Separation button, all edit buttons, all sensitive tabs
-
-5. **Own Profile View** — when `isOwnProfile`:
-   - Show all tabs but hide edit buttons on SectionCard (pass `readOnly` prop)
-   - Hide: Separation button, Compensation tab (or show read-only)
-   - Keep: Personal, Work, Time Off, Documents, Assets tabs as read-only
-
-6. **Employer View** — unchanged (current behavior)
-
-### Implementation Details
-
-- Create a `LimitedProfileView` component inline that renders a simple card with public fields + org hierarchy
-- Pass `readOnly` boolean to `SectionCard` to conditionally hide Edit button
-- In main component: wrap the profile detail rendering in conditional logic based on role
-- Direct reports query: `employees.filter(e => reportMap[e.id] === selectedEmployee.id)`
+- Use `reportMap` from `useReporting` to find manager and direct reports
+- Walk up one level for manager, walk down to find manager's manager if needed for the "grandparent" display
+- The mini org chart is a simple CSS flex/grid layout, not the full OrgChartPage tree
+- For employee role (both self and others), the profile renders identically — no edit buttons, single view
+- Employer role profile remains completely unchanged
 
