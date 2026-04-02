@@ -1292,10 +1292,10 @@ export default function EmployeesPage() {
 
   if (selectedEmployee) {
     const isEmployee = role === "employee";
-    const isOwnProfile = isEmployee && selectedEmployee.id === currentEmployeeId;
+    const isOwnProfile = selectedEmployee.id === currentEmployeeId;
 
-    // Unified Employee Role Profile View — Work tab only with mini org chart (others only)
-    if (isEmployee && !isOwnProfile) {
+    // Work tab only with mini org chart — for viewing others (both roles)
+    if (!isOwnProfile) {
       const ext = getExtData(selectedEmployee.id);
       const managerId = getManagerId(selectedEmployee.id);
       const managerEmp = managerId ? localEmployees.find(e => e.id === managerId) : null;
