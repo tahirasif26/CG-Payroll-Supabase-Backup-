@@ -1294,8 +1294,8 @@ export default function EmployeesPage() {
     const isEmployee = role === "employee";
     const isOwnProfile = isEmployee && selectedEmployee.id === currentEmployeeId;
 
-    // Unified Employee Role Profile View — Work tab only with mini org chart
-    if (isEmployee) {
+    // Unified Employee Role Profile View — Work tab only with mini org chart (others only)
+    if (isEmployee && !isOwnProfile) {
       const ext = getExtData(selectedEmployee.id);
       const managerId = getManagerId(selectedEmployee.id);
       const managerEmp = managerId ? localEmployees.find(e => e.id === managerId) : null;
@@ -1462,7 +1462,7 @@ export default function EmployeesPage() {
               <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
             </div>
           </div>
-          {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
+        {!isOwnProfile && selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
             <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
               <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
             </Button>
@@ -1473,11 +1473,11 @@ export default function EmployeesPage() {
           <TabsList className="flex-wrap">
             <TabsTrigger value="personal"><User className="h-3.5 w-3.5 mr-1.5" />Personal</TabsTrigger>
             <TabsTrigger value="work"><Briefcase className="h-3.5 w-3.5 mr-1.5" />Work</TabsTrigger>
-            <TabsTrigger value="compensation"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>
+            {!isOwnProfile && <TabsTrigger value="compensation"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>}
             <TabsTrigger value="timeoff"><Calendar className="h-3.5 w-3.5 mr-1.5" />Time Off</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-3.5 w-3.5 mr-1.5" />Documents</TabsTrigger>
             <TabsTrigger value="assets"><Monitor className="h-3.5 w-3.5 mr-1.5" />Assets</TabsTrigger>
-            <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>
+            {!isOwnProfile && <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>}
           </TabsList>
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
