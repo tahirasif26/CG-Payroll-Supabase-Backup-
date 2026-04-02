@@ -1462,7 +1462,7 @@ export default function EmployeesPage() {
               <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
             </div>
           </div>
-          {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
+        {!isOwnProfile && selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
             <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
               <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
             </Button>
