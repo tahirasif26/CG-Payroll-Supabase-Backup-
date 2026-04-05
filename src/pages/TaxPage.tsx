@@ -13,8 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
+import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 
 export default function TaxPage() {
+  const { activeTypes } = useEmployeeTypes();
   const [items, setItems] = useState<TaxConfig[]>(initialTaxConfigs);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<TaxConfig | null>(null);
@@ -26,7 +28,7 @@ export default function TaxPage() {
   const [formRate, setFormRate] = useState("");
   const [formApplicableTo, setFormApplicableTo] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
-  const [formAppliesTo, setFormAppliesTo] = useState<"all" | "direct" | "contractor">("all");
+  const [formAppliesTo, setFormAppliesTo] = useState<string>("all");
   const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {
@@ -123,8 +125,9 @@ export default function TaxPage() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Employees</SelectItem>
-                  <SelectItem value="direct">Direct Employees Only</SelectItem>
-                  <SelectItem value="contractor">Contractors Only</SelectItem>
+                  {activeTypes.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name} Only</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

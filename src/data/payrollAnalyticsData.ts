@@ -14,7 +14,7 @@ export interface PayrollEmployeeDetail {
   department: string;
   division: string;
   designation: string;
-  category: "direct" | "contractor";
+  category: string;
   workLocationCountry: string;
   payCurrency: string;
   baseSalary: number;

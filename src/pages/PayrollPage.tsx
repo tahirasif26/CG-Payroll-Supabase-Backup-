@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { payrollRuns, loans, expenses } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { PayrollRun, OneOffAdjustment, Employee, Deduction } from "@/types/hcm";
+import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import { useDeductions } from "@/contexts/DeductionContext";
@@ -91,8 +92,7 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], on
     const applicableDeductions = allDeductions.filter(d => {
       if (!d.isActive) return false;
       if (d.type === "one-off") return false;
-      if (d.appliesTo === "direct" && emp.category !== "direct") return false;
-      if (d.appliesTo === "contractor" && emp.category !== "contractor") return false;
+      if (d.appliesTo && d.appliesTo !== "all" && d.appliesTo !== emp.category) return false;
       if (d.appliesToCountries && d.appliesToCountries.length > 0 && !d.appliesToCountries.includes(emp.workLocationCountry)) return false;
       return true;
     });
@@ -162,6 +162,7 @@ function downloadCSV(content: string, filename: string) {
 
 export default function PayrollPage() {
   const { employees } = useEmployees();
+  const { activeTypes } = useEmployeeTypes();
   const { deductions } = useDeductions();
   const { canUserApprovePayroll } = useApprovals();
   const { currentEmployeeId } = useRole();
@@ -182,6 +183,8 @@ export default function PayrollPage() {
   const activeEmps = useActiveEmployees();
   const { leaveTypes, balances, initializeBalances, runYearEndCarryforward, completedRollovers } = useLeaveTypes();
   const [newRunOpen, setNewRunOpen] = useState(false);
+  const [newRunStep, setNewRunStep] = useState<1 | 2>(1);
+  const [newRunPreview, setNewRunPreview] = useState<EmployeePayrollLine[]>([]);
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ id: string; action: "approve" | "reject" } | null>(null);
@@ -190,6 +193,7 @@ export default function PayrollPage() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [newMonth, setNewMonth] = useState("April");
   const [newYear, setNewYear] = useState("2025");
+  const [newRunEmployeeType, setNewRunEmployeeType] = useState("all");
   const { toast } = useToast();
 
   const getSepMap = (runId?: string) => {
@@ -237,23 +241,54 @@ export default function PayrollPage() {
     return { month: months[idx + 1], year };
   };
 
-  const handleNewRun = (e: React.FormEvent) => {
+  const handleGeneratePayroll = (e: React.FormEvent) => {
     e.preventDefault();
     if (hasOpenRun) {
       toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
       return;
     }
-    const breakdown = buildBreakdown(employees, deductions, [], {}, processedSeps, undefined, approvedAdvances);
-    const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
-    const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
+    // Filter employees by type
+    const filteredEmployees = newRunEmployeeType === "all" ? employees : employees.filter(emp => emp.category === newRunEmployeeType);
+    const breakdown = buildBreakdown(filteredEmployees, deductions, [], {}, processedSeps, undefined, approvedAdvances);
+    setNewRunPreview(breakdown);
+    setNewRunStep(2);
+  };
+
+  const handleSavePayroll = (disburse: boolean) => {
+    const totalGross = newRunPreview.reduce((s, l) => s + l.gross, 0);
+    const totalDed = newRunPreview.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
-      id: String(Date.now()), month: newMonth, year: Number(newYear), status: "processing",
+      id: String(Date.now()), month: newMonth, year: Number(newYear),
+      status: disburse ? "completed" : "processing",
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
-      runDate: "", employeeCount: employees.length,
+      runDate: disburse ? new Date().toISOString().split("T")[0] : "",
+      employeeCount: newRunPreview.length,
     };
     syncRuns(prev => [...prev, newRun]);
+
+    if (disburse) {
+      // Mark expenses as paid
+      const paidDate = new Date().toISOString().split("T")[0];
+      expenses.forEach(exp => {
+        if (exp.status === "approved" && !exp.payrollRunId) {
+          exp.payrollRunId = newRun.id;
+          exp.status = "paid";
+          exp.paidDate = paidDate;
+          exp.paymentMethod = "Payroll";
+        }
+      });
+    }
+
     setNewRunOpen(false);
-    toast({ title: "Payroll Run Created", description: `${newMonth} ${newYear} payroll run is now open for processing.` });
+    setNewRunStep(1);
+    setNewRunPreview([]);
+    setNewRunEmployeeType("all");
+    toast({
+      title: disburse ? "Payroll Saved & Disbursed" : "Payroll Saved",
+      description: disburse
+        ? `${newMonth} ${newYear} payroll has been disbursed to ${newRunPreview.length} employees.`
+        : `${newMonth} ${newYear} payroll saved as pending. You can disburse it later.`,
+    });
   };
 
   const handleProcess = (id: string) => {
@@ -969,26 +1004,95 @@ export default function PayrollPage() {
         })}
       </Tabs>
 
-      <Dialog open={newRunOpen} onOpenChange={setNewRunOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>New Payroll Run</DialogTitle><DialogDescription>Create a new monthly payroll run.</DialogDescription></DialogHeader>
-          <form onSubmit={handleNewRun} className="space-y-4">
-            <div className="space-y-2"><Label>Month</Label>
-              <Select value={newMonth} onValueChange={setNewMonth}><SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-              </Select>
+      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunEmployeeType("all"); } }}>
+        <DialogContent className={newRunStep === 2 ? "max-w-4xl" : ""}>
+          <DialogHeader>
+            <DialogTitle>{newRunStep === 1 ? "New Payroll Run — Step 1: Generate" : "Payroll Summary — Step 2: Review"}</DialogTitle>
+            <DialogDescription>{newRunStep === 1 ? "Select payroll parameters to generate." : `Review the payroll for ${newMonth} ${newYear} before saving.`}</DialogDescription>
+          </DialogHeader>
+          {newRunStep === 1 ? (
+            <form onSubmit={handleGeneratePayroll} className="space-y-4">
+              <div className="space-y-2"><Label>Month</Label>
+                <Select value={newMonth} onValueChange={setNewMonth}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Year</Label>
+                <Select value={newYear} onValueChange={setNewYear}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Employee Type</Label>
+                <Select value={newRunEmployeeType} onValueChange={setNewRunEmployeeType}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Employees</SelectItem>
+                    {activeTypes.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeType === "all" ? employees.length : employees.filter(e => e.category === newRunEmployeeType).length}</span></p>
+                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeType === "all" ? employees : employees.filter(e => e.category === newRunEmployeeType)).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
+              </div>
+              <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Generate Payroll</Button></DialogFooter>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs">Employees</p>
+                  <p className="font-bold text-lg">{newRunPreview.length}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs">Total Gross</p>
+                  <p className="font-bold text-lg">{REPORTING_CURRENCY} {newRunPreview.reduce((s, l) => s + l.gross, 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs">Total Net Pay</p>
+                  <p className="font-bold text-lg">{REPORTING_CURRENCY} {newRunPreview.reduce((s, l) => s + l.net, 0).toLocaleString()}</p>
+                </div>
+              </div>
+              <ScrollArea className="h-[350px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold">Employee</TableHead>
+                      <TableHead className="font-semibold">ID</TableHead>
+                      <TableHead className="font-semibold">Type</TableHead>
+                      <TableHead className="font-semibold text-right">Basic</TableHead>
+                      <TableHead className="font-semibold text-right">Allowances</TableHead>
+                      <TableHead className="font-semibold text-right">Deductions</TableHead>
+                      <TableHead className="font-semibold text-right">Net Pay</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {newRunPreview.map(({ emp, basic, allowances, totalDeductions, net }) => (
+                      <TableRow key={emp.id} className="hover:bg-muted/30">
+                        <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
+                        <TableCell className="text-xs font-mono">{emp.empId}</TableCell>
+                        <TableCell className="text-xs">{emp.category}</TableCell>
+                        <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-destructive">{totalDeductions.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+              <DialogFooter className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setNewRunStep(1)}>Back</Button>
+                <Button type="button" variant="secondary" onClick={() => handleSavePayroll(false)}>
+                  Save (Pending)
+                </Button>
+                <Button type="button" className="gradient-ey text-primary-foreground font-semibold" onClick={() => handleSavePayroll(true)}>
+                  Save & Disburse
+                </Button>
+              </DialogFooter>
             </div>
-            <div className="space-y-2"><Label>Year</Label>
-              <Select value={newYear} onValueChange={setNewYear}><SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
-              </Select>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-              <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{employees.length}</span></p>
-              <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {employees.reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
-            </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Create Run</Button></DialogFooter>
-          </form>
+          )}
         </DialogContent>
       </Dialog>
 

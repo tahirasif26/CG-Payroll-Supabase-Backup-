@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 
 interface SimpleDepartment {
   id: string;
@@ -29,6 +30,27 @@ const initialDepartments: SimpleDepartment[] = [
 
 export default function CompanyStructurePage() {
   const { toast } = useToast();
+  const { employeeTypes, addEmployeeType, updateEmployeeType, deleteEmployeeType } = useEmployeeTypes();
+
+  // Employee Types state
+  const [etDialogOpen, setEtDialogOpen] = useState(false);
+  const [etEdit, setEtEdit] = useState<string | null>(null);
+  const [etName, setEtName] = useState("");
+
+  const openAddEt = () => { setEtEdit(null); setEtName(""); setEtDialogOpen(true); };
+  const openEditEt = (id: string, name: string) => { setEtEdit(id); setEtName(name); setEtDialogOpen(true); };
+  const handleEtSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (etEdit) {
+      updateEmployeeType(etEdit, { name: etName });
+      toast({ title: "Updated", description: `${etName} updated.` });
+    } else {
+      addEmployeeType(etName);
+      toast({ title: "Added", description: `${etName} employee type added.` });
+    }
+    setEtDialogOpen(false);
+  };
+  const handleEtDelete = (id: string) => { deleteEmployeeType(id); toast({ title: "Deleted" }); };
 
   // Divisions state
   const [divItems, setDivItems] = useState<Division[]>(divisions);
@@ -106,6 +128,7 @@ export default function CompanyStructurePage() {
           <TabsTrigger value="divisions">Divisions</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="job-titles">Job Titles</TabsTrigger>
+          <TabsTrigger value="employee-types">Employee Types</TabsTrigger>
         </TabsList>
 
         {/* Divisions Tab */}
@@ -199,6 +222,39 @@ export default function CompanyStructurePage() {
             </Table>
           </div>
         </TabsContent>
+        {/* Employee Types Tab */}
+        <TabsContent value="employee-types" className="space-y-4">
+          <div className="flex justify-end">
+            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAddEt}>
+              <Plus className="h-4 w-4 mr-2" />Add Employee Type
+            </Button>
+          </div>
+          <div className="bg-card rounded-xl border overflow-hidden">
+            <Table>
+              <TableHeader><TableRow className="bg-muted/50">
+                <TableHead className="font-semibold">Employee Type</TableHead>
+                <TableHead className="font-semibold">Default</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold text-right">Actions</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {employeeTypes.map(item => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>{item.isDefault ? <Badge variant="secondary">Default</Badge> : <Badge variant="outline">Custom</Badge>}</TableCell>
+                    <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditEt(item.id, item.name)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      {!item.isDefault && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleEtDelete(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Division Dialog */}
@@ -235,6 +291,17 @@ export default function CompanyStructurePage() {
               </Select>
             </div>
             <DialogFooter><Button type="button" variant="outline" onClick={() => setJtDialogOpen(false)}>Cancel</Button><Button type="submit">{jtEdit ? "Update" : "Add"}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Employee Type Dialog */}
+      <Dialog open={etDialogOpen} onOpenChange={setEtDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{etEdit ? "Edit Employee Type" : "Add Employee Type"}</DialogTitle><DialogDescription>Configure an employee type for classification.</DialogDescription></DialogHeader>
+          <form onSubmit={handleEtSubmit} className="space-y-4">
+            <div className="space-y-2"><Label>Type Name</Label><Input value={etName} onChange={e => setEtName(e.target.value)} placeholder="e.g. IT Developer" required /></div>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEtDialogOpen(false)}>Cancel</Button><Button type="submit">{etEdit ? "Update" : "Add"}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

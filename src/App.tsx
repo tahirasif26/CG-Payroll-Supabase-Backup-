@@ -21,6 +21,7 @@ import { CardProvider } from "@/contexts/CardContext";
 import { AdvanceProvider } from "@/contexts/AdvanceContext";
 import { ReminderSettingsProvider } from "@/contexts/ReminderSettingsContext";
 import { PolicyProvider } from "@/contexts/PolicyContext";
+import { EmployeeTypeProvider } from "@/contexts/EmployeeTypeContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -99,6 +100,7 @@ const App = () => {
         <AdvanceProvider>
         <ReminderSettingsProvider>
         <PolicyProvider>
+        <EmployeeTypeProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -163,6 +165,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </EmployeeTypeProvider>
         </PolicyProvider>
         </ReminderSettingsProvider>
         </AdvanceProvider>

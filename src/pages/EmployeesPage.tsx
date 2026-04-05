@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { Employee } from "@/types/hcm";
 import { compensationSettings, availableCurrencies } from "@/data/settingsData";
+import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -292,8 +293,8 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                   <TableCell className="text-sm">{emp.designation}</TableCell>
                   {!isEmployee && (
                     <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-foreground" : "bg-accent text-accent-foreground"}`}>
-                        {emp.category === "direct" ? "Direct" : "Contractor"}
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-foreground">
+                        {emp.category}
                       </span>
                     </TableCell>
                   )}
@@ -547,10 +548,10 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
         <EditableField label="Employee ID" value={data.empId} editing={editing} onChange={v => setData({ ...data, empId: v })} />
         <EditableField label="Work Email" value={data.workEmail} editing={editing} onChange={v => setData({ ...data, workEmail: v })} />
         <div>
-          <p className="text-xs text-muted-foreground">Employee Category</p>
+          <p className="text-xs text-muted-foreground">Employee Type</p>
           <p className="text-sm font-medium">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
-              {emp.category === "direct" ? "Direct Employee" : "Contractor"}
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary`}>
+              {emp.category}
             </span>
           </p>
         </div>
@@ -1176,6 +1177,18 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
   );
 }
 
+function EmployeeTypeSelect() {
+  const { activeTypes } = useEmployeeTypes();
+  return (
+    <select name="category" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+      <option value="">Select employee type...</option>
+      {activeTypes.map(t => (
+        <option key={t.id} value={t.id}>{t.name}</option>
+      ))}
+    </select>
+  );
+}
+
 export default function EmployeesPage() {
   const { role, currentEmployeeId } = useRole();
   const { reportMap, getManagerName, getManagerId } = useReporting();
@@ -1235,7 +1248,7 @@ export default function EmployeesPage() {
       status: "active",
       avatar: "",
       dateOfBirth: "",
-      category: (formData.get("category") as "direct" | "contractor") || "direct",
+      category: (formData.get("category") as string) || "direct",
       workLocationCountry: (formData.get("workLocationCountry") as string) || "Saudi Arabia",
       compensation: [],
     };
@@ -1663,12 +1676,8 @@ export default function EmployeesPage() {
               <div className="space-y-2"><Label>Designation</Label><Input name="designation" placeholder="e.g. Associate" required /></div>
             </div>
             <div className="space-y-2">
-              <Label>Category</Label>
-              <select name="category" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option value="">Select category...</option>
-                <option value="direct">Direct Employee</option>
-                <option value="contractor">Contractor</option>
-              </select>
+              <Label>Employee Type</Label>
+              <EmployeeTypeSelect />
             </div>
             <div className="space-y-2"><Label>Joining Date</Label><Input name="joiningDate" type="date" required /></div>
             <DialogFooter>

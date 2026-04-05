@@ -1,4 +1,4 @@
-export type EmployeeCategory = "direct" | "contractor";
+export type EmployeeCategory = "direct" | "contractor" | string;
 
 export interface Employee {
   id: string;
@@ -112,7 +112,7 @@ export interface Deduction {
   percentage?: number;
   fixedAmount?: number;
   isActive: boolean;
-  appliesTo?: "all" | "direct" | "contractor";
+  appliesTo?: string;
   appliesToCountries?: string[];
 }
 
@@ -122,7 +122,7 @@ export interface TaxConfig {
   rate: number;
   applicableTo: string;
   isActive: boolean;
-  appliesTo?: "all" | "direct" | "contractor";
+  appliesTo?: string;
   appliesToCountries?: string[];
 }
 
