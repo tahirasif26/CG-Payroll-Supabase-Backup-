@@ -162,7 +162,7 @@ function downloadCSV(content: string, filename: string) {
 
 export default function PayrollPage() {
   const { employees } = useEmployees();
-  const { activeTypes } = useEmployeeTypes();
+  const { activeTypes, getTypeName } = useEmployeeTypes();
   const { deductions } = useDeductions();
   const { canUserApprovePayroll } = useApprovals();
   const { currentEmployeeId } = useRole();
