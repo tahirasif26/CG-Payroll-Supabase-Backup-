@@ -241,23 +241,54 @@ export default function PayrollPage() {
     return { month: months[idx + 1], year };
   };
 
-  const handleNewRun = (e: React.FormEvent) => {
+  const handleGeneratePayroll = (e: React.FormEvent) => {
     e.preventDefault();
     if (hasOpenRun) {
       toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
       return;
     }
-    const breakdown = buildBreakdown(employees, deductions, [], {}, processedSeps, undefined, approvedAdvances);
-    const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
-    const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
+    // Filter employees by type
+    const filteredEmployees = newRunEmployeeType === "all" ? employees : employees.filter(emp => emp.category === newRunEmployeeType);
+    const breakdown = buildBreakdown(filteredEmployees, deductions, [], {}, processedSeps, undefined, approvedAdvances);
+    setNewRunPreview(breakdown);
+    setNewRunStep(2);
+  };
+
+  const handleSavePayroll = (disburse: boolean) => {
+    const totalGross = newRunPreview.reduce((s, l) => s + l.gross, 0);
+    const totalDed = newRunPreview.reduce((s, l) => s + l.totalDeductions, 0);
     const newRun: PayrollRun = {
-      id: String(Date.now()), month: newMonth, year: Number(newYear), status: "processing",
+      id: String(Date.now()), month: newMonth, year: Number(newYear),
+      status: disburse ? "completed" : "processing",
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
-      runDate: "", employeeCount: employees.length,
+      runDate: disburse ? new Date().toISOString().split("T")[0] : "",
+      employeeCount: newRunPreview.length,
     };
     syncRuns(prev => [...prev, newRun]);
+
+    if (disburse) {
+      // Mark expenses as paid
+      const paidDate = new Date().toISOString().split("T")[0];
+      expenses.forEach(exp => {
+        if (exp.status === "approved" && !exp.payrollRunId) {
+          exp.payrollRunId = newRun.id;
+          exp.status = "paid";
+          exp.paidDate = paidDate;
+          exp.paymentMethod = "Payroll";
+        }
+      });
+    }
+
     setNewRunOpen(false);
-    toast({ title: "Payroll Run Created", description: `${newMonth} ${newYear} payroll run is now open for processing.` });
+    setNewRunStep(1);
+    setNewRunPreview([]);
+    setNewRunEmployeeType("all");
+    toast({
+      title: disburse ? "Payroll Saved & Disbursed" : "Payroll Saved",
+      description: disburse
+        ? `${newMonth} ${newYear} payroll has been disbursed to ${newRunPreview.length} employees.`
+        : `${newMonth} ${newYear} payroll saved as pending. You can disburse it later.`,
+    });
   };
 
   const handleProcess = (id: string) => {
