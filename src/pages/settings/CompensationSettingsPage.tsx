@@ -25,7 +25,7 @@ export default function CompensationSettingsPage() {
 
   const [formName, setFormName] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
-  const [formAppliesTo, setFormAppliesTo] = useState<"all" | "direct" | "contractor">("all");
+  const [formAppliesTo, setFormAppliesTo] = useState<string>("all");
   const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {

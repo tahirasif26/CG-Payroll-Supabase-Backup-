@@ -17,7 +17,7 @@ export interface CompensationSetting {
   id: string;
   name: string;
   isActive: boolean;
-  appliesTo?: "all" | "direct" | "contractor";
+  appliesTo?: string;
   appliesToCountries?: string[];
 }
 
