@@ -197,6 +197,7 @@ type SortField = "name" | "empId" | "department" | "designation" | "joiningDate"
 type SortDir = "asc" | "desc";
 
 function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; isEmployee?: boolean }) {
+  const { getTypeName } = useEmployeeTypes();
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -294,7 +295,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                   {!isEmployee && (
                     <TableCell>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-foreground">
-                        {emp.category}
+                        {getTypeName(emp.category)}
                       </span>
                     </TableCell>
                   )}
@@ -501,7 +502,8 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
   const { toast } = useToast();
   const { addLogs } = useAudit();
   const { getManagerId, getManagerName, setReportTo } = useReporting();
-  const { employees: allEmployees } = useEmployees();
+  const { employees: allEmployees, updateEmployee } = useEmployees();
+  const { activeTypes, getTypeName } = useEmployeeTypes();
   const activeEmps = allEmployees.filter(e => e.status !== "separated" && e.id !== emp.id);
   const empName = `${emp.firstName} ${emp.lastName}`;
 
@@ -512,6 +514,7 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
     department: emp.department, designation: emp.designation, joiningDate: emp.joiningDate,
     reportsToId: currentManagerId, workEmail: ext.workEmail, empId: emp.empId,
     workLocationCity: ext.workLocationCity, workLocationCountry: ext.workLocationCountry, division: ext.division,
+    category: emp.category,
   });
   const [prevData, setPrevData] = useState({ ...data });
 
@@ -529,6 +532,10 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
       setReportTo(emp.id, null);
     } else if (data.reportsToId) {
       setReportTo(emp.id, data.reportsToId);
+    }
+    // Persist category change
+    if (data.category !== emp.category) {
+      updateEmployee(emp.id, { category: data.category });
     }
     setEditing(false);
     toast({ title: "Saved", description: "Work info updated." });
@@ -549,11 +556,22 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
         <EditableField label="Work Email" value={data.workEmail} editing={editing} onChange={v => setData({ ...data, workEmail: v })} />
         <div>
           <p className="text-xs text-muted-foreground">Employee Type</p>
-          <p className="text-sm font-medium">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary`}>
-              {emp.category}
-            </span>
-          </p>
+          {editing ? (
+            <Select value={data.category} onValueChange={v => setData({ ...data, category: v })}>
+              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select type..." /></SelectTrigger>
+              <SelectContent>
+                {activeTypes.map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-sm font-medium">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                {getTypeName(emp.category)}
+              </span>
+            </p>
+          )}
         </div>
         <EditableField label="Department" value={data.department} editing={editing} onChange={v => setData({ ...data, department: v })} />
         <EditableField label="Designation" value={data.designation} editing={editing} onChange={v => setData({ ...data, designation: v })} />
@@ -1193,6 +1211,7 @@ export default function EmployeesPage() {
   const { role, currentEmployeeId } = useRole();
   const { reportMap, getManagerName, getManagerId } = useReporting();
   const { employees: localEmployees, updateEmployee, addEmployee } = useEmployees();
+  const { getTypeName } = useEmployeeTypes();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
   const [uploadDocOpen, setUploadDocOpen] = useState(false);

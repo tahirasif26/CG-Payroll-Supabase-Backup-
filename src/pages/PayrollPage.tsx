@@ -162,7 +162,7 @@ function downloadCSV(content: string, filename: string) {
 
 export default function PayrollPage() {
   const { employees } = useEmployees();
-  const { activeTypes } = useEmployeeTypes();
+  const { activeTypes, getTypeName } = useEmployeeTypes();
   const { deductions } = useDeductions();
   const { canUserApprovePayroll } = useApprovals();
   const { currentEmployeeId } = useRole();
@@ -1072,7 +1072,7 @@ export default function PayrollPage() {
                       <TableRow key={emp.id} className="hover:bg-muted/30">
                         <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
                         <TableCell className="text-xs font-mono">{emp.empId}</TableCell>
-                        <TableCell className="text-xs">{emp.category}</TableCell>
+                        <TableCell className="text-xs">{getTypeName(emp.category)}</TableCell>
                         <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
                         <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
                         <TableCell className="text-right text-destructive">{totalDeductions.toLocaleString()}</TableCell>
