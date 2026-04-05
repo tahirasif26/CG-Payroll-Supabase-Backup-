@@ -183,6 +183,8 @@ export default function PayrollPage() {
   const activeEmps = useActiveEmployees();
   const { leaveTypes, balances, initializeBalances, runYearEndCarryforward, completedRollovers } = useLeaveTypes();
   const [newRunOpen, setNewRunOpen] = useState(false);
+  const [newRunStep, setNewRunStep] = useState<1 | 2>(1);
+  const [newRunPreview, setNewRunPreview] = useState<EmployeePayrollLine[]>([]);
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ id: string; action: "approve" | "reject" } | null>(null);
@@ -191,6 +193,7 @@ export default function PayrollPage() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [newMonth, setNewMonth] = useState("April");
   const [newYear, setNewYear] = useState("2025");
+  const [newRunEmployeeType, setNewRunEmployeeType] = useState("all");
   const { toast } = useToast();
 
   const getSepMap = (runId?: string) => {
