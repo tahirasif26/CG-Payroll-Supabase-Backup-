@@ -1004,26 +1004,95 @@ export default function PayrollPage() {
         })}
       </Tabs>
 
-      <Dialog open={newRunOpen} onOpenChange={setNewRunOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>New Payroll Run</DialogTitle><DialogDescription>Create a new monthly payroll run.</DialogDescription></DialogHeader>
-          <form onSubmit={handleNewRun} className="space-y-4">
-            <div className="space-y-2"><Label>Month</Label>
-              <Select value={newMonth} onValueChange={setNewMonth}><SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-              </Select>
+      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunEmployeeType("all"); } }}>
+        <DialogContent className={newRunStep === 2 ? "max-w-4xl" : ""}>
+          <DialogHeader>
+            <DialogTitle>{newRunStep === 1 ? "New Payroll Run — Step 1: Generate" : "Payroll Summary — Step 2: Review"}</DialogTitle>
+            <DialogDescription>{newRunStep === 1 ? "Select payroll parameters to generate." : `Review the payroll for ${newMonth} ${newYear} before saving.`}</DialogDescription>
+          </DialogHeader>
+          {newRunStep === 1 ? (
+            <form onSubmit={handleGeneratePayroll} className="space-y-4">
+              <div className="space-y-2"><Label>Month</Label>
+                <Select value={newMonth} onValueChange={setNewMonth}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Year</Label>
+                <Select value={newYear} onValueChange={setNewYear}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Employee Type</Label>
+                <Select value={newRunEmployeeType} onValueChange={setNewRunEmployeeType}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Employees</SelectItem>
+                    {activeTypes.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeType === "all" ? employees.length : employees.filter(e => e.category === newRunEmployeeType).length}</span></p>
+                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeType === "all" ? employees : employees.filter(e => e.category === newRunEmployeeType)).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
+              </div>
+              <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Generate Payroll</Button></DialogFooter>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs">Employees</p>
+                  <p className="font-bold text-lg">{newRunPreview.length}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs">Total Gross</p>
+                  <p className="font-bold text-lg">{REPORTING_CURRENCY} {newRunPreview.reduce((s, l) => s + l.gross, 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs">Total Net Pay</p>
+                  <p className="font-bold text-lg">{REPORTING_CURRENCY} {newRunPreview.reduce((s, l) => s + l.net, 0).toLocaleString()}</p>
+                </div>
+              </div>
+              <ScrollArea className="h-[350px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold">Employee</TableHead>
+                      <TableHead className="font-semibold">ID</TableHead>
+                      <TableHead className="font-semibold">Type</TableHead>
+                      <TableHead className="font-semibold text-right">Basic</TableHead>
+                      <TableHead className="font-semibold text-right">Allowances</TableHead>
+                      <TableHead className="font-semibold text-right">Deductions</TableHead>
+                      <TableHead className="font-semibold text-right">Net Pay</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {newRunPreview.map(({ emp, basic, allowances, totalDeductions, net }) => (
+                      <TableRow key={emp.id} className="hover:bg-muted/30">
+                        <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
+                        <TableCell className="text-xs font-mono">{emp.empId}</TableCell>
+                        <TableCell className="text-xs">{emp.category}</TableCell>
+                        <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-destructive">{totalDeductions.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+              <DialogFooter className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setNewRunStep(1)}>Back</Button>
+                <Button type="button" variant="secondary" onClick={() => handleSavePayroll(false)}>
+                  Save (Pending)
+                </Button>
+                <Button type="button" className="gradient-ey text-primary-foreground font-semibold" onClick={() => handleSavePayroll(true)}>
+                  Save & Disburse
+                </Button>
+              </DialogFooter>
             </div>
-            <div className="space-y-2"><Label>Year</Label>
-              <Select value={newYear} onValueChange={setNewYear}><SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
-              </Select>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-              <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{employees.length}</span></p>
-              <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {employees.reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
-            </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Create Run</Button></DialogFooter>
-          </form>
+          )}
         </DialogContent>
       </Dialog>
 
