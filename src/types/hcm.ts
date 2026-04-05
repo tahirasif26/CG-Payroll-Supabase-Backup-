@@ -1,4 +1,4 @@
-export type EmployeeCategory = "direct" | "contractor";
+export type EmployeeCategory = "direct" | "contractor" | string;
 
 export interface Employee {
   id: string;
