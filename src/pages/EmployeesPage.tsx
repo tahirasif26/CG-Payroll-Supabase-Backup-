@@ -1210,6 +1210,7 @@ export default function EmployeesPage() {
   const { role, currentEmployeeId } = useRole();
   const { reportMap, getManagerName, getManagerId } = useReporting();
   const { employees: localEmployees, updateEmployee, addEmployee } = useEmployees();
+  const { getTypeName } = useEmployeeTypes();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
