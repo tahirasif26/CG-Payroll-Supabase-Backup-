@@ -12,8 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
+import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 
 export default function CompensationSettingsPage() {
+  const { activeTypes } = useEmployeeTypes();
   const [items, setItems] = useState<CompensationSetting[]>(compensationSettings);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<CompensationSetting | null>(null);
@@ -112,8 +114,9 @@ export default function CompensationSettingsPage() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Employees</SelectItem>
-                  <SelectItem value="direct">Direct Employees Only</SelectItem>
-                  <SelectItem value="contractor">Contractors Only</SelectItem>
+                  {activeTypes.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name} Only</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
