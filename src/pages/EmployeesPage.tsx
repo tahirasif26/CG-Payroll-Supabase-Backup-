@@ -293,8 +293,8 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                   <TableCell className="text-sm">{emp.designation}</TableCell>
                   {!isEmployee && (
                     <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${emp.category === "direct" ? "bg-primary/10 text-foreground" : "bg-accent text-accent-foreground"}`}>
-                        {emp.category === "direct" ? "Direct" : "Contractor"}
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-foreground">
+                        {emp.category}
                       </span>
                     </TableCell>
                   )}
