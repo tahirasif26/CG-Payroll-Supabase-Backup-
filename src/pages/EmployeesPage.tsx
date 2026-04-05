@@ -197,6 +197,7 @@ type SortField = "name" | "empId" | "department" | "designation" | "joiningDate"
 type SortDir = "asc" | "desc";
 
 function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; isEmployee?: boolean }) {
+  const { getTypeName } = useEmployeeTypes();
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
