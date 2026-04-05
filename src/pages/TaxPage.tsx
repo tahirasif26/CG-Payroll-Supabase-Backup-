@@ -28,7 +28,7 @@ export default function TaxPage() {
   const [formRate, setFormRate] = useState("");
   const [formApplicableTo, setFormApplicableTo] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
-  const [formAppliesTo, setFormAppliesTo] = useState<"all" | "direct" | "contractor">("all");
+  const [formAppliesTo, setFormAppliesTo] = useState<string>("all");
   const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {

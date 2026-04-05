@@ -30,7 +30,7 @@ export default function DeductionsPage() {
   const [formIsPercentage, setFormIsPercentage] = useState(true);
   const [formValue, setFormValue] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
-  const [formAppliesTo, setFormAppliesTo] = useState<"all" | "direct" | "contractor">("all");
+  const [formAppliesTo, setFormAppliesTo] = useState<string>("all");
   const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {
