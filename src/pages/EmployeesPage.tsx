@@ -1177,6 +1177,18 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
   );
 }
 
+function EmployeeTypeSelect() {
+  const { activeTypes } = useEmployeeTypes();
+  return (
+    <select name="category" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+      <option value="">Select employee type...</option>
+      {activeTypes.map(t => (
+        <option key={t.id} value={t.id}>{t.name}</option>
+      ))}
+    </select>
+  );
+}
+
 export default function EmployeesPage() {
   const { role, currentEmployeeId } = useRole();
   const { reportMap, getManagerName, getManagerId } = useReporting();
