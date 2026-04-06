@@ -860,7 +860,7 @@ export default function PayrollPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{confirmAction?.action === "approve" ? "Complete Payroll" : "Reject Payroll"}</DialogTitle>
-              <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. A new payroll run for the next month will be created automatically. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
+              <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
@@ -1117,7 +1117,7 @@ export default function PayrollPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{confirmAction?.action === "approve" ? "Complete Payroll" : "Reject Payroll"}</DialogTitle>
-            <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. A new run for the next month will open automatically. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
+            <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
