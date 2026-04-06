@@ -31,18 +31,16 @@ export default function TaxPage() {
 
   const [formName, setFormName] = useState("");
   const [formRate, setFormRate] = useState("");
-  const [formApplicableTo, setFormApplicableTo] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
-  const [formAppliesTo, setFormAppliesTo] = useState<string[]>([]);
+  const [formApplicableTo, setFormApplicableTo] = useState<string[]>([]);
   const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {
     setEditItem(null);
     setFormName("");
     setFormRate("");
-    setFormApplicableTo("");
     setFormIsActive(true);
-    setFormAppliesTo([]);
+    setFormApplicableTo([]);
     setFormCountries([]);
     setDialogOpen(true);
   };
@@ -51,9 +49,8 @@ export default function TaxPage() {
     setEditItem(item);
     setFormName(item.name);
     setFormRate(String(item.rate));
-    setFormApplicableTo(item.applicableTo);
     setFormIsActive(item.isActive);
-    setFormAppliesTo(item.appliesTo || []);
+    setFormApplicableTo(item.applicableTo || []);
     setFormCountries(item.appliesToCountries || []);
     setDialogOpen(true);
   };
