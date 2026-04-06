@@ -17,7 +17,7 @@ export default function PayrollSetupPage() {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const getAssignedCount = (setupId: string) => employees.filter(e => (e as any).payrollSetupId === setupId).length;
+  const getAssignedCount = (setupId: string) => employees.filter(e => e.payrollSetupId === setupId).length;
 
   const handleDelete = () => {
     if (deleteId) {
