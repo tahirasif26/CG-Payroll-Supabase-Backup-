@@ -6,7 +6,14 @@ import { TaxConfig } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -31,14 +38,23 @@ export default function TaxPage() {
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormRate(""); setFormApplicableTo(""); setFormIsActive(true); setFormAppliesTo([]); setFormCountries([]);
+    setFormName("");
+    setFormRate("");
+    setFormApplicableTo("");
+    setFormIsActive(true);
+    setFormAppliesTo([]);
+    setFormCountries([]);
     setDialogOpen(true);
   };
 
   const openEdit = (item: TaxConfig) => {
     setEditItem(item);
-    setFormName(item.name); setFormRate(String(item.rate)); setFormApplicableTo(item.applicableTo);
-    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || []); setFormCountries(item.appliesToCountries || []);
+    setFormName(item.name);
+    setFormRate(String(item.rate));
+    setFormApplicableTo(item.applicableTo);
+    setFormIsActive(item.isActive);
+    setFormAppliesTo(item.appliesTo || []);
+    setFormCountries(item.appliesToCountries || []);
     setDialogOpen(true);
   };
 
@@ -50,14 +66,18 @@ export default function TaxPage() {
     }
     const newTax: TaxConfig = {
       id: editItem?.id || String(Date.now()),
-      name: formName, rate: Number(formRate), applicableTo: formApplicableTo,
-      isActive: formIsActive, appliesTo: formAppliesTo, appliesToCountries: formCountries,
+      name: formName,
+      rate: Number(formRate),
+      applicableTo: formApplicableTo,
+      isActive: formIsActive,
+      appliesTo: formAppliesTo,
+      appliesToCountries: formCountries,
     };
     if (editItem) {
-      setItems(prev => prev.map(i => i.id === editItem.id ? newTax : i));
+      setItems((prev) => prev.map((i) => (i.id === editItem.id ? newTax : i)));
       toast({ title: "Updated", description: `${formName} updated.` });
     } else {
-      setItems(prev => [...prev, newTax]);
+      setItems((prev) => [...prev, newTax]);
       toast({ title: "Added", description: `${formName} added.` });
     }
     setDialogOpen(false);
@@ -65,16 +85,20 @@ export default function TaxPage() {
 
   const handleDelete = () => {
     if (deleteId) {
-      setItems(prev => prev.filter(i => i.id !== deleteId));
+      setItems((prev) => prev.filter((i) => i.id !== deleteId));
       toast({ title: "Deleted", description: "Tax rule removed." });
     }
-    setDeleteOpen(false); setDeleteId(null);
+    setDeleteOpen(false);
+    setDeleteId(null);
   };
 
   return (
     <div className="space-y-6">
       <PageHeader title="Tax Configuration" description="Manage tax rates and rules.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Tax Rule</Button>
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAdd}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Tax Rule
+        </Button>
       </PageHeader>
 
       <div className="bg-card rounded-xl border overflow-hidden">
@@ -84,7 +108,6 @@ export default function TaxPage() {
               <TableHead className="font-semibold">Tax Name</TableHead>
               <TableHead className="font-semibold text-right">Rate (%)</TableHead>
               <TableHead className="font-semibold">Applicable To</TableHead>
-              <TableHead className="font-semibold">Employee Types</TableHead>
               <TableHead className="font-semibold">Countries</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -95,14 +118,31 @@ export default function TaxPage() {
               <TableRow key={t.id}>
                 <TableCell className="font-medium">{t.name}</TableCell>
                 <TableCell className="text-right font-semibold">{t.rate}%</TableCell>
-                <TableCell>{t.applicableTo}</TableCell>
-                <TableCell><EmployeeTypeBadges typeIds={t.appliesTo} /></TableCell>
-                <TableCell><CountryBadges countries={t.appliesToCountries} /></TableCell>
-                <TableCell><StatusBadge status={t.isActive ? "active" : "inactive"} /></TableCell>
+                <TableCell>
+                  <EmployeeTypeBadges typeIds={t.applicableTo} />
+                </TableCell>
+                <TableCell>
+                  <CountryBadges countries={t.appliesToCountries} />
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={t.isActive ? "active" : "inactive"} />
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { setDeleteId(t.id); setDeleteOpen(true); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => {
+                        setDeleteId(t.id);
+                        setDeleteOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -118,9 +158,30 @@ export default function TaxPage() {
             <DialogDescription>Configure a tax rule.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2"><Label>Tax Name</Label><Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Zakat" required /></div>
-            <div className="space-y-2"><Label>Rate (%)</Label><Input type="number" value={formRate} onChange={e => setFormRate(e.target.value)} required min={0} step="0.01" /></div>
-            <div className="space-y-2"><Label>Applicable To</Label><Input value={formApplicableTo} onChange={e => setFormApplicableTo(e.target.value)} placeholder="e.g. All Employees" required /></div>
+            <div className="space-y-2">
+              <Label>Tax Name</Label>
+              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Zakat" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Rate (%)</Label>
+              <Input
+                type="number"
+                value={formRate}
+                onChange={(e) => setFormRate(e.target.value)}
+                required
+                min={0}
+                step="0.01"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Applicable To</Label>
+              <Input
+                value={formApplicableTo}
+                onChange={(e) => setFormApplicableTo(e.target.value)}
+                placeholder="e.g. All Employees"
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label>Employee Types</Label>
               <EmployeeTypeMultiSelect value={formAppliesTo} onChange={setFormAppliesTo} />
@@ -129,9 +190,14 @@ export default function TaxPage() {
               <Label>Countries</Label>
               <CountryMultiSelect value={formCountries} onChange={setFormCountries} />
             </div>
-            <div className="flex items-center gap-3"><Switch checked={formIsActive} onCheckedChange={setFormIsActive} /><Label>Active</Label></div>
+            <div className="flex items-center gap-3">
+              <Switch checked={formIsActive} onCheckedChange={setFormIsActive} />
+              <Label>Active</Label>
+            </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
               <Button type="submit">{editItem ? "Update" : "Add"}</Button>
             </DialogFooter>
           </form>
@@ -140,10 +206,17 @@ export default function TaxPage() {
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Delete Tax Rule</DialogTitle><DialogDescription>Are you sure you want to remove this tax rule?</DialogDescription></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Delete Tax Rule</DialogTitle>
+            <DialogDescription>Are you sure you want to remove this tax rule?</DialogDescription>
+          </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
