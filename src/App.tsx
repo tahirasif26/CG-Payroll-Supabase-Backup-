@@ -110,6 +110,9 @@ const App = () => {
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/payroll/setup" element={<PayrollSetupPage />} />
+              <Route path="/payroll/setup/new" element={<PayrollSetupEditorPage />} />
+              <Route path="/payroll/setup/:id" element={<PayrollSetupEditorPage />} />
               <Route path="/payroll" element={<PayrollPage />} />
               <Route path="/payslips" element={<PayslipsPage />} />
               <Route path="/compensation" element={<CompensationPage />} />
