@@ -247,8 +247,8 @@ export default function PayrollPage() {
       toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
       return;
     }
-    // Filter employees by type
-    const filteredEmployees = newRunEmployeeType === "all" ? employees : employees.filter(emp => emp.category === newRunEmployeeType);
+    // Filter employees by selected types
+    const filteredEmployees = newRunEmployeeTypes.length === 0 ? employees : employees.filter(emp => newRunEmployeeTypes.includes(emp.category));
     const breakdown = buildBreakdown(filteredEmployees, deductions, [], {}, processedSeps, undefined, approvedAdvances);
     setNewRunPreview(breakdown);
     setNewRunStep(2);
@@ -282,7 +282,7 @@ export default function PayrollPage() {
     setNewRunOpen(false);
     setNewRunStep(1);
     setNewRunPreview([]);
-    setNewRunEmployeeType("all");
+    setNewRunEmployeeTypes([]);
     toast({
       title: disburse ? "Payroll Saved & Disbursed" : "Payroll Saved",
       description: disburse
