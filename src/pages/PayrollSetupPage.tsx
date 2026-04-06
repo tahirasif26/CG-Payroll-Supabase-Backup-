@@ -17,7 +17,7 @@ export default function PayrollSetupPage() {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const getAssignedCount = (setupId: string) => employees.filter(e => e.payrollSetupId === setupId).length;
+  const getAssignedCount = (setupId: string) => employees.filter(e => (e as any).payrollSetupId === setupId).length;
 
   const handleDelete = () => {
     if (deleteId) {
@@ -32,12 +32,11 @@ export default function PayrollSetupPage() {
       <PageHeader
         title="Payroll Setup"
         description="Configure payroll rules and structures for different employee groups."
-        actions={
-          <Button onClick={() => navigate("/payroll/setup/new")}>
-            <Plus className="h-4 w-4 mr-1" />New Setup
-          </Button>
-        }
-      />
+      >
+        <Button onClick={() => navigate("/payroll/setup/new")}>
+          <Plus className="h-4 w-4 mr-1" />New Setup
+        </Button>
+      </PageHeader>
 
       <div className="rounded-md border">
         <Table>

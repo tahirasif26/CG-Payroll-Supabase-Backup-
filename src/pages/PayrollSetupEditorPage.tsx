@@ -86,13 +86,12 @@ export default function PayrollSetupEditorPage() {
       <PageHeader
         title={isNew ? "New Payroll Setup" : `Edit: ${setup.name}`}
         description={isNew ? "Create a new payroll configuration." : "Modify payroll rules for this setup."}
-        actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/payroll/setup")}><ArrowLeft className="h-4 w-4 mr-1" />Back</Button>
-            <Button onClick={handleSave}><Save className="h-4 w-4 mr-1" />Save Setup</Button>
-          </div>
-        }
-      />
+      >
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/payroll/setup")}><ArrowLeft className="h-4 w-4 mr-1" />Back</Button>
+          <Button onClick={handleSave}><Save className="h-4 w-4 mr-1" />Save Setup</Button>
+        </div>
+      </PageHeader>
 
       {/* Top section */}
       <div className="rounded-lg border p-4">
