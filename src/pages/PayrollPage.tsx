@@ -262,8 +262,15 @@ export default function PayrollPage() {
 
   const handleGeneratePayroll = (e: React.FormEvent) => {
     e.preventDefault();
-    if (hasOpenRun) {
-      toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
+    if (newRunEmployeeTypes.length === 0) {
+      toast({ title: "Select Employee Types", description: "Please select at least one employee type for the payroll run.", variant: "destructive" });
+      return;
+    }
+    const openTypes = getOpenRunTypes();
+    const overlapping = newRunEmployeeTypes.filter(t => openTypes.has(t));
+    if (overlapping.length > 0) {
+      const names = overlapping.map(t => getTypeName(t)).join(", ");
+      toast({ title: "Cannot Create", description: `Payroll run already open for: ${names}. Complete or delete it first.`, variant: "destructive" });
       return;
     }
     // Filter employees by selected types
@@ -933,14 +940,14 @@ export default function PayrollPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Payroll Runs" description="Process and manage monthly payroll.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={hasOpenRun}>
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={allTypesHaveOpenRun}>
           <Play className="h-4 w-4 mr-2" />New Payroll Run
         </Button>
       </PageHeader>
 
-      {hasOpenRun && (
+      {allTypesHaveOpenRun && (
         <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
-          A payroll run is currently open. Complete or reject it before creating a new one.
+          All employee types have open payroll runs. Complete or delete them before creating new ones.
         </div>
       )}
 
