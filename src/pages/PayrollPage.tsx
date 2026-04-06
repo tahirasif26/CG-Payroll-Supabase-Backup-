@@ -1045,11 +1045,11 @@ export default function PayrollPage() {
               </div>
               <div className="space-y-2"><Label>Employee Types <span className="text-destructive">*</span></Label>
                 <EmployeeTypeMultiSelect value={newRunEmployeeTypes} onChange={setNewRunEmployeeTypes} />
-                <p className="text-xs text-muted-foreground">Leave empty to include all employees</p>
+                <p className="text-xs text-muted-foreground">Select the employee types for this payroll run</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeTypes.length === 0 ? employees.length : employees.filter(e => newRunEmployeeTypes.includes(e.category)).length}</span></p>
-                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeTypes.length === 0 ? employees : employees.filter(e => newRunEmployeeTypes.includes(e.category))).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
+                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeTypes.length === 0 ? 0 : employees.filter(e => newRunEmployeeTypes.includes(e.category)).length}</span></p>
+                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeTypes.length === 0 ? [] : employees.filter(e => newRunEmployeeTypes.includes(e.category))).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
               </div>
               <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Generate Payroll</Button></DialogFooter>
             </form>
