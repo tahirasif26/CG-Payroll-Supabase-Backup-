@@ -48,9 +48,19 @@ export const employees: Employee[] = [
 ];
 
 export const payrollRuns: PayrollRun[] = [
-  { id: "1", month: "January", year: 2025, status: "completed", totalGross: 225000, totalDeductions: 33750, totalNet: 191250, runDate: "2025-01-28", employeeCount: 10 },
-  { id: "2", month: "February", year: 2025, status: "completed", totalGross: 225000, totalDeductions: 33750, totalNet: 191250, runDate: "2025-02-27", employeeCount: 10 },
-  { id: "3", month: "March", year: 2025, status: "processing", totalGross: 225000, totalDeductions: 33750, totalNet: 191250, runDate: "", employeeCount: 10 },
+  // January — separate runs per employee type
+  { id: "1a", month: "January", year: 2025, status: "completed", totalGross: 136000, totalDeductions: 20400, totalNet: 115600, runDate: "2025-01-28", employeeCount: 4, employeeTypes: ["direct"] },
+  { id: "1b", month: "January", year: 2025, status: "completed", totalGross: 25000, totalDeductions: 3750, totalNet: 21250, runDate: "2025-01-28", employeeCount: 2, employeeTypes: ["contractor"] },
+  { id: "1c", month: "January", year: 2025, status: "completed", totalGross: 48000, totalDeductions: 7200, totalNet: 40800, runDate: "2025-01-28", employeeCount: 2, employeeTypes: ["it_developer"] },
+  { id: "1d", month: "January", year: 2025, status: "completed", totalGross: 16000, totalDeductions: 2400, totalNet: 13600, runDate: "2025-01-28", employeeCount: 2, employeeTypes: ["intern"] },
+  // February — separate runs per employee type
+  { id: "2a", month: "February", year: 2025, status: "completed", totalGross: 136000, totalDeductions: 20400, totalNet: 115600, runDate: "2025-02-27", employeeCount: 4, employeeTypes: ["direct"] },
+  { id: "2b", month: "February", year: 2025, status: "completed", totalGross: 25000, totalDeductions: 3750, totalNet: 21250, runDate: "2025-02-27", employeeCount: 2, employeeTypes: ["contractor"] },
+  { id: "2c", month: "February", year: 2025, status: "completed", totalGross: 48000, totalDeductions: 7200, totalNet: 40800, runDate: "2025-02-27", employeeCount: 2, employeeTypes: ["it_developer"] },
+  { id: "2d", month: "February", year: 2025, status: "completed", totalGross: 16000, totalDeductions: 2400, totalNet: 13600, runDate: "2025-02-27", employeeCount: 2, employeeTypes: ["intern"] },
+  // March — one type already processing as example
+  { id: "3a", month: "March", year: 2025, status: "completed", totalGross: 136000, totalDeductions: 20400, totalNet: 115600, runDate: "2025-03-28", employeeCount: 4, employeeTypes: ["direct"] },
+  { id: "3b", month: "March", year: 2025, status: "completed", totalGross: 25000, totalDeductions: 3750, totalNet: 21250, runDate: "2025-03-28", employeeCount: 2, employeeTypes: ["contractor"] },
 ];
 
 export const leaveRequests: LeaveRequest[] = [
@@ -69,15 +79,15 @@ export const loans: Loan[] = [
     { id: "t1-4", payrollRunId: "0", payrollLabel: "September 2024", type: "deduction", amount: 2500, balanceAfter: 42500, emiAtTime: 2500, date: "2024-09-28" },
     { id: "t1-5", payrollRunId: "0", payrollLabel: "October 2024", type: "deduction", amount: 2500, balanceAfter: 40000, emiAtTime: 2500, date: "2024-10-28" },
     { id: "t1-6", payrollRunId: "0", payrollLabel: "November 2024", type: "deduction", amount: 2500, balanceAfter: 37500, emiAtTime: 2500, date: "2024-11-28" },
-    { id: "t1-7", payrollRunId: "1", payrollLabel: "January 2025", type: "deduction", amount: 2500, balanceAfter: 35000, emiAtTime: 2500, date: "2025-01-28" },
+    { id: "t1-7", payrollRunId: "1a", payrollLabel: "January 2025", type: "deduction", amount: 2500, balanceAfter: 35000, emiAtTime: 2500, date: "2025-01-28" },
   ]},
   { id: "2", employeeId: "4", employeeName: "Khalid Nasser", amount: 80000, remainingBalance: 60000, monthlyDeduction: 4000, startDate: "2024-09-01", endDate: "2026-05-01", status: "active", transactions: [
     { id: "t2-1", payrollRunId: "0", payrollLabel: "September 2024", type: "disbursement", amount: 80000, balanceAfter: 80000, emiAtTime: 4000, date: "2024-09-01", note: "Loan disbursed" },
     { id: "t2-2", payrollRunId: "0", payrollLabel: "October 2024", type: "deduction", amount: 4000, balanceAfter: 76000, emiAtTime: 4000, date: "2024-10-28" },
     { id: "t2-3", payrollRunId: "0", payrollLabel: "November 2024", type: "deduction", amount: 4000, balanceAfter: 72000, emiAtTime: 4000, date: "2024-11-28" },
     { id: "t2-4", payrollRunId: "0", payrollLabel: "December 2024", type: "deduction", amount: 4000, balanceAfter: 68000, emiAtTime: 4000, date: "2024-12-28" },
-    { id: "t2-5", payrollRunId: "1", payrollLabel: "January 2025", type: "deduction", amount: 4000, balanceAfter: 64000, emiAtTime: 4000, date: "2025-01-28" },
-    { id: "t2-6", payrollRunId: "2", payrollLabel: "February 2025", type: "deduction", amount: 4000, balanceAfter: 60000, emiAtTime: 4000, date: "2025-02-27" },
+    { id: "t2-5", payrollRunId: "1a", payrollLabel: "January 2025", type: "deduction", amount: 4000, balanceAfter: 64000, emiAtTime: 4000, date: "2025-01-28" },
+    { id: "t2-6", payrollRunId: "2a", payrollLabel: "February 2025", type: "deduction", amount: 4000, balanceAfter: 60000, emiAtTime: 4000, date: "2025-02-27" },
   ]},
   { id: "3", employeeId: "1", employeeName: "Aisha Rahman", amount: 20000, remainingBalance: 0, monthlyDeduction: 2000, startDate: "2023-01-01", endDate: "2023-11-01", status: "completed", transactions: [
     { id: "t3-1", payrollRunId: "0", payrollLabel: "January 2023", type: "disbursement", amount: 20000, balanceAfter: 20000, emiAtTime: 2000, date: "2023-01-01", note: "Loan disbursed" },

@@ -242,7 +242,17 @@ export default function PayrollPage() {
 
   const currentOneOffs = selectedRun ? (oneOffs[selectedRun.id] || []) : [];
 
-  const hasOpenRun = runs.some(r => r.status === "draft" || r.status === "processing");
+  const getOpenRunTypes = (): Set<string> => {
+    const types = new Set<string>();
+    runs.filter(r => r.status === "draft" || r.status === "processing").forEach(r => {
+      if (r.employeeTypes && r.employeeTypes.length > 0) {
+        r.employeeTypes.forEach(t => types.add(t));
+      }
+    });
+    return types;
+  };
+
+  const allTypesHaveOpenRun = activeTypes.length > 0 && activeTypes.every(t => getOpenRunTypes().has(t.id));
 
   const getNextMonth = (month: string, year: number): { month: string; year: number } => {
     const idx = months.indexOf(month);
@@ -252,12 +262,19 @@ export default function PayrollPage() {
 
   const handleGeneratePayroll = (e: React.FormEvent) => {
     e.preventDefault();
-    if (hasOpenRun) {
-      toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
+    if (newRunEmployeeTypes.length === 0) {
+      toast({ title: "Select Employee Types", description: "Please select at least one employee type for the payroll run.", variant: "destructive" });
+      return;
+    }
+    const openTypes = getOpenRunTypes();
+    const overlapping = newRunEmployeeTypes.filter(t => openTypes.has(t));
+    if (overlapping.length > 0) {
+      const names = overlapping.map(t => getTypeName(t)).join(", ");
+      toast({ title: "Cannot Create", description: `Payroll run already open for: ${names}. Complete or delete it first.`, variant: "destructive" });
       return;
     }
     // Filter employees by selected types
-    const filteredEmployees = newRunEmployeeTypes.length === 0 ? employees : employees.filter(emp => newRunEmployeeTypes.includes(emp.category));
+    const filteredEmployees = employees.filter(emp => newRunEmployeeTypes.includes(emp.category));
     const breakdown = buildBreakdown(filteredEmployees, deductions, initialTaxConfigs, [], {}, processedSeps, undefined, approvedAdvances);
     setNewRunPreview(breakdown);
     setNewRunStep(2);
@@ -272,7 +289,7 @@ export default function PayrollPage() {
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
       runDate: disburse ? new Date().toISOString().split("T")[0] : "",
       employeeCount: newRunPreview.length,
-      employeeTypes: newRunEmployeeTypes.length > 0 ? [...newRunEmployeeTypes] : undefined,
+      employeeTypes: [...newRunEmployeeTypes],
     };
     syncRuns(prev => [...prev, newRun]);
 
@@ -346,18 +363,8 @@ export default function PayrollPage() {
     Object.keys(sepMap).forEach(empId => updatedProcessedSeps.add(empId));
     setProcessedSeps(updatedProcessedSeps);
 
-    const next = getNextMonth(run.month, run.year);
-    const breakdown = buildBreakdown(employees, deductions, initialTaxConfigs, [], {}, updatedProcessedSeps, undefined, approvedAdvances);
-    const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
-    const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
-    const nextRun: PayrollRun = {
-      id: String(Date.now() + 1), month: next.month, year: next.year, status: "processing",
-      totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
-      runDate: "", employeeCount: breakdown.length,
-    };
-    syncRuns(prev => [...prev, nextRun]);
 
-    toast({ title: "Payroll Completed", description: `${run.month} ${run.year} is locked. ${next.month} ${next.year} payroll has been opened automatically.` });
+    toast({ title: "Payroll Completed", description: `${run.month} ${run.year} payroll for ${run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "all"} is locked.` });
     setSelectedRun(null);
   };
 
@@ -853,7 +860,7 @@ export default function PayrollPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{confirmAction?.action === "approve" ? "Complete Payroll" : "Reject Payroll"}</DialogTitle>
-              <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. A new payroll run for the next month will be created automatically. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
+              <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
@@ -923,14 +930,14 @@ export default function PayrollPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Payroll Runs" description="Process and manage monthly payroll.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={hasOpenRun}>
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={allTypesHaveOpenRun}>
           <Play className="h-4 w-4 mr-2" />New Payroll Run
         </Button>
       </PageHeader>
 
-      {hasOpenRun && (
+      {allTypesHaveOpenRun && (
         <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
-          A payroll run is currently open. Complete or reject it before creating a new one.
+          All employee types have open payroll runs. Complete or delete them before creating new ones.
         </div>
       )}
 
@@ -949,6 +956,7 @@ export default function PayrollPage() {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="font-semibold">Period</TableHead>
+                      <TableHead className="font-semibold">Employee Types</TableHead>
                       <TableHead className="font-semibold">Employees</TableHead>
                       <TableHead className="font-semibold text-right">Gross ({REPORTING_CURRENCY})</TableHead>
                       <TableHead className="font-semibold text-right">Deductions ({REPORTING_CURRENCY})</TableHead>
@@ -977,6 +985,7 @@ export default function PayrollPage() {
                       return (
                         <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
                           <TableCell className="font-medium">{run.month} {run.year}</TableCell>
+                          <TableCell className="text-xs">{run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "All"}</TableCell>
                           <TableCell>{dispCount}</TableCell>
                           <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
                           <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
@@ -1005,7 +1014,7 @@ export default function PayrollPage() {
                       );
                     }) : (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                           {tab === "completed" ? "No completed payroll runs yet." : "No processing payroll runs."}
                         </TableCell>
                       </TableRow>
@@ -1036,13 +1045,13 @@ export default function PayrollPage() {
                   <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Employee Types</Label>
+              <div className="space-y-2"><Label>Employee Types <span className="text-destructive">*</span></Label>
                 <EmployeeTypeMultiSelect value={newRunEmployeeTypes} onChange={setNewRunEmployeeTypes} />
-                <p className="text-xs text-muted-foreground">Leave empty to include all employees</p>
+                <p className="text-xs text-muted-foreground">Select the employee types for this payroll run</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeTypes.length === 0 ? employees.length : employees.filter(e => newRunEmployeeTypes.includes(e.category)).length}</span></p>
-                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeTypes.length === 0 ? employees : employees.filter(e => newRunEmployeeTypes.includes(e.category))).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
+                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeTypes.length === 0 ? 0 : employees.filter(e => newRunEmployeeTypes.includes(e.category)).length}</span></p>
+                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeTypes.length === 0 ? [] : employees.filter(e => newRunEmployeeTypes.includes(e.category))).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
               </div>
               <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Generate Payroll</Button></DialogFooter>
             </form>
@@ -1108,7 +1117,7 @@ export default function PayrollPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{confirmAction?.action === "approve" ? "Complete Payroll" : "Reject Payroll"}</DialogTitle>
-            <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. A new run for the next month will open automatically. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
+            <DialogDescription>{confirmAction?.action === "approve" ? "This will complete and lock this payroll run. Continue?" : "This will reject and cancel this payroll run. Continue?"}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
