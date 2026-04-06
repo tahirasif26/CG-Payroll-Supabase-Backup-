@@ -425,7 +425,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
             if (!emp) return null;
             const yearsOfService = (Date.now() - new Date(emp.joiningDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
             const basicSalary = emp.compensation?.find(c => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
-            const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo === "all" || c.appliesTo === emp.category));
+            const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
             if (applicableEOS.length === 0) return null;
             return (
               <>
