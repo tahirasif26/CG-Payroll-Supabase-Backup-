@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
+import { EmployeeTypeMultiSelect, EmployeeTypeBadges } from "@/components/EmployeeTypeMultiSelect";
 
 export interface EOSBenefitConfig {
   id: string;
@@ -18,7 +19,7 @@ export interface EOSBenefitConfig {
   type: "gratuity" | "provident_fund" | "other";
   calculationBasis: "basic_salary" | "gross_salary";
   tiers: EOSTier[];
-  appliesTo: "all" | "direct" | "contractor";
+  appliesTo: string[];
   appliesToCountries?: string[];
   isActive: boolean;
 }
@@ -42,7 +43,7 @@ const defaultConfigs: EOSBenefitConfig[] = [
       { fromYear: 5, toYear: 10, daysPerYear: 30, fraction: 1 },
       { fromYear: 10, toYear: null, daysPerYear: 30, fraction: 1 },
     ],
-    appliesTo: "direct",
+    appliesTo: ["direct"],
     appliesToCountries: ["Saudi Arabia"],
     isActive: true,
   },
@@ -52,8 +53,30 @@ const defaultConfigs: EOSBenefitConfig[] = [
     type: "provident_fund",
     calculationBasis: "basic_salary",
     tiers: [{ fromYear: 0, toYear: null, daysPerYear: 30, fraction: 1 }],
-    appliesTo: "all",
+    appliesTo: ["direct", "it_developer"],
     isActive: false,
+  },
+  {
+    id: "3",
+    name: "Contractor End of Contract Bonus",
+    type: "other",
+    calculationBasis: "gross_salary",
+    tiers: [
+      { fromYear: 0, toYear: 2, daysPerYear: 7, fraction: 0.5 },
+      { fromYear: 2, toYear: null, daysPerYear: 15, fraction: 1 },
+    ],
+    appliesTo: ["contractor"],
+    appliesToCountries: ["Saudi Arabia", "UAE"],
+    isActive: true,
+  },
+  {
+    id: "4",
+    name: "Intern Completion Gratuity",
+    type: "gratuity",
+    calculationBasis: "basic_salary",
+    tiers: [{ fromYear: 0, toYear: null, daysPerYear: 5, fraction: 0.5 }],
+    appliesTo: ["intern"],
+    isActive: true,
   },
 ];
 
@@ -144,7 +167,7 @@ export default function EOSBenefitsPage() {
         { fromYear: 5, toYear: 10, daysPerYear: 30, fraction: 1 },
         { fromYear: 10, toYear: null, daysPerYear: 30, fraction: 1 },
       ],
-      appliesTo: "all",
+      appliesTo: [],
       isActive: true,
     });
     setEditOpen(true);
@@ -203,7 +226,7 @@ export default function EOSBenefitsPage() {
                 <TableCell className="font-medium">{c.name}</TableCell>
                 <TableCell className="capitalize">{c.type.replace("_", " ")}</TableCell>
                 <TableCell className="capitalize">{c.calculationBasis.replace("_", " ")}</TableCell>
-                <TableCell className="capitalize">{c.appliesTo === "all" ? "All" : c.appliesTo === "direct" ? "Direct" : "Contractor"}</TableCell>
+                <TableCell><EmployeeTypeBadges typeIds={c.appliesTo} /></TableCell>
                 <TableCell><CountryBadges countries={c.appliesToCountries} /></TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {c.tiers.map((t, i) => (
@@ -259,14 +282,7 @@ export default function EOSBenefitsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Applies To</Label>
-                  <Select value={editItem.appliesTo} onValueChange={v => setEditItem({ ...editItem, appliesTo: v as any })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Employees</SelectItem>
-                      <SelectItem value="direct">Direct Employees</SelectItem>
-                      <SelectItem value="contractor">Contractors</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <EmployeeTypeMultiSelect value={editItem.appliesTo} onChange={v => setEditItem({ ...editItem, appliesTo: v })} />
                 </div>
               </div>
               <div className="space-y-2">
