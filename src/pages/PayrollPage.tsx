@@ -985,6 +985,7 @@ export default function PayrollPage() {
                       return (
                         <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
                           <TableCell className="font-medium">{run.month} {run.year}</TableCell>
+                          <TableCell className="text-xs">{run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "All"}</TableCell>
                           <TableCell>{dispCount}</TableCell>
                           <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
                           <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
