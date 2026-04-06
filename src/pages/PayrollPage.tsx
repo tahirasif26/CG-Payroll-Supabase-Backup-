@@ -258,7 +258,7 @@ export default function PayrollPage() {
     }
     // Filter employees by selected types
     const filteredEmployees = newRunEmployeeTypes.length === 0 ? employees : employees.filter(emp => newRunEmployeeTypes.includes(emp.category));
-    const breakdown = buildBreakdown(filteredEmployees, deductions, [], {}, processedSeps, undefined, approvedAdvances);
+    const breakdown = buildBreakdown(filteredEmployees, deductions, initialTaxConfigs, [], {}, processedSeps, undefined, approvedAdvances);
     setNewRunPreview(breakdown);
     setNewRunStep(2);
   };
@@ -272,6 +272,7 @@ export default function PayrollPage() {
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
       runDate: disburse ? new Date().toISOString().split("T")[0] : "",
       employeeCount: newRunPreview.length,
+      employeeTypes: newRunEmployeeTypes.length > 0 ? [...newRunEmployeeTypes] : undefined,
     };
     syncRuns(prev => [...prev, newRun]);
 
@@ -314,7 +315,8 @@ export default function PayrollPage() {
     if (!run) return;
 
     const currentSepMap = getSepMap(run.id);
-    const currentBreakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
+    const runFilteredEmps = run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees;
+    const currentBreakdown = buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
     const runEmployeeCount = currentBreakdown.length;
     const runGross = currentBreakdown.reduce((s, l) => s + l.gross, 0);
     const runDed = currentBreakdown.reduce((s, l) => s + l.totalDeductions, 0);
@@ -345,7 +347,7 @@ export default function PayrollPage() {
     setProcessedSeps(updatedProcessedSeps);
 
     const next = getNextMonth(run.month, run.year);
-    const breakdown = buildBreakdown(employees, deductions, [], {}, updatedProcessedSeps, undefined, approvedAdvances);
+    const breakdown = buildBreakdown(employees, deductions, initialTaxConfigs, [], {}, updatedProcessedSeps, undefined, approvedAdvances);
     const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
     const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
     const nextRun: PayrollRun = {
@@ -457,7 +459,8 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const breakdown = buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances);
+    const runFilteredEmps = run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees;
+    const breakdown = buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances);
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
@@ -493,7 +496,8 @@ export default function PayrollPage() {
 
   if (selectedRun) {
     const sepMap = getSepMap(selectedRun.id);
-    const breakdown = buildBreakdown(employees, deductions, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
+    const runFilteredEmps = selectedRun.employeeTypes && selectedRun.employeeTypes.length > 0 ? employees.filter(e => selectedRun.employeeTypes!.includes(e.category)) : employees;
+    const breakdown = buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
     const totalAdvance = breakdown.reduce((s, l) => s + l.advanceGiven, 0);
@@ -956,8 +960,9 @@ export default function PayrollPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.length > 0 ? filtered.map((run) => {
+                      const runEmps = run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees;
                       const liveBreakdown = run.status !== "completed"
-                        ? buildBreakdown(employees, deductions, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances)
+                        ? buildBreakdown(runEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances)
                         : null;
                       const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
                       const dispGross = liveBreakdown
