@@ -92,7 +92,7 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], on
     const applicableDeductions = allDeductions.filter(d => {
       if (!d.isActive) return false;
       if (d.type === "one-off") return false;
-      if (d.appliesTo && d.appliesTo !== "all" && d.appliesTo !== emp.category) return false;
+      if (d.appliesTo && d.appliesTo.length > 0 && !d.appliesTo.includes(emp.category)) return false;
       if (d.appliesToCountries && d.appliesToCountries.length > 0 && !d.appliesToCountries.includes(emp.workLocationCountry)) return false;
       return true;
     });
