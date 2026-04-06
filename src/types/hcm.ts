@@ -121,7 +121,7 @@ export interface TaxConfig {
   id: string;
   name: string;
   rate: number;
-  applicableTo: string;
+  applicableTo: string[];
   isActive: boolean;
   appliesTo?: string[];
   appliesToCountries?: string[];
