@@ -46,6 +46,7 @@ const accessManagementNav = [
 ];
 
 const payrollSubNav = [
+  { title: "Payroll Setup", url: "/payroll/setup", icon: Settings },
   { title: "Payroll Runs", url: "/payroll", icon: DollarSign },
   { title: "Payslips", url: "/payslips", icon: FileCheck },
   { title: "End of Service", url: "/separations", icon: UserMinus },
@@ -81,8 +82,6 @@ const performanceNav = [
 
 const employerSettingsNav = [
   { title: "Company Profile", url: "/settings/company", icon: Building2 },
-  { title: "Payroll Settings", url: "/settings/payroll", icon: DollarSign },
-  
   { title: "Company Structure", url: "/settings/company-structure", icon: Building2 },
   { title: "Projects", url: "/settings/projects", icon: FolderKanban },
   { title: "Expense Categories", url: "/settings/expense-categories", icon: Receipt },
