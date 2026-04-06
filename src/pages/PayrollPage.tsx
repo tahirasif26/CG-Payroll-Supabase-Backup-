@@ -289,7 +289,7 @@ export default function PayrollPage() {
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
       runDate: disburse ? new Date().toISOString().split("T")[0] : "",
       employeeCount: newRunPreview.length,
-      employeeTypes: newRunEmployeeTypes.length > 0 ? [...newRunEmployeeTypes] : undefined,
+      employeeTypes: [...newRunEmployeeTypes],
     };
     syncRuns(prev => [...prev, newRun]);
 
