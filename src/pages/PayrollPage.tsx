@@ -363,18 +363,8 @@ export default function PayrollPage() {
     Object.keys(sepMap).forEach(empId => updatedProcessedSeps.add(empId));
     setProcessedSeps(updatedProcessedSeps);
 
-    const next = getNextMonth(run.month, run.year);
-    const breakdown = buildBreakdown(employees, deductions, initialTaxConfigs, [], {}, updatedProcessedSeps, undefined, approvedAdvances);
-    const totalGross = breakdown.reduce((s, l) => s + l.gross, 0);
-    const totalDed = breakdown.reduce((s, l) => s + l.totalDeductions, 0);
-    const nextRun: PayrollRun = {
-      id: String(Date.now() + 1), month: next.month, year: next.year, status: "processing",
-      totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
-      runDate: "", employeeCount: breakdown.length,
-    };
-    syncRuns(prev => [...prev, nextRun]);
 
-    toast({ title: "Payroll Completed", description: `${run.month} ${run.year} is locked. ${next.month} ${next.year} payroll has been opened automatically.` });
+    toast({ title: "Payroll Completed", description: `${run.month} ${run.year} payroll for ${run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "all"} is locked.` });
     setSelectedRun(null);
   };
 
@@ -1053,7 +1043,7 @@ export default function PayrollPage() {
                   <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Employee Types</Label>
+              <div className="space-y-2"><Label>Employee Types <span className="text-destructive">*</span></Label>
                 <EmployeeTypeMultiSelect value={newRunEmployeeTypes} onChange={setNewRunEmployeeTypes} />
                 <p className="text-xs text-muted-foreground">Leave empty to include all employees</p>
               </div>
