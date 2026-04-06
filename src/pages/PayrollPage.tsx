@@ -956,6 +956,7 @@ export default function PayrollPage() {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="font-semibold">Period</TableHead>
+                      <TableHead className="font-semibold">Employee Types</TableHead>
                       <TableHead className="font-semibold">Employees</TableHead>
                       <TableHead className="font-semibold text-right">Gross ({REPORTING_CURRENCY})</TableHead>
                       <TableHead className="font-semibold text-right">Deductions ({REPORTING_CURRENCY})</TableHead>
