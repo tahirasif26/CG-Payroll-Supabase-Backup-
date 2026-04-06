@@ -1072,7 +1072,7 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
   const dailySalary = emp.salary / 30;
 
   // Calculate EOS benefits
-  const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo === "all" || c.appliesTo === emp.category));
+  const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
   const eosBreakdown = applicableEOS.map(config => {
     const basis = config.calculationBasis === "basic_salary" ? basicSalary : emp.salary;
     return { name: config.name, amount: calculateEOSBenefit(config, yearsOfService, basis) };
@@ -1597,7 +1597,7 @@ export default function EmployeesPage() {
                 : 0;
               const basicSalary = separationEmp.compensation?.find(c => c.type === "base")?.amount || Math.round(separationEmp.salary * 0.6);
               const dailySalary = separationEmp.salary / 30;
-              const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo === "all" || c.appliesTo === separationEmp.category));
+              const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(separationEmp.category)));
               const eosBreakdown = applicableEOS.map(config => {
                 const basis = config.calculationBasis === "basic_salary" ? basicSalary : separationEmp.salary;
                 return { name: config.name, amount: calculateEOSBenefit(config, yearsOfService, basis) };

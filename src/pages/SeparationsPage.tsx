@@ -51,7 +51,7 @@ function ActiveEmployeesTab() {
         ? (Date.now() - new Date(emp.joiningDate).getTime()) / (1000 * 60 * 60 * 24 * 365)
         : 0;
       const basicSalary = emp.compensation?.find(c => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
-      const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo === "all" || c.appliesTo === emp.category));
+      const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
       const totalEOS = applicableEOS.reduce((sum, config) => {
         const basis = config.calculationBasis === "basic_salary" ? basicSalary : emp.salary;
         return sum + calculateEOSBenefit(config, yearsOfService, basis);
@@ -82,7 +82,7 @@ function ActiveEmployeesTab() {
       : 0;
     const basicSalary = emp.compensation?.find((c: any) => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
     const dailySalary = emp.salary / 30;
-    const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo === "all" || c.appliesTo === emp.category));
+    const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
     const eosBreakdown = applicableEOS.map((config: any) => {
       const basis = config.calculationBasis === "basic_salary" ? basicSalary : emp.salary;
       return { name: config.name, amount: calculateEOSBenefit(config, yearsOfService, basis) };
