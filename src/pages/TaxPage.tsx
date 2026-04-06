@@ -9,14 +9,12 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
-import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
+import { EmployeeTypeMultiSelect, EmployeeTypeBadges } from "@/components/EmployeeTypeMultiSelect";
 
 export default function TaxPage() {
-  const { activeTypes } = useEmployeeTypes();
   const [items, setItems] = useState<TaxConfig[]>(initialTaxConfigs);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<TaxConfig | null>(null);
@@ -28,24 +26,28 @@ export default function TaxPage() {
   const [formRate, setFormRate] = useState("");
   const [formApplicableTo, setFormApplicableTo] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
-  const [formAppliesTo, setFormAppliesTo] = useState<string>("all");
+  const [formAppliesTo, setFormAppliesTo] = useState<string[]>([]);
   const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormRate(""); setFormApplicableTo(""); setFormIsActive(true); setFormAppliesTo("all"); setFormCountries([]);
+    setFormName(""); setFormRate(""); setFormApplicableTo(""); setFormIsActive(true); setFormAppliesTo([]); setFormCountries([]);
     setDialogOpen(true);
   };
 
   const openEdit = (item: TaxConfig) => {
     setEditItem(item);
     setFormName(item.name); setFormRate(String(item.rate)); setFormApplicableTo(item.applicableTo);
-    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all"); setFormCountries(item.appliesToCountries || []);
+    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || []); setFormCountries(item.appliesToCountries || []);
     setDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formAppliesTo.length === 0) {
+      toast({ title: "Error", description: "Please select at least one employee type.", variant: "destructive" });
+      return;
+    }
     const newTax: TaxConfig = {
       id: editItem?.id || String(Date.now()),
       name: formName, rate: Number(formRate), applicableTo: formApplicableTo,
@@ -82,7 +84,7 @@ export default function TaxPage() {
               <TableHead className="font-semibold">Tax Name</TableHead>
               <TableHead className="font-semibold text-right">Rate (%)</TableHead>
               <TableHead className="font-semibold">Applicable To</TableHead>
-              <TableHead className="font-semibold">Employee Type</TableHead>
+              <TableHead className="font-semibold">Employee Types</TableHead>
               <TableHead className="font-semibold">Countries</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -94,7 +96,7 @@ export default function TaxPage() {
                 <TableCell className="font-medium">{t.name}</TableCell>
                 <TableCell className="text-right font-semibold">{t.rate}%</TableCell>
                 <TableCell>{t.applicableTo}</TableCell>
-                <TableCell className="capitalize text-sm">{t.appliesTo || "all"}</TableCell>
+                <TableCell><EmployeeTypeBadges typeIds={t.appliesTo} /></TableCell>
                 <TableCell><CountryBadges countries={t.appliesToCountries} /></TableCell>
                 <TableCell><StatusBadge status={t.isActive ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
@@ -120,16 +122,8 @@ export default function TaxPage() {
             <div className="space-y-2"><Label>Rate (%)</Label><Input type="number" value={formRate} onChange={e => setFormRate(e.target.value)} required min={0} step="0.01" /></div>
             <div className="space-y-2"><Label>Applicable To</Label><Input value={formApplicableTo} onChange={e => setFormApplicableTo(e.target.value)} placeholder="e.g. All Employees" required /></div>
             <div className="space-y-2">
-              <Label>Employee Type</Label>
-              <Select value={formAppliesTo} onValueChange={(v) => setFormAppliesTo(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
-                  {activeTypes.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name} Only</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Employee Types</Label>
+              <EmployeeTypeMultiSelect value={formAppliesTo} onChange={setFormAppliesTo} />
             </div>
             <div className="space-y-2">
               <Label>Countries</Label>

@@ -14,10 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
-import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
+import { EmployeeTypeMultiSelect, EmployeeTypeBadges } from "@/components/EmployeeTypeMultiSelect";
 
 export default function DeductionsPage() {
-  const { activeTypes } = useEmployeeTypes();
   const { deductions: items, setDeductions: setItems } = useDeductions();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Deduction | null>(null);
@@ -30,12 +29,12 @@ export default function DeductionsPage() {
   const [formIsPercentage, setFormIsPercentage] = useState(true);
   const [formValue, setFormValue] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
-  const [formAppliesTo, setFormAppliesTo] = useState<string>("all");
+  const [formAppliesTo, setFormAppliesTo] = useState<string[]>([]);
   const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormType("statutory"); setFormIsPercentage(true); setFormValue(""); setFormIsActive(true); setFormAppliesTo("all"); setFormCountries([]);
+    setFormName(""); setFormType("statutory"); setFormIsPercentage(true); setFormValue(""); setFormIsActive(true); setFormAppliesTo([]); setFormCountries([]);
     setDialogOpen(true);
   };
 
@@ -43,12 +42,16 @@ export default function DeductionsPage() {
     setEditItem(item);
     setFormName(item.name); setFormType(item.type);
     setFormIsPercentage(!!item.percentage); setFormValue(String(item.percentage || item.fixedAmount || ""));
-    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all"); setFormCountries(item.appliesToCountries || []);
+    setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || []); setFormCountries(item.appliesToCountries || []);
     setDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formAppliesTo.length === 0) {
+      toast({ title: "Error", description: "Please select at least one employee type.", variant: "destructive" });
+      return;
+    }
     const val = Number(formValue);
     const newDed: Deduction = {
       id: editItem?.id || String(Date.now()),
@@ -106,7 +109,7 @@ export default function DeductionsPage() {
                 <TableCell className="font-medium">{d.name}</TableCell>
                 <TableCell><Badge variant="outline" className="capitalize">{d.type}</Badge></TableCell>
                 <TableCell className="text-right font-semibold">{d.percentage ? `${d.percentage}%` : `SAR ${d.fixedAmount?.toLocaleString()}`}</TableCell>
-                <TableCell className="capitalize text-sm">{d.appliesTo || "all"}</TableCell>
+                <TableCell><EmployeeTypeBadges typeIds={d.appliesTo} /></TableCell>
                 <TableCell><CountryBadges countries={d.appliesToCountries} /></TableCell>
                 <TableCell><StatusBadge status={d.isActive ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
@@ -121,7 +124,6 @@ export default function DeductionsPage() {
         </Table>
       </div>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -144,16 +146,8 @@ export default function DeductionsPage() {
             <div className="flex items-center gap-3"><Switch checked={formIsPercentage} onCheckedChange={setFormIsPercentage} /><Label>Percentage-based</Label></div>
             <div className="space-y-2"><Label>{formIsPercentage ? "Percentage (%)" : "Fixed Amount (SAR)"}</Label><Input type="number" value={formValue} onChange={e => setFormValue(e.target.value)} required min={0} step="0.01" /></div>
             <div className="space-y-2">
-              <Label>Applies To</Label>
-              <Select value={formAppliesTo} onValueChange={(v) => setFormAppliesTo(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
-                  {activeTypes.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name} Only</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Applies To (Employee Types)</Label>
+              <EmployeeTypeMultiSelect value={formAppliesTo} onChange={setFormAppliesTo} />
             </div>
             <div className="space-y-2">
               <Label>Countries</Label>
@@ -168,7 +162,6 @@ export default function DeductionsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Delete Deduction</DialogTitle><DialogDescription>Are you sure you want to remove this deduction rule?</DialogDescription></DialogHeader>

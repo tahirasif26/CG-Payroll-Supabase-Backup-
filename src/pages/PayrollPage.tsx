@@ -6,6 +6,7 @@ import { payrollRuns, loans, expenses } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { PayrollRun, OneOffAdjustment, Employee, Deduction } from "@/types/hcm";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
+import { EmployeeTypeMultiSelect } from "@/components/EmployeeTypeMultiSelect";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import { useDeductions } from "@/contexts/DeductionContext";
@@ -92,7 +93,7 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], on
     const applicableDeductions = allDeductions.filter(d => {
       if (!d.isActive) return false;
       if (d.type === "one-off") return false;
-      if (d.appliesTo && d.appliesTo !== "all" && d.appliesTo !== emp.category) return false;
+      if (d.appliesTo && d.appliesTo.length > 0 && !d.appliesTo.includes(emp.category)) return false;
       if (d.appliesToCountries && d.appliesToCountries.length > 0 && !d.appliesToCountries.includes(emp.workLocationCountry)) return false;
       return true;
     });
@@ -193,7 +194,7 @@ export default function PayrollPage() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [newMonth, setNewMonth] = useState("April");
   const [newYear, setNewYear] = useState("2025");
-  const [newRunEmployeeType, setNewRunEmployeeType] = useState("all");
+  const [newRunEmployeeTypes, setNewRunEmployeeTypes] = useState<string[]>([]);
   const { toast } = useToast();
 
   const getSepMap = (runId?: string) => {
@@ -247,8 +248,8 @@ export default function PayrollPage() {
       toast({ title: "Cannot Create", description: "Complete the current payroll run before creating a new one.", variant: "destructive" });
       return;
     }
-    // Filter employees by type
-    const filteredEmployees = newRunEmployeeType === "all" ? employees : employees.filter(emp => emp.category === newRunEmployeeType);
+    // Filter employees by selected types
+    const filteredEmployees = newRunEmployeeTypes.length === 0 ? employees : employees.filter(emp => newRunEmployeeTypes.includes(emp.category));
     const breakdown = buildBreakdown(filteredEmployees, deductions, [], {}, processedSeps, undefined, approvedAdvances);
     setNewRunPreview(breakdown);
     setNewRunStep(2);
@@ -282,7 +283,7 @@ export default function PayrollPage() {
     setNewRunOpen(false);
     setNewRunStep(1);
     setNewRunPreview([]);
-    setNewRunEmployeeType("all");
+    setNewRunEmployeeTypes([]);
     toast({
       title: disburse ? "Payroll Saved & Disbursed" : "Payroll Saved",
       description: disburse
@@ -1004,7 +1005,7 @@ export default function PayrollPage() {
         })}
       </Tabs>
 
-      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunEmployeeType("all"); } }}>
+      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunEmployeeTypes([]); } }}>
         <DialogContent className={newRunStep === 2 ? "max-w-4xl" : ""}>
           <DialogHeader>
             <DialogTitle>{newRunStep === 1 ? "New Payroll Run — Step 1: Generate" : "Payroll Summary — Step 2: Review"}</DialogTitle>
@@ -1022,19 +1023,13 @@ export default function PayrollPage() {
                   <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Employee Type</Label>
-                <Select value={newRunEmployeeType} onValueChange={setNewRunEmployeeType}><SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Employees</SelectItem>
-                    {activeTypes.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2"><Label>Employee Types</Label>
+                <EmployeeTypeMultiSelect value={newRunEmployeeTypes} onChange={setNewRunEmployeeTypes} />
+                <p className="text-xs text-muted-foreground">Leave empty to include all employees</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeType === "all" ? employees.length : employees.filter(e => e.category === newRunEmployeeType).length}</span></p>
-                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeType === "all" ? employees : employees.filter(e => e.category === newRunEmployeeType)).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
+                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeTypes.length === 0 ? employees.length : employees.filter(e => newRunEmployeeTypes.includes(e.category)).length}</span></p>
+                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeTypes.length === 0 ? employees : employees.filter(e => newRunEmployeeTypes.includes(e.category))).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
               </div>
               <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Generate Payroll</Button></DialogFooter>
             </form>

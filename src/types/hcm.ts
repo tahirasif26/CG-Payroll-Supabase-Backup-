@@ -112,7 +112,7 @@ export interface Deduction {
   percentage?: number;
   fixedAmount?: number;
   isActive: boolean;
-  appliesTo?: string;
+  appliesTo?: string[];
   appliesToCountries?: string[];
 }
 
@@ -122,7 +122,7 @@ export interface TaxConfig {
   rate: number;
   applicableTo: string;
   isActive: boolean;
-  appliesTo?: string;
+  appliesTo?: string[];
   appliesToCountries?: string[];
 }
 

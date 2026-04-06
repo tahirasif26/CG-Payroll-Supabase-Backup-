@@ -17,7 +17,7 @@ export interface CompensationSetting {
   id: string;
   name: string;
   isActive: boolean;
-  appliesTo?: string;
+  appliesTo?: string[];
   appliesToCountries?: string[];
 }
 
@@ -68,12 +68,14 @@ export interface CurrencySetting {
 }
 
 export const compensationSettings: CompensationSetting[] = [
-  { id: "1", name: "Basic Salary", isActive: true },
-  { id: "2", name: "Housing Allowance", isActive: true },
-  { id: "3", name: "Travel Allowance", isActive: true },
-  { id: "4", name: "Medical Allowance", isActive: true },
-  { id: "5", name: "Other Allowances", isActive: true },
-  { id: "6", name: "One Off", isActive: true },
+  { id: "1", name: "Basic Salary", isActive: true, appliesTo: ["direct", "contractor", "it_developer", "intern"] },
+  { id: "2", name: "Housing Allowance", isActive: true, appliesTo: ["direct", "it_developer"] },
+  { id: "3", name: "Travel Allowance", isActive: true, appliesTo: ["direct", "contractor"] },
+  { id: "4", name: "Medical Allowance", isActive: true, appliesTo: ["direct", "it_developer", "intern"] },
+  { id: "5", name: "Other Allowances", isActive: true, appliesTo: ["direct"] },
+  { id: "6", name: "One Off", isActive: true, appliesTo: ["direct", "contractor", "it_developer", "intern"] },
+  { id: "7", name: "Tech Equipment Allowance", isActive: true, appliesTo: ["it_developer"] },
+  { id: "8", name: "Internship Stipend", isActive: true, appliesTo: ["intern"] },
 ];
 
 export const jobTitles: JobTitle[] = [

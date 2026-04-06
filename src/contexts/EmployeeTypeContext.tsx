@@ -10,6 +10,8 @@ export interface EmployeeType {
 const defaultTypes: EmployeeType[] = [
   { id: "direct", name: "Direct Employee", isDefault: true, isActive: true },
   { id: "contractor", name: "Contractor", isDefault: true, isActive: true },
+  { id: "it_developer", name: "IT Developer", isDefault: false, isActive: true },
+  { id: "intern", name: "Intern", isDefault: false, isActive: true },
 ];
 
 interface EmployeeTypeContextType {

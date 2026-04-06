@@ -1,6 +1,30 @@
 import { Employee, PayrollRun, LeaveRequest, Loan, ExpenseReimbursement, Deduction, TaxConfig, CostAllocation, Asset, Project, Timesheet, SalaryComponent, MileageEntry } from "@/types/hcm";
 
-function makeCompensation(base: number): SalaryComponent[] {
+function makeCompensation(base: number, category: string): SalaryComponent[] {
+  if (category === "intern") {
+    return [
+      { name: "Basic Salary", type: "base", amount: Math.round(base * 0.8) },
+      { name: "Medical Allowance", type: "medical", amount: Math.round(base * 0.1) },
+      { name: "Internship Stipend", type: "other", amount: Math.round(base * 0.1) },
+    ];
+  }
+  if (category === "it_developer") {
+    return [
+      { name: "Basic Salary", type: "base", amount: Math.round(base * 0.55) },
+      { name: "Housing Allowance", type: "housing", amount: Math.round(base * 0.2) },
+      { name: "Medical Allowance", type: "medical", amount: Math.round(base * 0.05) },
+      { name: "Tech Equipment Allowance", type: "other", amount: Math.round(base * 0.15) },
+      { name: "Other Allowances", type: "other", amount: Math.round(base * 0.05) },
+    ];
+  }
+  if (category === "contractor") {
+    return [
+      { name: "Basic Salary", type: "base", amount: Math.round(base * 0.7) },
+      { name: "Travel Allowance", type: "travel", amount: Math.round(base * 0.2) },
+      { name: "Other Allowances", type: "other", amount: Math.round(base * 0.1) },
+    ];
+  }
+  // direct employee
   return [
     { name: "Basic Salary", type: "base", amount: Math.round(base * 0.6) },
     { name: "Housing Allowance", type: "housing", amount: Math.round(base * 0.25) },
@@ -11,20 +35,22 @@ function makeCompensation(base: number): SalaryComponent[] {
 }
 
 export const employees: Employee[] = [
-  { id: "1", empId: "CG-001", firstName: "Aisha", lastName: "Rahman", email: "aisha.rahman@cg.com", phone: "+966 50 123 4567", department: "Assurance", designation: "Senior Associate", joiningDate: "2021-03-15", salary: 18000, status: "active", avatar: "", dateOfBirth: "1994-07-12", category: "direct", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(18000) },
-  { id: "2", empId: "CG-002", firstName: "Omar", lastName: "Al-Faisal", email: "omar.alfaisal@cg.com", phone: "+966 55 234 5678", department: "Tax", designation: "Manager", joiningDate: "2019-06-01", salary: 28000, status: "active", avatar: "", dateOfBirth: "1990-02-28", category: "direct", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(28000) },
-  { id: "3", empId: "CG-003", firstName: "Fatima", lastName: "Hassan", email: "fatima.hassan@cg.com", phone: "+966 54 345 6789", department: "Advisory", designation: "Associate", joiningDate: "2023-01-10", salary: 12000, status: "active", avatar: "", dateOfBirth: "1997-05-03", category: "contractor", workLocationCountry: "UAE", compensation: makeCompensation(12000) },
-  { id: "4", empId: "CG-004", firstName: "Khalid", lastName: "Nasser", email: "khalid.nasser@cg.com", phone: "+966 56 456 7890", department: "Strategy", designation: "Senior Manager", joiningDate: "2017-09-20", salary: 35000, status: "active", avatar: "", dateOfBirth: "1988-11-15", category: "direct", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(35000) },
-  { id: "5", empId: "CG-005", firstName: "Sara", lastName: "Al-Mutairi", email: "sara.almutairi@cg.com", phone: "+966 50 567 8901", department: "Assurance", designation: "Staff", joiningDate: "2024-02-01", salary: 9000, status: "active", avatar: "", dateOfBirth: "1999-02-07", category: "direct", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(9000) },
-  { id: "6", empId: "CG-006", firstName: "Yousef", lastName: "Bakr", email: "yousef.bakr@cg.com", phone: "+966 55 678 9012", department: "Tax", designation: "Associate", joiningDate: "2022-08-15", salary: 13000, status: "on-leave", avatar: "", dateOfBirth: "1996-08-22", category: "contractor", workLocationCountry: "Qatar", compensation: makeCompensation(13000) },
-  { id: "7", empId: "CG-007", firstName: "Layla", lastName: "Qasim", email: "layla.qasim@cg.com", phone: "+966 54 789 0123", department: "Advisory", designation: "Partner", joiningDate: "2012-04-01", salary: 55000, status: "active", avatar: "", dateOfBirth: "1980-12-01", category: "direct", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(55000) },
-  { id: "8", empId: "CG-008", firstName: "Tariq", lastName: "Zaman", email: "tariq.zaman@cg.com", phone: "+966 56 890 1234", department: "Technology", designation: "Manager", joiningDate: "2020-11-10", salary: 26000, status: "active", avatar: "", dateOfBirth: "1991-02-05", category: "direct", workLocationCountry: "Bahrain", compensation: makeCompensation(26000) },
+  { id: "1", empId: "CG-001", firstName: "Aisha", lastName: "Rahman", email: "aisha.rahman@cg.com", phone: "+966 50 123 4567", department: "Assurance", designation: "Senior Associate", joiningDate: "2021-03-15", salary: 18000, status: "active", avatar: "", dateOfBirth: "1994-07-12", category: "direct", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(18000, "direct") },
+  { id: "2", empId: "CG-002", firstName: "Omar", lastName: "Al-Faisal", email: "omar.alfaisal@cg.com", phone: "+966 55 234 5678", department: "Tax", designation: "Manager", joiningDate: "2019-06-01", salary: 28000, status: "active", avatar: "", dateOfBirth: "1990-02-28", category: "direct", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(28000, "direct") },
+  { id: "3", empId: "CG-003", firstName: "Fatima", lastName: "Hassan", email: "fatima.hassan@cg.com", phone: "+966 54 345 6789", department: "Advisory", designation: "Associate", joiningDate: "2023-01-10", salary: 12000, status: "active", avatar: "", dateOfBirth: "1997-05-03", category: "contractor", workLocationCountry: "UAE", compensation: makeCompensation(12000, "contractor") },
+  { id: "4", empId: "CG-004", firstName: "Khalid", lastName: "Nasser", email: "khalid.nasser@cg.com", phone: "+966 56 456 7890", department: "Strategy", designation: "Senior Manager", joiningDate: "2017-09-20", salary: 35000, status: "active", avatar: "", dateOfBirth: "1988-11-15", category: "direct", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(35000, "direct") },
+  { id: "5", empId: "CG-005", firstName: "Sara", lastName: "Al-Mutairi", email: "sara.almutairi@cg.com", phone: "+966 50 567 8901", department: "Assurance", designation: "Staff", joiningDate: "2024-02-01", salary: 9000, status: "active", avatar: "", dateOfBirth: "1999-02-07", category: "intern", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(9000, "intern") },
+  { id: "6", empId: "CG-006", firstName: "Yousef", lastName: "Bakr", email: "yousef.bakr@cg.com", phone: "+966 55 678 9012", department: "Tax", designation: "Associate", joiningDate: "2022-08-15", salary: 13000, status: "on-leave", avatar: "", dateOfBirth: "1996-08-22", category: "contractor", workLocationCountry: "Qatar", compensation: makeCompensation(13000, "contractor") },
+  { id: "7", empId: "CG-007", firstName: "Layla", lastName: "Qasim", email: "layla.qasim@cg.com", phone: "+966 54 789 0123", department: "Advisory", designation: "Partner", joiningDate: "2012-04-01", salary: 55000, status: "active", avatar: "", dateOfBirth: "1980-12-01", category: "direct", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(55000, "direct") },
+  { id: "8", empId: "CG-008", firstName: "Tariq", lastName: "Zaman", email: "tariq.zaman@cg.com", phone: "+966 56 890 1234", department: "Technology", designation: "Manager", joiningDate: "2020-11-10", salary: 26000, status: "active", avatar: "", dateOfBirth: "1991-02-05", category: "it_developer", workLocationCountry: "Bahrain", compensation: makeCompensation(26000, "it_developer") },
+  { id: "9", empId: "CG-009", firstName: "Noor", lastName: "Ahmed", email: "noor.ahmed@cg.com", phone: "+966 50 901 2345", department: "Technology", designation: "Associate", joiningDate: "2024-06-01", salary: 22000, status: "active", avatar: "", dateOfBirth: "1995-09-18", category: "it_developer", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(22000, "it_developer") },
+  { id: "10", empId: "CG-010", firstName: "Mariam", lastName: "Siddiqui", email: "mariam.siddiqui@cg.com", phone: "+966 55 012 3456", department: "Assurance", designation: "Staff", joiningDate: "2025-01-15", salary: 7000, status: "active", avatar: "", dateOfBirth: "2001-04-25", category: "intern", workLocationCountry: "Saudi Arabia", compensation: makeCompensation(7000, "intern") },
 ];
 
 export const payrollRuns: PayrollRun[] = [
-  { id: "1", month: "January", year: 2025, status: "completed", totalGross: 196000, totalDeductions: 29400, totalNet: 166600, runDate: "2025-01-28", employeeCount: 8 },
-  { id: "2", month: "February", year: 2025, status: "completed", totalGross: 196000, totalDeductions: 29400, totalNet: 166600, runDate: "2025-02-27", employeeCount: 8 },
-  { id: "3", month: "March", year: 2025, status: "processing", totalGross: 196000, totalDeductions: 29400, totalNet: 166600, runDate: "", employeeCount: 8 },
+  { id: "1", month: "January", year: 2025, status: "completed", totalGross: 225000, totalDeductions: 33750, totalNet: 191250, runDate: "2025-01-28", employeeCount: 10 },
+  { id: "2", month: "February", year: 2025, status: "completed", totalGross: 225000, totalDeductions: 33750, totalNet: 191250, runDate: "2025-02-27", employeeCount: 10 },
+  { id: "3", month: "March", year: 2025, status: "processing", totalGross: 225000, totalDeductions: 33750, totalNet: 191250, runDate: "", employeeCount: 10 },
 ];
 
 export const leaveRequests: LeaveRequest[] = [
@@ -76,15 +102,19 @@ export const expenses: ExpenseReimbursement[] = [
 ];
 
 export const deductions: Deduction[] = [
-  { id: "1", name: "GOSI (Employee)", type: "statutory", percentage: 9.75, isActive: true },
-  { id: "2", name: "GOSI (Employer)", type: "statutory", percentage: 11.75, isActive: true },
-  { id: "3", name: "Medical Insurance", type: "benefit", fixedAmount: 500, isActive: true },
-  { id: "4", name: "Housing Allowance Deduction", type: "other", percentage: 5, isActive: false },
+  { id: "1", name: "GOSI (Employee)", type: "statutory", percentage: 9.75, isActive: true, appliesTo: ["direct", "it_developer"] },
+  { id: "2", name: "GOSI (Employer)", type: "statutory", percentage: 11.75, isActive: true, appliesTo: ["direct", "it_developer"] },
+  { id: "3", name: "Medical Insurance", type: "benefit", fixedAmount: 500, isActive: true, appliesTo: ["direct", "it_developer", "intern"] },
+  { id: "4", name: "Housing Allowance Deduction", type: "other", percentage: 5, isActive: false, appliesTo: ["direct"] },
+  { id: "5", name: "Contractor Service Fee", type: "other", percentage: 3, isActive: true, appliesTo: ["contractor"] },
+  { id: "6", name: "Intern Training Fee", type: "other", fixedAmount: 200, isActive: true, appliesTo: ["intern"] },
 ];
 
 export const taxConfigs: TaxConfig[] = [
-  { id: "1", name: "Zakat", rate: 2.5, applicableTo: "All Employees", isActive: true },
-  { id: "2", name: "VAT on Benefits", rate: 15, applicableTo: "Non-Saudi Employees", isActive: true },
+  { id: "1", name: "Zakat", rate: 2.5, applicableTo: "Saudi Nationals", isActive: true, appliesTo: ["direct", "it_developer"] },
+  { id: "2", name: "VAT on Benefits", rate: 15, applicableTo: "Non-Saudi Employees", isActive: true, appliesTo: ["contractor"] },
+  { id: "3", name: "Withholding Tax", rate: 5, applicableTo: "Contractors", isActive: true, appliesTo: ["contractor"] },
+  { id: "4", name: "Intern Tax Exemption", rate: 0, applicableTo: "Interns", isActive: true, appliesTo: ["intern"] },
 ];
 
 export const costAllocations: CostAllocation[] = [
