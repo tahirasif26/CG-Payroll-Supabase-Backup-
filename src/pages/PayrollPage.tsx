@@ -274,7 +274,7 @@ export default function PayrollPage() {
       return;
     }
     // Filter employees by selected types
-    const filteredEmployees = newRunEmployeeTypes.length === 0 ? employees : employees.filter(emp => newRunEmployeeTypes.includes(emp.category));
+    const filteredEmployees = employees.filter(emp => newRunEmployeeTypes.includes(emp.category));
     const breakdown = buildBreakdown(filteredEmployees, deductions, initialTaxConfigs, [], {}, processedSeps, undefined, approvedAdvances);
     setNewRunPreview(breakdown);
     setNewRunStep(2);
