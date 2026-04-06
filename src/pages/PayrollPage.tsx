@@ -78,7 +78,7 @@ interface EmployeePayrollLine {
   payCurrency: string;
 }
 
-function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string, advancesData?: { employeeId: string; amount: number; payrollRunId?: string }[]): EmployeePayrollLine[] {
+function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], allTaxConfigs: TaxConfig[], oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string, advancesData?: { employeeId: string; amount: number; payrollRunId?: string }[]): EmployeePayrollLine[] {
   const activeEmployees = allEmployees.filter(emp => {
     if (processedSepIds.has(emp.id)) return false;
     return true;
@@ -102,6 +102,14 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], on
       if (d.fixedAmount) return sum + d.fixedAmount;
       return sum;
     }, 0);
+    // Apply tax configs filtered by employee type
+    const applicableTaxes = allTaxConfigs.filter(t => {
+      if (!t.isActive) return false;
+      if (t.appliesTo && t.appliesTo.length > 0 && !t.appliesTo.includes(emp.category)) return false;
+      if (t.appliesToCountries && t.appliesToCountries.length > 0 && !t.appliesToCountries.includes(emp.workLocationCountry)) return false;
+      return true;
+    });
+    const taxDeductions = applicableTaxes.reduce((sum, t) => sum + Math.round(gross * t.rate / 100), 0);
     // Only reimburse expenses NOT linked to an advance
     const approvedExpenses = expenses
       .filter(e => e.employeeId === emp.id && e.status === "approved" && e.payrollRunId === runId && !e.advanceId)
@@ -115,10 +123,10 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], on
     const oneOffDeductions = empOneOffs.filter(o => o.type === "deduction").reduce((s, o) => s + o.amount, 0);
     const separationSettlement = separationMap[emp.id] || 0;
     const isSeparated = !!separationMap[emp.id];
-    const totalDeductions = otherDeductions + loanDeduction + oneOffDeductions;
+    const totalDeductions = otherDeductions + taxDeductions + loanDeduction + oneOffDeductions;
     const net = gross - totalDeductions + approvedExpenses + advanceGiven + oneOffBenefits + separationSettlement;
     const payCurrency = getEmployeePayCurrency(emp);
-    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, advanceGiven, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency };
+    return { emp, basic, allowances, gross, loanDeduction, otherDeductions: otherDeductions + taxDeductions, totalDeductions, expenseReimbursement: approvedExpenses, advanceGiven, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency };
   });
 }
 
