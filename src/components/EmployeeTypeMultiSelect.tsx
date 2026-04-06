@@ -44,7 +44,7 @@ export function EmployeeTypeBadges({ typeIds }: { typeIds?: string[] }) {
   if (ids.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
   return (
     <div className="flex flex-wrap gap-1">
-      {typeIds.map(id => (
+      {ids.map(id => (
         <Badge key={id} variant="outline" className="text-[10px] px-1.5 py-0">
           {getTypeName(id)}
         </Badge>
