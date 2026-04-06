@@ -121,10 +121,10 @@ export const deductions: Deduction[] = [
 ];
 
 export const taxConfigs: TaxConfig[] = [
-  { id: "1", name: "Zakat", rate: 2.5, applicableTo: "Saudi Nationals", isActive: true, appliesTo: ["direct", "it_developer"] },
-  { id: "2", name: "VAT on Benefits", rate: 15, applicableTo: "Non-Saudi Employees", isActive: true, appliesTo: ["contractor"] },
-  { id: "3", name: "Withholding Tax", rate: 5, applicableTo: "Contractors", isActive: true, appliesTo: ["contractor"] },
-  { id: "4", name: "Intern Tax Exemption", rate: 0, applicableTo: "Interns", isActive: true, appliesTo: ["intern"] },
+  { id: "1", name: "Zakat", rate: 2.5, applicableTo: ["direct", "it_developer"], isActive: true, appliesTo: ["direct", "it_developer"] },
+  { id: "2", name: "VAT on Benefits", rate: 15, applicableTo: ["contractor"], isActive: true, appliesTo: ["contractor"] },
+  { id: "3", name: "Withholding Tax", rate: 5, applicableTo: ["contractor"], isActive: true, appliesTo: ["contractor"] },
+  { id: "4", name: "Intern Tax Exemption", rate: 0, applicableTo: ["intern"], isActive: true, appliesTo: ["intern"] },
 ];
 
 export const costAllocations: CostAllocation[] = [

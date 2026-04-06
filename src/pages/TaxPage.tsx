@@ -57,7 +57,7 @@ export default function TaxPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formAppliesTo.length === 0) {
+    if (formApplicableTo.length === 0) {
       toast({ title: "Error", description: "Please select at least one employee type.", variant: "destructive" });
       return;
     }
@@ -171,7 +171,7 @@ export default function TaxPage() {
             </div>
             <div className="space-y-2">
               <Label>Applicable To</Label>
-              <EmployeeTypeMultiSelect value={formApplicableTo} onChange=(e) => setFormApplicableTo(e.target.value)} />
+              <EmployeeTypeMultiSelect value={formApplicableTo} onChange={setFormApplicableTo} />
             </div>
             <div className="space-y-2">
               <Label>Countries</Label>
