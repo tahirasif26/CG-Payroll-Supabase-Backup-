@@ -70,7 +70,6 @@ export default function TaxPage() {
       rate: Number(formRate),
       applicableTo: formApplicableTo,
       isActive: formIsActive,
-      appliesTo: formAppliesTo,
       appliesToCountries: formCountries,
     };
     if (editItem) {
@@ -175,16 +174,7 @@ export default function TaxPage() {
             </div>
             <div className="space-y-2">
               <Label>Applicable To</Label>
-              <Input
-                value={formApplicableTo}
-                onChange={(e) => setFormApplicableTo(e.target.value)}
-                placeholder="e.g. All Employees"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Employee Types</Label>
-              <EmployeeTypeMultiSelect value={formAppliesTo} onChange={setFormAppliesTo} />
+              <EmployeeTypeMultiSelect value={formApplicableTo} onChange=(e) => setFormApplicableTo(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Countries</Label>
