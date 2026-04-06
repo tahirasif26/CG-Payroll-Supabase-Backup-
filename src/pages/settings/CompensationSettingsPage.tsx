@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/PageHeader";
 import { compensationSettings, CompensationSetting } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,10 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
-import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
+import { EmployeeTypeMultiSelect, EmployeeTypeBadges } from "@/components/EmployeeTypeMultiSelect";
 
 export default function CompensationSettingsPage() {
-  const { activeTypes } = useEmployeeTypes();
   const [items, setItems] = useState<CompensationSetting[]>(compensationSettings);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<CompensationSetting | null>(null);
@@ -25,23 +23,27 @@ export default function CompensationSettingsPage() {
 
   const [formName, setFormName] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
-  const [formAppliesTo, setFormAppliesTo] = useState<string>("all");
+  const [formAppliesTo, setFormAppliesTo] = useState<string[]>([]);
   const [formCountries, setFormCountries] = useState<string[]>([]);
 
   const openAdd = () => {
     setEditItem(null);
-    setFormName(""); setFormIsActive(true); setFormAppliesTo("all"); setFormCountries([]);
+    setFormName(""); setFormIsActive(true); setFormAppliesTo([]); setFormCountries([]);
     setDialogOpen(true);
   };
 
   const openEdit = (item: CompensationSetting) => {
     setEditItem(item);
-    setFormName(item.name); setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || "all"); setFormCountries(item.appliesToCountries || []);
+    setFormName(item.name); setFormIsActive(item.isActive); setFormAppliesTo(item.appliesTo || []); setFormCountries(item.appliesToCountries || []);
     setDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formAppliesTo.length === 0) {
+      toast({ title: "Error", description: "Please select at least one employee type.", variant: "destructive" });
+      return;
+    }
     if (editItem) {
       setItems(prev => prev.map(i => i.id === editItem.id ? { ...i, name: formName, isActive: formIsActive, appliesTo: formAppliesTo, appliesToCountries: formCountries } : i));
       toast({ title: "Updated", description: `${formName} has been updated.` });
@@ -85,7 +87,7 @@ export default function CompensationSettingsPage() {
             {items.map(item => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="capitalize text-sm">{item.appliesTo || "all"}</TableCell>
+                <TableCell><EmployeeTypeBadges typeIds={item.appliesTo} /></TableCell>
                 <TableCell><CountryBadges countries={item.appliesToCountries} /></TableCell>
                 <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
@@ -109,16 +111,8 @@ export default function CompensationSettingsPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2"><Label>Component Name</Label><Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Housing Allowance" required /></div>
             <div className="space-y-2">
-              <Label>Applies To</Label>
-              <Select value={formAppliesTo} onValueChange={(v) => setFormAppliesTo(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
-                  {activeTypes.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name} Only</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Applies To (Employee Types)</Label>
+              <EmployeeTypeMultiSelect value={formAppliesTo} onChange={setFormAppliesTo} />
             </div>
             <div className="space-y-2">
               <Label>Countries</Label>
