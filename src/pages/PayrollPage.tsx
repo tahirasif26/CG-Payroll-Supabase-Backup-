@@ -193,7 +193,7 @@ export default function PayrollPage() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [newMonth, setNewMonth] = useState("April");
   const [newYear, setNewYear] = useState("2025");
-  const [newRunEmployeeType, setNewRunEmployeeType] = useState("all");
+  const [newRunEmployeeTypes, setNewRunEmployeeTypes] = useState<string[]>([]);
   const { toast } = useToast();
 
   const getSepMap = (runId?: string) => {
