@@ -57,7 +57,7 @@ export default function TaxPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formAppliesTo.length === 0) {
+    if (formApplicableTo.length === 0) {
       toast({ title: "Error", description: "Please select at least one employee type.", variant: "destructive" });
       return;
     }
