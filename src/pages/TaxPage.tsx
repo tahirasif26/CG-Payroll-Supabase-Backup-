@@ -171,7 +171,7 @@ export default function TaxPage() {
             </div>
             <div className="space-y-2">
               <Label>Applicable To</Label>
-              <EmployeeTypeMultiSelect value={formApplicableTo} onChange=(e) => setFormApplicableTo(e.target.value)} />
+              <EmployeeTypeMultiSelect value={formApplicableTo} onChange={setFormApplicableTo} />
             </div>
             <div className="space-y-2">
               <Label>Countries</Label>
