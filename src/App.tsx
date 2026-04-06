@@ -22,6 +22,7 @@ import { AdvanceProvider } from "@/contexts/AdvanceContext";
 import { ReminderSettingsProvider } from "@/contexts/ReminderSettingsContext";
 import { PolicyProvider } from "@/contexts/PolicyContext";
 import { EmployeeTypeProvider } from "@/contexts/EmployeeTypeContext";
+import { PayrollSetupProvider } from "@/contexts/PayrollSetupContext";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -74,6 +75,8 @@ import RatingsOverviewPage from "@/pages/performance/RatingsOverviewPage";
 import QuestionnaireSettingsPage from "@/pages/performance/QuestionnaireSettingsPage";
 import AssessmentRatingsPage from "@/pages/performance/AssessmentRatingsPage";
 import NotFound from "./pages/NotFound";
+import PayrollSetupPage from "@/pages/PayrollSetupPage";
+import PayrollSetupEditorPage from "@/pages/PayrollSetupEditorPage";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +104,7 @@ const App = () => {
         <ReminderSettingsProvider>
         <PolicyProvider>
         <EmployeeTypeProvider>
+        <PayrollSetupProvider>
         <BrowserRouter>
           <AppLayout>
             <Routes>
@@ -165,6 +169,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </PayrollSetupProvider>
         </EmployeeTypeProvider>
         </PolicyProvider>
         </ReminderSettingsProvider>
