@@ -170,13 +170,13 @@ function EditableField({ label, value, editing, onChange, type = "text" }: {
 
 function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onCancel, readOnly = false }: {
   title: string; icon: any; children: React.ReactNode; editing: boolean;
-  onEdit: () => void; onSave: () => void; onCancel: () => void; readOnly?: boolean;
+  onEdit?: () => void; onSave: () => void; onCancel: () => void; readOnly?: boolean;
 }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-base flex items-center gap-2"><Icon className="h-4 w-4 text-primary" />{title}</CardTitle>
-        {!readOnly && (
+        {!readOnly && onEdit && (
           <div className="flex gap-1">
             {editing ? (
               <>
@@ -605,7 +605,7 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
   );
 }
 
-function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdatePayCurrency?: (empId: string, currency: string) => void }) {
+function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: Employee; onUpdatePayCurrency?: (empId: string, currency: string) => void; readOnly?: boolean }) {
   const ext = getExtData(emp.id);
   const { addLogs, addLog } = useAudit();
   const empName = `${emp.firstName} ${emp.lastName}`;
@@ -638,7 +638,7 @@ function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdate
         title="Pay Currency"
         icon={DollarSign}
         editing={editingPayCurrency}
-        onEdit={() => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(true); }}
+        onEdit={readOnly ? undefined : () => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(true); }}
         onSave={() => { if (payCurrency !== currentPayCurrency) { addLog({ employeeId: emp.id, employeeName: empName, section: "Compensation > Pay Currency", field: "payCurrency", oldValue: currentPayCurrency, newValue: payCurrency }); } onUpdatePayCurrency?.(emp.id, payCurrency); setEditingPayCurrency(false); toast({ title: "Pay Currency Saved", description: `Pay currency set to ${payCurrency}.` }); }}
         onCancel={() => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(false); }}
       >
@@ -659,7 +659,7 @@ function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdate
         )}
       </SectionCard>
 
-      <SectionCard title="Current Compensation" icon={DollarSign} editing={editing} onEdit={() => setEditing(true)} onSave={() => { const changes = compData.filter((c, i) => c.amount !== prevCompData[i]?.amount).map(c => ({ employeeId: emp.id, employeeName: empName, section: "Compensation > Current", field: c.name, oldValue: String(prevCompData.find(p => p.name === c.name)?.amount || 0), newValue: String(c.amount) })); if (changes.length > 0) addLogs(changes); setPrevCompData(compData.map(c => ({ ...c }))); setEditing(false); toast({ title: "Saved", description: "Compensation updated." }); }} onCancel={() => setEditing(false)}>
+      <SectionCard title="Current Compensation" icon={DollarSign} editing={editing} onEdit={readOnly ? undefined : () => setEditing(true)} onSave={() => { const changes = compData.filter((c, i) => c.amount !== prevCompData[i]?.amount).map(c => ({ employeeId: emp.id, employeeName: empName, section: "Compensation > Current", field: c.name, oldValue: String(prevCompData.find(p => p.name === c.name)?.amount || 0), newValue: String(c.amount) })); if (changes.length > 0) addLogs(changes); setPrevCompData(compData.map(c => ({ ...c }))); setEditing(false); toast({ title: "Saved", description: "Compensation updated." }); }} onCancel={() => setEditing(false)}>
         <div className="space-y-3">
           {compData.map((c, i) => (
             <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
@@ -682,7 +682,7 @@ function CompensationTab({ emp, onUpdatePayCurrency }: { emp: Employee; onUpdate
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" />Compensation History</CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setShowAddChange(true)}><Plus className="h-4 w-4 mr-1" />New Change</Button>
+          {!readOnly && <Button size="sm" variant="outline" onClick={() => setShowAddChange(true)}><Plus className="h-4 w-4 mr-1" />New Change</Button>}
         </CardHeader>
         <CardContent>
           {ext.compensationHistory.length > 0 ? (
@@ -1520,7 +1520,7 @@ export default function EmployeesPage() {
           <TabsList className="flex-wrap">
             <TabsTrigger value="personal"><User className="h-3.5 w-3.5 mr-1.5" />Personal</TabsTrigger>
             <TabsTrigger value="work"><Briefcase className="h-3.5 w-3.5 mr-1.5" />Work</TabsTrigger>
-            {!isOwnProfile && <TabsTrigger value="compensation"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>}
+            <TabsTrigger value="compensation"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>
             <TabsTrigger value="timeoff"><Calendar className="h-3.5 w-3.5 mr-1.5" />Time Off</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-3.5 w-3.5 mr-1.5" />Documents</TabsTrigger>
             <TabsTrigger value="assets"><Monitor className="h-3.5 w-3.5 mr-1.5" />Assets</TabsTrigger>
@@ -1528,7 +1528,7 @@ export default function EmployeesPage() {
           </TabsList>
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
+          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} readOnly={isOwnProfile} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
           <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={openUploadDialog} documents={allDocs[selectedEmployee.id] || []} onReupload={openReuploadDialog} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
