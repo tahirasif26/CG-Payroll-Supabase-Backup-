@@ -5,10 +5,11 @@ import { useClient } from "@/contexts/ClientContext";
 import { payrollRuns, loans, expenses } from "@/data/mockData";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, Search } from "lucide-react";
+import { Download, Eye, FileText, Search, AlertTriangle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatCard } from "@/components/StatCard";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -18,6 +19,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
+import type { Employee } from "@/types/hcm";
+import type { PayrollSetup } from "@/types/payrollSetup";
 
 const REPORTING_CURRENCY = "SAR";
 
@@ -28,6 +31,63 @@ function getEmployeePayCurrency(emp: { payCurrency?: string }): string {
 function getToReportingRate(fromCurrency: string): number {
   if (fromCurrency === REPORTING_CURRENCY) return 1;
   return defaultExchangeRates.find(r => r.fromCurrency === fromCurrency)?.toReportingRate || 1;
+}
+
+// Build payslip earnings/deductions from PayrollSetup
+function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
+  const gross = emp.salary;
+  const earnings: { label: string; amount: number }[] = [];
+  const deductions: { label: string; amount: number }[] = [];
+
+  if (setup) {
+    const activeEarnings = setup.payslipComponents.filter(c => c.type === "earning" && c.status === "active");
+    const activeDeductions = setup.payslipComponents.filter(c => c.type === "deduction" && c.status === "active");
+
+    activeEarnings.forEach(comp => {
+      const val = comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+      earnings.push({ label: comp.name, amount: val });
+    });
+
+    activeDeductions.forEach(comp => {
+      const val = comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+      deductions.push({ label: comp.name, amount: val });
+    });
+
+    // Tax from setup's taxRules
+    if (setup.options.enableTaxCalculation && setup.taxRules.length > 0) {
+      const annualGross = gross * 12;
+      let totalTax = 0;
+      setup.taxRules.forEach(slab => {
+        if (annualGross >= slab.incomeFrom) {
+          const taxableInSlab = Math.min(annualGross, slab.incomeTo) - slab.incomeFrom;
+          if (taxableInSlab > 0) {
+            totalTax += Math.round((taxableInSlab * slab.percentage / 100) / 12);
+          }
+        }
+      });
+      if (totalTax > 0) {
+        deductions.push({ label: "Income Tax", amount: totalTax });
+      }
+    }
+
+    // Auto deductions custom rules
+    setup.autoDeductions.customRules.forEach(rule => {
+      if (rule.enabled) {
+        deductions.push({ label: rule.name, amount: rule.amount });
+      }
+    });
+  } else {
+    // Fallback if no setup
+    earnings.push({ label: "Basic Salary", amount: Math.round(gross * 0.6) });
+    earnings.push({ label: "Housing Allowance", amount: Math.round(gross * 0.25) });
+    earnings.push({ label: "Other Allowances", amount: Math.round(gross * 0.15) });
+    deductions.push({ label: "Statutory Deductions", amount: Math.round(gross * 0.1) });
+  }
+
+  const totalEarnings = earnings.reduce((s, e) => s + e.amount, 0);
+  const totalDeductions = deductions.reduce((s, d) => s + d.amount, 0);
+
+  return { earnings, deductions, totalEarnings, totalDeductions };
 }
 
 interface PayslipDetail {
@@ -43,11 +103,13 @@ interface PayslipDetail {
   employeeId: string;
   payCurrency: string;
   workLocationCountry: string;
+  payrollSetupId?: string;
 }
 
 export default function PayslipsPage() {
   const { employees } = useEmployees();
   const { role, currentEmployeeId } = useRole();
+  const { setups, getSetupById } = usePayrollSetups();
   const currentEmployee = employees.find(e => e.id === currentEmployeeId);
   const completedRuns = payrollRuns.filter(r => r.status === "completed");
   const [viewPayslip, setViewPayslip] = useState<PayslipDetail | null>(null);
@@ -59,17 +121,27 @@ export default function PayslipsPage() {
   };
 
   if (role === "employee" && currentEmployee) {
+    const setup = getSetupById(currentEmployee.payrollSetupId || "");
+    const { earnings, deductions: dedItems, totalDeductions } = buildPayslipFromSetup(currentEmployee, setup);
     const monthlySalary = currentEmployee.salary;
-    const deductions = Math.round(monthlySalary * 0.15);
-    const netPay = monthlySalary - deductions;
+    const netPay = monthlySalary - totalDeductions;
     const payCurrency = getEmployeePayCurrency(currentEmployee);
+
+    // Only show runs matching employee's setup
+    const myRuns = completedRuns.filter(r => r.payrollSetupId === currentEmployee.payrollSetupId);
 
     return (
       <div className="space-y-6">
         <PageHeader title="My Payslips" description="View and download your monthly payslips." />
+        {!currentEmployee.payrollSetupId && (
+          <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-lg px-4 py-2 text-sm">
+            <AlertTriangle className="h-4 w-4" />
+            No payroll setup assigned. Contact HR.
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard title={`Gross Salary (${payCurrency})`} value={`${payCurrency} ${monthlySalary.toLocaleString()}`} icon={FileText} variant="primary" />
-          <StatCard title={`Total Deductions (${payCurrency})`} value={`${payCurrency} ${deductions.toLocaleString()}`} icon={FileText} variant="warning" />
+          <StatCard title={`Total Deductions (${payCurrency})`} value={`${payCurrency} ${totalDeductions.toLocaleString()}`} icon={FileText} variant="warning" />
           <StatCard title={`Net Pay (${payCurrency})`} value={`${payCurrency} ${netPay.toLocaleString()}`} icon={FileText} variant="success" />
         </div>
         <div className="bg-card rounded-xl border overflow-hidden">
@@ -77,6 +149,7 @@ export default function PayslipsPage() {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="font-semibold">Period</TableHead>
+                <TableHead className="font-semibold">Setup</TableHead>
                 <TableHead className="font-semibold text-right">Gross ({payCurrency})</TableHead>
                 <TableHead className="font-semibold text-right">Deductions ({payCurrency})</TableHead>
                 <TableHead className="font-semibold text-right">Net Pay ({payCurrency})</TableHead>
@@ -85,11 +158,14 @@ export default function PayslipsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {completedRuns.map(run => (
+              {myRuns.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No payslips available yet.</TableCell></TableRow>
+              ) : myRuns.map(run => (
                 <TableRow key={run.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="font-medium">{run.month} {run.year}</TableCell>
+                  <TableCell className="text-xs">{setup?.name || "—"}</TableCell>
                   <TableCell className="text-right">{monthlySalary.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-destructive">{deductions.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-destructive">{totalDeductions.toLocaleString()}</TableCell>
                   <TableCell className="text-right font-semibold">{netPay.toLocaleString()}</TableCell>
                   <TableCell><StatusBadge status="completed" /></TableCell>
                   <TableCell className="text-right">
@@ -99,10 +175,10 @@ export default function PayslipsPage() {
                         empId: currentEmployee.empId, department: currentEmployee.department,
                         designation: currentEmployee.designation, joiningDate: currentEmployee.joiningDate,
                         period: `${run.month} ${run.year}`,
-                        gross: monthlySalary, deductions, net: netPay,
-                        employeeId: currentEmployee.id,
-                        payCurrency,
+                        gross: monthlySalary, deductions: totalDeductions, net: netPay,
+                        employeeId: currentEmployee.id, payCurrency,
                         workLocationCountry: currentEmployee.workLocationCountry,
+                        payrollSetupId: currentEmployee.payrollSetupId,
                       })}><Eye className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDownload(`${currentEmployee.firstName} ${currentEmployee.lastName}`, `${run.month} ${run.year}`)}>
                         <Download className="h-4 w-4" />
@@ -119,14 +195,19 @@ export default function PayslipsPage() {
     );
   }
 
-  const allPayslips = completedRuns.flatMap(run =>
-    employees.map(emp => {
-      const deductions = Math.round(emp.salary * 0.15);
-      const net = emp.salary - deductions;
+  // Admin view — only show employees that belong to a completed run's setup
+  const allPayslips = completedRuns.flatMap(run => {
+    const runEmps = run.payrollSetupId
+      ? employees.filter(e => e.payrollSetupId === run.payrollSetupId)
+      : employees;
+    return runEmps.map(emp => {
+      const setup = getSetupById(emp.payrollSetupId || "");
+      const { totalDeductions } = buildPayslipFromSetup(emp, setup);
+      const net = emp.salary - totalDeductions;
       const payCurrency = getEmployeePayCurrency(emp);
-      return { run, emp, deductions, net, payCurrency };
-    })
-  );
+      return { run, emp, deductions: totalDeductions, net, payCurrency, setup };
+    });
+  });
 
   const filtered = allPayslips.filter(({ emp, run }) => {
     if (!search) return true;
@@ -150,14 +231,18 @@ export default function PayslipsPage() {
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Employee</TableHead>
               <TableHead className="font-semibold">Period</TableHead>
+              <TableHead className="font-semibold">Payroll Setup</TableHead>
               <TableHead className="font-semibold">Currency</TableHead>
               <TableHead className="font-semibold text-right">Gross</TableHead>
+              <TableHead className="font-semibold text-right">Deductions</TableHead>
               <TableHead className="font-semibold text-right">Net</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map(({ run, emp, deductions, net, payCurrency }) => (
+            {filtered.length === 0 ? (
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No payslips found.</TableCell></TableRow>
+            ) : filtered.map(({ run, emp, deductions, net, payCurrency, setup }) => (
               <TableRow key={`${run.id}-${emp.id}`} className="hover:bg-muted/30 transition-colors">
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -168,8 +253,10 @@ export default function PayslipsPage() {
                   </div>
                 </TableCell>
                 <TableCell>{run.month} {run.year}</TableCell>
+                <TableCell className="text-xs">{setup?.name || "—"}</TableCell>
                 <TableCell className="text-xs font-medium">{payCurrency}</TableCell>
                 <TableCell className="text-right">{emp.salary.toLocaleString()}</TableCell>
+                <TableCell className="text-right text-destructive">{deductions.toLocaleString()}</TableCell>
                 <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -179,9 +266,9 @@ export default function PayslipsPage() {
                       designation: emp.designation, joiningDate: emp.joiningDate,
                       period: `${run.month} ${run.year}`,
                       gross: emp.salary, deductions, net,
-                      employeeId: emp.id,
-                      payCurrency,
+                      employeeId: emp.id, payCurrency,
                       workLocationCountry: emp.workLocationCountry,
+                      payrollSetupId: emp.payrollSetupId,
                     })}><Eye className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(`${emp.firstName} ${emp.lastName}`, `${run.month} ${run.year}`)}>
                       <Download className="h-4 w-4" />
@@ -203,37 +290,38 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
   const { client } = useClient();
   const { separations } = useSeparations();
   const { advances } = useAdvances();
+  const { getSetupById } = usePayrollSetups();
   if (!payslip) return null;
 
+  const emp = employees.find(e => e.empId === payslip.empId);
+  const setup = getSetupById(payslip.payrollSetupId || emp?.payrollSetupId || "");
   const payCurrency = payslip.payCurrency || REPORTING_CURRENCY;
   const isMultiCurrency = payCurrency !== REPORTING_CURRENCY;
   const toReportingRate = getToReportingRate(payCurrency);
   const sepRecord = separations.find(s => s.employeeId === payslip.employeeId);
 
-  const components = [
-    { label: "Basic Salary", amount: Math.round(payslip.gross * 0.6) },
-    { label: "Housing Allowance", amount: Math.round(payslip.gross * 0.25) },
-    { label: "Travel Allowance", amount: Math.round(payslip.gross * 0.05) },
-    { label: "Medical Allowance", amount: Math.round(payslip.gross * 0.05) },
-    { label: "Other Allowances", amount: Math.round(payslip.gross * 0.05) },
-  ];
+  // Build earnings & deductions from setup
+  const empData = emp || { salary: payslip.gross, payrollSetupId: payslip.payrollSetupId } as Employee;
+  const { earnings, deductions: setupDeductions } = buildPayslipFromSetup(empData, setup);
 
-  const gosiDeduction = payslip.deductions;
+  // Loan deduction
   const empLoans = loans.filter(l => l.employeeId === payslip.employeeId);
   const activeLoan = empLoans.find(l => l.status === "active");
   const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
-  
-  // Expense reimbursement (only non-advance-linked expenses)
+
+  // Expense reimbursement
   const expenseReimbursement = expenses
     .filter(e => e.employeeId === payslip.employeeId && e.status === "paid" && !e.advanceId)
     .reduce((s, e) => s + e.amount, 0);
-  
-  // Advance given through payroll
+
+  // Advance given
   const advanceGiven = advances
     .filter(a => a.employeeId === payslip.employeeId && a.status === "approved" && a.payrollRunId)
     .reduce((s, a) => s + a.amount, 0);
-  
-  const totalDeductions = gosiDeduction + loanDeduction;
+
+  const totalEarnings = earnings.reduce((s, e) => s + e.amount, 0);
+  const totalSetupDeductions = setupDeductions.reduce((s, d) => s + d.amount, 0);
+  const totalDeductions = totalSetupDeductions + loanDeduction;
   const adjustedNet = payslip.gross - totalDeductions + expenseReimbursement + advanceGiven;
 
   const companyName = client.companyName || "Your Company";
@@ -256,6 +344,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
             <div className="text-right">
               <p className="text-sm font-semibold">{payslip.period}</p>
               <p className="text-xs text-primary-foreground/70">Payslip · {payCurrency}</p>
+              {setup && <p className="text-xs text-primary-foreground/60 mt-0.5">{setup.name}</p>}
             </div>
           </div>
         </div>
@@ -290,16 +379,22 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
             </div>
           </div>
 
+          {setup && (
+            <div className="bg-muted/30 rounded-lg px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-medium">Payroll Setup:</span> {setup.name} · {setup.country} · {setup.currency} · {setup.paySchedule.payFrequency}
+            </div>
+          )}
+
           <Separator />
 
           {/* Two-column: Earnings | Deductions */}
           <div className="grid grid-cols-2 gap-6">
-            {/* Earnings (Left) */}
+            {/* Earnings */}
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Earnings</p>
               <div className="bg-muted/30 rounded-lg overflow-hidden">
-                {components.map((c, i) => (
-                  <div key={i} className={`flex justify-between text-sm px-3 py-2 ${i < components.length - 1 ? 'border-b border-border/50' : ''}`}>
+                {earnings.map((c, i) => (
+                  <div key={i} className={`flex justify-between text-sm px-3 py-2 ${i < earnings.length - 1 ? 'border-b border-border/50' : ''}`}>
                     <span>{c.label}</span>
                     <span className="font-medium">{payCurrency} {c.amount.toLocaleString()}</span>
                   </div>
@@ -311,14 +406,16 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
               </div>
             </div>
 
-            {/* Deductions (Right) */}
+            {/* Deductions */}
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Deductions</p>
               <div className="bg-muted/30 rounded-lg overflow-hidden">
-                <div className="flex justify-between text-sm px-3 py-2 border-b border-border/50">
-                  <span>GOSI & Insurance</span>
-                  <span className="font-medium text-destructive">{payCurrency} {gosiDeduction.toLocaleString()}</span>
-                </div>
+                {setupDeductions.map((d, i) => (
+                  <div key={i} className={`flex justify-between text-sm px-3 py-2 ${i < setupDeductions.length - 1 || loanDeduction > 0 ? 'border-b border-border/50' : ''}`}>
+                    <span>{d.label}</span>
+                    <span className="font-medium text-destructive">{payCurrency} {d.amount.toLocaleString()}</span>
+                  </div>
+                ))}
                 {loanDeduction > 0 && (
                   <div className="flex justify-between text-sm px-3 py-2">
                     <span>Loan Repayment</span>
@@ -333,7 +430,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
             </div>
           </div>
 
-          {/* Additions: Expense Reimbursement & Advance Given */}
+          {/* Additions */}
           {(expenseReimbursement > 0 || advanceGiven > 0) && (
             <>
               <Separator />
@@ -363,7 +460,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
 
           <Separator />
 
-          {/* Separation Settlement (if applicable) */}
+          {/* Separation Settlement */}
           {sepRecord && (
             <>
               <div className="space-y-2">
@@ -411,7 +508,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
             <span className="text-lg font-bold text-primary">{payCurrency} {(adjustedNet + (sepRecord?.totalSettlement || 0)).toLocaleString()}</span>
           </div>
 
-          {/* Reporting currency equivalent note */}
+          {/* Reporting currency */}
           {isMultiCurrency && (
             <div className="bg-muted/30 rounded-lg px-4 py-2 text-xs text-muted-foreground">
               <span className="font-medium">Reporting currency equivalent:</span> {REPORTING_CURRENCY} {Math.round((adjustedNet + (sepRecord?.totalSettlement || 0)) * toReportingRate).toLocaleString()}
@@ -421,7 +518,6 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
 
           {/* EOS Accumulated Balances */}
           {(() => {
-            const emp = employees.find(e => e.empId === payslip.empId);
             if (!emp) return null;
             const yearsOfService = (Date.now() - new Date(emp.joiningDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
             const basicSalary = emp.compensation?.find(c => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
@@ -485,7 +581,6 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
             This is a computer-generated payslip. If you have any queries, please contact the HR department.
           </p>
         </div>
-
         </ScrollArea>
         <div className="px-6 pb-5 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Close</Button>

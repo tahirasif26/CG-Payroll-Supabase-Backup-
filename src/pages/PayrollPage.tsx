@@ -12,7 +12,7 @@ import { useDeductions } from "@/contexts/DeductionContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSeparations } from "@/contexts/SeparationContext";
 import { Button } from "@/components/ui/button";
-import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download, Search, Plus, X, Lock, Trash2, ChevronsUpDown, Check } from "lucide-react";
+import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download, Search, Plus, X, Lock, Trash2, ChevronsUpDown, Check, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -350,6 +350,23 @@ export default function PayrollPage() {
       const names = conflicting.map(id => getSetupById(id)?.name || id).join(", ");
       toast({ title: "Cannot Create", description: `Payroll run already open for: ${names}. Complete or delete them first.`, variant: "destructive" });
       return;
+    }
+    // Validate setups have required components
+    for (const setupId of newRunSetupIds) {
+      const setup = getSetupById(setupId);
+      if (!setup) {
+        toast({ title: "Invalid Setup", description: `Setup not found: ${setupId}`, variant: "destructive" });
+        return;
+      }
+      if (setup.payslipComponents.filter(c => c.status === "active").length === 0) {
+        toast({ title: "Incomplete Setup", description: `"${setup.name}" has no active payslip components. Configure it before running payroll.`, variant: "destructive" });
+        return;
+      }
+      const empCount = employees.filter(emp => emp.payrollSetupId === setupId).length;
+      if (empCount === 0) {
+        toast({ title: "No Employees", description: `"${setup.name}" has no employees assigned. Assign employees first.`, variant: "destructive" });
+        return;
+      }
     }
     // Build combined preview across all selected setups
     const allLines: EmployeePayrollLine[] = [];
@@ -1026,6 +1043,17 @@ export default function PayrollPage() {
           <Play className="h-4 w-4 mr-2" />New Payroll Run
         </Button>
       </PageHeader>
+
+      {(() => {
+        const unassignedEmps = activeEmps.filter(e => !e.payrollSetupId);
+        if (unassignedEmps.length > 0) return (
+          <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-lg px-4 py-2 text-sm">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span><strong>{unassignedEmps.length} employee{unassignedEmps.length > 1 ? "s" : ""}</strong> not assigned to any payroll setup: {unassignedEmps.slice(0, 3).map(e => `${e.firstName} ${e.lastName}`).join(", ")}{unassignedEmps.length > 3 ? ` and ${unassignedEmps.length - 3} more` : ""}. They won't be included in payroll runs.</span>
+          </div>
+        );
+        return null;
+      })()}
 
       {allSetupsHaveOpenRun && (
         <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
