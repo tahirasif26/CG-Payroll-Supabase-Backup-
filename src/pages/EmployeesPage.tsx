@@ -34,6 +34,7 @@ import { useReminderSettings } from "@/contexts/ReminderSettingsContext";
 import { useRole } from "@/contexts/RoleContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
+import { AddEmployeeWizard } from "@/components/employees/AddEmployeeWizard";
 
 interface EmployeeDocVersion {
   name: string;
@@ -1684,47 +1685,7 @@ export default function EmployeesPage() {
 
       <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
 
-      <Dialog open={addEmpOpen} onOpenChange={setAddEmpOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add New Employee</DialogTitle>
-            <DialogDescription>Enter the details of the new employee.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddEmployee} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>First Name</Label><Input name="firstName" placeholder="First name" required /></div>
-              <div className="space-y-2"><Label>Last Name</Label><Input name="lastName" placeholder="Last name" required /></div>
-            </div>
-            <div className="space-y-2"><Label>Email</Label><Input name="email" type="email" placeholder="employee@cg.com" required /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Department</Label>
-                <select name="department" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="Assurance">Assurance</option>
-                  <option value="Tax">Tax</option>
-                  <option value="Advisory">Advisory</option>
-                  <option value="Strategy">Strategy</option>
-                  <option value="Technology">Technology</option>
-                </select>
-              </div>
-              <div className="space-y-2"><Label>Designation</Label><Input name="designation" placeholder="e.g. Associate" required /></div>
-            </div>
-            <div className="space-y-2">
-              <Label>Employee Type</Label>
-              <EmployeeTypeSelect />
-            </div>
-            <div className="space-y-2">
-              <Label>Payroll Setup</Label>
-              <PayrollSetupSelect />
-            </div>
-            <div className="space-y-2"><Label>Joining Date</Label><Input name="joiningDate" type="date" required /></div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setAddEmpOpen(false)}>Cancel</Button>
-              <Button type="submit">Add Employee</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddEmployeeWizard open={addEmpOpen} onOpenChange={setAddEmpOpen} employeeCount={localEmployees.length} />
     </div>
   );
 }
