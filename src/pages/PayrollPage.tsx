@@ -78,6 +78,8 @@ interface EmployeePayrollLine {
   payCurrency: string;
 }
 
+import { PayrollSetup } from "@/types/payrollSetup";
+
 function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], allTaxConfigs: TaxConfig[], oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string, advancesData?: { employeeId: string; amount: number; payrollRunId?: string }[]): EmployeePayrollLine[] {
   const activeEmployees = allEmployees.filter(emp => {
     if (processedSepIds.has(emp.id)) return false;
@@ -102,7 +104,6 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], al
       if (d.fixedAmount) return sum + d.fixedAmount;
       return sum;
     }, 0);
-    // Apply tax configs filtered by employee type
     const applicableTaxes = allTaxConfigs.filter(t => {
       if (!t.isActive) return false;
       if (t.appliesTo && t.appliesTo.length > 0 && !t.appliesTo.includes(emp.category)) return false;
@@ -110,11 +111,9 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], al
       return true;
     });
     const taxDeductions = applicableTaxes.reduce((sum, t) => sum + Math.round(gross * t.rate / 100), 0);
-    // Only reimburse expenses NOT linked to an advance
     const approvedExpenses = expenses
       .filter(e => e.employeeId === emp.id && e.status === "approved" && e.payrollRunId === runId && !e.advanceId)
       .reduce((s, e) => s + e.amount, 0);
-    // Advance given through payroll
     const advanceGiven = (advancesData || [])
       .filter(a => a.employeeId === emp.id && a.payrollRunId === runId)
       .reduce((s, a) => s + a.amount, 0);
@@ -127,6 +126,82 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], al
     const net = gross - totalDeductions + approvedExpenses + advanceGiven + oneOffBenefits + separationSettlement;
     const payCurrency = getEmployeePayCurrency(emp);
     return { emp, basic, allowances, gross, loanDeduction, otherDeductions: otherDeductions + taxDeductions, totalDeductions, expenseReimbursement: approvedExpenses, advanceGiven, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency };
+  });
+}
+
+function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup | undefined, oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string, advancesData?: { employeeId: string; amount: number; payrollRunId?: string }[]): EmployeePayrollLine[] {
+  const activeEmployees = allEmployees.filter(emp => !processedSepIds.has(emp.id));
+  return activeEmployees.map(emp => {
+    const gross = emp.salary;
+    // Use setup's payslip components to calculate basic & allowances
+    const activeEarnings = setup?.payslipComponents.filter(c => c.type === "earning" && c.status === "active") || [];
+    const activeDeductionComponents = setup?.payslipComponents.filter(c => c.type === "deduction" && c.status === "active") || [];
+
+    // Calculate basic from setup (first earning component is typically basic)
+    let basic = 0;
+    let totalEarnings = 0;
+    activeEarnings.forEach(comp => {
+      const val = comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+      if (comp.name.toLowerCase().includes("basic") || comp.name.toLowerCase().includes("stipend")) {
+        basic = val;
+      }
+      totalEarnings += val;
+    });
+    if (basic === 0) basic = Math.round(gross * 0.6);
+    const allowances = gross - basic;
+
+    // Loan deduction
+    const activeLoan = loans.find(l => l.employeeId === emp.id && l.status === "active");
+    const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
+
+    // Deductions from setup components
+    let setupDeductions = 0;
+    activeDeductionComponents.forEach(comp => {
+      setupDeductions += comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+    });
+
+    // Tax from setup's taxRules
+    let taxDeductions = 0;
+    if (setup?.options.enableTaxCalculation && setup.taxRules.length > 0) {
+      const annualGross = gross * 12;
+      setup.taxRules.forEach(slab => {
+        if (annualGross >= slab.incomeFrom) {
+          const taxableInSlab = Math.min(annualGross, slab.incomeTo) - slab.incomeFrom;
+          if (taxableInSlab > 0) {
+            taxDeductions += Math.round((taxableInSlab * slab.percentage / 100) / 12);
+          }
+        }
+      });
+    }
+
+    // Auto deductions from setup
+    let autoDeductions = 0;
+    if (setup?.autoDeductions.latePenaltyEnabled) {
+      // Applied per occurrence — skip for now (no attendance data)
+    }
+    setup?.autoDeductions.customRules.forEach(rule => {
+      if (rule.enabled) autoDeductions += rule.amount;
+    });
+
+    // Expenses
+    const approvedExpenses = expenses
+      .filter(e => e.employeeId === emp.id && e.status === "approved" && e.payrollRunId === runId && !e.advanceId)
+      .reduce((s, e) => s + e.amount, 0);
+
+    const advanceGiven = (advancesData || [])
+      .filter(a => a.employeeId === emp.id && a.payrollRunId === runId)
+      .reduce((s, a) => s + a.amount, 0);
+
+    const empOneOffs = oneOffs.filter(o => o.employeeId === emp.id);
+    const oneOffBenefits = empOneOffs.filter(o => o.type === "benefit").reduce((s, o) => s + o.amount, 0);
+    const oneOffDeductions = empOneOffs.filter(o => o.type === "deduction").reduce((s, o) => s + o.amount, 0);
+    const separationSettlement = separationMap[emp.id] || 0;
+    const isSeparated = !!separationMap[emp.id];
+    const otherDeductions = setupDeductions + taxDeductions + autoDeductions;
+    const totalDeductions = otherDeductions + loanDeduction + oneOffDeductions;
+    const net = gross - totalDeductions + approvedExpenses + advanceGiven + oneOffBenefits + separationSettlement;
+    const payCurrency = getEmployeePayCurrency(emp);
+    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, advanceGiven, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency };
   });
 }
 
