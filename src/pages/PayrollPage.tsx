@@ -1120,7 +1120,7 @@ export default function PayrollPage() {
         })}
       </Tabs>
 
-      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunSetupId(""); } }}>
+      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunSetupIds([]); } }}>
         <DialogContent className={newRunStep === 2 ? "max-w-4xl" : ""}>
           <DialogHeader>
             <DialogTitle>{newRunStep === 1 ? "New Payroll Run — Step 1: Generate" : "Payroll Summary — Step 2: Review"}</DialogTitle>
@@ -1138,22 +1138,82 @@ export default function PayrollPage() {
                   <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Payroll Setup <span className="text-destructive">*</span></Label>
-                <Select value={newRunSetupId} onValueChange={setNewRunSetupId}>
-                  <SelectTrigger><SelectValue placeholder="Select payroll setup..." /></SelectTrigger>
-                  <SelectContent>
-                    {activeSetups.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name} ({s.country} — {s.currency})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Select the payroll setup for this run. All employees assigned to this setup will be included.</p>
+              <div className="space-y-2">
+                <Label>Payroll Setups <span className="text-destructive">*</span></Label>
+                <Popover open={setupPopoverOpen} onOpenChange={setSetupPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                      {newRunSetupIds.length === 0
+                        ? "Select payroll setups..."
+                        : newRunSetupIds.length === activeSetups.length
+                          ? "All setups selected"
+                          : `${newRunSetupIds.length} setup${newRunSetupIds.length > 1 ? "s" : ""} selected`}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full min-w-[350px] p-0" align="start">
+                    <div className="p-2 border-b">
+                      <div className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-sm"
+                        onClick={() => {
+                          if (newRunSetupIds.length === activeSetups.length) {
+                            setNewRunSetupIds([]);
+                          } else {
+                            setNewRunSetupIds(activeSetups.map(s => s.id));
+                          }
+                        }}>
+                        <Checkbox checked={newRunSetupIds.length === activeSetups.length && activeSetups.length > 0} />
+                        <span className="text-sm font-medium">Select All</span>
+                      </div>
+                    </div>
+                    <div className="p-2 max-h-[250px] overflow-auto space-y-0.5">
+                      {activeSetups.map(s => {
+                        const isSelected = newRunSetupIds.includes(s.id);
+                        const hasOpenRun = getOpenRunSetups().has(s.id);
+                        const empCount = employees.filter(e => e.payrollSetupId === s.id).length;
+                        return (
+                          <div
+                            key={s.id}
+                            className={`flex items-center gap-2 px-2 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${hasOpenRun ? "opacity-50" : ""}`}
+                            onClick={() => {
+                              if (hasOpenRun) return;
+                              setNewRunSetupIds(prev =>
+                                isSelected ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                              );
+                            }}
+                          >
+                            <Checkbox checked={isSelected} disabled={hasOpenRun} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{s.name}</p>
+                              <p className="text-xs text-muted-foreground">{s.country} — {s.currency} · {empCount} employee{empCount !== 1 ? "s" : ""}</p>
+                            </div>
+                            {hasOpenRun && <span className="text-xs text-destructive whitespace-nowrap">Run open</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">Select one or more payroll setups. A separate run will be created for each.</p>
               </div>
-              <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-                <p><span className="text-muted-foreground">Setup:</span> <span className="font-medium">{newRunSetupId ? (getSetupById(newRunSetupId)?.name || "—") : "—"}</span></p>
-                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{!newRunSetupId ? 0 : employees.filter(e => e.payrollSetupId === newRunSetupId).length}</span></p>
-                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(!newRunSetupId ? [] : employees.filter(e => e.payrollSetupId === newRunSetupId)).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
-              </div>
+              {newRunSetupIds.length > 0 && (
+                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-2">
+                  {newRunSetupIds.map(id => {
+                    const setup = getSetupById(id);
+                    const empCount = employees.filter(e => e.payrollSetupId === id).length;
+                    const estGross = employees.filter(e => e.payrollSetupId === id).reduce((s, e) => s + e.salary, 0);
+                    return (
+                      <div key={id} className="flex items-center justify-between">
+                        <span className="font-medium">{setup?.name || id}</span>
+                        <span className="text-muted-foreground text-xs">{empCount} employees · {REPORTING_CURRENCY} {estGross.toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
+                  <div className="border-t pt-2 flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span>{newRunSetupIds.reduce((s, id) => s + employees.filter(e => e.payrollSetupId === id).length, 0)} employees · {REPORTING_CURRENCY} {newRunSetupIds.reduce((s, id) => s + employees.filter(e => e.payrollSetupId === id).reduce((es, e) => es + e.salary, 0), 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
               <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Generate Payroll</Button></DialogFooter>
             </form>
           ) : (
