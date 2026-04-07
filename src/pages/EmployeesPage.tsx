@@ -1264,33 +1264,7 @@ export default function EmployeesPage() {
     setUploadDocOpen(true);
   };
 
-  const handleAddEmployee = (e: React.FormEvent) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
-    const newEmp: Employee = {
-      id: String(Date.now()),
-      empId: `CG-${String(localEmployees.length + 1).padStart(3, "0")}`,
-      firstName: (formData.get("firstName") as string) || "New",
-      lastName: (formData.get("lastName") as string) || "Employee",
-      email: (formData.get("email") as string) || "",
-      phone: "",
-      department: (formData.get("department") as string) || "Assurance",
-      designation: (formData.get("designation") as string) || "Associate",
-      joiningDate: (formData.get("joiningDate") as string) || new Date().toISOString().split("T")[0],
-      salary: 0,
-      status: "active",
-      avatar: "",
-      dateOfBirth: "",
-      category: (formData.get("category") as string) || "direct",
-      workLocationCountry: (formData.get("workLocationCountry") as string) || "Saudi Arabia",
-      payrollSetupId: (formData.get("payrollSetupId") as string) || undefined,
-      compensation: [],
-    };
-    addEmployee(newEmp);
-    setAddEmpOpen(false);
-    toast({ title: "Employee Added", description: "The new employee has been added to the directory." });
-  };
+  // Employee add logic is now in AddEmployeeWizard component
 
   const { addLog: auditLog } = useAudit();
 
