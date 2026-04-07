@@ -176,6 +176,8 @@ export default function PayrollPage() {
   const { canUserApprovePayroll } = useApprovals();
   const { currentEmployeeId } = useRole();
   const { advances } = useAdvances();
+  const { setups, getSetupById } = usePayrollSetups();
+  const activeSetups = setups.filter(s => s.status === "active");
   const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
   const [runs, setRuns] = useState<PayrollRun[]>(() => [...payrollRuns]);
 
@@ -202,7 +204,7 @@ export default function PayrollPage() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [newMonth, setNewMonth] = useState("April");
   const [newYear, setNewYear] = useState("2025");
-  const [newRunEmployeeTypes, setNewRunEmployeeTypes] = useState<string[]>([]);
+  const [newRunSetupId, setNewRunSetupId] = useState<string>("");
   const { toast } = useToast();
 
   const getSepMap = (runId?: string) => {
