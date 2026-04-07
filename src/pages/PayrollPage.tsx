@@ -6,7 +6,6 @@ import { payrollRuns, loans, expenses, taxConfigs as initialTaxConfigs } from "@
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { PayrollRun, OneOffAdjustment, Employee, Deduction, TaxConfig } from "@/types/hcm";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
-import { EmployeeTypeMultiSelect } from "@/components/EmployeeTypeMultiSelect";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import { useDeductions } from "@/contexts/DeductionContext";
@@ -29,6 +28,7 @@ import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useApprovals } from "@/contexts/ApprovalContext";
 import { useRole } from "@/contexts/RoleContext";
+import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
 const REPORTING_CURRENCY = "SAR";
 
