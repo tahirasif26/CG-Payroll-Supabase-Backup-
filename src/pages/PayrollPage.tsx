@@ -1008,14 +1008,14 @@ export default function PayrollPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Payroll Runs" description="Process and manage monthly payroll.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={allTypesHaveOpenRun}>
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={allSetupsHaveOpenRun}>
           <Play className="h-4 w-4 mr-2" />New Payroll Run
         </Button>
       </PageHeader>
 
-      {allTypesHaveOpenRun && (
+      {allSetupsHaveOpenRun && (
         <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
-          All employee types have open payroll runs. Complete or delete them before creating new ones.
+          All payroll setups have open runs. Complete or delete them before creating new ones.
         </div>
       )}
 
@@ -1046,9 +1046,10 @@ export default function PayrollPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.length > 0 ? filtered.map((run) => {
-                      const runEmps = run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees;
+                      const runEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
+                      const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
                       const liveBreakdown = run.status !== "completed"
-                        ? buildBreakdown(runEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances)
+                        ? (runSetup ? buildBreakdownFromSetup(runEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances))
                         : null;
                       const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
                       const dispGross = liveBreakdown
@@ -1063,7 +1064,7 @@ export default function PayrollPage() {
                       return (
                         <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
                           <TableCell className="font-medium">{run.month} {run.year}</TableCell>
-                          <TableCell className="text-xs">{run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "All"}</TableCell>
+                          <TableCell className="text-xs">{run.payrollSetupId ? (getSetupById(run.payrollSetupId)?.name || "—") : (run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "All")}</TableCell>
                           <TableCell>{dispCount}</TableCell>
                           <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
                           <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
@@ -1105,7 +1106,7 @@ export default function PayrollPage() {
         })}
       </Tabs>
 
-      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunEmployeeTypes([]); } }}>
+      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunSetupId(""); } }}>
         <DialogContent className={newRunStep === 2 ? "max-w-4xl" : ""}>
           <DialogHeader>
             <DialogTitle>{newRunStep === 1 ? "New Payroll Run — Step 1: Generate" : "Payroll Summary — Step 2: Review"}</DialogTitle>
@@ -1123,13 +1124,21 @@ export default function PayrollPage() {
                   <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Employee Types <span className="text-destructive">*</span></Label>
-                <EmployeeTypeMultiSelect value={newRunEmployeeTypes} onChange={setNewRunEmployeeTypes} />
-                <p className="text-xs text-muted-foreground">Select the employee types for this payroll run</p>
+              <div className="space-y-2"><Label>Payroll Setup <span className="text-destructive">*</span></Label>
+                <Select value={newRunSetupId} onValueChange={setNewRunSetupId}>
+                  <SelectTrigger><SelectValue placeholder="Select payroll setup..." /></SelectTrigger>
+                  <SelectContent>
+                    {activeSetups.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name} ({s.country} — {s.currency})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Select the payroll setup for this run. All employees assigned to this setup will be included.</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeTypes.length === 0 ? 0 : employees.filter(e => newRunEmployeeTypes.includes(e.category)).length}</span></p>
-                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeTypes.length === 0 ? [] : employees.filter(e => newRunEmployeeTypes.includes(e.category))).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
+                <p><span className="text-muted-foreground">Setup:</span> <span className="font-medium">{newRunSetupId ? (getSetupById(newRunSetupId)?.name || "—") : "—"}</span></p>
+                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{!newRunSetupId ? 0 : employees.filter(e => e.payrollSetupId === newRunSetupId).length}</span></p>
+                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(!newRunSetupId ? [] : employees.filter(e => e.payrollSetupId === newRunSetupId)).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
               </div>
               <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Generate Payroll</Button></DialogFooter>
             </form>
