@@ -364,23 +364,28 @@ export default function PayrollPage() {
   };
 
   const handleSavePayroll = (disburse: boolean) => {
-    const totalGross = newRunPreview.reduce((s, l) => s + l.gross, 0);
-    const totalDed = newRunPreview.reduce((s, l) => s + l.totalDeductions, 0);
-    const newRun: PayrollRun = {
-      id: String(Date.now()), month: newMonth, year: Number(newYear),
-      status: disburse ? "completed" : "processing",
-      totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
-      runDate: disburse ? new Date().toISOString().split("T")[0] : "",
-      employeeCount: newRunPreview.length,
-      payrollSetupId: newRunSetupId,
-    };
-    syncRuns(prev => [...prev, newRun]);
+    // Create one run per selected setup
+    const newRuns: PayrollRun[] = newRunSetupIds.map((setupId, idx) => {
+      const setupLines = newRunPreview.filter(l => l.emp.payrollSetupId === setupId);
+      const totalGross = setupLines.reduce((s, l) => s + l.gross, 0);
+      const totalDed = setupLines.reduce((s, l) => s + l.totalDeductions, 0);
+      return {
+        id: String(Date.now() + idx), month: newMonth, year: Number(newYear),
+        status: disburse ? "completed" as const : "processing" as const,
+        totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
+        runDate: disburse ? new Date().toISOString().split("T")[0] : "",
+        employeeCount: setupLines.length,
+        payrollSetupId: setupId,
+      };
+    });
+    syncRuns(prev => [...prev, ...newRuns]);
 
     if (disburse) {
       const paidDate = new Date().toISOString().split("T")[0];
+      const runIds = new Set(newRuns.map(r => r.id));
       expenses.forEach(exp => {
         if (exp.status === "approved" && !exp.payrollRunId) {
-          exp.payrollRunId = newRun.id;
+          exp.payrollRunId = newRuns[0]?.id || "";
           exp.status = "paid";
           exp.paidDate = paidDate;
           exp.paymentMethod = "Payroll";
@@ -391,12 +396,13 @@ export default function PayrollPage() {
     setNewRunOpen(false);
     setNewRunStep(1);
     setNewRunPreview([]);
-    setNewRunSetupId("");
+    setNewRunSetupIds([]);
+    const setupNames = newRunSetupIds.map(id => getSetupById(id)?.name || id).join(", ");
     toast({
       title: disburse ? "Payroll Saved & Disbursed" : "Payroll Saved",
       description: disburse
-        ? `${newMonth} ${newYear} payroll has been disbursed to ${newRunPreview.length} employees.`
-        : `${newMonth} ${newYear} payroll saved as pending. You can disburse it later.`,
+        ? `${newMonth} ${newYear} payroll for ${setupNames} has been disbursed to ${newRunPreview.length} employees.`
+        : `${newMonth} ${newYear} payroll for ${setupNames} saved as pending.`,
     });
   };
 
