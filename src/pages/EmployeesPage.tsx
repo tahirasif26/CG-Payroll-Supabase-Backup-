@@ -659,7 +659,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
         )}
       </SectionCard>
 
-      <SectionCard title="Current Compensation" icon={DollarSign} editing={editing} onEdit={() => setEditing(true)} onSave={() => { const changes = compData.filter((c, i) => c.amount !== prevCompData[i]?.amount).map(c => ({ employeeId: emp.id, employeeName: empName, section: "Compensation > Current", field: c.name, oldValue: String(prevCompData.find(p => p.name === c.name)?.amount || 0), newValue: String(c.amount) })); if (changes.length > 0) addLogs(changes); setPrevCompData(compData.map(c => ({ ...c }))); setEditing(false); toast({ title: "Saved", description: "Compensation updated." }); }} onCancel={() => setEditing(false)}>
+      <SectionCard title="Current Compensation" icon={DollarSign} editing={editing} onEdit={readOnly ? undefined : () => setEditing(true)} onSave={() => { const changes = compData.filter((c, i) => c.amount !== prevCompData[i]?.amount).map(c => ({ employeeId: emp.id, employeeName: empName, section: "Compensation > Current", field: c.name, oldValue: String(prevCompData.find(p => p.name === c.name)?.amount || 0), newValue: String(c.amount) })); if (changes.length > 0) addLogs(changes); setPrevCompData(compData.map(c => ({ ...c }))); setEditing(false); toast({ title: "Saved", description: "Compensation updated." }); }} onCancel={() => setEditing(false)}>
         <div className="space-y-3">
           {compData.map((c, i) => (
             <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
@@ -682,7 +682,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" />Compensation History</CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setShowAddChange(true)}><Plus className="h-4 w-4 mr-1" />New Change</Button>
+          {!readOnly && <Button size="sm" variant="outline" onClick={() => setShowAddChange(true)}><Plus className="h-4 w-4 mr-1" />New Change</Button>}
         </CardHeader>
         <CardContent>
           {ext.compensationHistory.length > 0 ? (
