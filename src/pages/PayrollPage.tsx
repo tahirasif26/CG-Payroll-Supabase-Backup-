@@ -1233,32 +1233,43 @@ export default function PayrollPage() {
                 </div>
               </div>
               <ScrollArea className="h-[350px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold">Employee</TableHead>
-                      <TableHead className="font-semibold">ID</TableHead>
-                      <TableHead className="font-semibold">Type</TableHead>
-                      <TableHead className="font-semibold text-right">Basic</TableHead>
-                      <TableHead className="font-semibold text-right">Allowances</TableHead>
-                      <TableHead className="font-semibold text-right">Deductions</TableHead>
-                      <TableHead className="font-semibold text-right">Net Pay</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {newRunPreview.map(({ emp, basic, allowances, totalDeductions, net }) => (
-                      <TableRow key={emp.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
-                        <TableCell className="text-xs font-mono">{emp.empId}</TableCell>
-                        <TableCell className="text-xs">{getTypeName(emp.category)}</TableCell>
-                        <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
-                        <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
-                        <TableCell className="text-right text-destructive">{totalDeductions.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {newRunSetupIds.map(setupId => {
+                  const setup = getSetupById(setupId);
+                  const setupLines = newRunPreview.filter(l => l.emp.payrollSetupId === setupId);
+                  if (setupLines.length === 0) return null;
+                  return (
+                    <div key={setupId} className="mb-4">
+                      <div className="bg-primary/5 px-3 py-1.5 rounded-t-md border-b">
+                        <span className="text-sm font-semibold">{setup?.name || setupId}</span>
+                        <span className="text-xs text-muted-foreground ml-2">({setupLines.length} employees · {setup?.country} · {setup?.currency})</span>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableHead className="font-semibold">Employee</TableHead>
+                            <TableHead className="font-semibold">ID</TableHead>
+                            <TableHead className="font-semibold text-right">Basic</TableHead>
+                            <TableHead className="font-semibold text-right">Allowances</TableHead>
+                            <TableHead className="font-semibold text-right">Deductions</TableHead>
+                            <TableHead className="font-semibold text-right">Net Pay</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {setupLines.map(({ emp, basic, allowances, totalDeductions, net }) => (
+                            <TableRow key={emp.id} className="hover:bg-muted/30">
+                              <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
+                              <TableCell className="text-xs font-mono">{emp.empId}</TableCell>
+                              <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
+                              <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
+                              <TableCell className="text-right text-destructive">{totalDeductions.toLocaleString()}</TableCell>
+                              <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  );
+                })}
               </ScrollArea>
               <DialogFooter className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => setNewRunStep(1)}>Back</Button>
