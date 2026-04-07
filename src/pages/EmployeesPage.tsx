@@ -638,7 +638,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
         title="Pay Currency"
         icon={DollarSign}
         editing={editingPayCurrency}
-        onEdit={() => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(true); }}
+        onEdit={readOnly ? undefined : () => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(true); }}
         onSave={() => { if (payCurrency !== currentPayCurrency) { addLog({ employeeId: emp.id, employeeName: empName, section: "Compensation > Pay Currency", field: "payCurrency", oldValue: currentPayCurrency, newValue: payCurrency }); } onUpdatePayCurrency?.(emp.id, payCurrency); setEditingPayCurrency(false); toast({ title: "Pay Currency Saved", description: `Pay currency set to ${payCurrency}.` }); }}
         onCancel={() => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(false); }}
       >
