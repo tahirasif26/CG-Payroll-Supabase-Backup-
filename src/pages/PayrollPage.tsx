@@ -12,10 +12,12 @@ import { useDeductions } from "@/contexts/DeductionContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSeparations } from "@/contexts/SeparationContext";
 import { Button } from "@/components/ui/button";
-import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download, Search, Plus, X, Lock, Trash2 } from "lucide-react";
+import { Play, Eye, CheckCircle2, XCircle, ArrowLeft, Download, Search, Plus, X, Lock, Trash2, ChevronsUpDown, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -279,7 +281,8 @@ export default function PayrollPage() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [newMonth, setNewMonth] = useState("April");
   const [newYear, setNewYear] = useState("2025");
-  const [newRunSetupId, setNewRunSetupId] = useState<string>("");
+  const [newRunSetupIds, setNewRunSetupIds] = useState<string[]>([]);
+  const [setupPopoverOpen, setSetupPopoverOpen] = useState(false);
   const { toast } = useToast();
 
   const getSepMap = (runId?: string) => {
@@ -337,42 +340,52 @@ export default function PayrollPage() {
 
   const handleGeneratePayroll = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRunSetupId) {
-      toast({ title: "Select Payroll Setup", description: "Please select a payroll setup for this run.", variant: "destructive" });
+    if (newRunSetupIds.length === 0) {
+      toast({ title: "Select Payroll Setup", description: "Please select at least one payroll setup for this run.", variant: "destructive" });
       return;
     }
     const openSetups = getOpenRunSetups();
-    if (openSetups.has(newRunSetupId)) {
-      const setup = getSetupById(newRunSetupId);
-      toast({ title: "Cannot Create", description: `Payroll run already open for: ${setup?.name || newRunSetupId}. Complete or delete it first.`, variant: "destructive" });
+    const conflicting = newRunSetupIds.filter(id => openSetups.has(id));
+    if (conflicting.length > 0) {
+      const names = conflicting.map(id => getSetupById(id)?.name || id).join(", ");
+      toast({ title: "Cannot Create", description: `Payroll run already open for: ${names}. Complete or delete them first.`, variant: "destructive" });
       return;
     }
-    // Filter employees by selected payroll setup
-    const filteredEmployees = employees.filter(emp => emp.payrollSetupId === newRunSetupId);
-    const setup = getSetupById(newRunSetupId);
-    const breakdown = buildBreakdownFromSetup(filteredEmployees, setup, [], {}, processedSeps, undefined, approvedAdvances);
-    setNewRunPreview(breakdown);
+    // Build combined preview across all selected setups
+    const allLines: EmployeePayrollLine[] = [];
+    newRunSetupIds.forEach(setupId => {
+      const filteredEmployees = employees.filter(emp => emp.payrollSetupId === setupId);
+      const setup = getSetupById(setupId);
+      const breakdown = buildBreakdownFromSetup(filteredEmployees, setup, [], {}, processedSeps, undefined, approvedAdvances);
+      allLines.push(...breakdown);
+    });
+    setNewRunPreview(allLines);
     setNewRunStep(2);
   };
 
   const handleSavePayroll = (disburse: boolean) => {
-    const totalGross = newRunPreview.reduce((s, l) => s + l.gross, 0);
-    const totalDed = newRunPreview.reduce((s, l) => s + l.totalDeductions, 0);
-    const newRun: PayrollRun = {
-      id: String(Date.now()), month: newMonth, year: Number(newYear),
-      status: disburse ? "completed" : "processing",
-      totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
-      runDate: disburse ? new Date().toISOString().split("T")[0] : "",
-      employeeCount: newRunPreview.length,
-      payrollSetupId: newRunSetupId,
-    };
-    syncRuns(prev => [...prev, newRun]);
+    // Create one run per selected setup
+    const newRuns: PayrollRun[] = newRunSetupIds.map((setupId, idx) => {
+      const setupLines = newRunPreview.filter(l => l.emp.payrollSetupId === setupId);
+      const totalGross = setupLines.reduce((s, l) => s + l.gross, 0);
+      const totalDed = setupLines.reduce((s, l) => s + l.totalDeductions, 0);
+      return {
+        id: String(Date.now() + idx), month: newMonth, year: Number(newYear),
+        status: disburse ? "completed" as const : "processing" as const,
+        totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
+        runDate: disburse ? new Date().toISOString().split("T")[0] : "",
+        employeeCount: setupLines.length,
+        payrollSetupId: setupId,
+      };
+    });
+    syncRuns(prev => [...prev, ...newRuns]);
 
     if (disburse) {
       const paidDate = new Date().toISOString().split("T")[0];
+      const runIds = new Set(newRuns.map(r => r.id));
       expenses.forEach(exp => {
         if (exp.status === "approved" && !exp.payrollRunId) {
-          exp.payrollRunId = newRun.id;
+          exp.payrollRunId = newRuns[0]?.id || "";
           exp.status = "paid";
           exp.paidDate = paidDate;
           exp.paymentMethod = "Payroll";
@@ -383,12 +396,13 @@ export default function PayrollPage() {
     setNewRunOpen(false);
     setNewRunStep(1);
     setNewRunPreview([]);
-    setNewRunSetupId("");
+    setNewRunSetupIds([]);
+    const setupNames = newRunSetupIds.map(id => getSetupById(id)?.name || id).join(", ");
     toast({
       title: disburse ? "Payroll Saved & Disbursed" : "Payroll Saved",
       description: disburse
-        ? `${newMonth} ${newYear} payroll has been disbursed to ${newRunPreview.length} employees.`
-        : `${newMonth} ${newYear} payroll saved as pending. You can disburse it later.`,
+        ? `${newMonth} ${newYear} payroll for ${setupNames} has been disbursed to ${newRunPreview.length} employees.`
+        : `${newMonth} ${newYear} payroll for ${setupNames} saved as pending.`,
     });
   };
 
@@ -1106,7 +1120,7 @@ export default function PayrollPage() {
         })}
       </Tabs>
 
-      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunSetupId(""); } }}>
+      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunSetupIds([]); } }}>
         <DialogContent className={newRunStep === 2 ? "max-w-4xl" : ""}>
           <DialogHeader>
             <DialogTitle>{newRunStep === 1 ? "New Payroll Run — Step 1: Generate" : "Payroll Summary — Step 2: Review"}</DialogTitle>
@@ -1124,22 +1138,82 @@ export default function PayrollPage() {
                   <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Payroll Setup <span className="text-destructive">*</span></Label>
-                <Select value={newRunSetupId} onValueChange={setNewRunSetupId}>
-                  <SelectTrigger><SelectValue placeholder="Select payroll setup..." /></SelectTrigger>
-                  <SelectContent>
-                    {activeSetups.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name} ({s.country} — {s.currency})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Select the payroll setup for this run. All employees assigned to this setup will be included.</p>
+              <div className="space-y-2">
+                <Label>Payroll Setups <span className="text-destructive">*</span></Label>
+                <Popover open={setupPopoverOpen} onOpenChange={setSetupPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                      {newRunSetupIds.length === 0
+                        ? "Select payroll setups..."
+                        : newRunSetupIds.length === activeSetups.length
+                          ? "All setups selected"
+                          : `${newRunSetupIds.length} setup${newRunSetupIds.length > 1 ? "s" : ""} selected`}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full min-w-[350px] p-0" align="start">
+                    <div className="p-2 border-b">
+                      <div className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-sm"
+                        onClick={() => {
+                          if (newRunSetupIds.length === activeSetups.length) {
+                            setNewRunSetupIds([]);
+                          } else {
+                            setNewRunSetupIds(activeSetups.map(s => s.id));
+                          }
+                        }}>
+                        <Checkbox checked={newRunSetupIds.length === activeSetups.length && activeSetups.length > 0} />
+                        <span className="text-sm font-medium">Select All</span>
+                      </div>
+                    </div>
+                    <div className="p-2 max-h-[250px] overflow-auto space-y-0.5">
+                      {activeSetups.map(s => {
+                        const isSelected = newRunSetupIds.includes(s.id);
+                        const hasOpenRun = getOpenRunSetups().has(s.id);
+                        const empCount = employees.filter(e => e.payrollSetupId === s.id).length;
+                        return (
+                          <div
+                            key={s.id}
+                            className={`flex items-center gap-2 px-2 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${hasOpenRun ? "opacity-50" : ""}`}
+                            onClick={() => {
+                              if (hasOpenRun) return;
+                              setNewRunSetupIds(prev =>
+                                isSelected ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                              );
+                            }}
+                          >
+                            <Checkbox checked={isSelected} disabled={hasOpenRun} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{s.name}</p>
+                              <p className="text-xs text-muted-foreground">{s.country} — {s.currency} · {empCount} employee{empCount !== 1 ? "s" : ""}</p>
+                            </div>
+                            {hasOpenRun && <span className="text-xs text-destructive whitespace-nowrap">Run open</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">Select one or more payroll setups. A separate run will be created for each.</p>
               </div>
-              <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-                <p><span className="text-muted-foreground">Setup:</span> <span className="font-medium">{newRunSetupId ? (getSetupById(newRunSetupId)?.name || "—") : "—"}</span></p>
-                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{!newRunSetupId ? 0 : employees.filter(e => e.payrollSetupId === newRunSetupId).length}</span></p>
-                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(!newRunSetupId ? [] : employees.filter(e => e.payrollSetupId === newRunSetupId)).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
-              </div>
+              {newRunSetupIds.length > 0 && (
+                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-2">
+                  {newRunSetupIds.map(id => {
+                    const setup = getSetupById(id);
+                    const empCount = employees.filter(e => e.payrollSetupId === id).length;
+                    const estGross = employees.filter(e => e.payrollSetupId === id).reduce((s, e) => s + e.salary, 0);
+                    return (
+                      <div key={id} className="flex items-center justify-between">
+                        <span className="font-medium">{setup?.name || id}</span>
+                        <span className="text-muted-foreground text-xs">{empCount} employees · {REPORTING_CURRENCY} {estGross.toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
+                  <div className="border-t pt-2 flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span>{newRunSetupIds.reduce((s, id) => s + employees.filter(e => e.payrollSetupId === id).length, 0)} employees · {REPORTING_CURRENCY} {newRunSetupIds.reduce((s, id) => s + employees.filter(e => e.payrollSetupId === id).reduce((es, e) => es + e.salary, 0), 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
               <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Generate Payroll</Button></DialogFooter>
             </form>
           ) : (
@@ -1159,32 +1233,43 @@ export default function PayrollPage() {
                 </div>
               </div>
               <ScrollArea className="h-[350px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold">Employee</TableHead>
-                      <TableHead className="font-semibold">ID</TableHead>
-                      <TableHead className="font-semibold">Type</TableHead>
-                      <TableHead className="font-semibold text-right">Basic</TableHead>
-                      <TableHead className="font-semibold text-right">Allowances</TableHead>
-                      <TableHead className="font-semibold text-right">Deductions</TableHead>
-                      <TableHead className="font-semibold text-right">Net Pay</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {newRunPreview.map(({ emp, basic, allowances, totalDeductions, net }) => (
-                      <TableRow key={emp.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
-                        <TableCell className="text-xs font-mono">{emp.empId}</TableCell>
-                        <TableCell className="text-xs">{getTypeName(emp.category)}</TableCell>
-                        <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
-                        <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
-                        <TableCell className="text-right text-destructive">{totalDeductions.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {newRunSetupIds.map(setupId => {
+                  const setup = getSetupById(setupId);
+                  const setupLines = newRunPreview.filter(l => l.emp.payrollSetupId === setupId);
+                  if (setupLines.length === 0) return null;
+                  return (
+                    <div key={setupId} className="mb-4">
+                      <div className="bg-primary/5 px-3 py-1.5 rounded-t-md border-b">
+                        <span className="text-sm font-semibold">{setup?.name || setupId}</span>
+                        <span className="text-xs text-muted-foreground ml-2">({setupLines.length} employees · {setup?.country} · {setup?.currency})</span>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableHead className="font-semibold">Employee</TableHead>
+                            <TableHead className="font-semibold">ID</TableHead>
+                            <TableHead className="font-semibold text-right">Basic</TableHead>
+                            <TableHead className="font-semibold text-right">Allowances</TableHead>
+                            <TableHead className="font-semibold text-right">Deductions</TableHead>
+                            <TableHead className="font-semibold text-right">Net Pay</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {setupLines.map(({ emp, basic, allowances, totalDeductions, net }) => (
+                            <TableRow key={emp.id} className="hover:bg-muted/30">
+                              <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
+                              <TableCell className="text-xs font-mono">{emp.empId}</TableCell>
+                              <TableCell className="text-right">{basic.toLocaleString()}</TableCell>
+                              <TableCell className="text-right">{allowances.toLocaleString()}</TableCell>
+                              <TableCell className="text-right text-destructive">{totalDeductions.toLocaleString()}</TableCell>
+                              <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  );
+                })}
               </ScrollArea>
               <DialogFooter className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => setNewRunStep(1)}>Back</Button>
