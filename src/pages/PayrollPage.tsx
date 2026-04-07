@@ -351,6 +351,23 @@ export default function PayrollPage() {
       toast({ title: "Cannot Create", description: `Payroll run already open for: ${names}. Complete or delete them first.`, variant: "destructive" });
       return;
     }
+    // Validate setups have required components
+    for (const setupId of newRunSetupIds) {
+      const setup = getSetupById(setupId);
+      if (!setup) {
+        toast({ title: "Invalid Setup", description: `Setup not found: ${setupId}`, variant: "destructive" });
+        return;
+      }
+      if (setup.payslipComponents.filter(c => c.status === "active").length === 0) {
+        toast({ title: "Incomplete Setup", description: `"${setup.name}" has no active payslip components. Configure it before running payroll.`, variant: "destructive" });
+        return;
+      }
+      const empCount = employees.filter(emp => emp.payrollSetupId === setupId).length;
+      if (empCount === 0) {
+        toast({ title: "No Employees", description: `"${setup.name}" has no employees assigned. Assign employees first.`, variant: "destructive" });
+        return;
+      }
+    }
     // Build combined preview across all selected setups
     const allLines: EmployeePayrollLine[] = [];
     newRunSetupIds.forEach(setupId => {
