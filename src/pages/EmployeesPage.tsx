@@ -33,6 +33,7 @@ import { useReporting } from "@/contexts/ReportingContext";
 import { useReminderSettings } from "@/contexts/ReminderSettingsContext";
 import { useRole } from "@/contexts/RoleContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
 interface EmployeeDocVersion {
   name: string;
@@ -1202,6 +1203,19 @@ function EmployeeTypeSelect() {
       <option value="">Select employee type...</option>
       {activeTypes.map(t => (
         <option key={t.id} value={t.id}>{t.name}</option>
+      ))}
+    </select>
+  );
+}
+
+function PayrollSetupSelect() {
+  const { setups } = usePayrollSetups();
+  const activeSetups = setups.filter(s => s.status === "active");
+  return (
+    <select name="payrollSetupId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+      <option value="">Select payroll setup...</option>
+      {activeSetups.map(s => (
+        <option key={s.id} value={s.id}>{s.name} ({s.country})</option>
       ))}
     </select>
   );
