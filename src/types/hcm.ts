@@ -38,6 +38,7 @@ export interface PayrollRun {
   runDate: string;
   employeeCount: number;
   employeeTypes?: string[];
+  payrollSetupId?: string;
 }
 
 export interface LeaveRequest {
