@@ -176,7 +176,7 @@ function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onC
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-base flex items-center gap-2"><Icon className="h-4 w-4 text-primary" />{title}</CardTitle>
-        {!readOnly && (
+        {!readOnly && onEdit && (
           <div className="flex gap-1">
             {editing ? (
               <>
