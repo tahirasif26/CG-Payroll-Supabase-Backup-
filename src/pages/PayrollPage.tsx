@@ -244,17 +244,15 @@ export default function PayrollPage() {
 
   const currentOneOffs = selectedRun ? (oneOffs[selectedRun.id] || []) : [];
 
-  const getOpenRunTypes = (): Set<string> => {
-    const types = new Set<string>();
+  const getOpenRunSetups = (): Set<string> => {
+    const setupIds = new Set<string>();
     runs.filter(r => r.status === "draft" || r.status === "processing").forEach(r => {
-      if (r.employeeTypes && r.employeeTypes.length > 0) {
-        r.employeeTypes.forEach(t => types.add(t));
-      }
+      if (r.payrollSetupId) setupIds.add(r.payrollSetupId);
     });
-    return types;
+    return setupIds;
   };
 
-  const allTypesHaveOpenRun = activeTypes.length > 0 && activeTypes.every(t => getOpenRunTypes().has(t.id));
+  const allSetupsHaveOpenRun = activeSetups.length > 0 && activeSetups.every(s => getOpenRunSetups().has(s.id));
 
   const getNextMonth = (month: string, year: number): { month: string; year: number } => {
     const idx = months.indexOf(month);
