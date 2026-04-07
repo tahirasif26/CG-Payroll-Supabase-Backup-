@@ -170,7 +170,7 @@ function EditableField({ label, value, editing, onChange, type = "text" }: {
 
 function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onCancel, readOnly = false }: {
   title: string; icon: any; children: React.ReactNode; editing: boolean;
-  onEdit: () => void; onSave: () => void; onCancel: () => void; readOnly?: boolean;
+  onEdit?: () => void; onSave: () => void; onCancel: () => void; readOnly?: boolean;
 }) {
   return (
     <Card>
