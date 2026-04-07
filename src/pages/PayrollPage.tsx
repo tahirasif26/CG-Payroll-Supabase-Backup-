@@ -580,8 +580,9 @@ export default function PayrollPage() {
 
   if (selectedRun) {
     const sepMap = getSepMap(selectedRun.id);
-    const runFilteredEmps = selectedRun.employeeTypes && selectedRun.employeeTypes.length > 0 ? employees.filter(e => selectedRun.employeeTypes!.includes(e.category)) : employees;
-    const breakdown = buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
+    const runFilteredEmps = selectedRun.payrollSetupId ? employees.filter(e => e.payrollSetupId === selectedRun.payrollSetupId) : (selectedRun.employeeTypes && selectedRun.employeeTypes.length > 0 ? employees.filter(e => selectedRun.employeeTypes!.includes(e.category)) : employees);
+    const runSetup = selectedRun.payrollSetupId ? getSetupById(selectedRun.payrollSetupId) : undefined;
+    const breakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances) : buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
     const totalAdvance = breakdown.reduce((s, l) => s + l.advanceGiven, 0);
