@@ -262,20 +262,20 @@ export default function PayrollPage() {
 
   const handleGeneratePayroll = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newRunEmployeeTypes.length === 0) {
-      toast({ title: "Select Employee Types", description: "Please select at least one employee type for the payroll run.", variant: "destructive" });
+    if (!newRunSetupId) {
+      toast({ title: "Select Payroll Setup", description: "Please select a payroll setup for this run.", variant: "destructive" });
       return;
     }
-    const openTypes = getOpenRunTypes();
-    const overlapping = newRunEmployeeTypes.filter(t => openTypes.has(t));
-    if (overlapping.length > 0) {
-      const names = overlapping.map(t => getTypeName(t)).join(", ");
-      toast({ title: "Cannot Create", description: `Payroll run already open for: ${names}. Complete or delete it first.`, variant: "destructive" });
+    const openSetups = getOpenRunSetups();
+    if (openSetups.has(newRunSetupId)) {
+      const setup = getSetupById(newRunSetupId);
+      toast({ title: "Cannot Create", description: `Payroll run already open for: ${setup?.name || newRunSetupId}. Complete or delete it first.`, variant: "destructive" });
       return;
     }
-    // Filter employees by selected types
-    const filteredEmployees = employees.filter(emp => newRunEmployeeTypes.includes(emp.category));
-    const breakdown = buildBreakdown(filteredEmployees, deductions, initialTaxConfigs, [], {}, processedSeps, undefined, approvedAdvances);
+    // Filter employees by selected payroll setup
+    const filteredEmployees = employees.filter(emp => emp.payrollSetupId === newRunSetupId);
+    const setup = getSetupById(newRunSetupId);
+    const breakdown = buildBreakdownFromSetup(filteredEmployees, setup, [], {}, processedSeps, undefined, approvedAdvances);
     setNewRunPreview(breakdown);
     setNewRunStep(2);
   };
@@ -289,12 +289,11 @@ export default function PayrollPage() {
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
       runDate: disburse ? new Date().toISOString().split("T")[0] : "",
       employeeCount: newRunPreview.length,
-      employeeTypes: [...newRunEmployeeTypes],
+      payrollSetupId: newRunSetupId,
     };
     syncRuns(prev => [...prev, newRun]);
 
     if (disburse) {
-      // Mark expenses as paid
       const paidDate = new Date().toISOString().split("T")[0];
       expenses.forEach(exp => {
         if (exp.status === "approved" && !exp.payrollRunId) {
@@ -309,7 +308,7 @@ export default function PayrollPage() {
     setNewRunOpen(false);
     setNewRunStep(1);
     setNewRunPreview([]);
-    setNewRunEmployeeTypes([]);
+    setNewRunSetupId("");
     toast({
       title: disburse ? "Payroll Saved & Disbursed" : "Payroll Saved",
       description: disburse
