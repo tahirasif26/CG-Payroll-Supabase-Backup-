@@ -6,9 +6,210 @@ import { useEmployees } from "@/contexts/EmployeeContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Copy, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Pencil, Copy, Trash2, ToggleLeft, ToggleRight, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import type { PayrollSetup } from "@/types/payrollSetup";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+
+function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null; open: boolean; onClose: () => void }) {
+  if (!setup) return null;
+  const earnings = setup.payslipComponents.filter(c => c.type === "earning");
+  const deductions = setup.payslipComponents.filter(c => c.type === "deduction");
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[85vh] p-0">
+        <DialogHeader className="px-6 pt-6 pb-2">
+          <DialogTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5 text-primary" />
+            {setup.name}
+            <Badge variant={setup.status === "active" ? "default" : "secondary"} className="ml-2 text-[10px]">{setup.status}</Badge>
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">{setup.country} · {setup.currency}</p>
+        </DialogHeader>
+        <ScrollArea className="max-h-[68vh] px-6 pb-6">
+          <Tabs defaultValue="schedule" className="space-y-4">
+            <TabsList className="flex-wrap h-auto gap-1">
+              <TabsTrigger value="schedule">Pay Schedule</TabsTrigger>
+              <TabsTrigger value="options">Options</TabsTrigger>
+              <TabsTrigger value="components">Components</TabsTrigger>
+              <TabsTrigger value="tax">Tax Rules</TabsTrigger>
+              <TabsTrigger value="salary">Salary Rules</TabsTrigger>
+              <TabsTrigger value="overtime">Overtime</TabsTrigger>
+              <TabsTrigger value="deductions">Auto Deductions</TabsTrigger>
+              <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
+              <TabsTrigger value="leave">Leave & Encashment</TabsTrigger>
+              <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
+              <TabsTrigger value="retirement">Retirement</TabsTrigger>
+              <TabsTrigger value="approval">Approval</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="schedule">
+              <Card><CardHeader><CardTitle className="text-sm">Pay Schedule</CardTitle></CardHeader><CardContent>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><Label className="text-muted-foreground text-xs">Frequency</Label><p className="capitalize">{setup.paySchedule.payFrequency}</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Cycle</Label><p>{setup.paySchedule.cycleStartDate} – {setup.paySchedule.cycleEndDate}</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Pay Date</Label><p>{setup.paySchedule.payDate}</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Cutoff Date</Label><p>{setup.paySchedule.cutoffDate}</p></div>
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="options">
+              <Card><CardHeader><CardTitle className="text-sm">Payroll Options</CardTitle></CardHeader><CardContent>
+                <div className="space-y-3">
+                  {Object.entries(setup.options).map(([key, val]) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <Label className="text-sm capitalize">{key.replace(/([A-Z])/g, " $1")}</Label>
+                      <Switch checked={val} disabled />
+                    </div>
+                  ))}
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="components">
+              <Card><CardHeader><CardTitle className="text-sm">Payslip Components</CardTitle></CardHeader><CardContent className="space-y-4">
+                {earnings.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Earnings</p>
+                    <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Value</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                      <TableBody>{earnings.map(c => (
+                        <TableRow key={c.id}><TableCell>{c.name}</TableCell><TableCell className="capitalize">{c.calculationType}</TableCell><TableCell>{c.calculationType === "percentage" ? `${c.value}%` : c.value}</TableCell><TableCell><Badge variant={c.status === "active" ? "default" : "secondary"} className="text-[10px]">{c.status}</Badge></TableCell></TableRow>
+                      ))}</TableBody></Table>
+                  </div>
+                )}
+                {deductions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Deductions</p>
+                    <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Value</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                      <TableBody>{deductions.map(c => (
+                        <TableRow key={c.id}><TableCell>{c.name}</TableCell><TableCell className="capitalize">{c.calculationType}</TableCell><TableCell>{c.calculationType === "percentage" ? `${c.value}%` : c.value}</TableCell><TableCell><Badge variant={c.status === "active" ? "default" : "secondary"} className="text-[10px]">{c.status}</Badge></TableCell></TableRow>
+                      ))}</TableBody></Table>
+                  </div>
+                )}
+                {earnings.length === 0 && deductions.length === 0 && <p className="text-sm text-muted-foreground">No components configured.</p>}
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="tax">
+              <Card><CardHeader><CardTitle className="text-sm">Tax Rules</CardTitle></CardHeader><CardContent>
+                {setup.taxRules.length > 0 ? (
+                  <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>%</TableHead></TableRow></TableHeader>
+                    <TableBody>{setup.taxRules.map(t => (
+                      <TableRow key={t.id}><TableCell>{t.name}</TableCell><TableCell>{t.incomeFrom.toLocaleString()}</TableCell><TableCell>{t.incomeTo.toLocaleString()}</TableCell><TableCell>{t.percentage}%</TableCell></TableRow>
+                    ))}</TableBody></Table>
+                ) : <p className="text-sm text-muted-foreground">No tax rules configured.</p>}
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="salary">
+              <Card><CardHeader><CardTitle className="text-sm">Salary Rules</CardTitle></CardHeader><CardContent>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><Label className="text-muted-foreground text-xs">Salary Type</Label><p className="capitalize">{setup.salaryRules.salaryType}</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Proration Rule</Label><p className="capitalize">{setup.salaryRules.prorationRule.replace(/-/g, " ")}</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Working Days/Month</Label><p>{setup.salaryRules.workingDaysPerMonth}</p></div>
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="overtime">
+              <Card><CardHeader><CardTitle className="text-sm">Overtime</CardTitle></CardHeader><CardContent>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><Label className="text-muted-foreground text-xs">Enabled</Label><p>{setup.overtime.enabled ? "Yes" : "No"}</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Rate Multiplier</Label><p>{setup.overtime.rateMultiplier}x</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Max Hours</Label><p>{setup.overtime.maxOvertimeHours}h</p></div>
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="deductions">
+              <Card><CardHeader><CardTitle className="text-sm">Auto Deductions</CardTitle></CardHeader><CardContent>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span>Late Penalty</span><span>{setup.autoDeductions.latePenaltyEnabled ? `${setup.autoDeductions.latePenaltyAmount}` : "Disabled"}</span></div>
+                  <div className="flex justify-between"><span>Absence Deduction/Day</span><span>{setup.autoDeductions.absenceDeductionEnabled ? `${setup.autoDeductions.absenceDeductionPerDay}` : "Disabled"}</span></div>
+                  {setup.autoDeductions.customRules.length > 0 && (
+                    <>
+                      <Separator />
+                      <p className="text-xs font-semibold text-muted-foreground">Custom Rules</p>
+                      {setup.autoDeductions.customRules.map(r => (
+                        <div key={r.id} className="flex justify-between"><span>{r.name}</span><span>{r.enabled ? r.amount : "Disabled"}</span></div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="loan">
+              <Card><CardHeader><CardTitle className="text-sm">Loan & Advance</CardTitle></CardHeader><CardContent>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><Label className="text-muted-foreground text-xs">Advance Deduction</Label><p>{setup.loanAdvance.enableAdvanceDeduction ? "Enabled" : "Disabled"}</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Max Deduction %</Label><p>{setup.loanAdvance.maxDeductionPercentage}%</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Auto Deduct Remaining</Label><p>{setup.loanAdvance.autoDeductRemaining ? "Yes" : "No"}</p></div>
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="leave">
+              <Card><CardHeader><CardTitle className="text-sm">Leave & Encashment</CardTitle></CardHeader><CardContent>
+                <div className="space-y-2 text-sm">
+                  <div><Label className="text-muted-foreground text-xs">Enabled</Label><p>{setup.leaveEncashment.enabled ? "Yes" : "No"}</p></div>
+                  {setup.leaveEncashment.enabled && <div><Label className="text-muted-foreground text-xs">Formula</Label><p>{setup.leaveEncashment.formula}</p></div>}
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="settlement">
+              <Card><CardHeader><CardTitle className="text-sm">Final Settlement</CardTitle></CardHeader><CardContent>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex justify-between col-span-2"><span>Include Leave Encashment</span><Switch checked={setup.finalSettlement.includeLeaveEncashment} disabled /></div>
+                  <div className="flex justify-between col-span-2"><span>Include Pending Salary</span><Switch checked={setup.finalSettlement.includePendingSalary} disabled /></div>
+                  <div className="flex justify-between col-span-2"><span>Include Deductions</span><Switch checked={setup.finalSettlement.includeDeductions} disabled /></div>
+                  <div><Label className="text-muted-foreground text-xs">Notice Period Recovery Days</Label><p>{setup.finalSettlement.noticePeriodRecoveryDays}</p></div>
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="retirement">
+              <Card><CardHeader><CardTitle className="text-sm">Retirement Policies</CardTitle></CardHeader><CardContent>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><Label className="text-muted-foreground text-xs">Provident Fund</Label><p>{setup.retirement.enablePF ? "Enabled" : "Disabled"}</p></div>
+                  {setup.retirement.enablePF && <>
+                    <div><Label className="text-muted-foreground text-xs">Employee Contribution</Label><p>{setup.retirement.employeeContributionPct}%</p></div>
+                    <div><Label className="text-muted-foreground text-xs">Employer Contribution</Label><p>{setup.retirement.employerContributionPct}%</p></div>
+                  </>}
+                  <div><Label className="text-muted-foreground text-xs">VPS</Label><p>{setup.retirement.enableVPS ? "Enabled" : "Disabled"}</p></div>
+                  {setup.retirement.enableVPS && <div className="col-span-2"><Label className="text-muted-foreground text-xs">VPS Rules</Label><p>{setup.retirement.vpsContributionRules}</p></div>}
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="approval">
+              <Card><CardHeader><CardTitle className="text-sm">Approval Workflow</CardTitle></CardHeader><CardContent>
+                <div className="space-y-2 text-sm">
+                  <div><Label className="text-muted-foreground text-xs">Enabled</Label><p>{setup.approvalWorkflow.enabled ? "Yes" : "No"}</p></div>
+                  {setup.approvalWorkflow.enabled && setup.approvalWorkflow.levels.length > 0 && (
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Levels</Label>
+                      <div className="flex gap-2 mt-1 flex-wrap">{setup.approvalWorkflow.levels.map((l, i) => <Badge key={i} variant="outline">{i + 1}. {l}</Badge>)}</div>
+                    </div>
+                  )}
+                </div>
+              </CardContent></Card>
+            </TabsContent>
+          </Tabs>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function PayrollSetupPage() {
   const { setups, deleteSetup, duplicateSetup, toggleStatus } = usePayrollSetups();
@@ -16,6 +217,7 @@ export default function PayrollSetupPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewSetup, setViewSetup] = useState<PayrollSetup | null>(null);
 
   const getAssignedCount = (setupId: string) => employees.filter(e => e.payrollSetupId === setupId).length;
 
@@ -48,7 +250,7 @@ export default function PayrollSetupPage() {
               <TableHead>Pay Schedule</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Last Updated</TableHead>
-              <TableHead className="w-36">Actions</TableHead>
+              <TableHead className="w-44">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -66,6 +268,9 @@ export default function PayrollSetupPage() {
                 <TableCell className="text-muted-foreground text-xs">{s.lastUpdated}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" title="View Details" onClick={() => setViewSetup(s)}>
+                      <Eye className="h-3 w-3 text-primary" />
+                    </Button>
                     <Button variant="ghost" size="sm" title="Edit" onClick={() => navigate(`/payroll/setup/${s.id}`)}>
                       <Pencil className="h-3 w-3" />
                     </Button>
@@ -99,6 +304,8 @@ export default function PayrollSetupPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SetupViewDialog setup={viewSetup} open={!!viewSetup} onClose={() => setViewSetup(null)} />
     </div>
   );
 }
