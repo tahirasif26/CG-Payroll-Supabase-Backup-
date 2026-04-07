@@ -1044,6 +1044,17 @@ export default function PayrollPage() {
         </Button>
       </PageHeader>
 
+      {(() => {
+        const unassignedEmps = activeEmps.filter(e => !e.payrollSetupId);
+        if (unassignedEmps.length > 0) return (
+          <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-lg px-4 py-2 text-sm">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span><strong>{unassignedEmps.length} employee{unassignedEmps.length > 1 ? "s" : ""}</strong> not assigned to any payroll setup: {unassignedEmps.slice(0, 3).map(e => `${e.firstName} ${e.lastName}`).join(", ")}{unassignedEmps.length > 3 ? ` and ${unassignedEmps.length - 3} more` : ""}. They won't be included in payroll runs.</span>
+          </div>
+        );
+        return null;
+      })()}
+
       {allSetupsHaveOpenRun && (
         <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
           All payroll setups have open runs. Complete or delete them before creating new ones.
