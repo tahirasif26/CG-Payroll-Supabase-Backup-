@@ -6,7 +6,6 @@ import { payrollRuns, loans, expenses, taxConfigs as initialTaxConfigs } from "@
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { PayrollRun, OneOffAdjustment, Employee, Deduction, TaxConfig } from "@/types/hcm";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
-import { EmployeeTypeMultiSelect } from "@/components/EmployeeTypeMultiSelect";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import { useDeductions } from "@/contexts/DeductionContext";
@@ -29,6 +28,7 @@ import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useApprovals } from "@/contexts/ApprovalContext";
 import { useRole } from "@/contexts/RoleContext";
+import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
 const REPORTING_CURRENCY = "SAR";
 
@@ -78,6 +78,8 @@ interface EmployeePayrollLine {
   payCurrency: string;
 }
 
+import { PayrollSetup } from "@/types/payrollSetup";
+
 function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], allTaxConfigs: TaxConfig[], oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string, advancesData?: { employeeId: string; amount: number; payrollRunId?: string }[]): EmployeePayrollLine[] {
   const activeEmployees = allEmployees.filter(emp => {
     if (processedSepIds.has(emp.id)) return false;
@@ -102,7 +104,6 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], al
       if (d.fixedAmount) return sum + d.fixedAmount;
       return sum;
     }, 0);
-    // Apply tax configs filtered by employee type
     const applicableTaxes = allTaxConfigs.filter(t => {
       if (!t.isActive) return false;
       if (t.appliesTo && t.appliesTo.length > 0 && !t.appliesTo.includes(emp.category)) return false;
@@ -110,11 +111,9 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], al
       return true;
     });
     const taxDeductions = applicableTaxes.reduce((sum, t) => sum + Math.round(gross * t.rate / 100), 0);
-    // Only reimburse expenses NOT linked to an advance
     const approvedExpenses = expenses
       .filter(e => e.employeeId === emp.id && e.status === "approved" && e.payrollRunId === runId && !e.advanceId)
       .reduce((s, e) => s + e.amount, 0);
-    // Advance given through payroll
     const advanceGiven = (advancesData || [])
       .filter(a => a.employeeId === emp.id && a.payrollRunId === runId)
       .reduce((s, a) => s + a.amount, 0);
@@ -127,6 +126,82 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], al
     const net = gross - totalDeductions + approvedExpenses + advanceGiven + oneOffBenefits + separationSettlement;
     const payCurrency = getEmployeePayCurrency(emp);
     return { emp, basic, allowances, gross, loanDeduction, otherDeductions: otherDeductions + taxDeductions, totalDeductions, expenseReimbursement: approvedExpenses, advanceGiven, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency };
+  });
+}
+
+function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup | undefined, oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string, advancesData?: { employeeId: string; amount: number; payrollRunId?: string }[]): EmployeePayrollLine[] {
+  const activeEmployees = allEmployees.filter(emp => !processedSepIds.has(emp.id));
+  return activeEmployees.map(emp => {
+    const gross = emp.salary;
+    // Use setup's payslip components to calculate basic & allowances
+    const activeEarnings = setup?.payslipComponents.filter(c => c.type === "earning" && c.status === "active") || [];
+    const activeDeductionComponents = setup?.payslipComponents.filter(c => c.type === "deduction" && c.status === "active") || [];
+
+    // Calculate basic from setup (first earning component is typically basic)
+    let basic = 0;
+    let totalEarnings = 0;
+    activeEarnings.forEach(comp => {
+      const val = comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+      if (comp.name.toLowerCase().includes("basic") || comp.name.toLowerCase().includes("stipend")) {
+        basic = val;
+      }
+      totalEarnings += val;
+    });
+    if (basic === 0) basic = Math.round(gross * 0.6);
+    const allowances = gross - basic;
+
+    // Loan deduction
+    const activeLoan = loans.find(l => l.employeeId === emp.id && l.status === "active");
+    const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
+
+    // Deductions from setup components
+    let setupDeductions = 0;
+    activeDeductionComponents.forEach(comp => {
+      setupDeductions += comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+    });
+
+    // Tax from setup's taxRules
+    let taxDeductions = 0;
+    if (setup?.options.enableTaxCalculation && setup.taxRules.length > 0) {
+      const annualGross = gross * 12;
+      setup.taxRules.forEach(slab => {
+        if (annualGross >= slab.incomeFrom) {
+          const taxableInSlab = Math.min(annualGross, slab.incomeTo) - slab.incomeFrom;
+          if (taxableInSlab > 0) {
+            taxDeductions += Math.round((taxableInSlab * slab.percentage / 100) / 12);
+          }
+        }
+      });
+    }
+
+    // Auto deductions from setup
+    let autoDeductions = 0;
+    if (setup?.autoDeductions.latePenaltyEnabled) {
+      // Applied per occurrence — skip for now (no attendance data)
+    }
+    setup?.autoDeductions.customRules.forEach(rule => {
+      if (rule.enabled) autoDeductions += rule.amount;
+    });
+
+    // Expenses
+    const approvedExpenses = expenses
+      .filter(e => e.employeeId === emp.id && e.status === "approved" && e.payrollRunId === runId && !e.advanceId)
+      .reduce((s, e) => s + e.amount, 0);
+
+    const advanceGiven = (advancesData || [])
+      .filter(a => a.employeeId === emp.id && a.payrollRunId === runId)
+      .reduce((s, a) => s + a.amount, 0);
+
+    const empOneOffs = oneOffs.filter(o => o.employeeId === emp.id);
+    const oneOffBenefits = empOneOffs.filter(o => o.type === "benefit").reduce((s, o) => s + o.amount, 0);
+    const oneOffDeductions = empOneOffs.filter(o => o.type === "deduction").reduce((s, o) => s + o.amount, 0);
+    const separationSettlement = separationMap[emp.id] || 0;
+    const isSeparated = !!separationMap[emp.id];
+    const otherDeductions = setupDeductions + taxDeductions + autoDeductions;
+    const totalDeductions = otherDeductions + loanDeduction + oneOffDeductions;
+    const net = gross - totalDeductions + approvedExpenses + advanceGiven + oneOffBenefits + separationSettlement;
+    const payCurrency = getEmployeePayCurrency(emp);
+    return { emp, basic, allowances, gross, loanDeduction, otherDeductions, totalDeductions, expenseReimbursement: approvedExpenses, advanceGiven, oneOffBenefits, oneOffDeductions, separationSettlement, isSeparated, net, payCurrency };
   });
 }
 
@@ -176,6 +251,8 @@ export default function PayrollPage() {
   const { canUserApprovePayroll } = useApprovals();
   const { currentEmployeeId } = useRole();
   const { advances } = useAdvances();
+  const { setups, getSetupById } = usePayrollSetups();
+  const activeSetups = setups.filter(s => s.status === "active");
   const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
   const [runs, setRuns] = useState<PayrollRun[]>(() => [...payrollRuns]);
 
@@ -202,7 +279,7 @@ export default function PayrollPage() {
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [newMonth, setNewMonth] = useState("April");
   const [newYear, setNewYear] = useState("2025");
-  const [newRunEmployeeTypes, setNewRunEmployeeTypes] = useState<string[]>([]);
+  const [newRunSetupId, setNewRunSetupId] = useState<string>("");
   const { toast } = useToast();
 
   const getSepMap = (runId?: string) => {
@@ -242,17 +319,15 @@ export default function PayrollPage() {
 
   const currentOneOffs = selectedRun ? (oneOffs[selectedRun.id] || []) : [];
 
-  const getOpenRunTypes = (): Set<string> => {
-    const types = new Set<string>();
+  const getOpenRunSetups = (): Set<string> => {
+    const setupIds = new Set<string>();
     runs.filter(r => r.status === "draft" || r.status === "processing").forEach(r => {
-      if (r.employeeTypes && r.employeeTypes.length > 0) {
-        r.employeeTypes.forEach(t => types.add(t));
-      }
+      if (r.payrollSetupId) setupIds.add(r.payrollSetupId);
     });
-    return types;
+    return setupIds;
   };
 
-  const allTypesHaveOpenRun = activeTypes.length > 0 && activeTypes.every(t => getOpenRunTypes().has(t.id));
+  const allSetupsHaveOpenRun = activeSetups.length > 0 && activeSetups.every(s => getOpenRunSetups().has(s.id));
 
   const getNextMonth = (month: string, year: number): { month: string; year: number } => {
     const idx = months.indexOf(month);
@@ -262,20 +337,20 @@ export default function PayrollPage() {
 
   const handleGeneratePayroll = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newRunEmployeeTypes.length === 0) {
-      toast({ title: "Select Employee Types", description: "Please select at least one employee type for the payroll run.", variant: "destructive" });
+    if (!newRunSetupId) {
+      toast({ title: "Select Payroll Setup", description: "Please select a payroll setup for this run.", variant: "destructive" });
       return;
     }
-    const openTypes = getOpenRunTypes();
-    const overlapping = newRunEmployeeTypes.filter(t => openTypes.has(t));
-    if (overlapping.length > 0) {
-      const names = overlapping.map(t => getTypeName(t)).join(", ");
-      toast({ title: "Cannot Create", description: `Payroll run already open for: ${names}. Complete or delete it first.`, variant: "destructive" });
+    const openSetups = getOpenRunSetups();
+    if (openSetups.has(newRunSetupId)) {
+      const setup = getSetupById(newRunSetupId);
+      toast({ title: "Cannot Create", description: `Payroll run already open for: ${setup?.name || newRunSetupId}. Complete or delete it first.`, variant: "destructive" });
       return;
     }
-    // Filter employees by selected types
-    const filteredEmployees = employees.filter(emp => newRunEmployeeTypes.includes(emp.category));
-    const breakdown = buildBreakdown(filteredEmployees, deductions, initialTaxConfigs, [], {}, processedSeps, undefined, approvedAdvances);
+    // Filter employees by selected payroll setup
+    const filteredEmployees = employees.filter(emp => emp.payrollSetupId === newRunSetupId);
+    const setup = getSetupById(newRunSetupId);
+    const breakdown = buildBreakdownFromSetup(filteredEmployees, setup, [], {}, processedSeps, undefined, approvedAdvances);
     setNewRunPreview(breakdown);
     setNewRunStep(2);
   };
@@ -289,12 +364,11 @@ export default function PayrollPage() {
       totalGross, totalDeductions: totalDed, totalNet: totalGross - totalDed,
       runDate: disburse ? new Date().toISOString().split("T")[0] : "",
       employeeCount: newRunPreview.length,
-      employeeTypes: [...newRunEmployeeTypes],
+      payrollSetupId: newRunSetupId,
     };
     syncRuns(prev => [...prev, newRun]);
 
     if (disburse) {
-      // Mark expenses as paid
       const paidDate = new Date().toISOString().split("T")[0];
       expenses.forEach(exp => {
         if (exp.status === "approved" && !exp.payrollRunId) {
@@ -309,7 +383,7 @@ export default function PayrollPage() {
     setNewRunOpen(false);
     setNewRunStep(1);
     setNewRunPreview([]);
-    setNewRunEmployeeTypes([]);
+    setNewRunSetupId("");
     toast({
       title: disburse ? "Payroll Saved & Disbursed" : "Payroll Saved",
       description: disburse
@@ -332,8 +406,9 @@ export default function PayrollPage() {
     if (!run) return;
 
     const currentSepMap = getSepMap(run.id);
-    const runFilteredEmps = run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees;
-    const currentBreakdown = buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
+    const runFilteredEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
+    const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
+    const currentBreakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances) : buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
     const runEmployeeCount = currentBreakdown.length;
     const runGross = currentBreakdown.reduce((s, l) => s + l.gross, 0);
     const runDed = currentBreakdown.reduce((s, l) => s + l.totalDeductions, 0);
@@ -364,7 +439,8 @@ export default function PayrollPage() {
     setProcessedSeps(updatedProcessedSeps);
 
 
-    toast({ title: "Payroll Completed", description: `${run.month} ${run.year} payroll for ${run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "all"} is locked.` });
+    const setupName = run.payrollSetupId ? (getSetupById(run.payrollSetupId)?.name || "Unknown") : (run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "all");
+    toast({ title: "Payroll Completed", description: `${run.month} ${run.year} payroll for ${setupName} is locked.` });
     setSelectedRun(null);
   };
 
@@ -466,8 +542,9 @@ export default function PayrollPage() {
   };
 
   const handleDownloadAccounting = (run: PayrollRun) => {
-    const runFilteredEmps = run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees;
-    const breakdown = buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances);
+    const runFilteredEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
+    const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
+    const breakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances);
     const csv = generateAccountingCSV(run, breakdown);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
@@ -503,8 +580,9 @@ export default function PayrollPage() {
 
   if (selectedRun) {
     const sepMap = getSepMap(selectedRun.id);
-    const runFilteredEmps = selectedRun.employeeTypes && selectedRun.employeeTypes.length > 0 ? employees.filter(e => selectedRun.employeeTypes!.includes(e.category)) : employees;
-    const breakdown = buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
+    const runFilteredEmps = selectedRun.payrollSetupId ? employees.filter(e => e.payrollSetupId === selectedRun.payrollSetupId) : (selectedRun.employeeTypes && selectedRun.employeeTypes.length > 0 ? employees.filter(e => selectedRun.employeeTypes!.includes(e.category)) : employees);
+    const runSetup = selectedRun.payrollSetupId ? getSetupById(selectedRun.payrollSetupId) : undefined;
+    const breakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances) : buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
     const totalAdvance = breakdown.reduce((s, l) => s + l.advanceGiven, 0);
@@ -930,14 +1008,14 @@ export default function PayrollPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Payroll Runs" description="Process and manage monthly payroll.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={allTypesHaveOpenRun}>
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={allSetupsHaveOpenRun}>
           <Play className="h-4 w-4 mr-2" />New Payroll Run
         </Button>
       </PageHeader>
 
-      {allTypesHaveOpenRun && (
+      {allSetupsHaveOpenRun && (
         <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
-          All employee types have open payroll runs. Complete or delete them before creating new ones.
+          All payroll setups have open runs. Complete or delete them before creating new ones.
         </div>
       )}
 
@@ -956,7 +1034,7 @@ export default function PayrollPage() {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="font-semibold">Period</TableHead>
-                      <TableHead className="font-semibold">Employee Types</TableHead>
+                      <TableHead className="font-semibold">Payroll Setup</TableHead>
                       <TableHead className="font-semibold">Employees</TableHead>
                       <TableHead className="font-semibold text-right">Gross ({REPORTING_CURRENCY})</TableHead>
                       <TableHead className="font-semibold text-right">Deductions ({REPORTING_CURRENCY})</TableHead>
@@ -968,9 +1046,10 @@ export default function PayrollPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.length > 0 ? filtered.map((run) => {
-                      const runEmps = run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees;
+                      const runEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
+                      const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
                       const liveBreakdown = run.status !== "completed"
-                        ? buildBreakdown(runEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances)
+                        ? (runSetup ? buildBreakdownFromSetup(runEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances))
                         : null;
                       const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
                       const dispGross = liveBreakdown
@@ -985,7 +1064,7 @@ export default function PayrollPage() {
                       return (
                         <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
                           <TableCell className="font-medium">{run.month} {run.year}</TableCell>
-                          <TableCell className="text-xs">{run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "All"}</TableCell>
+                          <TableCell className="text-xs">{run.payrollSetupId ? (getSetupById(run.payrollSetupId)?.name || "—") : (run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "All")}</TableCell>
                           <TableCell>{dispCount}</TableCell>
                           <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
                           <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
@@ -1027,7 +1106,7 @@ export default function PayrollPage() {
         })}
       </Tabs>
 
-      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunEmployeeTypes([]); } }}>
+      <Dialog open={newRunOpen} onOpenChange={(open) => { setNewRunOpen(open); if (!open) { setNewRunStep(1); setNewRunPreview([]); setNewRunSetupId(""); } }}>
         <DialogContent className={newRunStep === 2 ? "max-w-4xl" : ""}>
           <DialogHeader>
             <DialogTitle>{newRunStep === 1 ? "New Payroll Run — Step 1: Generate" : "Payroll Summary — Step 2: Review"}</DialogTitle>
@@ -1045,13 +1124,21 @@ export default function PayrollPage() {
                   <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Employee Types <span className="text-destructive">*</span></Label>
-                <EmployeeTypeMultiSelect value={newRunEmployeeTypes} onChange={setNewRunEmployeeTypes} />
-                <p className="text-xs text-muted-foreground">Select the employee types for this payroll run</p>
+              <div className="space-y-2"><Label>Payroll Setup <span className="text-destructive">*</span></Label>
+                <Select value={newRunSetupId} onValueChange={setNewRunSetupId}>
+                  <SelectTrigger><SelectValue placeholder="Select payroll setup..." /></SelectTrigger>
+                  <SelectContent>
+                    {activeSetups.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name} ({s.country} — {s.currency})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Select the payroll setup for this run. All employees assigned to this setup will be included.</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{newRunEmployeeTypes.length === 0 ? 0 : employees.filter(e => newRunEmployeeTypes.includes(e.category)).length}</span></p>
-                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(newRunEmployeeTypes.length === 0 ? [] : employees.filter(e => newRunEmployeeTypes.includes(e.category))).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
+                <p><span className="text-muted-foreground">Setup:</span> <span className="font-medium">{newRunSetupId ? (getSetupById(newRunSetupId)?.name || "—") : "—"}</span></p>
+                <p><span className="text-muted-foreground">Employees:</span> <span className="font-medium">{!newRunSetupId ? 0 : employees.filter(e => e.payrollSetupId === newRunSetupId).length}</span></p>
+                <p><span className="text-muted-foreground">Estimated Gross:</span> <span className="font-medium">{REPORTING_CURRENCY} {(!newRunSetupId ? [] : employees.filter(e => e.payrollSetupId === newRunSetupId)).reduce((s, e) => s + e.salary, 0).toLocaleString()}</span></p>
               </div>
               <DialogFooter><Button type="button" variant="outline" onClick={() => setNewRunOpen(false)}>Cancel</Button><Button type="submit">Generate Payroll</Button></DialogFooter>
             </form>

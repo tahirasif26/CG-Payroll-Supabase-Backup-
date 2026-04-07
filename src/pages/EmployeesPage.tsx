@@ -33,6 +33,7 @@ import { useReporting } from "@/contexts/ReportingContext";
 import { useReminderSettings } from "@/contexts/ReminderSettingsContext";
 import { useRole } from "@/contexts/RoleContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
 interface EmployeeDocVersion {
   name: string;
@@ -1207,6 +1208,19 @@ function EmployeeTypeSelect() {
   );
 }
 
+function PayrollSetupSelect() {
+  const { setups } = usePayrollSetups();
+  const activeSetups = setups.filter(s => s.status === "active");
+  return (
+    <select name="payrollSetupId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+      <option value="">Select payroll setup...</option>
+      {activeSetups.map(s => (
+        <option key={s.id} value={s.id}>{s.name} ({s.country})</option>
+      ))}
+    </select>
+  );
+}
+
 export default function EmployeesPage() {
   const { role, currentEmployeeId } = useRole();
   const { reportMap, getManagerName, getManagerId } = useReporting();
@@ -1269,6 +1283,7 @@ export default function EmployeesPage() {
       dateOfBirth: "",
       category: (formData.get("category") as string) || "direct",
       workLocationCountry: (formData.get("workLocationCountry") as string) || "Saudi Arabia",
+      payrollSetupId: (formData.get("payrollSetupId") as string) || undefined,
       compensation: [],
     };
     addEmployee(newEmp);
@@ -1697,6 +1712,10 @@ export default function EmployeesPage() {
             <div className="space-y-2">
               <Label>Employee Type</Label>
               <EmployeeTypeSelect />
+            </div>
+            <div className="space-y-2">
+              <Label>Payroll Setup</Label>
+              <PayrollSetupSelect />
             </div>
             <div className="space-y-2"><Label>Joining Date</Label><Input name="joiningDate" type="date" required /></div>
             <DialogFooter>
