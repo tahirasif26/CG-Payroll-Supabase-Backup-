@@ -1269,6 +1269,7 @@ export default function EmployeesPage() {
       dateOfBirth: "",
       category: (formData.get("category") as string) || "direct",
       workLocationCountry: (formData.get("workLocationCountry") as string) || "Saudi Arabia",
+      payrollSetupId: (formData.get("payrollSetupId") as string) || undefined,
       compensation: [],
     };
     addEmployee(newEmp);
@@ -1697,6 +1698,10 @@ export default function EmployeesPage() {
             <div className="space-y-2">
               <Label>Employee Type</Label>
               <EmployeeTypeSelect />
+            </div>
+            <div className="space-y-2">
+              <Label>Payroll Setup</Label>
+              <PayrollSetupSelect />
             </div>
             <div className="space-y-2"><Label>Joining Date</Label><Input name="joiningDate" type="date" required /></div>
             <DialogFooter>

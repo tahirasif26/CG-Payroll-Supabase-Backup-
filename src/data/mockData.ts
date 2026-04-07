@@ -48,19 +48,19 @@ export const employees: Employee[] = [
 ];
 
 export const payrollRuns: PayrollRun[] = [
-  // January — separate runs per employee type
-  { id: "1a", month: "January", year: 2025, status: "completed", totalGross: 136000, totalDeductions: 20400, totalNet: 115600, runDate: "2025-01-28", employeeCount: 4, employeeTypes: ["direct"] },
-  { id: "1b", month: "January", year: 2025, status: "completed", totalGross: 25000, totalDeductions: 3750, totalNet: 21250, runDate: "2025-01-28", employeeCount: 2, employeeTypes: ["contractor"] },
-  { id: "1c", month: "January", year: 2025, status: "completed", totalGross: 48000, totalDeductions: 7200, totalNet: 40800, runDate: "2025-01-28", employeeCount: 2, employeeTypes: ["it_developer"] },
-  { id: "1d", month: "January", year: 2025, status: "completed", totalGross: 16000, totalDeductions: 2400, totalNet: 13600, runDate: "2025-01-28", employeeCount: 2, employeeTypes: ["intern"] },
-  // February — separate runs per employee type
-  { id: "2a", month: "February", year: 2025, status: "completed", totalGross: 136000, totalDeductions: 20400, totalNet: 115600, runDate: "2025-02-27", employeeCount: 4, employeeTypes: ["direct"] },
-  { id: "2b", month: "February", year: 2025, status: "completed", totalGross: 25000, totalDeductions: 3750, totalNet: 21250, runDate: "2025-02-27", employeeCount: 2, employeeTypes: ["contractor"] },
-  { id: "2c", month: "February", year: 2025, status: "completed", totalGross: 48000, totalDeductions: 7200, totalNet: 40800, runDate: "2025-02-27", employeeCount: 2, employeeTypes: ["it_developer"] },
-  { id: "2d", month: "February", year: 2025, status: "completed", totalGross: 16000, totalDeductions: 2400, totalNet: 13600, runDate: "2025-02-27", employeeCount: 2, employeeTypes: ["intern"] },
-  // March — one type already processing as example
-  { id: "3a", month: "March", year: 2025, status: "completed", totalGross: 136000, totalDeductions: 20400, totalNet: 115600, runDate: "2025-03-28", employeeCount: 4, employeeTypes: ["direct"] },
-  { id: "3b", month: "March", year: 2025, status: "completed", totalGross: 25000, totalDeductions: 3750, totalNet: 21250, runDate: "2025-03-28", employeeCount: 2, employeeTypes: ["contractor"] },
+  // January — separate runs per payroll setup
+  { id: "1a", month: "January", year: 2025, status: "completed", totalGross: 136000, totalDeductions: 20400, totalNet: 115600, runDate: "2025-01-28", employeeCount: 4, employeeTypes: ["direct"], payrollSetupId: "ps-1" },
+  { id: "1b", month: "January", year: 2025, status: "completed", totalGross: 25000, totalDeductions: 3750, totalNet: 21250, runDate: "2025-01-28", employeeCount: 2, employeeTypes: ["contractor"], payrollSetupId: "ps-2" },
+  { id: "1c", month: "January", year: 2025, status: "completed", totalGross: 48000, totalDeductions: 7200, totalNet: 40800, runDate: "2025-01-28", employeeCount: 2, employeeTypes: ["it_developer"], payrollSetupId: "ps-3" },
+  { id: "1d", month: "January", year: 2025, status: "completed", totalGross: 16000, totalDeductions: 2400, totalNet: 13600, runDate: "2025-01-28", employeeCount: 2, employeeTypes: ["intern"], payrollSetupId: "ps-4" },
+  // February — separate runs per payroll setup
+  { id: "2a", month: "February", year: 2025, status: "completed", totalGross: 136000, totalDeductions: 20400, totalNet: 115600, runDate: "2025-02-27", employeeCount: 4, employeeTypes: ["direct"], payrollSetupId: "ps-1" },
+  { id: "2b", month: "February", year: 2025, status: "completed", totalGross: 25000, totalDeductions: 3750, totalNet: 21250, runDate: "2025-02-27", employeeCount: 2, employeeTypes: ["contractor"], payrollSetupId: "ps-2" },
+  { id: "2c", month: "February", year: 2025, status: "completed", totalGross: 48000, totalDeductions: 7200, totalNet: 40800, runDate: "2025-02-27", employeeCount: 2, employeeTypes: ["it_developer"], payrollSetupId: "ps-3" },
+  { id: "2d", month: "February", year: 2025, status: "completed", totalGross: 16000, totalDeductions: 2400, totalNet: 13600, runDate: "2025-02-27", employeeCount: 2, employeeTypes: ["intern"], payrollSetupId: "ps-4" },
+  // March
+  { id: "3a", month: "March", year: 2025, status: "completed", totalGross: 136000, totalDeductions: 20400, totalNet: 115600, runDate: "2025-03-28", employeeCount: 4, employeeTypes: ["direct"], payrollSetupId: "ps-1" },
+  { id: "3b", month: "March", year: 2025, status: "completed", totalGross: 25000, totalDeductions: 3750, totalNet: 21250, runDate: "2025-03-28", employeeCount: 2, employeeTypes: ["contractor"], payrollSetupId: "ps-2" },
 ];
 
 export const leaveRequests: LeaveRequest[] = [
