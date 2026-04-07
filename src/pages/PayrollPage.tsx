@@ -439,7 +439,8 @@ export default function PayrollPage() {
     setProcessedSeps(updatedProcessedSeps);
 
 
-    toast({ title: "Payroll Completed", description: `${run.month} ${run.year} payroll for ${run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "all"} is locked.` });
+    const setupName = run.payrollSetupId ? (getSetupById(run.payrollSetupId)?.name || "Unknown") : (run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "all");
+    toast({ title: "Payroll Completed", description: `${run.month} ${run.year} payroll for ${setupName} is locked.` });
     setSelectedRun(null);
   };
 
