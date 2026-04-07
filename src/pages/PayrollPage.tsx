@@ -340,21 +340,26 @@ export default function PayrollPage() {
 
   const handleGeneratePayroll = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRunSetupId) {
-      toast({ title: "Select Payroll Setup", description: "Please select a payroll setup for this run.", variant: "destructive" });
+    if (newRunSetupIds.length === 0) {
+      toast({ title: "Select Payroll Setup", description: "Please select at least one payroll setup for this run.", variant: "destructive" });
       return;
     }
     const openSetups = getOpenRunSetups();
-    if (openSetups.has(newRunSetupId)) {
-      const setup = getSetupById(newRunSetupId);
-      toast({ title: "Cannot Create", description: `Payroll run already open for: ${setup?.name || newRunSetupId}. Complete or delete it first.`, variant: "destructive" });
+    const conflicting = newRunSetupIds.filter(id => openSetups.has(id));
+    if (conflicting.length > 0) {
+      const names = conflicting.map(id => getSetupById(id)?.name || id).join(", ");
+      toast({ title: "Cannot Create", description: `Payroll run already open for: ${names}. Complete or delete them first.`, variant: "destructive" });
       return;
     }
-    // Filter employees by selected payroll setup
-    const filteredEmployees = employees.filter(emp => emp.payrollSetupId === newRunSetupId);
-    const setup = getSetupById(newRunSetupId);
-    const breakdown = buildBreakdownFromSetup(filteredEmployees, setup, [], {}, processedSeps, undefined, approvedAdvances);
-    setNewRunPreview(breakdown);
+    // Build combined preview across all selected setups
+    const allLines: EmployeePayrollLine[] = [];
+    newRunSetupIds.forEach(setupId => {
+      const filteredEmployees = employees.filter(emp => emp.payrollSetupId === setupId);
+      const setup = getSetupById(setupId);
+      const breakdown = buildBreakdownFromSetup(filteredEmployees, setup, [], {}, processedSeps, undefined, approvedAdvances);
+      allLines.push(...breakdown);
+    });
+    setNewRunPreview(allLines);
     setNewRunStep(2);
   };
 
