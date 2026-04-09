@@ -77,6 +77,7 @@ import AssessmentRatingsPage from "@/pages/performance/AssessmentRatingsPage";
 import NotFound from "./pages/NotFound";
 import PayrollSetupPage from "@/pages/PayrollSetupPage";
 import PayrollSetupEditorPage from "@/pages/PayrollSetupEditorPage";
+import PayrollSetupViewPage from "@/pages/PayrollSetupViewPage";
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,7 @@ const App = () => {
               <Route path="/employees" element={<EmployeesPage />} />
               <Route path="/payroll/setup" element={<PayrollSetupPage />} />
               <Route path="/payroll/setup/new" element={<PayrollSetupEditorPage />} />
+              <Route path="/payroll/setup/:id/view" element={<PayrollSetupViewPage />} />
               <Route path="/payroll/setup/:id" element={<PayrollSetupEditorPage />} />
               <Route path="/payroll" element={<PayrollPage />} />
               <Route path="/payslips" element={<PayslipsPage />} />
