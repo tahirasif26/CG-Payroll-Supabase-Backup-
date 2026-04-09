@@ -268,7 +268,7 @@ export default function PayrollSetupPage() {
                 <TableCell className="text-muted-foreground text-xs">{s.lastUpdated}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" title="View Details" onClick={() => setViewSetup(s)}>
+                    <Button variant="ghost" size="sm" title="View Details" onClick={() => navigate(`/payroll/setup/${s.id}/view`)}>
                       <Eye className="h-3 w-3 text-primary" />
                     </Button>
                     <Button variant="ghost" size="sm" title="Edit" onClick={() => navigate(`/payroll/setup/${s.id}`)}>
