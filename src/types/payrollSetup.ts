@@ -58,9 +58,17 @@ export interface LoanAdvanceConfig {
   autoDeductRemaining: boolean;
 }
 
+export interface LeaveAllocation {
+  leaveTypeId: string;
+  leaveTypeName: string;
+  daysEntitled: number;
+  isActive: boolean;
+}
+
 export interface LeaveEncashment {
   enabled: boolean;
   formula: string;
+  leaveAllocations: LeaveAllocation[];
 }
 
 export interface FinalSettlement {

@@ -232,6 +232,33 @@ export default function PayrollSetupViewPage() {
           {/* Leave & Encashment */}
           <TabsContent value="leave">
             <h3 className="text-lg font-semibold mb-4">Leave & Encashment</h3>
+            {setup.leaveEncashment.leaveAllocations?.length > 0 && (
+              <div className="mb-6">
+                <p className="text-sm font-semibold text-muted-foreground mb-2">Leave Allocations</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Leave Type</TableHead>
+                      <TableHead>Days Entitled</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {setup.leaveEncashment.leaveAllocations.map(a => (
+                      <TableRow key={a.leaveTypeId}>
+                        <TableCell className="font-medium">{a.leaveTypeName}</TableCell>
+                        <TableCell>{a.daysEntitled}</TableCell>
+                        <TableCell><Badge variant={a.isActive ? "default" : "secondary"}>{a.isActive ? "Active" : "Inactive"}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            {(!setup.leaveEncashment.leaveAllocations || setup.leaveEncashment.leaveAllocations.length === 0) && (
+              <p className="text-sm text-muted-foreground mb-6">No setup-specific leave allocations. Global defaults will apply.</p>
+            )}
+            <Separator className="my-4" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Field label="Leave Encashment" value={setup.leaveEncashment.enabled ? "Enabled" : "Disabled"} />
               {setup.leaveEncashment.enabled && <Field label="Formula" value={setup.leaveEncashment.formula || "—"} />}

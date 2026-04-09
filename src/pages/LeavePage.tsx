@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { leaveRequests } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
+import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useClient } from "@/contexts/ClientContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ export default function LeavePage() {
   const activeIds = new Set(activeEmps.map(e => e.id));
   const { leaveTypes, initializeBalances, balances, recordLeaveUsage } = useLeaveTypes();
   const { client } = useClient();
+  const { getSetupById } = usePayrollSetups();
   const activeLeaveTypes = leaveTypes.filter(lt => lt.isActive);
   const [localLeaves, setLocalLeaves] = useState(() => [...leaveRequests].filter(l => activeIds.has(l.employeeId)));
   const [newOpen, setNewOpen] = useState(false);
@@ -43,10 +45,15 @@ export default function LeavePage() {
 
   const currentFY = getCurrentFiscalYear(client.yearEndDate);
 
-  // Initialize balances for all active employees
+  const getSetupForEmployee = useCallback((empId: string) => {
+    const emp = activeEmps.find(e => e.id === empId);
+    return emp?.payrollSetupId ? getSetupById(emp.payrollSetupId) : undefined;
+  }, [activeEmps, getSetupById]);
+
+  // Initialize balances for all active employees using setup-based allocations
   useEffect(() => {
     if (activeEmps.length > 0) {
-      initializeBalances(activeEmps.map(e => e.id), currentFY);
+      initializeBalances(activeEmps.map(e => e.id), currentFY, getSetupForEmployee);
     }
   }, [activeEmps.length, currentFY]);
 

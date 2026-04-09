@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
-
+import { PayrollSetup } from "@/types/payrollSetup";
 export interface LeaveType {
   id: string;
   name: string;
@@ -37,7 +37,7 @@ interface LeaveTypeContextType {
   balances: EmployeeLeaveBalance[];
   getBalanceForEmployee: (employeeId: string, leaveTypeId: string, year: string) => EmployeeLeaveBalance | undefined;
   getBalancesForYear: (employeeId: string, year: string) => EmployeeLeaveBalance[];
-  initializeBalances: (employeeIds: string[], year: string) => void;
+  initializeBalances: (employeeIds: string[], year: string, getSetupForEmployee?: (empId: string) => PayrollSetup | undefined) => void;
   recordLeaveUsage: (employeeId: string, leaveTypeId: string, year: string, days: number) => void;
   // Carryforward
   runYearEndCarryforward: (fromYear: string, toYear: string, employeeIds: string[], customCarryforward?: { employeeId: string; leaveTypeId: string; carryforward: number }[]) => { employeeId: string; leaveTypeId: string; leaveTypeName: string; remaining: number; carryforward: number }[];
@@ -91,21 +91,36 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
     return allocations.filter(a => a.employeeId === employeeId);
   };
 
-  const getEntitledDays = useCallback((employeeId: string, leaveTypeId: string) => {
+  const getEntitledDays = useCallback((employeeId: string, leaveTypeId: string, setup?: PayrollSetup) => {
+    // 1. Check setup-level allocation first
+    if (setup?.leaveEncashment?.leaveAllocations?.length) {
+      const setupAlloc = setup.leaveEncashment.leaveAllocations.find(a => a.leaveTypeId === leaveTypeId && a.isActive);
+      if (setupAlloc) return setupAlloc.daysEntitled;
+      // If setup has allocations but this type isn't in it, return 0 (not entitled under this setup)
+      return 0;
+    }
+    // 2. Check employee-level override
     const alloc = allocations.find(a => a.employeeId === employeeId && a.leaveTypeId === leaveTypeId);
     if (alloc) return alloc.allocatedDays;
+    // 3. Fallback to global default
     const lt = leaveTypes.find(l => l.id === leaveTypeId);
     return lt?.defaultDays ?? 0;
   }, [allocations, leaveTypes]);
 
-  const initializeBalances = useCallback((employeeIds: string[], year: string) => {
+  const initializeBalances = useCallback((employeeIds: string[], year: string, getSetupForEmployee?: (empId: string) => PayrollSetup | undefined) => {
     setBalances(prev => {
       const newBalances = [...prev];
       for (const empId of employeeIds) {
-        for (const lt of leaveTypes.filter(l => l.isActive)) {
+        const setup = getSetupForEmployee?.(empId);
+        // Determine which leave types apply
+        const applicableTypes = setup?.leaveEncashment?.leaveAllocations?.length
+          ? leaveTypes.filter(lt => lt.isActive && setup.leaveEncashment.leaveAllocations.some(a => a.leaveTypeId === lt.id && a.isActive))
+          : leaveTypes.filter(l => l.isActive);
+
+        for (const lt of applicableTypes) {
           const exists = newBalances.find(b => b.employeeId === empId && b.leaveTypeId === lt.id && b.year === year);
           if (!exists) {
-            const entitled = getEntitledDays(empId, lt.id);
+            const entitled = getEntitledDays(empId, lt.id, setup);
             newBalances.push({
               employeeId: empId,
               leaveTypeId: lt.id,
