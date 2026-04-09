@@ -1644,6 +1644,11 @@ export default function EmployeesPage() {
 
   const isEmployee = role === "employee";
 
+  // Full-page add employee wizard
+  if (addEmpOpen) {
+    return <AddEmployeeWizard open={addEmpOpen} onOpenChange={setAddEmpOpen} employeeCount={localEmployees.length} />;
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader title="Employee Directory" description={isEmployee ? "Browse the employee directory." : "Manage employee records and documentation."}>
@@ -1658,8 +1663,6 @@ export default function EmployeesPage() {
       </PageHeader>
 
       <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
-
-      <AddEmployeeWizard open={addEmpOpen} onOpenChange={setAddEmpOpen} employeeCount={localEmployees.length} />
     </div>
   );
 }
