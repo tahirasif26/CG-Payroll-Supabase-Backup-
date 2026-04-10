@@ -130,7 +130,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
     setErrors(prev => { const next = { ...prev }; delete next[field]; return next; });
   }, []);
 
-  const validateAndSubmit = () => {
+  const validateAndSubmit = async () => {
     const allErrors: Partial<Record<keyof FormData, string>> = {};
     if (!form.firstName.trim()) allErrors.firstName = "Required";
     if (!form.lastName.trim()) allErrors.lastName = "Required";
