@@ -170,7 +170,7 @@ export default function ClientManagementPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Client Management" subtitle="Manage your client companies and their subscriptions" />
+      <PageHeader title="Client Management" description="Manage your client companies and their subscriptions" />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -346,7 +346,7 @@ export default function ClientManagementPage() {
           <div className="space-y-5 py-2">
             {/* Logo */}
             <div className="flex items-center gap-4">
-              <ImageUpload value={form.logo} onChange={logo => setForm(f => ({ ...f, logo }))} label="Company Logo" size="sm" />
+              <ImageUpload value={form.logo} onChange={logo => setForm(f => ({ ...f, logo }))} label="Company Logo" />
               <div className="flex-1 space-y-2">
                 <Label className="text-[13px] font-semibold">Company Name *</Label>
                 <Input value={form.companyName} onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))} placeholder="Enter company name" className="h-9 text-[13px]" />
