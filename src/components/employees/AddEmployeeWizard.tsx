@@ -172,7 +172,34 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
     };
 
     addEmployee(newEmp);
-    toast({ title: "Employee Added", description: `${newEmp.firstName} ${newEmp.lastName} has been successfully onboarded.` });
+
+    // Send invite email if toggle is on
+    if (sendInvite) {
+      const inviteEmail = form.workEmail?.trim() || form.personalEmail?.trim() || form.email.trim();
+      if (inviteEmail) {
+        setInviting(true);
+        try {
+          const { data: inviteData, error: inviteError } = await supabase.functions.invoke("invite-employee", {
+            body: {
+              email: inviteEmail,
+              full_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+              employee_id: newEmp.empId,
+            },
+          });
+          if (inviteError) throw inviteError;
+          toast({ title: "Employee Added & Invited", description: `${newEmp.firstName} ${newEmp.lastName} onboarded. Login invite sent to ${inviteEmail}.` });
+        } catch (err: any) {
+          toast({ title: "Employee Added", description: `Onboarded successfully, but invite email failed: ${err?.message || "Unknown error"}. You can resend later.`, variant: "destructive" });
+        } finally {
+          setInviting(false);
+        }
+      } else {
+        toast({ title: "Employee Added", description: `${newEmp.firstName} ${newEmp.lastName} has been onboarded. No email provided for invite.` });
+      }
+    } else {
+      toast({ title: "Employee Added", description: `${newEmp.firstName} ${newEmp.lastName} has been successfully onboarded.` });
+    }
+
     resetAndClose();
   };
 
