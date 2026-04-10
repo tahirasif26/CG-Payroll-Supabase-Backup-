@@ -9,11 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Check, AlertCircle, User, Briefcase, DollarSign, Calendar, FileText, Monitor,
   ChevronLeft, Calculator, Settings, Phone, MapPin, CreditCard, GraduationCap, Heart,
