@@ -15,15 +15,21 @@ import {
 // Primary module definitions with their sub-navigation
 const primaryModules = [
   {
-    label: "Dashboard",
+    label: "Dashboards",
     subtitle: "Overview",
     icon: LayoutDashboard,
     iconColor: "text-primary",
     iconBg: "bg-primary/10",
     path: "/",
-    exact: true,
+    exact: false,
     hasPending: false,
-    subNav: [],
+    matchPaths: ["/", "/assets/dashboard", "/analytics", "/expense-analytics"],
+    subNav: [
+      { label: "Main Dashboard", path: "/" },
+      { label: "Payroll Analytics", path: "/analytics" },
+      { label: "Expense Analytics", path: "/expense-analytics" },
+      { label: "Asset Dashboard", path: "/assets/dashboard" },
+    ],
   },
   {
     label: "Employees",
@@ -51,14 +57,13 @@ const primaryModules = [
     path: "/payroll",
     exact: false,
     hasPending: true,
-    matchPaths: ["/payroll", "/payroll/setup", "/payslips", "/separations", "/loans", "/analytics"],
+    matchPaths: ["/payroll", "/payroll/setup", "/payslips", "/separations", "/loans"],
     subNav: [
       { label: "Payroll Setup", path: "/payroll/setup" },
       { label: "Payroll Runs", path: "/payroll" },
       { label: "Payslips", path: "/payslips" },
       { label: "End of Service", path: "/separations" },
       { label: "Loans", path: "/loans" },
-      { label: "Analytics", path: "/analytics" },
     ],
   },
   {
@@ -84,12 +89,11 @@ const primaryModules = [
     path: "/expenses",
     exact: false,
     hasPending: true,
-    matchPaths: ["/expenses", "/advances", "/outstanding-advances", "/expense-analytics", "/mileage"],
+    matchPaths: ["/expenses", "/advances", "/outstanding-advances", "/mileage"],
     subNav: [
       { label: "Expenses", path: "/expenses" },
       { label: "Advances", path: "/advances" },
       { label: "Outstanding Advances", path: "/outstanding-advances" },
-      { label: "Expense Analytics", path: "/expense-analytics" },
     ],
   },
   {
@@ -98,12 +102,11 @@ const primaryModules = [
     icon: Package,
     iconColor: "text-amber-700",
     iconBg: "bg-amber-50 dark:bg-amber-950/40",
-    path: "/assets/dashboard",
+    path: "/assets/inventory",
     exact: false,
     hasPending: false,
-    matchPaths: ["/assets/dashboard", "/assets/inventory", "/assets/master-data", "/assets/store", "/assets/requests", "/assets/audits"],
+    matchPaths: ["/assets/inventory", "/assets/master-data", "/assets/store", "/assets/requests", "/assets/audits"],
     subNav: [
-      { label: "Dashboard", path: "/assets/dashboard" },
       { label: "Inventory", path: "/assets/inventory" },
       { label: "Settings", path: "/assets/master-data" },
       { label: "Store", path: "/assets/store" },
@@ -154,7 +157,10 @@ const primaryModules = [
 ];
 
 function isModuleActive(mod: typeof primaryModules[0], pathname: string): boolean {
-  if (mod.exact) return pathname === mod.path;
+  if (mod.label === "Dashboards") {
+    // Dashboards module: match exact "/" or specific dashboard/analytics paths
+    return pathname === "/" || ["/analytics", "/expense-analytics", "/assets/dashboard"].some(p => pathname === p || pathname.startsWith(p + "/"));
+  }
   if (mod.matchPaths) return mod.matchPaths.some(p => pathname === p || pathname.startsWith(p + "/"));
   return pathname.startsWith(mod.path);
 }
