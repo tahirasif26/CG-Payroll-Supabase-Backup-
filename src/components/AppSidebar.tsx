@@ -17,7 +17,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useRole } from "@/contexts/RoleContext";
 import { useClient } from "@/contexts/ClientContext";
 import { useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 
 const employerNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -37,7 +36,6 @@ const assetTrackingNav = [
   { title: "Asset Store", url: "/assets/store", icon: Tag },
   { title: "Asset Requests", url: "/assets/requests", icon: Shield },
   { title: "Asset Audits", url: "/assets/audits", icon: ClipboardList },
-  
 ];
 
 const accessManagementNav = [
@@ -97,7 +95,7 @@ const employeeNav = [
   { title: "My Leave", url: "/leave", icon: Calendar },
   { title: "My Loans", url: "/loans", icon: PiggyBank },
   { title: "My Expenses", url: "/expenses", icon: CreditCard },
-  { title: "My Assets", url: "/assets", icon: Monitor },
+  { title: "My Assets", url: "/assets/requests", icon: Monitor },
   { title: "Company Policies", url: "/company-policies", icon: FileText },
   { title: "My Timesheets", url: "/timesheets", icon: Clock },
   { title: "Directory", url: "/org-chart", icon: Users },
@@ -196,8 +194,10 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
 }
 
 export function AppSidebar() {
-  const { role, setRole } = useRole();
+  const { role } = useRole();
   const { client } = useClient();
+
+  const isAdmin = role === "employer" || role === "admin" || role === "hr";
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0">
@@ -211,7 +211,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2 overflow-y-auto scrollbar-hide">
-        {role === "employer" ? (
+        {isAdmin ? (
           <>
             <NavItems items={employerNav} />
             <CollapsibleNavGroup label="Employees" icon={Users} items={employeesSubNav} />
@@ -229,23 +229,8 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter className="p-3">
-        <div className="flex gap-1.5">
-          <Button
-            variant={role === "employer" ? "default" : "outline"}
-            size="sm"
-            className={`flex-1 text-[11px] h-7 font-bold ${role === "employer" ? "gradient-ey text-primary-foreground" : ""}`}
-            onClick={() => setRole("employer")}
-          >
-            Employer
-          </Button>
-          <Button
-            variant={role === "employee" ? "default" : "outline"}
-            size="sm"
-            className={`flex-1 text-[11px] h-7 font-bold ${role === "employee" ? "gradient-ey text-primary-foreground" : ""}`}
-            onClick={() => setRole("employee")}
-          >
-            Employee
-          </Button>
+        <div className="text-[10px] text-sidebar-foreground/40 text-center font-medium">
+          {isAdmin ? "Admin Panel" : "Employee Portal"}
         </div>
       </SidebarFooter>
     </Sidebar>
