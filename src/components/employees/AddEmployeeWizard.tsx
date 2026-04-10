@@ -250,9 +250,15 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
             <p className="text-sm text-muted-foreground">{displaySub}</p>
           </div>
         </div>
-        <Button size="sm" onClick={validateAndSubmit} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          <Check className="h-4 w-4 mr-1" />Submit & Onboard
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 mr-4">
+            <Switch id="send-invite" checked={sendInvite} onCheckedChange={setSendInvite} />
+            <Label htmlFor="send-invite" className="text-sm text-muted-foreground cursor-pointer">Send login invite</Label>
+          </div>
+          <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Check className="h-4 w-4 mr-1" />{inviting ? "Sending Invite..." : "Submit & Onboard"}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs — matching detail view */}
