@@ -198,6 +198,8 @@ function SectionCard({ title, icon: Icon, children, editing, onEdit, onSave, onC
 type SortField = "name" | "empId" | "department" | "designation" | "joiningDate" | "salary";
 type SortDir = "asc" | "desc";
 
+const ITEMS_PER_PAGE = 10;
+
 function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; isEmployee?: boolean }) {
   const { getTypeName } = useEmployeeTypes();
   const [search, setSearch] = useState("");
@@ -205,6 +207,8 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
 
   const departments = Array.from(new Set(empList.map(e => e.department)));
   const statuses = Array.from(new Set(empList.map(e => e.status)));
@@ -214,9 +218,9 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
     else { setSortField(field); setSortDir("asc"); }
   };
 
-  const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <TableHead className="font-semibold cursor-pointer select-none" onClick={() => toggleSort(field)}>
-      <span className="flex items-center gap-1">{children}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+  const SortHeader = ({ field, children, className: extraCls }: { field: SortField; children: React.ReactNode; className?: string }) => (
+    <TableHead className={cn("font-semibold cursor-pointer select-none text-[11px] uppercase tracking-wider text-muted-foreground", extraCls)} onClick={() => toggleSort(field)}>
+      <span className="flex items-center gap-1">{children}<ArrowUpDown className="h-3 w-3 text-muted-foreground/50" /></span>
     </TableHead>
   );
 
@@ -241,84 +245,217 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
       }
     });
 
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedItems = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const activeCount = empList.filter(e => e.status === "active").length;
+  const onLeaveCount = empList.filter(e => e.status === "on-leave").length;
+
+  const allPageSelected = paginatedItems.length > 0 && paginatedItems.every(e => selectedIds.has(e.id));
+  const toggleAll = () => {
+    if (allPageSelected) {
+      const newSet = new Set(selectedIds);
+      paginatedItems.forEach(e => newSet.delete(e.id));
+      setSelectedIds(newSet);
+    } else {
+      const newSet = new Set(selectedIds);
+      paginatedItems.forEach(e => newSet.add(e.id));
+      setSelectedIds(newSet);
+    }
+  };
+  const toggleOne = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  // Reset page on filter change
+  const handleSearch = (v: string) => { setSearch(v); setCurrentPage(1); };
+  const handleDeptFilter = (v: string) => { setDeptFilter(v); setCurrentPage(1); };
+  const handleStatusFilter = (v: string) => { setStatusFilter(v); setCurrentPage(1); };
+
+  const renderPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by name, ID, or email..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9" />
+    <div className="space-y-5">
+      {/* Stat cards row */}
+      {!isEmployee && (
+        <div className="flex items-stretch gap-4">
+          <div className="flex-1 bg-card border rounded-xl p-5 flex flex-col justify-center">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Total Headcount</p>
+            <p className="text-3xl font-bold tracking-tight text-foreground">{empList.length}</p>
+          </div>
+          <div className="flex-1 bg-card border rounded-xl p-5 flex flex-col justify-center">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Active</p>
+            <p className="text-3xl font-bold tracking-tight text-info">{activeCount}</p>
+          </div>
+          <div className="flex-1 bg-card border rounded-xl p-5 flex flex-col justify-center">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">On Leave</p>
+            <p className="text-3xl font-bold tracking-tight text-foreground">{onLeaveCount}</p>
+          </div>
+          <div className="flex-1 bg-card border rounded-xl p-5 flex items-center gap-3">
+            {/* Avatar stack */}
+            <div className="flex -space-x-2">
+              {empList.slice(0, 4).map(emp => (
+                <div key={emp.id} className="h-9 w-9 rounded-full bg-secondary border-2 border-card flex items-center justify-center shrink-0" title={`${emp.firstName} ${emp.lastName}`}>
+                  <span className="text-[10px] font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
+                </div>
+              ))}
+              {empList.length > 4 && (
+                <div className="h-9 w-9 rounded-full bg-muted border-2 border-card flex items-center justify-center shrink-0">
+                  <span className="text-[10px] font-semibold text-muted-foreground">+{empList.length - 4}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <Select value={deptFilter} onValueChange={setDeptFilter}>
-          <SelectTrigger className="w-[160px] h-9"><Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" /><SelectValue placeholder="Department" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Departments</SelectItem>
-            {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            {statuses.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      )}
+
+      {/* Bulk actions bar */}
+      {!isEmployee && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {selectedIds.size > 0 && (
+              <>
+                <Button variant="outline" size="sm" className="text-xs gap-1.5">
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  Bulk Actions
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+                <span className="text-xs text-muted-foreground">{selectedIds.size} items selected</span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8"><Filter className="h-4 w-4" /></Button>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
       <div className="bg-card rounded-xl border overflow-hidden">
-        <ScrollArea className="h-[500px]">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <SortHeader field="name">Employee</SortHeader>
-                <SortHeader field="empId">ID</SortHeader>
-                <SortHeader field="department">Department</SortHeader>
-                <SortHeader field="designation">Designation</SortHeader>
-                {!isEmployee && <TableHead className="font-semibold">Category</TableHead>}
-                {!isEmployee && <TableHead className="font-semibold">Work Location</TableHead>}
-                <TableHead className="font-semibold">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length > 0 ? filtered.map((emp) => (
-                <TableRow key={emp.id} className="hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onSelect(emp)}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                        <span className="text-[10px] font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{emp.firstName} {emp.lastName}</p>
-                        <p className="text-xs text-muted-foreground">{emp.email}</p>
-                      </div>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/30 hover:bg-muted/30">
+              {!isEmployee && (
+                <TableHead className="w-10 pl-4">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    onChange={toggleAll}
+                    className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                  />
+                </TableHead>
+              )}
+              <SortHeader field="name">Employee</SortHeader>
+              <SortHeader field="empId">Employee ID</SortHeader>
+              <SortHeader field="department">Department</SortHeader>
+              <SortHeader field="designation">Designation</SortHeader>
+              {!isEmployee && <SortHeader field="salary" className="hidden lg:table-cell">Work Location</SortHeader>}
+              <TableHead className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
+              {!isEmployee && <TableHead className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground text-right pr-4">Actions</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedItems.length > 0 ? paginatedItems.map((emp) => (
+              <TableRow key={emp.id} className="hover:bg-muted/20 transition-colors group">
+                {!isEmployee && (
+                  <TableCell className="w-10 pl-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(emp.id)}
+                      onChange={(e) => { e.stopPropagation(); toggleOne(emp.id); }}
+                      className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                    />
+                  </TableCell>
+                )}
+                <TableCell className="cursor-pointer" onClick={() => onSelect(emp)}>
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-bold text-secondary-foreground">{emp.firstName[0]}{emp.lastName[0]}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold leading-tight">{emp.firstName} {emp.lastName}</p>
+                      <p className="text-xs text-muted-foreground">{emp.email}</p>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm font-mono text-muted-foreground">{emp.empId}</TableCell>
+                <TableCell className="text-sm">{emp.department}</TableCell>
+                <TableCell className="text-sm">{emp.designation}</TableCell>
+                {!isEmployee && (
+                  <TableCell className="text-sm hidden lg:table-cell">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-info" />
+                      <span>{emp.workLocationCountry}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm font-mono">{emp.empId}</TableCell>
-                  <TableCell className="text-sm">{emp.department}</TableCell>
-                  <TableCell className="text-sm">{emp.designation}</TableCell>
-                  {!isEmployee && (
-                    <TableCell>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-foreground">
-                        {getTypeName(emp.category)}
-                      </span>
-                    </TableCell>
-                  )}
-                  {!isEmployee && (
-                    <TableCell className="text-sm">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                        {emp.workLocationCountry}
-                      </div>
-                    </TableCell>
-                  )}
-                  <TableCell><StatusBadge status={emp.status} /></TableCell>
-                </TableRow>
-              )) : (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No employees match your filters.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </ScrollArea>
+                )}
+                <TableCell><StatusBadge status={emp.status} /></TableCell>
+                {!isEmployee && (
+                  <TableCell className="text-right pr-4">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }}>
+                        <User className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }}>
+                        <FileText className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
+              </TableRow>
+            )) : (
+              <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">No employees match your filters.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
-      <p className="text-xs text-muted-foreground">{filtered.length} of {empList.length} employees</p>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          Showing <span className="font-semibold text-foreground">{Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filtered.length)}-{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)}</span> of <span className="font-semibold text-foreground">{filtered.length}</span> employees
+        </p>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            {renderPageNumbers().map((page, idx) => (
+              typeof page === "number" ? (
+                <Button
+                  key={idx}
+                  variant={currentPage === page ? "default" : "ghost"}
+                  size="icon"
+                  className={cn("h-8 w-8 text-xs", currentPage === page && "gradient-ey text-primary-foreground")}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              ) : (
+                <span key={idx} className="px-1 text-xs text-muted-foreground">…</span>
+              )
+            ))}
+            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+              <span className="sr-only">Next</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1651,16 +1788,41 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Employee Directory" description={isEmployee ? "Browse the employee directory." : "Manage employee records and documentation."}>
-        {!isEmployee && (
-          <>
-            <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />Export</Button>
-            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setAddEmpOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />Add Employee
-            </Button>
-          </>
-        )}
-      </PageHeader>
+      {/* Professional header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Employee Directory</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isEmployee
+              ? "Browse the employee directory."
+              : `Managing ${localEmployees.filter(e => e.status !== "separated" && e.status === "active").length} active workforce members.`
+            }
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isEmployee && (
+            <>
+              <div className="relative min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search by name, ID or department..." className="pl-9 h-9 text-sm" />
+              </div>
+              <Select defaultValue="all">
+                <SelectTrigger className="w-auto h-9 gap-1.5">
+                  <Filter className="h-3.5 w-3.5" />
+                  <SelectValue placeholder="Filters" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Filters</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="h-9"><Download className="h-4 w-4 mr-2" />Export</Button>
+              <Button size="sm" className="gradient-ey text-primary-foreground font-semibold h-9" onClick={() => setAddEmpOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />Add Employee
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
 
       <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
     </div>
