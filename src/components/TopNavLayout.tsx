@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Bell, Settings, LogOut, Search, HelpCircle, ChevronDown } from "lucide-react";
+import { Bell, Settings, LogOut, Search, HelpCircle, LayoutDashboard, Users, Wallet, CalendarCheck, Receipt, Package, BarChart3, ShieldCheck, Briefcase, Clock } from "lucide-react";
 import { useRole } from "@/contexts/RoleContext";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -16,14 +16,24 @@ import {
 const primaryModules = [
   {
     label: "Dashboard",
+    subtitle: "Overview",
+    icon: LayoutDashboard,
+    iconColor: "text-primary",
+    iconBg: "bg-primary/10",
     path: "/",
     exact: true,
+    hasPending: false,
     subNav: [],
   },
   {
     label: "Employees",
+    subtitle: "Directory",
+    icon: Users,
+    iconColor: "text-emerald-600",
+    iconBg: "bg-emerald-50 dark:bg-emerald-950/40",
     path: "/employees",
     exact: false,
+    hasPending: true,
     matchPaths: ["/employees", "/org-chart", "/birthdays", "/leave"],
     subNav: [
       { label: "Directory", path: "/employees" },
@@ -34,8 +44,13 @@ const primaryModules = [
   },
   {
     label: "Payroll",
+    subtitle: "Salaries",
+    icon: Wallet,
+    iconColor: "text-violet-600",
+    iconBg: "bg-violet-50 dark:bg-violet-950/40",
     path: "/payroll",
     exact: false,
+    hasPending: true,
     matchPaths: ["/payroll", "/payroll/setup", "/payslips", "/separations", "/loans", "/analytics"],
     subNav: [
       { label: "Payroll Setup", path: "/payroll/setup" },
@@ -47,10 +62,29 @@ const primaryModules = [
     ],
   },
   {
+    label: "Attendance",
+    subtitle: "Time Logs",
+    icon: CalendarCheck,
+    iconColor: "text-orange-600",
+    iconBg: "bg-orange-50 dark:bg-orange-950/40",
+    path: "/timesheets",
+    exact: false,
+    hasPending: false,
+    matchPaths: ["/timesheets"],
+    subNav: [
+      { label: "Timesheets", path: "/timesheets" },
+    ],
+  },
+  {
     label: "Expenses",
+    subtitle: "Claims",
+    icon: Receipt,
+    iconColor: "text-sky-600",
+    iconBg: "bg-sky-50 dark:bg-sky-950/40",
     path: "/expenses",
     exact: false,
-    matchPaths: ["/expenses", "/advances", "/outstanding-advances", "/expense-analytics"],
+    hasPending: true,
+    matchPaths: ["/expenses", "/advances", "/outstanding-advances", "/expense-analytics", "/mileage"],
     subNav: [
       { label: "Expenses", path: "/expenses" },
       { label: "Advances", path: "/advances" },
@@ -60,8 +94,13 @@ const primaryModules = [
   },
   {
     label: "Assets",
+    subtitle: "Inventory",
+    icon: Package,
+    iconColor: "text-amber-700",
+    iconBg: "bg-amber-50 dark:bg-amber-950/40",
     path: "/assets/dashboard",
     exact: false,
+    hasPending: false,
     matchPaths: ["/assets/dashboard", "/assets/inventory", "/assets/master-data", "/assets/store", "/assets/requests", "/assets/audits"],
     subNav: [
       { label: "Dashboard", path: "/assets/dashboard" },
@@ -74,8 +113,13 @@ const primaryModules = [
   },
   {
     label: "Performance",
+    subtitle: "Reviews",
+    icon: BarChart3,
+    iconColor: "text-pink-600",
+    iconBg: "bg-pink-50 dark:bg-pink-950/40",
     path: "/performance/ratings",
     exact: false,
+    hasPending: true,
     matchPaths: ["/performance/ratings", "/performance/calibration", "/performance/self-assessment", "/performance/peer-assessment", "/performance/manager-assessment", "/performance/assessment-ratings", "/performance/questionnaire"],
     subNav: [
       { label: "Ratings Overview", path: "/performance/ratings" },
@@ -89,8 +133,13 @@ const primaryModules = [
   },
   {
     label: "Settings",
+    subtitle: "Configure",
+    icon: Settings,
+    iconColor: "text-slate-600",
+    iconBg: "bg-slate-100 dark:bg-slate-800/40",
     path: "/settings/company",
     exact: false,
+    hasPending: false,
     matchPaths: ["/settings/company", "/settings/company-structure", "/settings/projects", "/settings/expense-categories", "/settings/approval-matrix", "/settings/company-policies", "/settings/reminders"],
     subNav: [
       { label: "Company Profile", path: "/settings/company" },
@@ -125,40 +174,13 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
-      {/* Primary Header */}
-      <header className="h-14 border-b bg-card flex items-center justify-between px-6 sticky top-0 z-30">
-        {/* Left: Logo + Primary Nav */}
-        <div className="flex items-center gap-8">
+      {/* Top Utility Bar */}
+      <header className="h-12 border-b bg-card flex items-center justify-between px-6 sticky top-0 z-30">
+        <div className="flex items-center gap-6">
           <div className="flex items-center cursor-pointer" onClick={() => navigate("/")}>
-            <span className="text-[20px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
-            <span className="text-[20px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
+            <span className="text-[18px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
+            <span className="text-[18px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
           </div>
-
-          {isAdmin && (
-            <nav className="hidden md:flex items-center gap-1">
-              {primaryModules.map((mod) => {
-                const active = isModuleActive(mod, location.pathname);
-                return (
-                  <button
-                    key={mod.label}
-                    onClick={() => navigate(mod.path)}
-                    className={cn(
-                      "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-                      active
-                        ? "text-primary font-semibold border-b-2 border-primary rounded-b-none"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
-                  >
-                    {mod.label}
-                  </button>
-                );
-              })}
-            </nav>
-          )}
-        </div>
-
-        {/* Right: Search + Icons + Profile */}
-        <div className="flex items-center gap-3">
           <div className="hidden lg:flex relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
@@ -166,6 +188,9 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
               className="pl-9 h-8 w-[260px] text-xs bg-muted/40 border-0 focus-visible:ring-1"
             />
           </div>
+        </div>
+
+        <div className="flex items-center gap-2">
           <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
             <Bell className="h-4 w-4 text-muted-foreground" />
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
@@ -174,10 +199,9 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
             <Settings className="h-4 w-4 text-muted-foreground" />
           </button>
 
-          {/* Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="h-8 w-8 rounded-full bg-foreground flex items-center justify-center hover:opacity-90 transition-opacity">
+              <button className="h-8 w-8 rounded-full bg-foreground flex items-center justify-center hover:opacity-90 transition-opacity ml-1">
                 <span className="text-xs font-semibold text-background">{initials}</span>
               </button>
             </DropdownMenuTrigger>
@@ -201,9 +225,66 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
+      {/* Primary Module Navigation - Icon Buttons */}
+      {isAdmin && (
+        <div className="border-b bg-card sticky top-12 z-20">
+          <div className="px-4">
+            <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide py-3 justify-center">
+              {primaryModules.map((mod) => {
+                const active = isModuleActive(mod, location.pathname);
+                const Icon = mod.icon;
+                return (
+                  <button
+                    key={mod.label}
+                    onClick={() => navigate(mod.path)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-2 rounded-xl transition-all whitespace-nowrap group min-w-fit",
+                      active
+                        ? "bg-primary/5 dark:bg-primary/10"
+                        : "hover:bg-muted/60"
+                    )}
+                  >
+                    <div className="relative">
+                      <div className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center border-2 transition-colors",
+                        active
+                          ? "border-primary/30 " + mod.iconBg
+                          : "border-border " + mod.iconBg
+                      )}>
+                        <Icon className={cn("h-4.5 w-4.5", mod.iconColor)} size={18} />
+                      </div>
+                      {mod.hasPending && (
+                        <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-destructive border-2 border-card" />
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <p className={cn(
+                        "text-[13px] font-semibold leading-tight",
+                        active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                      )}>
+                        {mod.label}
+                      </p>
+                      <p className={cn(
+                        "text-[11px] leading-tight",
+                        active ? "text-primary" : "text-muted-foreground/70"
+                      )}>
+                        {mod.subtitle}
+                      </p>
+                    </div>
+                    {active && (
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2.5px] w-12 bg-primary rounded-t-full" />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      )}
+
       {/* Sub-Navigation Bar */}
       {isAdmin && subNav.length > 0 && (
-        <div className="border-b bg-card/80 backdrop-blur-sm sticky top-14 z-20">
+        <div className="border-b bg-card/80 backdrop-blur-sm sticky top-[6.75rem] z-10">
           <div className="px-6">
             <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mb-px">
               {subNav.map((item) => {
