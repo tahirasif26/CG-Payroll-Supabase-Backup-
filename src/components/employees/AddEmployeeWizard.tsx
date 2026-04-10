@@ -85,6 +85,8 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [education, setEducation] = useState<{ degree: string; institution: string; year: string; field: string }[]>([]);
   const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
+  const [sendInvite, setSendInvite] = useState(true);
+  const [inviting, setInviting] = useState(false);
 
   const selectedSetup = useMemo(() => activeSetups.find(s => s.id === form.payrollSetupId), [form.payrollSetupId, activeSetups]);
 
