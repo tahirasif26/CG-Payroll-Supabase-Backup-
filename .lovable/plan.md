@@ -1,124 +1,76 @@
 
 
-# Payroll Setup System — Implementation Plan
+# Authentication & Role-Based Access for ConnectHR
 
-## Overview
+## What We're Building
 
-Replace the current employee-type-driven payroll configuration with a **Payroll Setup** entity. Each setup encapsulates all payroll rules (pay schedule, components, taxes, deductions, overtime, loans, leave, settlement, retirement, approvals). Employees are assigned to a setup, and payroll runs derive all rules from it.
+1. **Login/Signup pages** — Clean, branded ConnectHR auth form with Email/Password + Google sign-in
+2. **Role-based access** — Replace the manual Employer/Employee toggle with real roles (`admin`, `hr`, `employee`) stored in the database
+3. **Profiles table** — Link authenticated users to employee records
+4. **Protected routes** — Admin/HR see all pages; employees see only their own data
 
-## Architecture
+---
 
-```text
-PayrollSetup (new entity)
-  ├── Pay Schedule
-  ├── Payroll Options (toggles)
-  ├── Payslip Components (earnings/deductions table)
-  ├── Tax Rules (slab table)
-  ├── Salary Rules
-  ├── Overtime config
-  ├── Auto Deductions
-  ├── Loan & Advance Adjustments
-  ├── Leave & Encashment
-  ├── Final Settlement
-  ├── Retirement Policies (PF/VPS)
-  └── Approval Workflow
+## Database Setup
 
-Employee.payrollSetupId → links to one setup
-PayrollRun → fetches setup per employee, applies rules
-```
+### 1. `profiles` table
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid (PK, FK → auth.users) | ON DELETE CASCADE |
+| full_name | text | |
+| avatar_url | text | nullable |
+| employee_id | text | nullable, links to mock employee ID |
+| created_at | timestamptz | default now() |
 
-## Changes
+- RLS: users can read/update only their own profile
+- Trigger: auto-create profile row on signup
 
-### 1. New Types — `src/types/payrollSetup.ts`
-Define `PayrollSetup` interface with all 12 tab sections as nested objects. Include `id`, `name`, `country`, `currency`, `status`, `lastUpdated`, and sub-interfaces for each tab (PaySchedule, PayrollOptions, PayslipComponent[], TaxSlab[], SalaryRules, OvertimeConfig, AutoDeductions, LoanAdvanceConfig, LeaveEncashment, FinalSettlement, RetirementPolicies, ApprovalWorkflow).
+### 2. `user_roles` table (security best practice)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid (PK) | |
+| user_id | uuid (FK → auth.users) | ON DELETE CASCADE |
+| role | app_role enum (`admin`, `hr`, `employee`) | |
 
-### 2. Context — `src/contexts/PayrollSetupContext.tsx`
-- CRUD operations for setups (add, edit, delete, duplicate, toggle status)
-- Seed with 2-3 default setups (e.g., "Saudi Full-Time", "Contractor Setup", "Intern Setup")
-- `getSetupById(id)` helper
-- `getEmployeesBySetup(setupId)` to count assigned employees
+- RLS with `has_role()` security definer function
+- First admin assigned manually via the app's user management
 
-### 3. Mock Data — `src/data/payrollSetupData.ts`
-Pre-populate 3 setups with realistic configurations covering different pay schedules, tax slabs, overtime rules, and retirement policies.
+### 3. `has_role()` function
+Security definer function to check roles without recursive RLS issues.
 
-### 4. Payroll Setup List Page — `src/pages/PayrollSetupPage.tsx`
-- PageHeader: "Payroll Setup" with subtitle
-- "+ New Setup" button top-right
-- Table: Setup Name, Country, Employees Assigned (count), Pay Schedule, Status, Last Updated, Actions (Edit/Duplicate/Delete)
-- Click Edit → navigate to edit page
+---
 
-### 5. Payroll Setup Editor — `src/pages/PayrollSetupEditorPage.tsx`
-Full-page form with:
-- **Top section**: Setup Name, Country, Currency, Status toggle
-- **12 tabs** using existing `Tabs` component, each rendering form fields/tables as described in requirements
-- Save/Cancel buttons
-- Tab components split into `src/components/payrollSetup/` folder for manageability:
-  - `PayScheduleTab.tsx`
-  - `PayrollOptionsTab.tsx`
-  - `PayslipComponentsTab.tsx`
-  - `TaxRulesTab.tsx`
-  - `SalaryRulesTab.tsx`
-  - `OvertimeTab.tsx`
-  - `AutoDeductionsTab.tsx`
-  - `LoanAdvanceTab.tsx`
-  - `LeaveEncashmentTab.tsx`
-  - `FinalSettlementTab.tsx`
-  - `RetirementPoliciesTab.tsx`
-  - `ApprovalWorkflowTab.tsx`
+## Frontend Changes
 
-### 6. Navigation Update — `src/components/AppSidebar.tsx`
-Update `payrollSubNav`:
-```
-- Payroll Setup → /payroll/setup
-- Payroll Runs → /payroll (existing)
-- Payslips → /payslips
-- Analytics → /analytics
-```
+### New Files
+- **`src/pages/AuthPage.tsx`** — Login/Signup form with tabs, Google OAuth button, ConnectHR branding
+- **`src/hooks/useAuth.ts`** — Auth state hook (session, profile, role)
+- **`src/components/ProtectedRoute.tsx`** — Redirects unauthenticated users to /auth
 
-### 7. Routes — `src/App.tsx`
-Add:
-- `/payroll/setup` → PayrollSetupPage (list)
-- `/payroll/setup/new` → PayrollSetupEditorPage
-- `/payroll/setup/:id` → PayrollSetupEditorPage (edit mode)
-- Wrap app with `PayrollSetupProvider`
+### Modified Files
+- **`src/contexts/RoleContext.tsx`** — Replace hardcoded toggle with real role from `user_roles` table. Role type changes to `admin | hr | employee`. Remove `setRole`.
+- **`src/components/AppSidebar.tsx`** — Remove Employer/Employee toggle buttons from footer. Show nav based on actual role (`admin`/`hr` = full nav, `employee` = limited nav).
+- **`src/components/AppLayout.tsx`** — Show logged-in user's name from profile. Add logout button.
+- **`src/App.tsx`** — Wrap routes with auth check. Show AuthPage when not logged in.
 
-### 8. Employee Integration — `src/types/hcm.ts` + `src/pages/EmployeesPage.tsx`
-- Add `payrollSetupId?: string` to `Employee` interface
-- In employee profile Work tab, add "Payroll Setup" dropdown populated from context
-- Display setup name in employee details
-- Update mock employees to have assigned setups
+### Auth Page Design
+- Centered card with ConnectHR logo
+- Email + password fields with validation
+- "Sign in with Google" button
+- Toggle between Login / Sign Up
+- Password reset link (forgot password flow)
 
-### 9. Payroll Run Integration — `src/pages/PayrollPage.tsx`
-- When generating payroll, fetch each employee's `payrollSetupId`
-- Use setup's payslip components instead of global compensation settings
-- Apply setup's tax rules instead of global tax configs
-- Apply setup's overtime, auto deductions, loan/advance config
-- Group employees by setup in preview for clarity
-- Remove employee type multi-select from new run dialog (setup-driven now)
+### Role-Based Navigation
+- **Admin/HR**: See all sidebar groups (Dashboard, Employees, Payroll, Expenses, Assets, Settings, etc.)
+- **Employee**: See only Dashboard, My Payslips, My Leave, My Expenses, My Assets, Company Policies, Directory
 
-### 10. Retire Old Payroll Settings
-- Remove "Payroll Settings" from `employerSettingsNav` in sidebar
-- Remove route `/settings/payroll` → PayrollSettingsPage
-- Keep CompensationSettingsPage, DeductionsPage, TaxPage files but mark as deprecated (don't delete to avoid breaking imports elsewhere immediately)
-- Remove old settings references gradually
+---
 
-## File Summary
+## Technical Details
 
-| Action | File |
-|--------|------|
-| Create | `src/types/payrollSetup.ts` |
-| Create | `src/contexts/PayrollSetupContext.tsx` |
-| Create | `src/data/payrollSetupData.ts` |
-| Create | `src/pages/PayrollSetupPage.tsx` |
-| Create | `src/pages/PayrollSetupEditorPage.tsx` |
-| Create | `src/components/payrollSetup/*.tsx` (12 tab components) |
-| Edit | `src/components/AppSidebar.tsx` — update nav |
-| Edit | `src/App.tsx` — add routes + provider |
-| Edit | `src/types/hcm.ts` — add `payrollSetupId` to Employee |
-| Edit | `src/data/mockData.ts` — assign setups to employees |
-| Edit | `src/pages/PayrollPage.tsx` — use setup-driven logic |
-| Edit | `src/pages/EmployeesPage.tsx` — add setup dropdown |
-
-## Estimated scope
-~18 new files, ~6 edited files. Large feature — will be implemented incrementally with task tracking.
+- Google OAuth via `lovable.auth.signInWithOAuth("google")` (managed, no config needed)
+- Email/password via `supabase.auth.signUp()` / `signInWithPassword()`
+- Email confirmation disabled by default (users verify email before login)
+- Configure Social Auth tool will be called to set up Google OAuth integration
+- Admin assigns roles through an updated User Management page
 
