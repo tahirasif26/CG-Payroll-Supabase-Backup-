@@ -154,7 +154,7 @@ function AppRoutes() {
         <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
         <Route path="/settings/users" element={<ApprovalMatrixPage />} />
         <Route path="/settings/approval-matrix" element={<ApprovalMatrixPage />} />
-        <Route path="/settings/currency" element={<CompanyProfilePage />} />
+        <Route path="/settings/currency" element={<Navigate to="/settings/company" replace />} />
         <Route path="/settings/projects" element={<ProjectSettingsPage />} />
         <Route path="/settings/company" element={<CompanyProfilePage />} />
         <Route path="/settings/gl-codes" element={<CompanyProfilePage />} />
