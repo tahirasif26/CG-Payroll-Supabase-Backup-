@@ -76,6 +76,7 @@ import RatingsOverviewPage from "@/pages/performance/RatingsOverviewPage";
 import QuestionnaireSettingsPage from "@/pages/performance/QuestionnaireSettingsPage";
 import AssessmentRatingsPage from "@/pages/performance/AssessmentRatingsPage";
 import NotFound from "./pages/NotFound";
+import ClientManagementPage from "@/pages/ClientManagementPage";
 import PayrollSetupPage from "@/pages/PayrollSetupPage";
 import PayrollSetupEditorPage from "@/pages/PayrollSetupEditorPage";
 import PayrollSetupViewPage from "@/pages/PayrollSetupViewPage";
@@ -110,10 +111,14 @@ function AppRoutes() {
     );
   }
 
+  // Super admin client management — accessible via direct slug
+  const isAdmin = true; // TODO: check super-admin role
+
   return (
     <AppLayout>
       <Routes>
         <Route path="/auth" element={<Navigate to="/" replace />} />
+        <Route path="/manage/clients" element={<ClientManagementPage />} />
         <Route path="/" element={<DashboardPage />} />
         <Route path="/employees" element={<EmployeesPage />} />
         <Route path="/payroll/setup" element={<PayrollSetupPage />} />
