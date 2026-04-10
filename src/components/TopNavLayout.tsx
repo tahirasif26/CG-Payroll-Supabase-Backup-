@@ -157,7 +157,10 @@ const primaryModules = [
 ];
 
 function isModuleActive(mod: typeof primaryModules[0], pathname: string): boolean {
-  if (mod.exact) return pathname === mod.path;
+  if (mod.label === "Dashboards") {
+    // Dashboards module: match exact "/" or specific dashboard/analytics paths
+    return pathname === "/" || ["/analytics", "/expense-analytics", "/assets/dashboard"].some(p => pathname === p || pathname.startsWith(p + "/"));
+  }
   if (mod.matchPaths) return mod.matchPaths.some(p => pathname === p || pathname.startsWith(p + "/"));
   return pathname.startsWith(mod.path);
 }
