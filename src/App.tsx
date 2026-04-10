@@ -3,9 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useThemeInit } from "@/hooks/useThemeInit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
-import { RoleProvider } from "@/contexts/RoleContext";
+import { RoleProvider, useRole } from "@/contexts/RoleContext";
 import { ClientProvider } from "@/contexts/ClientContext";
 import { SeparationProvider } from "@/contexts/SeparationContext";
 import { AssetProvider } from "@/contexts/AssetContext";
@@ -23,6 +23,8 @@ import { ReminderSettingsProvider } from "@/contexts/ReminderSettingsContext";
 import { PolicyProvider } from "@/contexts/PolicyContext";
 import { EmployeeTypeProvider } from "@/contexts/EmployeeTypeContext";
 import { PayrollSetupProvider } from "@/contexts/PayrollSetupContext";
+import AuthPage from "@/pages/AuthPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import IDCardsPage from "@/pages/IDCardsPage";
 import AccessManagementPage from "@/pages/AccessManagementPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -43,7 +45,6 @@ import AssetMasterDataPage from "@/pages/assets/AssetMasterDataPage";
 import AssetStorePage from "@/pages/assets/AssetStorePage";
 import AssetRequestsPage from "@/pages/assets/AssetRequestsPage";
 import AssetAuditsPage from "@/pages/assets/AssetAuditsPage";
-
 import AssetDashboardPage from "@/pages/assets/AssetDashboardPage";
 import OrgChartPage from "@/pages/OrgChartPage";
 import ProjectsPage from "@/pages/ProjectsPage";
@@ -81,6 +82,105 @@ import PayrollSetupViewPage from "@/pages/PayrollSetupViewPage";
 
 const queryClient = new QueryClient();
 
+function AppRoutes() {
+  const { session, loading } = useRole();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center">
+            <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
+            <span className="text-[28px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
+          </div>
+          <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
+            <div className="h-full w-1/2 bg-primary rounded-full animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <Routes>
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="*" element={<AuthPage />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <Routes>
+        <Route path="/auth" element={<Navigate to="/" replace />} />
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/employees" element={<EmployeesPage />} />
+        <Route path="/payroll/setup" element={<PayrollSetupPage />} />
+        <Route path="/payroll/setup/new" element={<PayrollSetupEditorPage />} />
+        <Route path="/payroll/setup/:id/view" element={<PayrollSetupViewPage />} />
+        <Route path="/payroll/setup/:id" element={<PayrollSetupEditorPage />} />
+        <Route path="/payroll" element={<PayrollPage />} />
+        <Route path="/payslips" element={<PayslipsPage />} />
+        <Route path="/compensation" element={<CompensationPage />} />
+        <Route path="/deductions" element={<DeductionsPage />} />
+        <Route path="/settings/deductions" element={<PayrollSettingsPage />} />
+        <Route path="/settings/tax" element={<PayrollSettingsPage />} />
+        <Route path="/loans" element={<LoansPage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/expense-analytics" element={<ExpenseAnalyticsPage />} />
+        <Route path="/advances" element={<AdvancesPage />} />
+        <Route path="/outstanding-advances" element={<OutstandingAdvancesPage />} />
+        <Route path="/expenses/gps" element={<GPSTrackingPage />} />
+        <Route path="/cost-allocation" element={<CostAllocationPage />} />
+        <Route path="/leave" element={<LeavePage />} />
+        <Route path="/birthdays" element={<BirthdaysPage />} />
+        <Route path="/assets/inventory" element={<AssetInventoryPage />} />
+        <Route path="/assets/master-data" element={<AssetMasterDataPage />} />
+        <Route path="/assets/categories" element={<AssetMasterDataPage />} />
+        <Route path="/assets/store" element={<AssetStorePage />} />
+        <Route path="/assets/requests" element={<AssetRequestsPage />} />
+        <Route path="/assets/audits" element={<AssetAuditsPage />} />
+        <Route path="/assets/dashboard" element={<AssetDashboardPage />} />
+        <Route path="/org-chart" element={<OrgChartPage />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/timesheets" element={<TimesheetsPage />} />
+        <Route path="/settings/payroll" element={<PayrollSettingsPage />} />
+        <Route path="/settings/compensation" element={<PayrollSettingsPage />} />
+        <Route path="/settings/company-structure" element={<CompanyStructurePage />} />
+        <Route path="/settings/job-titles" element={<CompanyStructurePage />} />
+        <Route path="/settings/departments" element={<CompanyStructurePage />} />
+        <Route path="/settings/divisions" element={<CompanyStructurePage />} />
+        <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
+        <Route path="/settings/users" element={<ApprovalMatrixPage />} />
+        <Route path="/settings/approval-matrix" element={<ApprovalMatrixPage />} />
+        <Route path="/settings/currency" element={<CompanyProfilePage />} />
+        <Route path="/settings/projects" element={<ProjectSettingsPage />} />
+        <Route path="/settings/company" element={<CompanyProfilePage />} />
+        <Route path="/settings/gl-codes" element={<CompanyProfilePage />} />
+        <Route path="/settings/reminders" element={<ReminderSettingsPage />} />
+        <Route path="/settings/company-policies" element={<CompanyPoliciesSettingsPage />} />
+        <Route path="/company-policies" element={<CompanyPoliciesPage />} />
+        <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
+        <Route path="/settings/leave-types" element={<PayrollSettingsPage />} />
+        <Route path="/separations" element={<SeparationsPage />} />
+        <Route path="/analytics" element={<PayrollAnalyticsPage />} />
+        <Route path="/id-cards" element={<IDCardsPage />} />
+        <Route path="/access-management" element={<AccessManagementPage />} />
+        <Route path="/performance/ratings" element={<RatingsOverviewPage />} />
+        <Route path="/performance/calibration" element={<RatingCalibrationPage />} />
+        <Route path="/performance/self-assessment" element={<SelfAssessmentPage />} />
+        <Route path="/performance/peer-assessment" element={<PeerAssessmentPage />} />
+        <Route path="/performance/manager-assessment" element={<ManagerAssessmentPage />} />
+        <Route path="/performance/questionnaire" element={<QuestionnaireSettingsPage />} />
+        <Route path="/performance/assessment-ratings" element={<AssessmentRatingsPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AppLayout>
+  );
+}
+
 const App = () => {
   useThemeInit();
   return (
@@ -88,110 +188,45 @@ const App = () => {
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <RoleProvider>
-        <ClientProvider>
-        <SeparationProvider>
-        <AssetProvider>
-        <ReportingProvider>
-        <EmployeeProvider>
-        <DeductionProvider>
-        <PerformanceCycleProvider>
-        <AuditProvider>
-        <BLEAccessProvider>
-        <LeaveTypeProvider>
-        <ApprovalProvider>
-        <CardProvider>
-        <AdvanceProvider>
-        <ReminderSettingsProvider>
-        <PolicyProvider>
-        <EmployeeTypeProvider>
-        <PayrollSetupProvider>
-        <BrowserRouter>
-          <AppLayout>
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/employees" element={<EmployeesPage />} />
-              <Route path="/payroll/setup" element={<PayrollSetupPage />} />
-              <Route path="/payroll/setup/new" element={<PayrollSetupEditorPage />} />
-              <Route path="/payroll/setup/:id/view" element={<PayrollSetupViewPage />} />
-              <Route path="/payroll/setup/:id" element={<PayrollSetupEditorPage />} />
-              <Route path="/payroll" element={<PayrollPage />} />
-              <Route path="/payslips" element={<PayslipsPage />} />
-              <Route path="/compensation" element={<CompensationPage />} />
-              <Route path="/deductions" element={<DeductionsPage />} />
-              <Route path="/settings/deductions" element={<PayrollSettingsPage />} />
-              <Route path="/settings/tax" element={<PayrollSettingsPage />} />
-              <Route path="/loans" element={<LoansPage />} />
-              <Route path="/expenses" element={<ExpensesPage />} />
-              <Route path="/expense-analytics" element={<ExpenseAnalyticsPage />} />
-              <Route path="/advances" element={<AdvancesPage />} />
-              <Route path="/outstanding-advances" element={<OutstandingAdvancesPage />} />
-              <Route path="/expenses/gps" element={<GPSTrackingPage />} />
-              <Route path="/cost-allocation" element={<CostAllocationPage />} />
-              <Route path="/leave" element={<LeavePage />} />
-              <Route path="/birthdays" element={<BirthdaysPage />} />
-              <Route path="/assets/inventory" element={<AssetInventoryPage />} />
-              <Route path="/assets/master-data" element={<AssetMasterDataPage />} />
-              <Route path="/assets/categories" element={<AssetMasterDataPage />} />
-              <Route path="/assets/store" element={<AssetStorePage />} />
-              <Route path="/assets/requests" element={<AssetRequestsPage />} />
-              <Route path="/assets/audits" element={<AssetAuditsPage />} />
-              
-              <Route path="/assets/dashboard" element={<AssetDashboardPage />} />
-              <Route path="/org-chart" element={<OrgChartPage />} />
-              <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/timesheets" element={<TimesheetsPage />} />
-              <Route path="/settings/payroll" element={<PayrollSettingsPage />} />
-              <Route path="/settings/compensation" element={<PayrollSettingsPage />} />
-              <Route path="/settings/company-structure" element={<CompanyStructurePage />} />
-              <Route path="/settings/job-titles" element={<CompanyStructurePage />} />
-              <Route path="/settings/departments" element={<CompanyStructurePage />} />
-              <Route path="/settings/divisions" element={<CompanyStructurePage />} />
-              <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
-              <Route path="/settings/users" element={<ApprovalMatrixPage />} />
-              <Route path="/settings/approval-matrix" element={<ApprovalMatrixPage />} />
-              <Route path="/settings/currency" element={<CompanyProfilePage />} />
-              <Route path="/settings/projects" element={<ProjectSettingsPage />} />
-              <Route path="/settings/company" element={<CompanyProfilePage />} />
-              <Route path="/settings/gl-codes" element={<CompanyProfilePage />} />
-              <Route path="/settings/reminders" element={<ReminderSettingsPage />} />
-              <Route path="/settings/company-policies" element={<CompanyPoliciesSettingsPage />} />
-              <Route path="/company-policies" element={<CompanyPoliciesPage />} />
-              <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
-              <Route path="/settings/leave-types" element={<PayrollSettingsPage />} />
-              <Route path="/separations" element={<SeparationsPage />} />
-              <Route path="/analytics" element={<PayrollAnalyticsPage />} />
-              <Route path="/id-cards" element={<IDCardsPage />} />
-              <Route path="/access-management" element={<AccessManagementPage />} />
-              <Route path="/performance/ratings" element={<RatingsOverviewPage />} />
-              <Route path="/performance/calibration" element={<RatingCalibrationPage />} />
-              <Route path="/performance/self-assessment" element={<SelfAssessmentPage />} />
-              <Route path="/performance/peer-assessment" element={<PeerAssessmentPage />} />
-              <Route path="/performance/manager-assessment" element={<ManagerAssessmentPage />} />
-              <Route path="/performance/questionnaire" element={<QuestionnaireSettingsPage />} />
-              <Route path="/performance/assessment-ratings" element={<AssessmentRatingsPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppLayout>
-        </BrowserRouter>
-        </PayrollSetupProvider>
-        </EmployeeTypeProvider>
-        </PolicyProvider>
-        </ReminderSettingsProvider>
-        </AdvanceProvider>
-        </CardProvider>
-        </ApprovalProvider>
-        </LeaveTypeProvider>
-        </BLEAccessProvider>
-        </AuditProvider>
-        </PerformanceCycleProvider>
-        </DeductionProvider>
-        </EmployeeProvider>
-        </ReportingProvider>
-        </AssetProvider>
-        </SeparationProvider>
-        </ClientProvider>
-      </RoleProvider>
+      <BrowserRouter>
+        <RoleProvider>
+          <ClientProvider>
+          <SeparationProvider>
+          <AssetProvider>
+          <ReportingProvider>
+          <EmployeeProvider>
+          <DeductionProvider>
+          <PerformanceCycleProvider>
+          <AuditProvider>
+          <BLEAccessProvider>
+          <LeaveTypeProvider>
+          <ApprovalProvider>
+          <CardProvider>
+          <AdvanceProvider>
+          <ReminderSettingsProvider>
+          <PolicyProvider>
+          <EmployeeTypeProvider>
+          <PayrollSetupProvider>
+            <AppRoutes />
+          </PayrollSetupProvider>
+          </EmployeeTypeProvider>
+          </PolicyProvider>
+          </ReminderSettingsProvider>
+          </AdvanceProvider>
+          </CardProvider>
+          </ApprovalProvider>
+          </LeaveTypeProvider>
+          </BLEAccessProvider>
+          </AuditProvider>
+          </PerformanceCycleProvider>
+          </DeductionProvider>
+          </EmployeeProvider>
+          </ReportingProvider>
+          </AssetProvider>
+          </SeparationProvider>
+          </ClientProvider>
+        </RoleProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
   );
