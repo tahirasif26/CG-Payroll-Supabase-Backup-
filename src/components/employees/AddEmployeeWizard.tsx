@@ -9,11 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Check, AlertCircle, User, Briefcase, DollarSign, Calendar, FileText, Monitor,
   ChevronLeft, Calculator, Settings, Phone, MapPin, CreditCard, GraduationCap, Heart,
@@ -83,6 +85,8 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [education, setEducation] = useState<{ degree: string; institution: string; year: string; field: string }[]>([]);
   const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
+  const [sendInvite, setSendInvite] = useState(true);
+  const [inviting, setInviting] = useState(false);
 
   const selectedSetup = useMemo(() => activeSetups.find(s => s.id === form.payrollSetupId), [form.payrollSetupId, activeSetups]);
 
@@ -126,7 +130,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
     setErrors(prev => { const next = { ...prev }; delete next[field]; return next; });
   }, []);
 
-  const validateAndSubmit = () => {
+  const validateAndSubmit = async () => {
     const allErrors: Partial<Record<keyof FormData, string>> = {};
     if (!form.firstName.trim()) allErrors.firstName = "Required";
     if (!form.lastName.trim()) allErrors.lastName = "Required";
@@ -168,7 +172,34 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
     };
 
     addEmployee(newEmp);
-    toast({ title: "Employee Added", description: `${newEmp.firstName} ${newEmp.lastName} has been successfully onboarded.` });
+
+    // Send invite email if toggle is on
+    if (sendInvite) {
+      const inviteEmail = form.workEmail?.trim() || form.personalEmail?.trim() || form.email.trim();
+      if (inviteEmail) {
+        setInviting(true);
+        try {
+          const { data: inviteData, error: inviteError } = await supabase.functions.invoke("invite-employee", {
+            body: {
+              email: inviteEmail,
+              full_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+              employee_id: newEmp.empId,
+            },
+          });
+          if (inviteError) throw inviteError;
+          toast({ title: "Employee Added & Invited", description: `${newEmp.firstName} ${newEmp.lastName} onboarded. Login invite sent to ${inviteEmail}.` });
+        } catch (err: any) {
+          toast({ title: "Employee Added", description: `Onboarded successfully, but invite email failed: ${err?.message || "Unknown error"}. You can resend later.`, variant: "destructive" });
+        } finally {
+          setInviting(false);
+        }
+      } else {
+        toast({ title: "Employee Added", description: `${newEmp.firstName} ${newEmp.lastName} has been onboarded. No email provided for invite.` });
+      }
+    } else {
+      toast({ title: "Employee Added", description: `${newEmp.firstName} ${newEmp.lastName} has been successfully onboarded.` });
+    }
+
     resetAndClose();
   };
 
@@ -219,9 +250,15 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
             <p className="text-sm text-muted-foreground">{displaySub}</p>
           </div>
         </div>
-        <Button size="sm" onClick={validateAndSubmit} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          <Check className="h-4 w-4 mr-1" />Submit & Onboard
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 mr-4">
+            <Switch id="send-invite" checked={sendInvite} onCheckedChange={setSendInvite} />
+            <Label htmlFor="send-invite" className="text-sm text-muted-foreground cursor-pointer">Send login invite</Label>
+          </div>
+          <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Check className="h-4 w-4 mr-1" />{inviting ? "Sending Invite..." : "Submit & Onboard"}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs — matching detail view */}
