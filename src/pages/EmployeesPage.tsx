@@ -1788,16 +1788,41 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Employee Directory" description={isEmployee ? "Browse the employee directory." : "Manage employee records and documentation."}>
-        {!isEmployee && (
-          <>
-            <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />Export</Button>
-            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setAddEmpOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />Add Employee
-            </Button>
-          </>
-        )}
-      </PageHeader>
+      {/* Professional header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Employee Directory</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isEmployee
+              ? "Browse the employee directory."
+              : `Managing ${localEmployees.filter(e => e.status !== "separated" && e.status === "active").length} active workforce members.`
+            }
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isEmployee && (
+            <>
+              <div className="relative min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search by name, ID or department..." className="pl-9 h-9 text-sm" />
+              </div>
+              <Select defaultValue="all">
+                <SelectTrigger className="w-auto h-9 gap-1.5">
+                  <Filter className="h-3.5 w-3.5" />
+                  <SelectValue placeholder="Filters" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Filters</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="h-9"><Download className="h-4 w-4 mr-2" />Export</Button>
+              <Button size="sm" className="gradient-ey text-primary-foreground font-semibold h-9" onClick={() => setAddEmpOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />Add Employee
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
 
       <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
     </div>
