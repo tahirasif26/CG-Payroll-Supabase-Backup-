@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { leaveRequests } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useClient } from "@/contexts/ClientContext";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Check, X, Search, Filter } from "lucide-react";
@@ -29,19 +31,31 @@ function getCurrentFiscalYear(yearEndDate?: string): string {
   return `${now.getFullYear()}-${now.getFullYear() + 1}`;
 }
 
+interface DBLeaveRequest {
+  id: string;
+  employee_id: string;
+  leave_type_id: string;
+  start_date: string;
+  end_date: string;
+  days: number;
+  status: string;
+  reason: string | null;
+}
+
 export default function LeavePage() {
   const activeEmps = useActiveEmployees();
-  const activeIds = new Set(activeEmps.map(e => e.id));
+  const { clientId } = useAuth();
   const { leaveTypes, initializeBalances, balances, recordLeaveUsage } = useLeaveTypes();
   const { client } = useClient();
   const { getSetupById } = usePayrollSetups();
   const activeLeaveTypes = leaveTypes.filter(lt => lt.isActive);
-  const [localLeaves, setLocalLeaves] = useState(() => [...leaveRequests].filter(l => activeIds.has(l.employeeId)));
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
   const [newOpen, setNewOpen] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const currentFY = getCurrentFiscalYear(client.yearEndDate);
 
@@ -50,14 +64,62 @@ export default function LeavePage() {
     return emp?.payrollSetupId ? getSetupById(emp.payrollSetupId) : undefined;
   }, [activeEmps, getSetupById]);
 
-  // Initialize balances for all active employees using setup-based allocations
   useEffect(() => {
-    if (activeEmps.length > 0) {
+    if (activeEmps.length > 0 && leaveTypes.length > 0) {
       initializeBalances(activeEmps.map(e => e.id), currentFY, getSetupForEmployee);
     }
-  }, [activeEmps.length, currentFY]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeEmps.length, currentFY, leaveTypes.length]);
 
-  // New request form state
+  // ---------------- Supabase requests ----------------
+  const { data: dbRequests = [] } = useQuery({
+    queryKey: ["leave_requests", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leave_requests")
+        .select("*")
+        .eq("client_id", clientId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as DBLeaveRequest[];
+    },
+  });
+
+  const createReqMut = useMutation({
+    mutationFn: async (payload: Omit<DBLeaveRequest, "id" | "status">) => {
+      if (!clientId) throw new Error("No client");
+      const { error } = await supabase.from("leave_requests").insert({
+        client_id: clientId,
+        employee_id: payload.employee_id,
+        leave_type_id: payload.leave_type_id,
+        start_date: payload.start_date,
+        end_date: payload.end_date,
+        days: payload.days,
+        reason: payload.reason,
+        status: "pending",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leave_requests"] });
+      toast({ title: "Leave Request Submitted", description: "Request created as pending." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const updateStatusMut = useMutation({
+    mutationFn: async ({ id, status, rejection }: { id: string; status: string; rejection?: string }) => {
+      const patch: any = { status };
+      if (status === "approved") patch.approved_at = new Date().toISOString();
+      if (rejection) patch.rejection_reason = rejection;
+      const { error } = await supabase.from("leave_requests").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave_requests"] }),
+  });
+
+  // New request form
   const [newEmployee, setNewEmployee] = useState("");
   const [newType, setNewType] = useState("");
   const [newStart, setNewStart] = useState("");
@@ -68,80 +130,77 @@ export default function LeavePage() {
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const filteredLeaves = localLeaves.filter(l => {
+  const empMap = useMemo(() => {
+    const m = new Map<string, string>();
+    activeEmps.forEach(e => m.set(e.id, `${e.firstName} ${e.lastName}`));
+    return m;
+  }, [activeEmps]);
+
+  const ltMap = useMemo(() => {
+    const m = new Map<string, string>();
+    leaveTypes.forEach(lt => m.set(lt.id, lt.name));
+    return m;
+  }, [leaveTypes]);
+
+  const filteredLeaves = dbRequests.filter(l => {
+    const empName = empMap.get(l.employee_id) || "";
+    const typeName = ltMap.get(l.leave_type_id) || "";
     const q = search.toLowerCase();
-    const matchesSearch = !q || l.employeeName.toLowerCase().includes(q) || l.reason.toLowerCase().includes(q);
-    const matchesType = filterType === "all" || l.type === filterType;
+    const matchesSearch = !q || empName.toLowerCase().includes(q) || (l.reason || "").toLowerCase().includes(q);
+    const matchesType = filterType === "all" || l.leave_type_id === filterType;
     const matchesStatus = filterStatus === "all" || l.status === filterStatus;
     return matchesSearch && matchesType && matchesStatus;
   });
 
   const handleSubmitRequest = (e: React.FormEvent) => {
     e.preventDefault();
-    const emp = activeEmps.find(em => em.id === newEmployee);
-    if (!emp || !newType || !newStart || !newEnd) return;
-    const leaveType = activeLeaveTypes.find(lt => lt.id === newType);
+    if (!newEmployee || !newType || !newStart || !newEnd) return;
     const start = new Date(newStart);
     const end = new Date(newEnd);
     const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    const typeName = leaveType ? leaveType.name.toLowerCase().replace(/\s+/g, "_") : "annual";
-
-    const newLeave = {
-      id: `lr-${Date.now()}`,
-      employeeId: emp.id,
-      employeeName: `${emp.firstName} ${emp.lastName}`,
-      type: typeName as any,
-      startDate: newStart,
-      endDate: newEnd,
+    createReqMut.mutate({
+      employee_id: newEmployee,
+      leave_type_id: newType,
+      start_date: newStart,
+      end_date: newEnd,
       days,
-      status: "pending" as const,
       reason: newReason || "No reason provided",
-    };
-
-    setLocalLeaves(prev => [newLeave, ...prev]);
-    leaveRequests.push(newLeave);
-
+    });
     setNewOpen(false);
-    setNewEmployee("");
-    setNewType("");
-    setNewStart("");
-    setNewEnd("");
-    setNewReason("");
-    toast({ title: "Leave Request Submitted", description: `Leave request for ${emp.firstName} ${emp.lastName} has been submitted as pending.` });
+    setNewEmployee(""); setNewType(""); setNewStart(""); setNewEnd(""); setNewReason("");
   };
 
   const handleApprove = () => {
     if (!selectedLeave) return;
-    const leave = localLeaves.find(l => l.id === selectedLeave);
+    const leave = dbRequests.find(l => l.id === selectedLeave);
     if (leave) {
-      setLocalLeaves(prev => prev.map(l => l.id === selectedLeave ? { ...l, status: "approved" as const } : l));
-      // Find matching leave type and record usage
-      const matchingLT = leaveTypes.find(lt => lt.name.toLowerCase().replace(/\s+/g, "_") === leave.type);
-      if (matchingLT) {
-        recordLeaveUsage(leave.employeeId, matchingLT.id, currentFY, leave.days);
-      }
+      updateStatusMut.mutate({ id: leave.id, status: "approved" }, {
+        onSuccess: () => {
+          recordLeaveUsage(leave.employee_id, leave.leave_type_id, currentFY, leave.days);
+          toast({ title: "Leave Approved", description: "Request approved and balance updated." });
+        },
+      });
     }
     setApproveOpen(false);
     setSelectedLeave(null);
-    toast({ title: "Leave Approved", description: "The leave request has been approved and balance updated." });
   };
 
   const handleReject = () => {
     if (selectedLeave) {
-      setLocalLeaves(prev => prev.map(l => l.id === selectedLeave ? { ...l, status: "rejected" as const } : l));
+      updateStatusMut.mutate({ id: selectedLeave, status: "rejected" }, {
+        onSuccess: () => toast({ title: "Leave Rejected", description: "The leave request has been rejected." }),
+      });
     }
     setRejectOpen(false);
     setSelectedLeave(null);
-    toast({ title: "Leave Rejected", description: "The leave request has been rejected." });
   };
 
-  const selectedLeaveData = localLeaves.find(l => l.id === selectedLeave);
+  const selectedLeaveData = dbRequests.find(l => l.id === selectedLeave);
 
-  // Balance data for the table
   const balanceRows = useMemo(() => {
     const rows: { empId: string; empName: string; leaveType: string; entitled: number; carriedForward: number; used: number; remaining: number }[] = [];
     for (const emp of activeEmps) {
-      const empBalances = balances.filter(b => b.employeeId === emp.id && b.year === currentFY);
+      const empBalances = balances.filter(b => b.employeeId === emp.id);
       for (const b of empBalances) {
         const lt = leaveTypes.find(l => l.id === b.leaveTypeId);
         rows.push({
@@ -156,12 +215,7 @@ export default function LeavePage() {
       }
     }
     return rows;
-  }, [activeEmps, balances, currentFY, leaveTypes]);
-
-  const getEmpName = (id: string) => {
-    const emp = activeEmps.find(e => e.id === id);
-    return emp ? `${emp.firstName} ${emp.lastName}` : id;
-  };
+  }, [activeEmps, balances, leaveTypes]);
 
   return (
     <div className="space-y-6">
@@ -191,7 +245,7 @@ export default function LeavePage() {
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   {activeLeaveTypes.map(lt => (
-                    <SelectItem key={lt.id} value={lt.name.toLowerCase().replace(/\s+/g, "_")}>{lt.name}</SelectItem>
+                    <SelectItem key={lt.id} value={lt.id}>{lt.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -221,15 +275,17 @@ export default function LeavePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLeaves.map((leave) => (
+                  {filteredLeaves.length === 0 ? (
+                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No leave requests found.</TableCell></TableRow>
+                  ) : filteredLeaves.map((leave) => (
                     <TableRow key={leave.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-medium">{leave.employeeName}</TableCell>
-                      <TableCell className="capitalize">{leave.type}</TableCell>
-                      <TableCell>{new Date(leave.startDate).toLocaleDateString()}</TableCell>
-                      <TableCell>{new Date(leave.endDate).toLocaleDateString()}</TableCell>
+                      <TableCell className="font-medium">{empMap.get(leave.employee_id) || "—"}</TableCell>
+                      <TableCell className="capitalize">{ltMap.get(leave.leave_type_id) || "—"}</TableCell>
+                      <TableCell>{new Date(leave.start_date).toLocaleDateString()}</TableCell>
+                      <TableCell>{new Date(leave.end_date).toLocaleDateString()}</TableCell>
                       <TableCell className="font-semibold">{leave.days}</TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{leave.reason}</TableCell>
-                      <TableCell><StatusBadge status={leave.status} /></TableCell>
+                      <TableCell><StatusBadge status={leave.status as any} /></TableCell>
                       <TableCell>
                         {leave.status === "pending" && (
                           <div className="flex gap-1">
@@ -354,9 +410,9 @@ export default function LeavePage() {
           </DialogHeader>
           {selectedLeaveData && (
             <div className="space-y-2 text-sm">
-              <p><span className="font-medium">Employee:</span> {selectedLeaveData.employeeName}</p>
-              <p><span className="font-medium">Type:</span> {selectedLeaveData.type}</p>
-              <p><span className="font-medium">Duration:</span> {selectedLeaveData.days} days ({selectedLeaveData.startDate} to {selectedLeaveData.endDate})</p>
+              <p><span className="font-medium">Employee:</span> {empMap.get(selectedLeaveData.employee_id)}</p>
+              <p><span className="font-medium">Type:</span> {ltMap.get(selectedLeaveData.leave_type_id)}</p>
+              <p><span className="font-medium">Duration:</span> {selectedLeaveData.days} days ({selectedLeaveData.start_date} to {selectedLeaveData.end_date})</p>
               <p><span className="font-medium">Reason:</span> {selectedLeaveData.reason}</p>
             </div>
           )}
@@ -376,12 +432,8 @@ export default function LeavePage() {
           </DialogHeader>
           {selectedLeaveData && (
             <div className="space-y-3 text-sm">
-              <p><span className="font-medium">Employee:</span> {selectedLeaveData.employeeName}</p>
-              <p><span className="font-medium">Type:</span> {selectedLeaveData.type} · {selectedLeaveData.days} days</p>
-              <div className="space-y-2">
-                <Label>Rejection Reason</Label>
-                <Textarea placeholder="Provide a reason for rejection..." />
-              </div>
+              <p><span className="font-medium">Employee:</span> {empMap.get(selectedLeaveData.employee_id)}</p>
+              <p><span className="font-medium">Type:</span> {ltMap.get(selectedLeaveData.leave_type_id)} · {selectedLeaveData.days} days</p>
             </div>
           )}
           <DialogFooter>
@@ -390,7 +442,6 @@ export default function LeavePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
