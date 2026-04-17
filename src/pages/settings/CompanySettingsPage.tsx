@@ -1,13 +1,15 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useClient } from "@/contexts/ClientContext";
+import { useRole } from "@/contexts/RoleContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Building, Calendar, Lock, Upload, X, Image } from "lucide-react";
+import { Building, Calendar, Lock, Image } from "lucide-react";
+import { FileUpload } from "@/components/FileUpload";
 
 const months = [
   { value: "01", label: "January" }, { value: "02", label: "February" },
@@ -25,30 +27,9 @@ const daysInMonth: Record<string, number> = {
 
 export default function CompanySettingsPage() {
   const { client, setClient } = useClient();
+  const { clientId } = useRole();
   const [name, setName] = useState(client.companyName);
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Logo must be under 2MB.", variant: "destructive" });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setClient({ ...client, companyLogo: dataUrl });
-      toast({ title: "Logo Uploaded", description: "Company logo has been saved." });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveLogo = () => {
-    setClient({ ...client, companyLogo: undefined });
-    toast({ title: "Logo Removed" });
-  };
 
   const existingMonth = client.yearEndDate?.split("-")[0] || "";
   const existingDay = client.yearEndDate?.split("-")[1] || "";
@@ -98,36 +79,23 @@ export default function CompanySettingsPage() {
         <CardHeader>
           <CardTitle className="text-base font-semibold flex items-center gap-2"><Image className="h-4 w-4" />Company Logo</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {client.companyLogo ? (
-            <div className="space-y-3">
-              <div className="relative inline-block">
-                <img src={client.companyLogo} alt="Company logo" className="h-20 w-auto max-w-[200px] object-contain rounded-md border" />
-                <button onClick={handleRemoveLogo} className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">This logo will appear on digital greeting cards.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm font-medium">Click to upload logo</p>
-                <p className="text-xs text-muted-foreground mt-1">PNG, JPG, or SVG (max 2MB)</p>
-              </div>
-            </div>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/svg+xml"
-            className="hidden"
-            onChange={handleLogoUpload}
+        <CardContent className="space-y-3">
+          <FileUpload
+            bucket="client-logos"
+            pathPrefix={clientId ?? "anonymous"}
+            fileName="logo"
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            maxSizeMB={2}
+            currentUrl={client.companyLogo}
+            onUploaded={(_path, url) => {
+              if (url) {
+                setClient({ ...client, companyLogo: url });
+                toast({ title: "Logo uploaded" });
+              }
+            }}
+            onRemoved={() => setClient({ ...client, companyLogo: undefined })}
           />
+          <p className="text-xs text-muted-foreground">This logo will appear on digital greeting cards and payslips.</p>
         </CardContent>
       </Card>
 
