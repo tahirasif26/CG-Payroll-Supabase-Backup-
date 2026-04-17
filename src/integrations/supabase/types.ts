@@ -3593,6 +3593,42 @@ export type Database = {
           },
         ]
       }
+      tax_configs: {
+        Row: {
+          applies_to: string[]
+          applies_to_countries: string[]
+          client_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          rate: number
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string[]
+          applies_to_countries?: string[]
+          client_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          rate?: number
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string[]
+          applies_to_countries?: string[]
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       timesheets: {
         Row: {
           approved_at: string | null
