@@ -182,8 +182,6 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
   const activeModule = visibleModules.find(m => isModuleActive(m, location.pathname));
   const subNav = activeModule?.subNav || [];
 
-  const isAdmin = role === "employer";
-
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
       {/* Top Utility Bar */}
