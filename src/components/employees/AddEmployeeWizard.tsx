@@ -198,7 +198,8 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
         religion: form.religion || undefined,
         work_location_country: form.workLocationCountry || undefined,
         work_location_city: form.workLocationCity || undefined,
-        payroll_setup_id: form.payrollSetupId || undefined,
+        // payroll_setup_id is a local mock id (e.g. "ps-2") not a DB UUID — skip persisting until setups live in DB.
+        payroll_setup_id: undefined,
         reports_to: form.reportsTo || undefined,
         address: {
           address_line1: form.addressLine1, address_line2: form.addressLine2,
