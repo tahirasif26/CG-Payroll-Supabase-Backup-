@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useRole } from "@/contexts/RoleContext";
-import { leaveRequests, expenses, payrollRuns, getUpcomingBirthdays } from "@/data/mockData";
+import { leaveRequests, expenses, getUpcomingBirthdays } from "@/data/mockData";
+import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { MetricCard } from "@/components/dashboards/MetricCard";
@@ -31,8 +32,9 @@ export default function EmployeeDashboard() {
   const upcomingLeaves = myLeaves.filter((l) => l.status === "approved" || l.status === "pending").slice(0, 3);
   const myExpenses = expenses.filter((e) => e.employeeId === currentEmployeeId);
   const pendingExpenses = myExpenses.filter((e) => e.status === "pending");
-  const lastPayslip = payrollRuns.find((p) => p.status === "completed");
-  const recentPayslips = payrollRuns.filter((p) => p.status === "completed").slice(0, 3);
+  const { data: payrollRuns = [] } = usePayrollRuns({ status: "completed" });
+  const lastPayslip = payrollRuns[0];
+  const recentPayslips = payrollRuns.slice(0, 3);
   const birthdays = getUpcomingBirthdays(activeEmps).slice(0, 5);
 
   const annualBalance = 21;
@@ -79,7 +81,7 @@ export default function EmployeeDashboard() {
           <MetricCard label="Leave Balance" value={`${annualBalance}d`} sublabel={`Sick: ${sickBalance}d`} icon={Calendar} accent="blue" />
         )}
         {hasFeature("payroll.view_own_payslip") && lastPayslip && (
-          <MetricCard label="Latest Payslip" value={`SAR ${lastPayslip.totalNet.toLocaleString()}`} sublabel={`${lastPayslip.month} ${lastPayslip.year}`} icon={DollarSign} accent="emerald" />
+          <MetricCard label="Latest Payslip" value={`SAR ${(Number(lastPayslip.total_net) || 0).toLocaleString()}`} sublabel={`${lastPayslip.month} ${lastPayslip.year}`} icon={DollarSign} accent="emerald" />
         )}
         {hasFeature("expenses.view_own") && (
           <MetricCard label="My Expenses" value={pendingExpenses.length} sublabel={`${myExpenses.length} total this year`} icon={Receipt} accent="amber" />
@@ -138,7 +140,7 @@ export default function EmployeeDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{p.month} {p.year}</p>
-                      <p className="text-[11px] text-muted-foreground">SAR {p.totalNet.toLocaleString()}</p>
+                      <p className="text-[11px] text-muted-foreground">SAR {(Number(p.total_net) || 0).toLocaleString()}</p>
                     </div>
                     <Button variant="ghost" size="icon" className="h-7 w-7"><Download className="h-3.5 w-3.5" /></Button>
                   </li>

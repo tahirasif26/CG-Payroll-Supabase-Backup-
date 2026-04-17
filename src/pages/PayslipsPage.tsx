@@ -2,7 +2,8 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useClient } from "@/contexts/ClientContext";
-import { payrollRuns, loans, expenses } from "@/data/mockData";
+import { loans, expenses } from "@/data/mockData";
+import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
@@ -111,7 +112,19 @@ export default function PayslipsPage() {
   const { role, currentEmployeeId } = useRole();
   const { setups, getSetupById } = usePayrollSetups();
   const currentEmployee = employees.find(e => e.id === currentEmployeeId);
-  const completedRuns = payrollRuns.filter(r => r.status === "completed");
+  const { data: dbRuns = [] } = usePayrollRuns({ status: "completed" });
+  const completedRuns = dbRuns.map(r => ({
+    id: r.id,
+    month: r.month,
+    year: r.year,
+    status: r.status as "draft" | "processing" | "completed" | "failed",
+    totalGross: Number(r.total_gross) || 0,
+    totalDeductions: Number(r.total_deductions) || 0,
+    totalNet: Number(r.total_net) || 0,
+    runDate: r.run_date,
+    employeeCount: r.employee_count ?? 0,
+    payrollSetupId: r.payroll_setup_id ?? undefined,
+  }));
   const [viewPayslip, setViewPayslip] = useState<PayslipDetail | null>(null);
   const [search, setSearch] = useState("");
   const { toast } = useToast();

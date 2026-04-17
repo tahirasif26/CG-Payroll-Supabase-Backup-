@@ -2,7 +2,23 @@ import React, { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { payrollRuns, loans, expenses, taxConfigs as initialTaxConfigs } from "@/data/mockData";
+import { loans, expenses, taxConfigs as initialTaxConfigs } from "@/data/mockData";
+import { usePayrollRuns, type PayrollRunRow } from "@/hooks/queries/usePayroll";
+
+function adaptPayrollRun(r: PayrollRunRow): PayrollRun {
+  return {
+    id: r.id,
+    month: r.month,
+    year: r.year,
+    status: (r.status as PayrollRun["status"]) ?? "draft",
+    totalGross: Number(r.total_gross) || 0,
+    totalDeductions: Number(r.total_deductions) || 0,
+    totalNet: Number(r.total_net) || 0,
+    runDate: r.run_date,
+    employeeCount: r.employee_count ?? 0,
+    payrollSetupId: r.payroll_setup_id ?? undefined,
+  };
+}
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { PayrollRun, OneOffAdjustment, Employee, Deduction, TaxConfig } from "@/types/hcm";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
@@ -256,15 +272,18 @@ export default function PayrollPage() {
   const { setups, getSetupById } = usePayrollSetups();
   const activeSetups = setups.filter(s => s.status === "active");
   const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
-  const [runs, setRuns] = useState<PayrollRun[]>(() => [...payrollRuns]);
+  const { data: dbRuns = [] } = usePayrollRuns();
+  const [runs, setRuns] = useState<PayrollRun[]>([]);
+  const [seededFromDb, setSeededFromDb] = useState(false);
+  React.useEffect(() => {
+    if (!seededFromDb && dbRuns.length > 0) {
+      setRuns(dbRuns.map(adaptPayrollRun));
+      setSeededFromDb(true);
+    }
+  }, [dbRuns, seededFromDb]);
 
   const syncRuns = (updater: (prev: PayrollRun[]) => PayrollRun[]) => {
-    setRuns(prev => {
-      const next = updater(prev);
-      payrollRuns.length = 0;
-      next.forEach(r => payrollRuns.push(r));
-      return next;
-    });
+    setRuns(updater);
   };
   const { client } = useClient();
   const { separations } = useSeparations();
@@ -302,7 +321,7 @@ export default function PayrollPage() {
 
   const [processedSeps, setProcessedSeps] = useState<Set<string>>(() => {
     const set = new Set<string>();
-    const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
+    const completedRunIds = new Set(runs.filter(r => r.status === "completed").map(r => r.id));
     separations.forEach(sep => {
       if (sep.status === "approved" && sep.payrollRunId && completedRunIds.has(sep.payrollRunId)) {
         set.add(sep.employeeId);
