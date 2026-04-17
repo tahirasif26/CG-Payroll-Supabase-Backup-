@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { deductions as initialDeductions } from "@/data/mockData";
 import type { Deduction } from "@/types/hcm";
 
 interface DeductionContextType {
@@ -13,7 +12,9 @@ interface DeductionContextType {
 const DeductionContext = createContext<DeductionContextType | undefined>(undefined);
 
 export function DeductionProvider({ children }: { children: ReactNode }) {
-  const [deductions, setDeductions] = useState<Deduction[]>([...initialDeductions]);
+  // Deductions are now persisted via DB hooks (useDeductions in src/hooks/queries).
+  // This in-memory context remains for legacy pages that still call useDeductions().
+  const [deductions, setDeductions] = useState<Deduction[]>([]);
 
   const updateDeduction = (id: string, updates: Partial<Deduction>) => {
     setDeductions(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
