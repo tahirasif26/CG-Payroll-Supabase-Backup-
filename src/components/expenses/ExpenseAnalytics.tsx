@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { expenses, payrollRuns } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { ExpenseReimbursement } from "@/types/hcm";
+import { useExpenses } from "@/hooks/queries/useExpenses";
+import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,41 +13,68 @@ import { cn } from "@/lib/utils";
 
 type GroupBy = "category" | "employee";
 
-function getCompletedRuns() {
-  return payrollRuns
-    .filter(r => r.status === "completed")
-    .map(r => ({ id: r.id, label: `${r.month} ${r.year}` }));
-}
-
-function getExpensesForRun(runId: string, allExpenses: ExpenseReimbursement[]): ExpenseReimbursement[] {
-  return allExpenses.filter(exp => exp.payrollRunId === runId && (exp.status === "approved" || exp.status === "paid"));
-}
-
-function groupExpenses(exps: ExpenseReimbursement[], groupBy: GroupBy): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const exp of exps) {
-    const key = groupBy === "category" ? exp.category : exp.employeeName;
-    map.set(key, (map.get(key) || 0) + exp.amount);
-  }
-  return map;
+interface FlatExpense {
+  payrollRunId?: string;
+  status: string;
+  category: string;
+  employeeName: string;
+  amount: number;
 }
 
 export default function ExpenseAnalytics() {
   const { employees: emps } = useEmployees();
-  const completedRuns = getCompletedRuns();
+  const { data: rawExpenses = [] } = useExpenses();
+  const { data: payrollRuns = [] } = usePayrollRuns();
 
-  const [baseRunId, setBaseRunId] = useState(completedRuns[0]?.id || "");
-  const [compareRunId, setCompareRunId] = useState(completedRuns[1]?.id || completedRuns[0]?.id || "");
+  const completedRuns = useMemo(
+    () => payrollRuns
+      .filter((r) => r.status === "completed")
+      .map((r) => ({ id: r.id, label: `${r.month} ${r.year}` })),
+    [payrollRuns]
+  );
+
+  const allExpenses: FlatExpense[] = useMemo(() => {
+    return (rawExpenses as any[]).map((r) => {
+      const emp = emps.find((e) => e.id === r.employee_id);
+      return {
+        payrollRunId: r.payroll_run_id ?? undefined,
+        status: r.status,
+        category: r.expense_categories?.name ?? "Other",
+        employeeName: emp ? `${emp.firstName} ${emp.lastName}` : "Unknown",
+        amount: Number(r.amount ?? 0),
+      };
+    });
+  }, [rawExpenses, emps]);
+
+  const [baseRunId, setBaseRunId] = useState("");
+  const [compareRunId, setCompareRunId] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>("category");
   const [chartFilter, setChartFilter] = useState<string | null>(null);
 
-  const allExpenses = useMemo(() => [...expenses], []);
+  // Initialize selections once runs load
+  if (!baseRunId && completedRuns[0]) setBaseRunId(completedRuns[0].id);
+  if (!compareRunId && (completedRuns[1] || completedRuns[0])) {
+    setCompareRunId((completedRuns[1] || completedRuns[0]).id);
+  }
 
-  const baseLabel = completedRuns.find(r => r.id === baseRunId)?.label || "Period 1";
-  const compareLabel = completedRuns.find(r => r.id === compareRunId)?.label || "Period 2";
+  const baseLabel = completedRuns.find((r) => r.id === baseRunId)?.label || "Period 1";
+  const compareLabel = completedRuns.find((r) => r.id === compareRunId)?.label || "Period 2";
 
-  const baseExpenses = useMemo(() => getExpensesForRun(baseRunId, allExpenses), [baseRunId, allExpenses]);
-  const compareExpenses = useMemo(() => getExpensesForRun(compareRunId, allExpenses), [compareRunId, allExpenses]);
+  const getExpensesForRun = (runId: string): FlatExpense[] =>
+    allExpenses.filter((e) => e.payrollRunId === runId && (e.status === "approved" || e.status === "paid"));
+
+  const groupExpenses = (exps: FlatExpense[], by: GroupBy): Map<string, number> => {
+    const map = new Map<string, number>();
+    for (const exp of exps) {
+      const key = by === "category" ? exp.category : exp.employeeName;
+      map.set(key, (map.get(key) || 0) + exp.amount);
+    }
+    return map;
+  };
+
+  const baseExpenses = useMemo(() => getExpensesForRun(baseRunId), [baseRunId, allExpenses]);
+  const compareExpenses = useMemo(() => getExpensesForRun(compareRunId), [compareRunId, allExpenses]);
+
 
   const baseTotal = baseExpenses.reduce((s, e) => s + e.amount, 0);
   const compareTotal = compareExpenses.reduce((s, e) => s + e.amount, 0);
