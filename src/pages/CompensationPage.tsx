@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function CompensationPage() {
   const { role, currentEmployeeId } = useRole();
+  const { employees } = useEmployeesCtx();
   const activeEmps = useActiveEmployees();
   const [addOpen, setAddOpen] = useState(false);
   const { toast } = useToast();
