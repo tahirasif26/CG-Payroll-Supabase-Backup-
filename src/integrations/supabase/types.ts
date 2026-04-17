@@ -14,6 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
+      approval_roles: {
+        Row: {
+          can_approve_hr: boolean
+          can_approve_payroll: boolean
+          client_id: string
+          created_at: string
+          expense_approval_limit: number
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          can_approve_hr?: boolean
+          can_approve_payroll?: boolean
+          client_id: string
+          created_at?: string
+          expense_approval_limit?: number
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          can_approve_hr?: boolean
+          can_approve_payroll?: boolean
+          client_id?: string
+          created_at?: string
+          expense_approval_limit?: number
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_roles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_roles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          after_value: Json | null
+          before_value: Json | null
+          client_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string
+          user_role: string | null
+        }
+        Insert: {
+          action: string
+          after_value?: Json | null
+          before_value?: Json | null
+          client_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id: string
+          user_role?: string | null
+        }
+        Update: {
+          action?: string
+          after_value?: Json | null
+          before_value?: Json | null
+          client_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string
+          user_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           base_currency: string
@@ -750,6 +864,48 @@ export type Database = {
           },
         ]
       }
+      gl_code_mappings: {
+        Row: {
+          client_id: string
+          created_at: string
+          entry_name: string
+          gl_code: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          entry_name: string
+          gl_code: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          entry_name?: string
+          gl_code?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gl_code_mappings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gl_code_mappings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -800,6 +956,55 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_approval_role_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          client_id: string
+          id: string
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          client_id: string
+          id?: string
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          client_id?: string
+          id?: string
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_approval_role_assignments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_approval_role_assignments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_approval_role_assignments_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "approval_roles"
             referencedColumns: ["id"]
           },
         ]
