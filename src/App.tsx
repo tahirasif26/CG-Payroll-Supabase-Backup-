@@ -321,8 +321,8 @@ const App = () => {
           <ClientProvider>
           <SeparationProvider>
           <AssetProvider>
-          <ReportingProvider>
           <EmployeeProvider>
+          <ReportingProvider>
           <DeductionProvider>
           <PerformanceCycleProvider>
           <AuditProvider>
