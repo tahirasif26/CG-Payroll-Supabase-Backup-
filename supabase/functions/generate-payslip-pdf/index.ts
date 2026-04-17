@@ -1,8 +1,12 @@
 // generate-payslip-pdf — produce a PDF for a payroll line, store it in the
 // 'payslips' bucket and update the payslips table with pdf_url + issued_at.
-import { corsHeaders } from "@supabase/supabase-js/cors";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 interface Body {
   payroll_line_id: string;
