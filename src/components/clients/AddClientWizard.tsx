@@ -101,7 +101,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const handleSubmit = async () => {
     if (!validateStep(2)) return;
     try {
-      const payload: CreateClientInput = { ...form };
+      const payload: CreateClientInput = { ...form } as CreateClientInput;
       await createClient.mutateAsync(payload);
       onOpenChange(false);
       setStep(1);

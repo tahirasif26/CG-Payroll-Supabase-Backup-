@@ -1,522 +1,415 @@
-import { useState } from "react";
-import { Building2, Plus, Search, MoreHorizontal, Users, Calendar, CheckCircle2, Clock, Pencil, Trash2, Eye } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Building2, Plus, Search, MoreHorizontal, Users, Eye, Pencil,
+  Pause, Play, Trash2, Download, CheckCircle2, Clock, XCircle, Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { ImageUpload } from "@/components/ImageUpload";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/PageHeader";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import {
+  useClients, useSetClientStatus, useDeleteClient, type ClientStat, type ClientFilters,
+} from "@/hooks/queries/useClients";
+import { AddClientWizard } from "@/components/clients/AddClientWizard";
+import { ClientDetailsSheet } from "@/components/clients/ClientDetailsSheet";
 
-interface Client {
-  id: string;
-  companyName: string;
-  logo?: string;
-  contactPerson: string;
-  contactEmail: string;
-  contactPhone: string;
-  industry: string;
-  country: string;
-  totalEmployees: number;
-  status: "active" | "onboarding" | "inactive";
-  subscriptionPlan: string;
-  startDate: string;
-  notes: string;
-}
-
-const initialClients: Client[] = [
-  {
-    id: "1",
-    companyName: "Al Rajhi Holdings",
-    contactPerson: "Mohammed Al Rajhi",
-    contactEmail: "m.alrajhi@alrajhi.com",
-    contactPhone: "+966 50 123 4567",
-    industry: "Financial Services",
-    country: "Saudi Arabia",
-    totalEmployees: 450,
-    status: "active",
-    subscriptionPlan: "Enterprise",
-    startDate: "2025-01-15",
-    notes: "Key client, premium support",
-  },
-  {
-    id: "2",
-    companyName: "Dubai Tech Solutions",
-    contactPerson: "Fatima Al Maktoum",
-    contactEmail: "fatima@dubaitech.ae",
-    contactPhone: "+971 55 987 6543",
-    industry: "Technology",
-    country: "UAE",
-    totalEmployees: 120,
-    status: "active",
-    subscriptionPlan: "Professional",
-    startDate: "2025-03-01",
-    notes: "",
-  },
-  {
-    id: "3",
-    companyName: "Qatar Energy Corp",
-    contactPerson: "Ahmad Al Thani",
-    contactEmail: "a.althani@qatarenergy.qa",
-    contactPhone: "+974 33 456 7890",
-    industry: "Energy",
-    country: "Qatar",
-    totalEmployees: 800,
-    status: "onboarding",
-    subscriptionPlan: "Enterprise",
-    startDate: "2026-04-01",
-    notes: "New client — onboarding in progress",
-  },
-];
-
-const emptyClient: Omit<Client, "id"> = {
-  companyName: "",
-  contactPerson: "",
-  contactEmail: "",
-  contactPhone: "",
-  industry: "",
-  country: "",
-  totalEmployees: 0,
-  status: "onboarding",
-  subscriptionPlan: "Professional",
-  startDate: new Date().toISOString().split("T")[0],
-  notes: "",
+const PLAN_STYLES: Record<string, string> = {
+  starter: "bg-slate-100 text-slate-700 border-slate-200",
+  pro: "bg-blue-50 text-blue-700 border-blue-200",
+  enterprise: "bg-purple-50 text-purple-700 border-purple-200",
 };
 
-const industries = ["Technology", "Financial Services", "Energy", "Healthcare", "Manufacturing", "Retail", "Real Estate", "Education", "Logistics", "Hospitality", "Other"];
-const countries = ["Saudi Arabia", "UAE", "Qatar", "Bahrain", "Kuwait", "Oman", "Jordan", "Egypt", "Pakistan", "India", "Other"];
-const plans = ["Starter", "Professional", "Enterprise"];
+const STATUS_STYLES: Record<string, { bg: string; dot: string; label: string }> = {
+  active: { bg: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", label: "Active" },
+  trial: { bg: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500", label: "Trial" },
+  suspended: { bg: "bg-red-50 text-red-700 border-red-200", dot: "bg-red-500", label: "Suspended" },
+};
+
+const AVATAR_COLORS = [
+  "from-purple-500 to-pink-500",
+  "from-blue-500 to-cyan-500",
+  "from-emerald-500 to-teal-500",
+  "from-orange-500 to-amber-500",
+  "from-rose-500 to-red-500",
+  "from-indigo-500 to-violet-500",
+];
+
+function avatarColor(name: string) {
+  const hash = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
 
 export default function ClientManagementPage() {
-  const [clients, setClients] = useState<Client[]>(initialClients);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [viewingClient, setViewingClient] = useState<Client | null>(null);
-  const [form, setForm] = useState<Omit<Client, "id">>(emptyClient);
-  const { toast } = useToast();
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [planFilter, setPlanFilter] = useState("all");
+  const [countryFilter, setCountryFilter] = useState("all");
+  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useState(1);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [detailsClient, setDetailsClient] = useState<ClientStat | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: "suspend" | "activate" | "delete";
+    client: ClientStat;
+  } | null>(null);
 
-  const filtered = clients.filter(c => {
-    const matchesSearch = c.companyName.toLowerCase().includes(search.toLowerCase()) ||
-      c.contactPerson.toLowerCase().includes(search.toLowerCase()) ||
-      c.contactEmail.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filters: ClientFilters = useMemo(() => ({
+    status: statusFilter,
+    plan: planFilter,
+    country: countryFilter,
+    search,
+  }), [statusFilter, planFilter, countryFilter, search]);
 
-  const openAdd = () => {
-    setEditingClient(null);
-    setForm(emptyClient);
-    setDialogOpen(true);
+  const { data: clients, isLoading } = useClients(filters);
+  const setStatus = useSetClientStatus();
+  const deleteClient = useDeleteClient();
+
+  const stats = useMemo(() => {
+    const all = clients ?? [];
+    return {
+      total: all.length,
+      active: all.filter((c) => c.status === "active").length,
+      trial: all.filter((c) => c.status === "trial").length,
+      suspended: all.filter((c) => c.status === "suspended").length,
+      users: all.reduce((s, c) => s + (c.user_count ?? 0), 0),
+    };
+  }, [clients]);
+
+  const countries = useMemo(() => {
+    const set = new Set<string>();
+    (clients ?? []).forEach((c) => c.country && set.add(c.country));
+    return Array.from(set).sort();
+  }, [clients]);
+
+  const totalPages = Math.max(1, Math.ceil((clients?.length ?? 0) / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginated = (clients ?? []).slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const handleExport = () => {
+    if (!clients?.length) return;
+    const headers = ["Company", "Email", "Country", "Plan", "Status", "Users", "Created"];
+    const rows = clients.map((c) => [
+      c.company_name, c.company_email ?? "", c.country ?? "", c.subscription_plan,
+      c.status, c.user_count, c.created_at,
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `clients-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const openEdit = (client: Client) => {
-    setEditingClient(client);
-    const { id, ...rest } = client;
-    setForm(rest);
-    setDialogOpen(true);
-  };
-
-  const openView = (client: Client) => {
-    setViewingClient(client);
-    setViewDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (!form.companyName.trim() || !form.contactEmail.trim()) {
-      toast({ title: "Required fields", description: "Company name and contact email are required", variant: "destructive" });
-      return;
-    }
-    if (editingClient) {
-      setClients(prev => prev.map(c => c.id === editingClient.id ? { ...c, ...form } : c));
-      toast({ title: "Client updated", description: `${form.companyName} has been updated` });
+  const handleConfirm = async () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === "delete") {
+      await deleteClient.mutateAsync(confirmAction.client.id);
     } else {
-      const newClient: Client = { ...form, id: crypto.randomUUID() };
-      setClients(prev => [...prev, newClient]);
-      toast({ title: "Client added", description: `${form.companyName} has been added successfully` });
+      await setStatus.mutateAsync({
+        id: confirmAction.client.id,
+        status: confirmAction.type === "suspend" ? "suspended" : "active",
+      });
     }
-    setDialogOpen(false);
-  };
-
-  const handleDelete = (client: Client) => {
-    setClients(prev => prev.filter(c => c.id !== client.id));
-    toast({ title: "Client removed", description: `${client.companyName} has been removed` });
-  };
-
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "active": return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800";
-      case "onboarding": return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800";
-      case "inactive": return "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800";
-      default: return "";
-    }
-  };
-
-  const stats = {
-    total: clients.length,
-    active: clients.filter(c => c.status === "active").length,
-    onboarding: clients.filter(c => c.status === "onboarding").length,
-    totalEmployees: clients.reduce((sum, c) => sum + c.totalEmployees, 0),
+    setConfirmAction(null);
   };
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Client Management" description="Manage your client companies and their subscriptions" />
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Building2 className="h-4.5 w-4.5 text-primary" />
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Total Clients</p>
-                <p className="text-xl font-bold text-foreground">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
-                <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Active</p>
-                <p className="text-xl font-bold text-foreground">{stats.active}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center">
-                <Clock className="h-4.5 w-4.5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Onboarding</p>
-                <p className="text-xl font-bold text-foreground">{stats.onboarding}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
-                <Users className="h-4.5 w-4.5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Total Employees</p>
-                <p className="text-xl font-bold text-foreground">{stats.totalEmployees.toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-[13px]" />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-36 h-9 text-[13px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="onboarding">Onboarding</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={openAdd} size="sm" className="gradient-ey gap-1.5">
-          <Plus className="h-4 w-4" />
-          Add Client
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Client Management"
+          description="Manage all client companies and their administrators"
+        />
+        <Button onClick={() => setWizardOpen(true)} className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white shadow-sm">
+          <Plus className="h-4 w-4" /> Add Client
         </Button>
       </div>
 
+      {/* Metric cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <MetricCard label="Total Clients" value={stats.total} icon={Building2} accent="purple" loading={isLoading} />
+        <MetricCard label="Active" value={stats.active} icon={CheckCircle2} accent="emerald" loading={isLoading} />
+        <MetricCard label="Trial" value={stats.trial} icon={Clock} accent="amber" loading={isLoading} />
+        <MetricCard label="Suspended" value={stats.suspended} icon={XCircle} accent="red" loading={isLoading} />
+        <MetricCard label="Total Users" value={stats.users} icon={Users} accent="blue" loading={isLoading} />
+      </div>
+
+      {/* Filters bar */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by company name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="trial">Trial</SelectItem>
+            <SelectItem value="suspended">Suspended</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={planFilter} onValueChange={setPlanFilter}>
+          <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Plans</SelectItem>
+            <SelectItem value="starter">Starter</SelectItem>
+            <SelectItem value="pro">Pro</SelectItem>
+            <SelectItem value="enterprise">Enterprise</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={countryFilter} onValueChange={setCountryFilter}>
+          <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Countries</SelectItem>
+            {countries.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <div className="ml-auto">
+          <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
+            <Download className="h-4 w-4" /> Export CSV
+          </Button>
+        </div>
+      </div>
+
       {/* Table */}
-      <Card className="border-border/50">
+      <Card>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="text-[11px] uppercase tracking-wider">
-                <TableHead className="font-semibold">Company</TableHead>
-                <TableHead className="font-semibold">Contact</TableHead>
-                <TableHead className="font-semibold">Industry</TableHead>
-                <TableHead className="font-semibold">Country</TableHead>
-                <TableHead className="font-semibold text-center">Employees</TableHead>
-                <TableHead className="font-semibold">Plan</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="font-semibold text-right">Actions</TableHead>
+              <TableRow>
+                <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Company</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Email</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Country</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Plan</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Status</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-center">Users</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Created</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={8}><Skeleton className="h-10 w-full" /></TableCell>
+                  </TableRow>
+                ))
+              ) : paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    <Building2 className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No clients found</p>
+                  <TableCell colSpan={8}>
+                    <EmptyState onAdd={() => setWizardOpen(true)} hasFilters={!!search || statusFilter !== "all" || planFilter !== "all"} />
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map(client => (
-                  <TableRow key={client.id} className="group hover:bg-muted/30 cursor-pointer" onClick={() => openView(client)}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {client.logo ? (
-                          <img src={client.logo} alt="" className="h-8 w-8 rounded-md object-cover border" />
-                        ) : (
-                          <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                            {client.companyName.charAt(0)}
+                paginated.map((c) => {
+                  const sStyle = STATUS_STYLES[c.status];
+                  return (
+                    <TableRow
+                      key={c.id}
+                      className="group hover:bg-muted/30 cursor-pointer"
+                      onClick={() => setDetailsClient(c)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "h-9 w-9 rounded-lg bg-gradient-to-br flex items-center justify-center text-white font-bold text-xs shrink-0",
+                            avatarColor(c.company_name)
+                          )}>
+                            {c.company_name.slice(0, 2).toUpperCase()}
                           </div>
-                        )}
-                        <span className="font-medium text-[13px]">{client.companyName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-[13px] font-medium">{client.contactPerson}</p>
-                        <p className="text-[11px] text-muted-foreground">{client.contactEmail}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-[13px]">{client.industry}</TableCell>
-                    <TableCell className="text-[13px]">{client.country}</TableCell>
-                    <TableCell className="text-center text-[13px] font-medium">{client.totalEmployees}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-[11px] font-medium">{client.subscriptionPlan}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-[11px] font-medium capitalize ${statusColor(client.status)}`}>
-                        {client.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem onClick={() => openView(client)}>
-                            <Eye className="h-3.5 w-3.5 mr-2" /> View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openEdit(client)}>
-                            <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(client)} className="text-destructive focus:text-destructive">
-                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          <div className="min-w-0">
+                            <p className="font-semibold text-[13px] truncate">{c.company_name}</p>
+                            {c.company_slug && <p className="text-[10px] text-muted-foreground font-mono">{c.company_slug}</p>}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-[12px] text-muted-foreground">{c.company_email ?? "—"}</TableCell>
+                      <TableCell className="text-[12px]">{c.country ?? "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn("text-[10px] capitalize font-semibold", PLAN_STYLES[c.subscription_plan])}>
+                          {c.subscription_plan}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn("text-[10px] gap-1.5 font-semibold", sStyle.bg)}>
+                          <span className={cn("h-1.5 w-1.5 rounded-full", sStyle.dot)} />
+                          {sStyle.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center text-[12px] font-semibold">{c.user_count}</TableCell>
+                      <TableCell className="text-[11px] text-muted-foreground">
+                        {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                      </TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-60 group-hover:opacity-100">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem onClick={() => setDetailsClient(c)}>
+                              <Eye className="h-3.5 w-3.5 mr-2" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDetailsClient(c)}>
+                              <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {c.status === "suspended" ? (
+                              <DropdownMenuItem onClick={() => setConfirmAction({ type: "activate", client: c })}>
+                                <Play className="h-3.5 w-3.5 mr-2" /> Activate
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => setConfirmAction({ type: "suspend", client: c })}>
+                                <Pause className="h-3.5 w-3.5 mr-2" /> Suspend
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              onClick={() => setConfirmAction({ type: "delete", client: c })}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </div>
-      </Card>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">{editingClient ? "Edit Client" : "Add New Client"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 py-2">
-            {/* Logo */}
-            <div className="flex items-center gap-4">
-              <ImageUpload value={form.logo} onChange={logo => setForm(f => ({ ...f, logo }))} label="Company Logo" />
-              <div className="flex-1 space-y-2">
-                <Label className="text-[13px] font-semibold">Company Name *</Label>
-                <Input value={form.companyName} onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))} placeholder="Enter company name" className="h-9 text-[13px]" />
+        {/* Pagination footer */}
+        {!isLoading && (clients?.length ?? 0) > 0 && (
+          <div className="flex items-center justify-between p-3 border-t text-[12px]">
+            <p className="text-muted-foreground">
+              Showing {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, clients!.length)} of {clients!.length}
+            </p>
+            <div className="flex items-center gap-3">
+              <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" disabled={safePage === 1} onClick={() => setPage(safePage - 1)}>Prev</Button>
+                <span className="px-2 text-muted-foreground">{safePage} / {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)}>Next</Button>
               </div>
-            </div>
-
-            <Separator />
-
-            {/* Contact Info */}
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Contact Information</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">Contact Person</Label>
-                  <Input value={form.contactPerson} onChange={e => setForm(f => ({ ...f, contactPerson: e.target.value }))} placeholder="Full name" className="h-9 text-[13px]" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">Email *</Label>
-                  <Input type="email" value={form.contactEmail} onChange={e => setForm(f => ({ ...f, contactEmail: e.target.value }))} placeholder="email@company.com" className="h-9 text-[13px]" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">Phone</Label>
-                  <Input value={form.contactPhone} onChange={e => setForm(f => ({ ...f, contactPhone: e.target.value }))} placeholder="+966 50 000 0000" className="h-9 text-[13px]" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">Country</Label>
-                  <Select value={form.country} onValueChange={v => setForm(f => ({ ...f, country: v }))}>
-                    <SelectTrigger className="h-9 text-[13px]"><SelectValue placeholder="Select country" /></SelectTrigger>
-                    <SelectContent>
-                      {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Business Info */}
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Business Details</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">Industry</Label>
-                  <Select value={form.industry} onValueChange={v => setForm(f => ({ ...f, industry: v }))}>
-                    <SelectTrigger className="h-9 text-[13px]"><SelectValue placeholder="Select industry" /></SelectTrigger>
-                    <SelectContent>
-                      {industries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">Subscription Plan</Label>
-                  <Select value={form.subscriptionPlan} onValueChange={v => setForm(f => ({ ...f, subscriptionPlan: v }))}>
-                    <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {plans.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">Status</Label>
-                  <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as Client["status"] }))}>
-                    <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="onboarding">Onboarding</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-[13px]">Total Employees</Label>
-                <Input type="number" value={form.totalEmployees || ""} onChange={e => setForm(f => ({ ...f, totalEmployees: parseInt(e.target.value) || 0 }))} placeholder="0" className="h-9 text-[13px]" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[13px]">Start Date</Label>
-                <Input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="h-9 text-[13px]" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[13px]">Notes</Label>
-              <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Internal notes about this client..." className="text-[13px] min-h-[70px]" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} size="sm">Cancel</Button>
-            <Button onClick={handleSave} size="sm" className="gradient-ey">{editingClient ? "Update Client" : "Add Client"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+      </Card>
 
-      {/* View Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Client Details</DialogTitle>
-          </DialogHeader>
-          {viewingClient && (
-            <div className="space-y-4 py-2">
-              <div className="flex items-center gap-4">
-                {viewingClient.logo ? (
-                  <img src={viewingClient.logo} alt="" className="h-14 w-14 rounded-lg object-cover border" />
-                ) : (
-                  <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                    {viewingClient.companyName.charAt(0)}
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-bold text-base">{viewingClient.companyName}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className={`text-[11px] capitalize ${statusColor(viewingClient.status)}`}>{viewingClient.status}</Badge>
-                    <Badge variant="outline" className="text-[11px]">{viewingClient.subscriptionPlan}</Badge>
-                  </div>
-                </div>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-[13px]">
-                <div>
-                  <p className="text-muted-foreground text-[11px] uppercase tracking-wider font-medium">Contact Person</p>
-                  <p className="font-medium mt-0.5">{viewingClient.contactPerson}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[11px] uppercase tracking-wider font-medium">Email</p>
-                  <p className="font-medium mt-0.5">{viewingClient.contactEmail}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[11px] uppercase tracking-wider font-medium">Phone</p>
-                  <p className="font-medium mt-0.5">{viewingClient.contactPhone || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[11px] uppercase tracking-wider font-medium">Country</p>
-                  <p className="font-medium mt-0.5">{viewingClient.country}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[11px] uppercase tracking-wider font-medium">Industry</p>
-                  <p className="font-medium mt-0.5">{viewingClient.industry}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[11px] uppercase tracking-wider font-medium">Total Employees</p>
-                  <p className="font-medium mt-0.5">{viewingClient.totalEmployees}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[11px] uppercase tracking-wider font-medium">Start Date</p>
-                  <p className="font-medium mt-0.5">{new Date(viewingClient.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
-                </div>
-              </div>
-              {viewingClient.notes && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-muted-foreground text-[11px] uppercase tracking-wider font-medium mb-1">Notes</p>
-                    <p className="text-[13px]">{viewingClient.notes}</p>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => { setViewDialogOpen(false); if (viewingClient) openEdit(viewingClient); }}>
-              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddClientWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+      <ClientDetailsSheet
+        client={detailsClient}
+        open={!!detailsClient}
+        onOpenChange={(o) => !o && setDetailsClient(null)}
+      />
+
+      <AlertDialog open={!!confirmAction} onOpenChange={(o) => !o && setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.type === "delete" && `Delete ${confirmAction.client.company_name}?`}
+              {confirmAction?.type === "suspend" && `Suspend ${confirmAction.client.company_name}?`}
+              {confirmAction?.type === "activate" && `Activate ${confirmAction.client.company_name}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === "delete" && "This will permanently delete the client and all related data. This cannot be undone."}
+              {confirmAction?.type === "suspend" && "All users in this client will lose access until reactivated."}
+              {confirmAction?.type === "activate" && "All users in this client will regain access."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirm}
+              className={confirmAction?.type === "delete" ? "bg-destructive hover:bg-destructive/90" : ""}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+const ACCENT_STYLES: Record<string, { bar: string; bg: string; icon: string }> = {
+  purple: { bar: "bg-purple-500", bg: "bg-purple-50/60", icon: "bg-purple-100 text-purple-700" },
+  emerald: { bar: "bg-emerald-500", bg: "bg-emerald-50/60", icon: "bg-emerald-100 text-emerald-700" },
+  amber: { bar: "bg-amber-500", bg: "bg-amber-50/60", icon: "bg-amber-100 text-amber-700" },
+  red: { bar: "bg-red-500", bg: "bg-red-50/60", icon: "bg-red-100 text-red-700" },
+  blue: { bar: "bg-blue-500", bg: "bg-blue-50/60", icon: "bg-blue-100 text-blue-700" },
+};
+
+function MetricCard({
+  label, value, icon: Icon, accent, loading,
+}: { label: string; value: number; icon: any; accent: keyof typeof ACCENT_STYLES; loading?: boolean }) {
+  const s = ACCENT_STYLES[accent];
+  return (
+    <Card className={cn("relative overflow-hidden border-0 shadow-sm", s.bg)}>
+      <div className={cn("absolute left-0 top-0 bottom-0 w-1", s.bar)} />
+      <CardContent className="p-4 pl-5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">{label}</p>
+            {loading ? <Skeleton className="h-7 w-12 mt-1" /> : (
+              <p className="text-2xl font-bold mt-0.5 tabular-nums">{value.toLocaleString()}</p>
+            )}
+          </div>
+          <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", s.icon)}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyState({ onAdd, hasFilters }: { onAdd: () => void; hasFilters: boolean }) {
+  return (
+    <div className="text-center py-16">
+      <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 mx-auto flex items-center justify-center mb-4">
+        <Sparkles className="h-7 w-7 text-white" />
+      </div>
+      <h3 className="text-lg font-bold mb-1">{hasFilters ? "No clients match" : "No clients yet"}</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        {hasFilters ? "Try adjusting your filters." : "Create your first client to get started."}
+      </p>
+      {!hasFilters && (
+        <Button onClick={onAdd} className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white">
+          <Plus className="h-4 w-4" /> Add Client
+        </Button>
+      )}
     </div>
   );
 }
