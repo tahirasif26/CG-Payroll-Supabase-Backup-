@@ -1,5 +1,12 @@
-// Advance management context
-import React, { createContext, useContext, useState, useCallback } from "react";
+// Advance management context — Supabase-backed.
+// Preserves the legacy in-memory API (advances/addAdvance/approveAdvance/...) so
+// existing consumers (AdvancesPage, OutstandingAdvancesPage, PayrollPage, PayslipsPage,
+// ExpensesPage) keep working unchanged.
+import React, { createContext, useContext, useCallback, useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/contexts/RoleContext";
+import { useEmployees } from "@/contexts/EmployeeContext";
 
 export interface ReminderEntry {
   sentAt: string;
@@ -27,37 +34,6 @@ export interface Advance {
   reminderHistory: ReminderEntry[];
 }
 
-const initialAdvances: Advance[] = [
-  {
-    id: "ADV-001", advanceName: "Client Visit - Riyadh", employeeId: "1", employeeName: "Aisha Rahman",
-    purpose: "Travel and accommodation for client site visit", amount: 5000, amountUsed: 3200, currency: "SAR",
-    status: "approved", requestDate: "2025-03-01", expectedSpendDate: "2025-03-15", settlementDueDate: "2025-04-01",
-    attachments: [], notes: "3-day client engagement trip",
-    reminderHistory: [
-      { sentAt: "2025-03-20T09:00:00.000Z", sentBy: "Admin", type: "manual" },
-      { sentAt: "2025-03-27T09:00:00.000Z", sentBy: "System", type: "auto" },
-    ],
-  },
-  {
-    id: "ADV-002", advanceName: "Conference Registration", employeeId: "2", employeeName: "Omar Al-Faisal",
-    purpose: "Annual tax conference fees and travel", amount: 8000, amountUsed: 0, currency: "SAR",
-    status: "pending", requestDate: "2025-03-05", expectedSpendDate: "2025-04-10", settlementDueDate: "2025-04-30",
-    attachments: [], notes: "", reminderHistory: [],
-  },
-  {
-    id: "ADV-003", advanceName: "Equipment Purchase", employeeId: "4", employeeName: "Khalid Nasser",
-    purpose: "Purchase portable projector for client presentations", amount: 3500, amountUsed: 3500, currency: "SAR",
-    status: "approved", requestDate: "2025-02-20", expectedSpendDate: "2025-02-28", settlementDueDate: "2025-03-15",
-    attachments: [], notes: "Fully utilized", reminderHistory: [],
-  },
-  {
-    id: "ADV-004", advanceName: "Training Materials", employeeId: "3", employeeName: "Fatima Hassan",
-    purpose: "Books and online course subscriptions", amount: 1200, amountUsed: 0, currency: "SAR",
-    status: "rejected", requestDate: "2025-03-02", expectedSpendDate: "2025-03-20", settlementDueDate: "2025-04-15",
-    attachments: [], notes: "Rejected: covered by L&D budget", reminderHistory: [],
-  },
-];
-
 export type AutoReminderInterval = "off" | "7" | "15" | "30";
 
 interface AdvanceContextType {
@@ -74,38 +50,169 @@ interface AdvanceContextType {
 
 const AdvanceContext = createContext<AdvanceContextType | undefined>(undefined);
 
+type DbAdvance = {
+  id: string;
+  client_id: string;
+  employee_id: string;
+  advance_name: string | null;
+  purpose: string | null;
+  amount: number;
+  amount_used: number;
+  currency: string;
+  status: string;
+  request_date: string;
+  expected_spend_date: string | null;
+  settlement_due_date: string | null;
+  attachments: unknown;
+  notes: string | null;
+  payroll_run_id: string | null;
+  last_reminder_sent: string | null;
+  reminder_history: unknown;
+};
+
+function mapRow(row: DbAdvance, employeeName: string): Advance {
+  const attachments = Array.isArray(row.attachments) ? (row.attachments as string[]) : [];
+  const reminderHistory = Array.isArray(row.reminder_history) ? (row.reminder_history as ReminderEntry[]) : [];
+  return {
+    id: row.id,
+    advanceName: row.advance_name ?? "",
+    employeeId: row.employee_id,
+    employeeName,
+    purpose: row.purpose ?? "",
+    amount: Number(row.amount ?? 0),
+    amountUsed: Number(row.amount_used ?? 0),
+    currency: row.currency ?? "SAR",
+    status: (row.status as Advance["status"]) ?? "pending",
+    requestDate: row.request_date,
+    expectedSpendDate: row.expected_spend_date ?? "",
+    settlementDueDate: row.settlement_due_date ?? "",
+    attachments,
+    notes: row.notes ?? "",
+    payrollRunId: row.payroll_run_id ?? undefined,
+    lastReminderSent: row.last_reminder_sent ?? undefined,
+    reminderHistory,
+  };
+}
+
 export function AdvanceProvider({ children }: { children: React.ReactNode }) {
-  const [advances, setAdvances] = useState<Advance[]>(initialAdvances);
+  const { clientId, isSuperAdmin } = useRole();
+  const { employees } = useEmployees();
+  const qc = useQueryClient();
   const [autoReminderInterval, setAutoReminderInterval] = useState<AutoReminderInterval>("off");
 
+  const { data: rows = [] } = useQuery({
+    queryKey: ["advances_ctx", clientId ?? "super"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("advances")
+        .select("*")
+        .order("request_date", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as DbAdvance[];
+    },
+    enabled: !!clientId || isSuperAdmin,
+    staleTime: 15_000,
+  });
+
+  const advances = useMemo<Advance[]>(() => {
+    return rows.map((r) => {
+      const emp = employees.find((e) => e.id === r.employee_id);
+      const name = emp ? `${emp.firstName} ${emp.lastName}` : "Unknown Employee";
+      return mapRow(r, name);
+    });
+  }, [rows, employees]);
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["advances_ctx"] });
+
+  const insertMut = useMutation({
+    mutationFn: async (adv: Advance) => {
+      if (!clientId) throw new Error("No client context");
+      const payload = {
+        client_id: clientId,
+        employee_id: adv.employeeId,
+        advance_name: adv.advanceName,
+        purpose: adv.purpose,
+        amount: Math.round(adv.amount),
+        amount_used: Math.round(adv.amountUsed ?? 0),
+        currency: adv.currency,
+        status: adv.status,
+        request_date: adv.requestDate,
+        expected_spend_date: adv.expectedSpendDate || null,
+        settlement_due_date: adv.settlementDueDate || null,
+        attachments: adv.attachments ?? [],
+        notes: adv.notes ?? "",
+        reminder_history: adv.reminderHistory ?? [],
+      };
+      const { error } = await (supabase as any).from("advances").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  const updateMut = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+      const { error } = await (supabase as any).from("advances").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
   const addAdvance = useCallback((adv: Advance) => {
-    setAdvances(prev => [adv, ...prev]);
-  }, []);
+    insertMut.mutate(adv);
+  }, [insertMut]);
 
   const approveAdvance = useCallback((id: string, payrollRunId?: string) => {
-    setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: "approved" as const, payrollRunId } : a));
-  }, []);
+    updateMut.mutate({ id, patch: { status: "approved", payroll_run_id: payrollRunId ?? null } });
+  }, [updateMut]);
 
   const rejectAdvance = useCallback((id: string) => {
-    setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: "rejected" as const } : a));
-  }, []);
+    updateMut.mutate({ id, patch: { status: "rejected" } });
+  }, [updateMut]);
 
   const useAdvanceAmount = useCallback((id: string, amount: number) => {
-    setAdvances(prev => prev.map(a => a.id === id ? { ...a, amountUsed: a.amountUsed + amount } : a));
-  }, []);
+    const current = rows.find((r) => r.id === id);
+    if (!current) return;
+    const newUsed = Math.round(Number(current.amount_used ?? 0) + amount);
+    updateMut.mutate({ id, patch: { amount_used: newUsed } });
+  }, [rows, updateMut]);
 
   const getEmployeeAdvances = useCallback((employeeId: string) => {
-    return advances.filter(a => a.employeeId === employeeId && a.status === "approved" && (a.amount - a.amountUsed) > 0);
+    return advances.filter(
+      (a) => a.employeeId === employeeId && a.status === "approved" && a.amount - a.amountUsed > 0
+    );
   }, [advances]);
 
   const sendReminder = useCallback((ids: string[]) => {
     const now = new Date().toISOString();
     const entry: ReminderEntry = { sentAt: now, sentBy: "Admin", type: "manual" };
-    setAdvances(prev => prev.map(a => ids.includes(a.id) ? { ...a, lastReminderSent: now, reminderHistory: [...(a.reminderHistory || []), entry] } : a));
-  }, []);
+    ids.forEach((id) => {
+      const current = rows.find((r) => r.id === id);
+      if (!current) return;
+      const history = Array.isArray(current.reminder_history)
+        ? (current.reminder_history as ReminderEntry[])
+        : [];
+      updateMut.mutate({
+        id,
+        patch: {
+          last_reminder_sent: now,
+          reminder_history: [...history, entry],
+        },
+      });
+    });
+  }, [rows, updateMut]);
 
   return (
-    <AdvanceContext.Provider value={{ advances, addAdvance, approveAdvance, rejectAdvance, useAdvanceAmount, getEmployeeAdvances, sendReminder, autoReminderInterval, setAutoReminderInterval }}>
+    <AdvanceContext.Provider value={{
+      advances,
+      addAdvance,
+      approveAdvance,
+      rejectAdvance,
+      useAdvanceAmount,
+      getEmployeeAdvances,
+      sendReminder,
+      autoReminderInterval,
+      setAutoReminderInterval,
+    }}>
       {children}
     </AdvanceContext.Provider>
   );
