@@ -5,8 +5,15 @@ import {
   FileCheck, Monitor, GitBranch, FolderKanban, Clock, Building2,
   Layers, Tag, Shield, Coins, ChevronDown, Award, UserMinus,
   Target, ClipboardCheck, UserCheck, UsersRound, Star, ListChecks,
-  CreditCard as IdCardIcon, DoorOpen, Activity, ClipboardList, PieChart, Bell
+  CreditCard as IdCardIcon, DoorOpen, Activity, ClipboardList, PieChart, Bell,
+  Building, ShieldCheck
 } from "lucide-react";
+
+const superAdminNav = [
+  { title: "Clients", url: "/manage/clients", icon: Building },
+  { title: "Feature Access", url: "/settings/feature-access", icon: ShieldCheck },
+  { title: "User Management", url: "/settings/users", icon: Users },
+];
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
