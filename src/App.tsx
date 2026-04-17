@@ -80,6 +80,8 @@ import ClientManagementPage from "@/pages/ClientManagementPage";
 import PayrollSetupPage from "@/pages/PayrollSetupPage";
 import PayrollSetupEditorPage from "@/pages/PayrollSetupEditorPage";
 import PayrollSetupViewPage from "@/pages/PayrollSetupViewPage";
+import FeatureAccessPage from "@/pages/settings/FeatureAccessPage";
+import MyAccessPage from "@/pages/MyAccessPage";
 
 const queryClient = new QueryClient();
 
@@ -136,6 +138,10 @@ function AppRoutes() {
         <Route path="/company-policies" element={<CompanyPoliciesPage />} />
         <Route path="/assets/store" element={<AssetStorePage />} />
         <Route path="/timesheets" element={<TimesheetsPage />} />
+        <Route path="/my-access" element={<MyAccessPage />} />
+        <Route path="/settings/feature-access" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><FeatureAccessPage /></ProtectedRoute>
+        } />
 
         {/* Employees — admin/hr */}
         <Route path="/employees" element={
