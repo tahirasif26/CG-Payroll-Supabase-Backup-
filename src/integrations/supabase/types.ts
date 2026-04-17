@@ -16,47 +16,74 @@ export type Database = {
     Tables: {
       advances: {
         Row: {
+          advance_name: string | null
           amount: number
+          amount_used: number
           approved_by: string | null
+          attachments: Json
           client_id: string
           created_at: string
           currency: string
           employee_id: string
+          expected_spend_date: string | null
           id: string
+          last_reminder_sent: string | null
+          notes: string | null
           payroll_run_id: string | null
+          purpose: string | null
           reason: string | null
+          reminder_history: Json
           repayment_schedule: Json
           request_date: string
+          settlement_due_date: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          advance_name?: string | null
           amount?: number
+          amount_used?: number
           approved_by?: string | null
+          attachments?: Json
           client_id: string
           created_at?: string
           currency?: string
           employee_id: string
+          expected_spend_date?: string | null
           id?: string
+          last_reminder_sent?: string | null
+          notes?: string | null
           payroll_run_id?: string | null
+          purpose?: string | null
           reason?: string | null
+          reminder_history?: Json
           repayment_schedule?: Json
           request_date?: string
+          settlement_due_date?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          advance_name?: string | null
           amount?: number
+          amount_used?: number
           approved_by?: string | null
+          attachments?: Json
           client_id?: string
           created_at?: string
           currency?: string
           employee_id?: string
+          expected_spend_date?: string | null
           id?: string
+          last_reminder_sent?: string | null
+          notes?: string | null
           payroll_run_id?: string | null
+          purpose?: string | null
           reason?: string | null
+          reminder_history?: Json
           repayment_schedule?: Json
           request_date?: string
+          settlement_due_date?: string | null
           status?: string
           updated_at?: string
         }
@@ -1908,9 +1935,40 @@ export type Database = {
           },
         ]
       }
+      leave_allocations: {
+        Row: {
+          allocated_days: number
+          client_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          leave_type_id: string
+          updated_at: string
+        }
+        Insert: {
+          allocated_days?: number
+          client_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          leave_type_id: string
+          updated_at?: string
+        }
+        Update: {
+          allocated_days?: number
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          leave_type_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leave_balances: {
         Row: {
           allocated: number
+          carried_forward: number
           carryforward_in: number
           client_id: string
           created_at: string
@@ -1923,6 +1981,7 @@ export type Database = {
         }
         Insert: {
           allocated?: number
+          carried_forward?: number
           carryforward_in?: number
           client_id: string
           created_at?: string
@@ -1935,6 +1994,7 @@ export type Database = {
         }
         Update: {
           allocated?: number
+          carried_forward?: number
           carryforward_in?: number
           client_id?: string
           created_at?: string
