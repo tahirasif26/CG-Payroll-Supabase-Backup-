@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { employees } from "@/data/mockData";
+import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Search, Filter, Plus, Eye, Users } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -34,6 +34,7 @@ const mockReviews: PeerReview[] = [
 ];
 
 export default function PeerAssessmentPage() {
+  const { employees } = useEmployeesCtx();
   const activeEmployees = useActiveEmployees();
   const [reviews, setReviews] = useState(mockReviews);
   const [search, setSearch] = useState("");

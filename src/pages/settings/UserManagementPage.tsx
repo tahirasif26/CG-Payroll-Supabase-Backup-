@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { userPermissions, UserPermission } from "@/data/settingsData";
-import { employees } from "@/data/mockData";
+import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil } from "lucide-react";
@@ -19,6 +19,7 @@ const roleBadgeStyles: Record<string, string> = {
 };
 
 export default function UserManagementPage() {
+  const { employees } = useEmployeesCtx();
   const [items, setItems] = useState<UserPermission[]>(userPermissions);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<UserPermission | null>(null);

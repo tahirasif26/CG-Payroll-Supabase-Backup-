@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useApprovals, ApprovalRole, UserApprovalAssignment } from "@/contexts/ApprovalContext";
-import { employees } from "@/data/mockData";
+import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ApprovalMatrixPage() {
+  const { employees } = useEmployeesCtx();
   const { roles, assignments, addRole, updateRole, deleteRole, addAssignment, updateAssignment, deleteAssignment } = useApprovals();
   const { toast } = useToast();
 

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { employees } from "@/data/mockData";
+import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { Search, Filter, Edit2, Eye } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -34,6 +34,7 @@ const mockAssessments: ManagerAssessment[] = [
 ];
 
 export default function ManagerAssessmentPage() {
+  const { employees } = useEmployeesCtx();
   const [assessments, setAssessments] = useState(mockAssessments);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useRole } from "@/contexts/RoleContext";
-import { employees, leaveRequests, expenses, payrollRuns, getUpcomingBirthdays } from "@/data/mockData";
+import { leaveRequests, expenses, payrollRuns, getUpcomingBirthdays } from "@/data/mockData";
+import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { MetricCard } from "@/components/dashboards/MetricCard";
 import { DashboardSection } from "@/components/dashboards/DashboardSection";
@@ -13,6 +14,7 @@ import { QuickActionButton } from "@/components/dashboards/QuickActionButton";
 // TODO: replace with React Query in Prompt 2 (data currently from mockData contexts)
 
 export default function EmployeeDashboard() {
+  const { employees } = useEmployeesCtx();
   const { profile, hasFeature, currentEmployeeId } = useRole();
   const activeEmps = useActiveEmployees();
   const emp = employees.find((e) => e.id === currentEmployeeId);
