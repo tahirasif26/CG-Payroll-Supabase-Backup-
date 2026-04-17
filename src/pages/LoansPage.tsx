@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { payrollRuns } from "@/data/mockData";
+import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, PiggyBank, Search, ArrowLeft, Pencil, Eye, RefreshCw, PauseCircle, PlayCircle, Loader2 } from "lucide-react";
@@ -32,6 +32,7 @@ export default function LoansPage() {
 
   const { data: loanList = [], isLoading } = useLoans();
   const { data: employeesData = [] } = useEmployees();
+  const { data: payrollRuns = [] } = usePayrollRuns();
   const createLoan = useCreateLoan();
   const updateLoan = useUpdateLoan();
   const addTxn = useAddLoanTransaction();
