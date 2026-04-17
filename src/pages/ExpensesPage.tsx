@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { payrollRuns } from "@/data/mockData";
+import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Employee } from "@/types/hcm";
 import { useApprovals } from "@/contexts/ApprovalContext";
@@ -89,6 +89,7 @@ export default function ExpensesPage() {
 
   const { data: rawExpenses = [] } = useExpenses();
   const { data: categories = [] } = useExpenseCategories();
+  const { data: payrollRuns = [] } = usePayrollRuns();
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
