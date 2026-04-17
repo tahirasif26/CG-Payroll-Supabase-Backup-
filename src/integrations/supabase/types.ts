@@ -3103,6 +3103,7 @@ export type Database = {
           id: string
           notes: string | null
           original_rating: number | null
+          status: string
         }
         Insert: {
           calibrated_by?: string | null
@@ -3114,6 +3115,7 @@ export type Database = {
           id?: string
           notes?: string | null
           original_rating?: number | null
+          status?: string
         }
         Update: {
           calibrated_by?: string | null
@@ -3125,6 +3127,7 @@ export type Database = {
           id?: string
           notes?: string | null
           original_rating?: number | null
+          status?: string
         }
         Relationships: [
           {
