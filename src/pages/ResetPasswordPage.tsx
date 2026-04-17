@@ -15,11 +15,16 @@ export default function ResetPasswordPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const [isInvite, setIsInvite] = useState(false);
+
   useEffect(() => {
-    // Check if we have a recovery token in the URL
+    // Supabase puts recovery / invite tokens in the URL hash
     const hash = window.location.hash;
-    if (!hash.includes("type=recovery")) {
-      toast({ title: "Invalid link", description: "This password reset link is invalid or expired.", variant: "destructive" });
+    const isRecovery = hash.includes("type=recovery");
+    const invite = hash.includes("type=invite");
+    setIsInvite(invite);
+    if (!isRecovery && !invite) {
+      toast({ title: "Invalid link", description: "This link is invalid or expired.", variant: "destructive" });
     }
   }, []);
 
