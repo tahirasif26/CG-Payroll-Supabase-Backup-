@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      advances: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          client_id: string
+          created_at: string
+          currency: string
+          employee_id: string
+          id: string
+          payroll_run_id: string | null
+          reason: string | null
+          repayment_schedule: Json
+          request_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          approved_by?: string | null
+          client_id: string
+          created_at?: string
+          currency?: string
+          employee_id: string
+          id?: string
+          payroll_run_id?: string | null
+          reason?: string | null
+          repayment_schedule?: Json
+          request_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          client_id?: string
+          created_at?: string
+          currency?: string
+          employee_id?: string
+          id?: string
+          payroll_run_id?: string | null
+          reason?: string | null
+          repayment_schedule?: Json
+          request_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advances_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advances_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advances_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_roles: {
         Row: {
           can_approve_hr: boolean
@@ -58,6 +135,573 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_audit_entries: {
+        Row: {
+          asset_id: string | null
+          audit_id: string
+          client_id: string
+          id: string
+          notes: string | null
+          verification: string
+          verified_by: string | null
+          verified_date: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          audit_id: string
+          client_id: string
+          id?: string
+          notes?: string | null
+          verification?: string
+          verified_by?: string | null
+          verified_date?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          audit_id?: string
+          client_id?: string
+          id?: string
+          notes?: string | null
+          verification?: string
+          verified_by?: string | null
+          verified_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_audit_entries_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_audit_entries_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "asset_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_audit_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_audit_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_audits: {
+        Row: {
+          client_id: string
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          scope: string
+          scope_value: string | null
+          start_date: string
+          status: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          scope?: string
+          scope_value?: string | null
+          start_date?: string
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          scope?: string
+          scope_value?: string | null
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_audits_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_audits_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_categories: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_categories_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_categories_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_conditions: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_conditions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_conditions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_history: {
+        Row: {
+          action: string
+          asset_id: string
+          client_id: string
+          created_at: string
+          date: string
+          from_employee_id: string | null
+          id: string
+          note: string | null
+          performed_by: string | null
+          to_employee_id: string | null
+        }
+        Insert: {
+          action: string
+          asset_id: string
+          client_id: string
+          created_at?: string
+          date?: string
+          from_employee_id?: string | null
+          id?: string
+          note?: string | null
+          performed_by?: string | null
+          to_employee_id?: string | null
+        }
+        Update: {
+          action?: string
+          asset_id?: string
+          client_id?: string
+          created_at?: string
+          date?: string
+          from_employee_id?: string | null
+          id?: string
+          note?: string | null
+          performed_by?: string | null
+          to_employee_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_history_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_history_from_employee_id_fkey"
+            columns: ["from_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_history_to_employee_id_fkey"
+            columns: ["to_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_locations: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_locations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_locations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_requests: {
+        Row: {
+          client_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          priority: string
+          reason: string | null
+          request_date: string
+          status: string
+          store_item_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          priority?: string
+          reason?: string | null
+          request_date?: string
+          status?: string
+          store_item_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          priority?: string
+          reason?: string | null
+          request_date?: string
+          status?: string
+          store_item_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requests_store_item_id_fkey"
+            columns: ["store_item_id"]
+            isOneToOne: false
+            referencedRelation: "asset_store_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_store_items: {
+        Row: {
+          brand: string | null
+          category_id: string | null
+          client_id: string
+          created_at: string
+          description: string | null
+          estimated_cost: number | null
+          id: string
+          image_url: string | null
+          model: string | null
+          name: string
+          publish_to_store: boolean
+          sku: string | null
+          specifications: string | null
+          status: string
+          warranty_period: string | null
+        }
+        Insert: {
+          brand?: string | null
+          category_id?: string | null
+          client_id: string
+          created_at?: string
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          image_url?: string | null
+          model?: string | null
+          name: string
+          publish_to_store?: boolean
+          sku?: string | null
+          specifications?: string | null
+          status?: string
+          warranty_period?: string | null
+        }
+        Update: {
+          brand?: string | null
+          category_id?: string | null
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          image_url?: string | null
+          model?: string | null
+          name?: string
+          publish_to_store?: boolean
+          sku?: string | null
+          specifications?: string | null
+          status?: string
+          warranty_period?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_store_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "asset_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_store_items_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_store_items_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          asset_tag: string
+          assigned_date: string | null
+          brand: string | null
+          category_id: string | null
+          client_id: string
+          condition_id: string | null
+          created_at: string
+          employee_id: string | null
+          id: string
+          location_id: string | null
+          model: string | null
+          name: string
+          purchase_cost: number | null
+          purchase_date: string | null
+          serial_number: string | null
+          service_due_date: string | null
+          status: string
+          updated_at: string
+          warranty_expiry: string | null
+        }
+        Insert: {
+          asset_tag: string
+          assigned_date?: string | null
+          brand?: string | null
+          category_id?: string | null
+          client_id: string
+          condition_id?: string | null
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          location_id?: string | null
+          model?: string | null
+          name: string
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          service_due_date?: string | null
+          status?: string
+          updated_at?: string
+          warranty_expiry?: string | null
+        }
+        Update: {
+          asset_tag?: string
+          assigned_date?: string | null
+          brand?: string | null
+          category_id?: string | null
+          client_id?: string
+          condition_id?: string | null
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          location_id?: string | null
+          model?: string | null
+          name?: string
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          service_due_date?: string | null
+          status?: string
+          updated_at?: string
+          warranty_expiry?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "asset_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "asset_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "asset_locations"
             referencedColumns: ["id"]
           },
         ]
@@ -175,6 +819,137 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      company_policies: {
+        Row: {
+          category: string
+          client_id: string
+          created_at: string
+          description: string | null
+          effective_date: string
+          expiry_date: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string
+          requires_ack: boolean
+          status: string
+          title: string
+          updated_at: string
+          version: number
+          versions: Json
+        }
+        Insert: {
+          category?: string
+          client_id: string
+          created_at?: string
+          description?: string | null
+          effective_date?: string
+          expiry_date?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          requires_ack?: boolean
+          status?: string
+          title: string
+          updated_at?: string
+          version?: number
+          versions?: Json
+        }
+        Update: {
+          category?: string
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          effective_date?: string
+          expiry_date?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          requires_ack?: boolean
+          status?: string
+          title?: string
+          updated_at?: string
+          version?: number
+          versions?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_policies_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_allocations: {
+        Row: {
+          allocation: number
+          client_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          month: string
+          project_id: string | null
+          year: number
+        }
+        Insert: {
+          allocation?: number
+          client_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          month: string
+          project_id?: string | null
+          year: number
+        }
+        Update: {
+          allocation?: number
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          month?: string
+          project_id?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_allocations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_allocations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_allocations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       departments: {
         Row: {
@@ -786,6 +1561,188 @@ export type Database = {
           },
         ]
       }
+      expense_approvals: {
+        Row: {
+          approver_id: string
+          comments: string | null
+          decided_at: string
+          expense_id: string
+          id: string
+          status: string
+        }
+        Insert: {
+          approver_id: string
+          comments?: string | null
+          decided_at?: string
+          expense_id: string
+          id?: string
+          status: string
+        }
+        Update: {
+          approver_id?: string
+          comments?: string | null
+          decided_at?: string
+          expense_id?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_approvals_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_categories: {
+        Row: {
+          client_id: string
+          code: string | null
+          created_at: string
+          gl_code: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          client_id: string
+          code?: string | null
+          created_at?: string
+          gl_code?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          client_id?: string
+          code?: string | null
+          created_at?: string
+          gl_code?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_categories_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          category_id: string | null
+          client_id: string
+          created_at: string
+          currency: string
+          description: string | null
+          employee_id: string
+          expense_date: string
+          id: string
+          paid_date: string | null
+          payment_method: string | null
+          payroll_run_id: string | null
+          project_id: string | null
+          receipt_url: string | null
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          category_id?: string | null
+          client_id: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          employee_id: string
+          expense_date?: string
+          id?: string
+          paid_date?: string | null
+          payment_method?: string | null
+          payroll_run_id?: string | null
+          project_id?: string | null
+          receipt_url?: string | null
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          category_id?: string | null
+          client_id?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          employee_id?: string
+          expense_date?: string
+          id?: string
+          paid_date?: string | null
+          payment_method?: string | null
+          payroll_run_id?: string | null
+          project_id?: string | null
+          receipt_url?: string | null
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_definitions: {
         Row: {
           created_at: string
@@ -899,6 +1856,533 @@ export type Database = {
           },
           {
             foreignKeyName: "gl_code_mappings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      holidays: {
+        Row: {
+          applies_to_locations: string[]
+          client_id: string
+          created_at: string
+          date: string
+          id: string
+          is_optional: boolean
+          name: string
+        }
+        Insert: {
+          applies_to_locations?: string[]
+          client_id: string
+          created_at?: string
+          date: string
+          id?: string
+          is_optional?: boolean
+          name: string
+        }
+        Update: {
+          applies_to_locations?: string[]
+          client_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          is_optional?: boolean
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holidays_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "holidays_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_balances: {
+        Row: {
+          allocated: number
+          carryforward_in: number
+          client_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          leave_type_id: string
+          updated_at: string
+          used: number
+          year: number
+        }
+        Insert: {
+          allocated?: number
+          carryforward_in?: number
+          client_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          leave_type_id: string
+          updated_at?: string
+          used?: number
+          year: number
+        }
+        Update: {
+          allocated?: number
+          carryforward_in?: number
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          leave_type_id?: string
+          updated_at?: string
+          used?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_balances_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_leave_type_id_fkey"
+            columns: ["leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          client_id: string
+          created_at: string
+          days: number
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type_id: string
+          reason: string | null
+          rejection_reason: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          client_id: string
+          created_at?: string
+          days?: number
+          employee_id: string
+          end_date: string
+          id?: string
+          leave_type_id: string
+          reason?: string | null
+          rejection_reason?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          client_id?: string
+          created_at?: string
+          days?: number
+          employee_id?: string
+          end_date?: string
+          id?: string
+          leave_type_id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_id_fkey"
+            columns: ["leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_types: {
+        Row: {
+          accrual_type: string
+          client_id: string
+          code: string | null
+          created_at: string
+          days_per_year: number
+          gender_specific: string | null
+          id: string
+          is_active: boolean
+          is_paid: boolean
+          max_carryforward: number
+          name: string
+          requires_approval: boolean
+        }
+        Insert: {
+          accrual_type?: string
+          client_id: string
+          code?: string | null
+          created_at?: string
+          days_per_year?: number
+          gender_specific?: string | null
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          max_carryforward?: number
+          name: string
+          requires_approval?: boolean
+        }
+        Update: {
+          accrual_type?: string
+          client_id?: string
+          code?: string | null
+          created_at?: string
+          days_per_year?: number
+          gender_specific?: string | null
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          max_carryforward?: number
+          name?: string
+          requires_approval?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_types_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_types_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          client_id: string
+          created_at: string
+          date: string
+          emi_at_time: number
+          id: string
+          loan_id: string
+          note: string | null
+          payroll_run_id: string | null
+          type: string
+        }
+        Insert: {
+          amount?: number
+          balance_after?: number
+          client_id: string
+          created_at?: string
+          date?: string
+          emi_at_time?: number
+          id?: string
+          loan_id: string
+          note?: string | null
+          payroll_run_id?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          client_id?: string
+          created_at?: string
+          date?: string
+          emi_at_time?: number
+          id?: string
+          loan_id?: string
+          note?: string | null
+          payroll_run_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_transactions_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_transactions_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loans: {
+        Row: {
+          approved_by: string | null
+          client_id: string
+          created_at: string
+          employee_id: string
+          end_date: string | null
+          id: string
+          interest_rate: number
+          monthly_deduction: number
+          paused_until: string | null
+          pre_pause_emi: number | null
+          principal: number
+          reason: string | null
+          remaining_balance: number
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          client_id: string
+          created_at?: string
+          employee_id: string
+          end_date?: string | null
+          id?: string
+          interest_rate?: number
+          monthly_deduction?: number
+          paused_until?: string | null
+          pre_pause_emi?: number | null
+          principal?: number
+          reason?: string | null
+          remaining_balance?: number
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          end_date?: string | null
+          id?: string
+          interest_rate?: number
+          monthly_deduction?: number
+          paused_until?: string | null
+          pre_pause_emi?: number | null
+          principal?: number
+          reason?: string | null
+          remaining_balance?: number
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mileage_entries: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          date: string
+          distance_km: number
+          employee_id: string
+          from_address: string | null
+          id: string
+          notes: string | null
+          rate_per_km: number
+          status: string
+          to_address: string | null
+          updated_at: string
+          vehicle_type: string | null
+        }
+        Insert: {
+          amount?: number
+          client_id: string
+          created_at?: string
+          date?: string
+          distance_km?: number
+          employee_id: string
+          from_address?: string | null
+          id?: string
+          notes?: string | null
+          rate_per_km?: number
+          status?: string
+          to_address?: string | null
+          updated_at?: string
+          vehicle_type?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          date?: string
+          distance_km?: number
+          employee_id?: string
+          from_address?: string | null
+          id?: string
+          notes?: string | null
+          rate_per_km?: number
+          status?: string
+          to_address?: string | null
+          updated_at?: string
+          vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mileage_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mileage_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mileage_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          category: string
+          client_id: string
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string
+          client_id: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
@@ -1422,6 +2906,292 @@ export type Database = {
           },
         ]
       }
+      performance_assessments: {
+        Row: {
+          client_id: string
+          created_at: string
+          cycle_id: string | null
+          employee_id: string
+          id: string
+          rating: number | null
+          responses: Json
+          reviewer_id: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          cycle_id?: string | null
+          employee_id: string
+          id?: string
+          rating?: number | null
+          responses?: Json
+          reviewer_id?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          cycle_id?: string | null
+          employee_id?: string
+          id?: string
+          rating?: number | null
+          responses?: Json
+          reviewer_id?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_assessments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_assessments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_assessments_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_assessments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_calibrations: {
+        Row: {
+          calibrated_by: string | null
+          calibrated_rating: number | null
+          client_id: string
+          created_at: string
+          cycle_id: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          original_rating: number | null
+        }
+        Insert: {
+          calibrated_by?: string | null
+          calibrated_rating?: number | null
+          client_id: string
+          created_at?: string
+          cycle_id?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          original_rating?: number | null
+        }
+        Update: {
+          calibrated_by?: string | null
+          calibrated_rating?: number | null
+          client_id?: string
+          created_at?: string
+          cycle_id?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          original_rating?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_calibrations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_calibrations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_calibrations_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_calibrations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_cycles: {
+        Row: {
+          client_id: string
+          created_at: string
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+          status: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          name: string
+          start_date: string
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          name?: string
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_cycles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_cycles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_questionnaires: {
+        Row: {
+          audience: string
+          client_id: string
+          created_at: string
+          cycle_id: string | null
+          id: string
+          name: string
+          questions: Json
+        }
+        Insert: {
+          audience?: string
+          client_id: string
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          name: string
+          questions?: Json
+        }
+        Update: {
+          audience?: string
+          client_id?: string
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          name?: string
+          questions?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_questionnaires_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_questionnaires_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_questionnaires_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          client_id: string
+          employee_id: string
+          id: string
+          policy_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          client_id: string
+          employee_id: string
+          id?: string
+          policy_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          client_id?: string
+          employee_id?: string
+          id?: string
+          policy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_acknowledgements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_acknowledgements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_acknowledgements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_acknowledgements_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "company_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1472,6 +3242,345 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_team_members: {
+        Row: {
+          client_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          project_id: string
+          role: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          project_id: string
+          role?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          project_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_team_members_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_team_members_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_team_members_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_team_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          budget: number
+          client_id: string
+          client_name: string | null
+          code: string
+          completion: number
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          budget?: number
+          client_id: string
+          client_name?: string | null
+          code: string
+          completion?: number
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: number
+          client_id?: string
+          client_name?: string | null
+          code?: string
+          completion?: number
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_settings: {
+        Row: {
+          category: string
+          channels: string[]
+          client_id: string
+          created_at: string
+          days_before: number
+          id: string
+          is_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          channels?: string[]
+          client_id: string
+          created_at?: string
+          days_before?: number
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          channels?: string[]
+          client_id?: string
+          created_at?: string
+          days_before?: number
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_settings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_settings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      separations: {
+        Row: {
+          approved_by: string | null
+          client_id: string
+          created_at: string
+          employee_id: string
+          eosb_amount: number
+          eosb_breakdown: Json
+          id: string
+          last_working_date: string
+          leave_encashment: number
+          loan_deduction: number
+          notice_period_days: number
+          notice_period_pay: number
+          notice_period_served: boolean
+          payroll_run_id: string | null
+          processed_date: string | null
+          reason: string | null
+          status: string
+          total_settlement: number
+          type: string
+          unpaid_salary: number
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          client_id: string
+          created_at?: string
+          employee_id: string
+          eosb_amount?: number
+          eosb_breakdown?: Json
+          id?: string
+          last_working_date: string
+          leave_encashment?: number
+          loan_deduction?: number
+          notice_period_days?: number
+          notice_period_pay?: number
+          notice_period_served?: boolean
+          payroll_run_id?: string | null
+          processed_date?: string | null
+          reason?: string | null
+          status?: string
+          total_settlement?: number
+          type?: string
+          unpaid_salary?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          eosb_amount?: number
+          eosb_breakdown?: Json
+          id?: string
+          last_working_date?: string
+          leave_encashment?: number
+          loan_deduction?: number
+          notice_period_days?: number
+          notice_period_pay?: number
+          notice_period_served?: boolean
+          payroll_run_id?: string | null
+          processed_date?: string | null
+          reason?: string | null
+          status?: string
+          total_settlement?: number
+          type?: string
+          unpaid_salary?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "separations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "separations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "separations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "separations_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timesheets: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          client_id: string
+          created_at: string
+          employee_id: string
+          hours: number
+          id: string
+          project_id: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          week_starting: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          client_id: string
+          created_at?: string
+          employee_id: string
+          hours?: number
+          id?: string
+          project_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          week_starting: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          hours?: number
+          id?: string
+          project_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          week_starting?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
