@@ -14,62 +14,217 @@ export type Database = {
   }
   public: {
     Tables: {
-      profiles: {
+      clients: {
         Row: {
-          avatar_url: string | null
+          base_currency: string
+          company_email: string | null
+          company_name: string
+          company_phone: string | null
+          company_slug: string | null
+          country: string | null
           created_at: string
-          employee_id: string | null
-          full_name: string | null
+          created_by: string | null
           id: string
+          status: Database["public"]["Enums"]["client_status"]
+          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          timezone: string
           updated_at: string
         }
         Insert: {
-          avatar_url?: string | null
+          base_currency?: string
+          company_email?: string | null
+          company_name: string
+          company_phone?: string | null
+          company_slug?: string | null
+          country?: string | null
           created_at?: string
-          employee_id?: string | null
-          full_name?: string | null
-          id: string
+          created_by?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["client_status"]
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          timezone?: string
           updated_at?: string
         }
         Update: {
-          avatar_url?: string | null
+          base_currency?: string
+          company_email?: string | null
+          company_name?: string
+          company_phone?: string | null
+          company_slug?: string | null
+          country?: string | null
           created_at?: string
-          employee_id?: string | null
-          full_name?: string | null
+          created_by?: string | null
           id?: string
+          status?: Database["public"]["Enums"]["client_status"]
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          timezone?: string
           updated_at?: string
         }
         Relationships: []
       }
+      feature_definitions: {
+        Row: {
+          created_at: string
+          default_enabled_for_roles: string[]
+          description: string | null
+          feature_key: string
+          id: string
+          module: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          default_enabled_for_roles?: string[]
+          description?: string | null
+          feature_key: string
+          id?: string
+          module: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          default_enabled_for_roles?: string[]
+          description?: string | null
+          feature_key?: string
+          id?: string
+          module?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      feature_toggles: {
+        Row: {
+          client_id: string
+          created_at: string
+          enabled_by: string | null
+          feature_key: string
+          id: string
+          is_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          enabled_by?: string | null
+          feature_key: string
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          enabled_by?: string | null
+          feature_key?: string
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_toggles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          client_id: string | null
+          created_at: string
+          employee_id: string | null
+          full_name: string | null
+          id: string
+          is_active: boolean
+          last_login_at: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          client_id?: string | null
+          created_at?: string
+          employee_id?: string | null
+          full_name?: string | null
+          id: string
+          is_active?: boolean
+          last_login_at?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          client_id?: string | null
+          created_at?: string
+          employee_id?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
+          client_id: string | null
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_user_client_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_feature: {
+        Args: { _feature_key: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
@@ -78,9 +233,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "hr" | "employee" | "super_admin"
+      client_status: "active" | "suspended" | "trial"
+      subscription_plan: "starter" | "pro" | "enterprise"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -209,6 +367,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "hr", "employee", "super_admin"],
+      client_status: ["active", "suspended", "trial"],
+      subscription_plan: ["starter", "pro", "enterprise"],
     },
   },
 } as const
