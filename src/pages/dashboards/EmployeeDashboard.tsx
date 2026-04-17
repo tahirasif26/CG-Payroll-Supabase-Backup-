@@ -81,7 +81,7 @@ export default function EmployeeDashboard() {
           <MetricCard label="Leave Balance" value={`${annualBalance}d`} sublabel={`Sick: ${sickBalance}d`} icon={Calendar} accent="blue" />
         )}
         {hasFeature("payroll.view_own_payslip") && lastPayslip && (
-          <MetricCard label="Latest Payslip" value={`SAR ${lastPayslip.totalNet.toLocaleString()}`} sublabel={`${lastPayslip.month} ${lastPayslip.year}`} icon={DollarSign} accent="emerald" />
+          <MetricCard label="Latest Payslip" value={`SAR ${(Number(lastPayslip.total_net) || 0).toLocaleString()}`} sublabel={`${lastPayslip.month} ${lastPayslip.year}`} icon={DollarSign} accent="emerald" />
         )}
         {hasFeature("expenses.view_own") && (
           <MetricCard label="My Expenses" value={pendingExpenses.length} sublabel={`${myExpenses.length} total this year`} icon={Receipt} accent="amber" />
