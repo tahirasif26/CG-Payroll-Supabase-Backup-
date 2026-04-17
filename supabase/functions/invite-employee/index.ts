@@ -40,6 +40,13 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    const { data: rlOk } = await adminClient.rpc("check_rate_limit", {
+      _key: `user:${user.id}:fn:invite-employee`,
+      _max: 30,
+      _window_seconds: 60,
+    });
+    if (rlOk === false) return json({ error: "Rate limit exceeded" }, 429);
+
     // Get caller's roles
     const { data: callerRoles } = await adminClient
       .from("user_roles")
