@@ -63,7 +63,7 @@ function toDbUpdates(updates: Partial<Employee>): Record<string, unknown> {
   if (updates.category !== undefined) out.category = updates.category;
   if (updates.workLocationCountry !== undefined) out.work_location_country = updates.workLocationCountry;
   if (updates.payCurrency !== undefined) out.pay_currency = updates.payCurrency;
-  if (updates.payrollSetupId !== undefined) out.payroll_setup_id = updates.payrollSetupId;
+  // payrollSetupId skipped — mock IDs (e.g. "ps-3") aren't valid UUIDs for the DB.
   return out;
 }
 
@@ -139,7 +139,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
         category: emp.category || null,
         work_location_country: emp.workLocationCountry || null,
         pay_currency: emp.payCurrency || null,
-        payroll_setup_id: emp.payrollSetupId || null,
+        // payroll_setup_id intentionally omitted — local mock IDs (e.g. "ps-3") aren't valid UUIDs.
       });
       if (error) throw error;
     },
