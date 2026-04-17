@@ -272,15 +272,18 @@ export default function PayrollPage() {
   const { setups, getSetupById } = usePayrollSetups();
   const activeSetups = setups.filter(s => s.status === "active");
   const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
-  const [runs, setRuns] = useState<PayrollRun[]>(() => [...payrollRuns]);
+  const { data: dbRuns = [] } = usePayrollRuns();
+  const [runs, setRuns] = useState<PayrollRun[]>([]);
+  const [seededFromDb, setSeededFromDb] = useState(false);
+  React.useEffect(() => {
+    if (!seededFromDb && dbRuns.length > 0) {
+      setRuns(dbRuns.map(adaptPayrollRun));
+      setSeededFromDb(true);
+    }
+  }, [dbRuns, seededFromDb]);
 
   const syncRuns = (updater: (prev: PayrollRun[]) => PayrollRun[]) => {
-    setRuns(prev => {
-      const next = updater(prev);
-      payrollRuns.length = 0;
-      next.forEach(r => payrollRuns.push(r));
-      return next;
-    });
+    setRuns(updater);
   };
   const { client } = useClient();
   const { separations } = useSeparations();
