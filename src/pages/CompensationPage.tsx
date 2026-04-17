@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
-import { useEmployees } from "@/contexts/EmployeeContext";
+import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart3, Plus } from "lucide-react";
