@@ -104,8 +104,8 @@ export function useCreatePayrollSetup() {
     }) => {
       if (!clientId) throw new Error("No client context");
       const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await supabase
-        .from("payroll_setups")
+      const { data, error } = await (supabase
+        .from("payroll_setups") as any)
         .insert({
           client_id: clientId,
           name: input.name,
