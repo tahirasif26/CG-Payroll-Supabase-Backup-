@@ -1,50 +1,40 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
-import { Search, Filter, Eye, FileText } from "lucide-react";
+import { Search, Filter, Eye } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface SelfAssessment {
-  employeeId: string;
-  cycle: string;
-  status: "not-started" | "in-progress" | "submitted";
-  submittedDate: string;
-  strengths: string;
-  improvements: string;
-  goals: string;
-  selfRating: string;
-}
-
-const mockAssessments: SelfAssessment[] = [
-  { employeeId: "1", cycle: "2025-H1", status: "submitted", submittedDate: "2025-02-10", strengths: "Strong analytical skills, excellent client communication.", improvements: "Need to improve time management on multiple engagements.", goals: "Complete CPA certification, lead 2 audit engagements.", selfRating: "exceeds" },
-  { employeeId: "2", cycle: "2025-H1", status: "submitted", submittedDate: "2025-02-08", strengths: "Deep tax knowledge, mentoring junior staff.", improvements: "Could delegate more effectively.", goals: "Expand advisory services to 3 new clients.", selfRating: "meets" },
-  { employeeId: "3", cycle: "2025-H1", status: "in-progress", submittedDate: "", strengths: "", improvements: "", goals: "", selfRating: "" },
-  { employeeId: "4", cycle: "2025-H1", status: "submitted", submittedDate: "2025-02-12", strengths: "Strategic thinking, strong client relationships.", improvements: "Work-life balance, documentation quality.", goals: "Launch new consulting practice area.", selfRating: "outstanding" },
-  { employeeId: "5", cycle: "2025-H1", status: "not-started", submittedDate: "", strengths: "", improvements: "", goals: "", selfRating: "" },
-  { employeeId: "8", cycle: "2025-H1", status: "in-progress", submittedDate: "", strengths: "Technical innovation.", improvements: "", goals: "", selfRating: "" },
-];
+import { usePerformanceCycles, usePerformanceAssessments, useAssessmentRatings } from "@/hooks/queries/usePerformance";
 
 export default function SelfAssessmentPage() {
   const { employees } = useEmployeesCtx();
-  const [assessments] = useState(mockAssessments);
+  const { data: cycles = [] } = usePerformanceCycles();
+  const { data: ratingScale = [] } = useAssessmentRatings();
+  const [selectedCycleId, setSelectedCycleId] = useState<string>("");
+  const cycleId = selectedCycleId || cycles[0]?.id || "";
+  const selectedCycle = cycles.find(c => c.id === cycleId);
+  const { data: assessments = [], isLoading } = usePerformanceAssessments({ cycle_id: cycleId || undefined, type: "self" });
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [viewAssessment, setViewAssessment] = useState<SelfAssessment | null>(null);
-  const { toast } = useToast();
+  const [viewId, setViewId] = useState<string | null>(null);
+
+  const ratingName = useMemo(() => {
+    const m = new Map<number, string>();
+    ratingScale.forEach(r => m.set(Number(r.value), r.name));
+    return (v: number | null | undefined) => v == null ? "—" : (m.get(Number(v)) || String(v));
+  }, [ratingScale]);
 
   const getEmp = (id: string) => employees.find(e => e.id === id);
 
   const filtered = assessments.filter(a => {
-    const emp = getEmp(a.employeeId);
+    const emp = getEmp(a.employee_id);
     if (!emp) return false;
     const q = search.toLowerCase();
     const matchSearch = !q || `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q);
@@ -53,19 +43,31 @@ export default function SelfAssessmentPage() {
   });
 
   const stats = {
-    submitted: assessments.filter(a => a.status === "submitted").length,
+    submitted: assessments.filter(a => a.status === "submitted" || a.status === "completed").length,
     inProgress: assessments.filter(a => a.status === "in-progress").length,
-    notStarted: assessments.filter(a => a.status === "not-started").length,
+    notStarted: assessments.filter(a => a.status === "pending" || a.status === "not-started").length,
   };
+
+  const viewAssessment = assessments.find(a => a.id === viewId);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Self Assessments" description="Track and review employee self-assessment submissions for the current performance cycle." />
 
+      <div className="flex items-center gap-3">
+        <Label className="text-sm font-medium">Cycle:</Label>
+        <Select value={cycleId} onValueChange={setSelectedCycleId}>
+          <SelectTrigger className="w-[220px] h-9"><SelectValue placeholder="Select cycle" /></SelectTrigger>
+          <SelectContent>
+            {cycles.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-3 gap-4">
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Submitted</p><p className="text-2xl font-bold text-success">{stats.submitted}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">In Progress</p><p className="text-2xl font-bold text-warning">{stats.inProgress}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Not Started</p><p className="text-2xl font-bold text-muted-foreground">{stats.notStarted}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Pending</p><p className="text-2xl font-bold text-muted-foreground">{stats.notStarted}</p></CardContent></Card>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -79,7 +81,7 @@ export default function SelfAssessmentPage() {
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="submitted">Submitted</SelectItem>
             <SelectItem value="in-progress">In Progress</SelectItem>
-            <SelectItem value="not-started">Not Started</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -93,36 +95,39 @@ export default function SelfAssessmentPage() {
                 <TableHead>Department</TableHead>
                 <TableHead>Cycle</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Submitted</TableHead>
+                <TableHead>Updated</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
+              {isLoading && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>}
+              {!isLoading && filtered.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No self-assessments for this cycle.</TableCell></TableRow>
+              )}
               {filtered.map(a => {
-                const emp = getEmp(a.employeeId);
+                const emp = getEmp(a.employee_id);
                 if (!emp) return null;
+                const isSubmitted = a.status === "submitted" || a.status === "completed";
                 return (
-                  <TableRow key={a.employeeId}>
+                  <TableRow key={a.id}>
                     <TableCell>
                       <p className="text-sm font-medium">{emp.firstName} {emp.lastName}</p>
                       <p className="text-xs text-muted-foreground">{emp.designation}</p>
                     </TableCell>
                     <TableCell className="text-sm">{emp.department}</TableCell>
-                    <TableCell className="text-sm font-mono">{a.cycle}</TableCell>
+                    <TableCell className="text-sm font-mono">{selectedCycle?.name}</TableCell>
                     <TableCell>
                       <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${
-                        a.status === "submitted" ? "bg-success/10 text-success" :
+                        isSubmitted ? "bg-success/10 text-success" :
                         a.status === "in-progress" ? "bg-warning/10 text-warning" :
                         "bg-muted text-muted-foreground"
-                      }`}>{a.status === "not-started" ? "Not Started" : a.status === "in-progress" ? "In Progress" : "Submitted"}</span>
+                      }`}>{a.status}</span>
                     </TableCell>
-                    <TableCell className="text-sm">{a.submittedDate || "—"}</TableCell>
+                    <TableCell className="text-sm">{new Date(a.updated_at).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
-                      {a.status === "submitted" && (
-                        <Button size="sm" variant="outline" onClick={() => setViewAssessment(a)}>
-                          <Eye className="h-3 w-3 mr-1" />View
-                        </Button>
-                      )}
+                      <Button size="sm" variant="outline" onClick={() => setViewId(a.id)}>
+                        <Eye className="h-3 w-3 mr-1" />View
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -132,22 +137,22 @@ export default function SelfAssessmentPage() {
         </ScrollArea>
       </Card>
 
-      <Dialog open={!!viewAssessment} onOpenChange={open => { if (!open) setViewAssessment(null); }}>
+      <Dialog open={!!viewAssessment} onOpenChange={open => { if (!open) setViewId(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Self Assessment</DialogTitle>
-            <DialogDescription>{viewAssessment && `${getEmp(viewAssessment.employeeId)?.firstName} ${getEmp(viewAssessment.employeeId)?.lastName} — ${viewAssessment.cycle}`}</DialogDescription>
+            <DialogDescription>{viewAssessment && (() => { const e = getEmp(viewAssessment.employee_id); return e ? `${e.firstName} ${e.lastName} — ${selectedCycle?.name || ""}` : ""; })()}</DialogDescription>
           </DialogHeader>
           {viewAssessment && (
             <div className="space-y-4">
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Strengths</p><p className="text-sm">{viewAssessment.strengths}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Areas for Improvement</p><p className="text-sm">{viewAssessment.improvements}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Goals</p><p className="text-sm">{viewAssessment.goals}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Self Rating</p><p className="text-sm font-medium capitalize">{viewAssessment.selfRating}</p></div>
+              {Object.entries(viewAssessment.responses || {}).map(([k, v]) => (
+                <div key={k}><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">{k}</p><p className="text-sm">{String(v)}</p></div>
+              ))}
+              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Self Rating</p><p className="text-sm font-medium">{ratingName(viewAssessment.rating)}</p></div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewAssessment(null)}>Close</Button>
+            <Button variant="outline" onClick={() => setViewId(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

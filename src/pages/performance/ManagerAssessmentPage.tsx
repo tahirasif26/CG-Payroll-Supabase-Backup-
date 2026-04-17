@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,45 +8,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
-import { Search, Filter, Edit2, Eye } from "lucide-react";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { Search, Filter, Edit2, Eye, Plus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface ManagerAssessment {
-  employeeId: string;
-  managerId: string;
-  cycle: string;
-  status: "draft" | "submitted" | "acknowledged";
-  performance: string;
-  strengths: string;
-  development: string;
-  rating: string;
-  goals: string;
-}
-
-const mockAssessments: ManagerAssessment[] = [
-  { employeeId: "1", managerId: "7", cycle: "2025-H1", status: "submitted", performance: "Aisha has consistently delivered high-quality audit work. She demonstrates strong attention to detail and has shown growth in client management skills.", strengths: "Analytical thinking, attention to detail, client rapport.", development: "Take on more leadership roles in team settings.", rating: "exceeds", goals: "Lead 2 audit engagements independently, mentor 1 junior associate." },
-  { employeeId: "2", managerId: "7", cycle: "2025-H1", status: "draft", performance: "Omar maintains solid performance in tax advisory.", strengths: "Deep technical expertise.", development: "Delegation and team management.", rating: "meets", goals: "Expand client base by 15%." },
-  { employeeId: "3", managerId: "7", cycle: "2025-H1", status: "submitted", performance: "Fatima is developing well as an associate.", strengths: "Quick learner, adaptable.", development: "Needs to improve attention to deadlines.", rating: "meets", goals: "Complete all assigned projects on time." },
-  { employeeId: "5", managerId: "7", cycle: "2025-H1", status: "acknowledged", performance: "Sara has shown promising potential as a new hire.", strengths: "Enthusiasm, willingness to learn.", development: "Build technical audit skills.", rating: "meets", goals: "Complete foundational audit training program." },
-  { employeeId: "8", managerId: "4", cycle: "2025-H1", status: "submitted", performance: "Tariq continues to drive technology innovation.", strengths: "Technical vision, problem-solving.", development: "Stakeholder communication.", rating: "exceeds", goals: "Deliver new reporting platform." },
-];
+import { usePerformanceCycles, usePerformanceAssessments, useUpsertPerformanceAssessment, useAssessmentRatings, DBPerformanceAssessment } from "@/hooks/queries/usePerformance";
 
 export default function ManagerAssessmentPage() {
   const { employees } = useEmployeesCtx();
-  const [assessments, setAssessments] = useState(mockAssessments);
+  const activeEmployees = useActiveEmployees();
+  const { data: cycles = [] } = usePerformanceCycles();
+  const { data: ratingScale = [] } = useAssessmentRatings();
+  const [selectedCycleId, setSelectedCycleId] = useState<string>("");
+  const cycleId = selectedCycleId || cycles[0]?.id || "";
+  const selectedCycle = cycles.find(c => c.id === cycleId);
+  const { data: assessments = [], isLoading } = usePerformanceAssessments({ cycle_id: cycleId || undefined, type: "manager" });
+  const upsert = useUpsertPerformanceAssessment();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [viewAssessment, setViewAssessment] = useState<ManagerAssessment | null>(null);
-  const [editAssessment, setEditAssessment] = useState<ManagerAssessment | null>(null);
-  const [editData, setEditData] = useState({ performance: "", strengths: "", development: "", rating: "", goals: "" });
-  const { toast } = useToast();
+  const [viewId, setViewId] = useState<string | null>(null);
+  const [editAssessment, setEditAssessment] = useState<DBPerformanceAssessment | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState({ employee_id: "", performance: "", strengths: "", development: "", goals: "", rating: 0 });
 
-  const getEmp = (id: string) => employees.find(e => e.id === id);
+  const sortedRatings = useMemo(() => [...ratingScale].sort((a, b) => Number(b.value) - Number(a.value)), [ratingScale]);
+
+  const getEmp = (id: string | null) => id ? employees.find(e => e.id === id) : undefined;
 
   const filtered = assessments.filter(a => {
-    const emp = getEmp(a.employeeId);
+    const emp = getEmp(a.employee_id);
     if (!emp) return false;
     const q = search.toLowerCase();
     const matchSearch = !q || `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q);
@@ -54,24 +45,64 @@ export default function ManagerAssessmentPage() {
     return matchSearch && matchStatus;
   });
 
-  const handleSave = () => {
-    if (!editAssessment) return;
-    setAssessments(prev => prev.map(a =>
-      a.employeeId === editAssessment.employeeId
-        ? { ...a, ...editData, status: "submitted" as const }
-        : a
-    ));
-    toast({ title: "Saved", description: "Manager assessment submitted." });
-    setEditAssessment(null);
+  const openEdit = (a: DBPerformanceAssessment) => {
+    setEditAssessment(a);
+    const r = a.responses || {};
+    setForm({
+      employee_id: a.employee_id,
+      performance: r.performance || "",
+      strengths: r.strengths || "",
+      development: r.development || "",
+      goals: r.goals || "",
+      rating: Number(a.rating) || 0,
+    });
   };
+
+  const openCreate = () => {
+    setEditAssessment(null);
+    setForm({ employee_id: "", performance: "", strengths: "", development: "", goals: "", rating: 0 });
+    setCreateOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!cycleId || !form.employee_id) return;
+    await upsert.mutateAsync({
+      id: editAssessment?.id,
+      cycle_id: cycleId,
+      employee_id: form.employee_id,
+      type: "manager",
+      status: "submitted",
+      rating: form.rating || null,
+      responses: {
+        performance: form.performance,
+        strengths: form.strengths,
+        development: form.development,
+        goals: form.goals,
+      },
+    });
+    setEditAssessment(null);
+    setCreateOpen(false);
+  };
+
+  const viewAssessment = assessments.find(a => a.id === viewId);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Manager Assessments" description="Complete and review performance assessments for direct reports." />
+      <PageHeader title="Manager Assessments" description="Complete and review performance assessments for direct reports.">
+        <Button onClick={openCreate} disabled={!cycleId}><Plus className="h-4 w-4 mr-1" />New Assessment</Button>
+      </PageHeader>
+
+      <div className="flex items-center gap-3">
+        <Label className="text-sm font-medium">Cycle:</Label>
+        <Select value={cycleId} onValueChange={setSelectedCycleId}>
+          <SelectTrigger className="w-[220px] h-9"><SelectValue placeholder="Select cycle" /></SelectTrigger>
+          <SelectContent>{cycles.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Submitted</p><p className="text-2xl font-bold text-success">{assessments.filter(a => a.status === "submitted").length}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Drafts</p><p className="text-2xl font-bold text-warning">{assessments.filter(a => a.status === "draft").length}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Submitted</p><p className="text-2xl font-bold text-success">{assessments.filter(a => a.status === "submitted" || a.status === "completed").length}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Drafts</p><p className="text-2xl font-bold text-warning">{assessments.filter(a => a.status === "draft" || a.status === "in-progress").length}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Acknowledged</p><p className="text-2xl font-bold text-info">{assessments.filter(a => a.status === "acknowledged").length}</p></CardContent></Card>
       </div>
 
@@ -97,7 +128,6 @@ export default function ManagerAssessmentPage() {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead>Employee</TableHead>
-                <TableHead>Manager</TableHead>
                 <TableHead>Cycle</TableHead>
                 <TableHead>Rating</TableHead>
                 <TableHead>Status</TableHead>
@@ -105,31 +135,29 @@ export default function ManagerAssessmentPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {isLoading && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>}
+              {!isLoading && filtered.length === 0 && (
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No manager assessments yet.</TableCell></TableRow>
+              )}
               {filtered.map(a => {
-                const emp = getEmp(a.employeeId);
-                const mgr = getEmp(a.managerId);
+                const emp = getEmp(a.employee_id);
                 if (!emp) return null;
                 return (
-                  <TableRow key={a.employeeId}>
+                  <TableRow key={a.id}>
                     <TableCell><p className="text-sm font-medium">{emp.firstName} {emp.lastName}</p><p className="text-xs text-muted-foreground">{emp.designation}</p></TableCell>
-                    <TableCell className="text-sm">{mgr ? `${mgr.firstName} ${mgr.lastName}` : "—"}</TableCell>
-                    <TableCell className="text-sm font-mono">{a.cycle}</TableCell>
-                    <TableCell><span className="text-sm font-medium capitalize">{a.rating || "—"}</span></TableCell>
+                    <TableCell className="text-sm font-mono">{selectedCycle?.name}</TableCell>
+                    <TableCell><span className="text-sm font-medium">{a.rating ?? "—"}</span></TableCell>
                     <TableCell>
                       <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${
-                        a.status === "submitted" ? "bg-success/10 text-success" :
+                        a.status === "submitted" || a.status === "completed" ? "bg-success/10 text-success" :
                         a.status === "acknowledged" ? "bg-info/10 text-info" :
                         "bg-warning/10 text-warning"
-                      }`}>{a.status.charAt(0).toUpperCase() + a.status.slice(1)}</span>
+                      }`}>{a.status}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="outline" onClick={() => setViewAssessment(a)}><Eye className="h-3 w-3 mr-1" />View</Button>
-                        {a.status === "draft" && (
-                          <Button size="sm" variant="outline" onClick={() => { setEditAssessment(a); setEditData({ performance: a.performance, strengths: a.strengths, development: a.development, rating: a.rating, goals: a.goals }); }}>
-                            <Edit2 className="h-3 w-3 mr-1" />Edit
-                          </Button>
-                        )}
+                        <Button size="sm" variant="outline" onClick={() => setViewId(a.id)}><Eye className="h-3 w-3 mr-1" />View</Button>
+                        <Button size="sm" variant="outline" onClick={() => openEdit(a)}><Edit2 className="h-3 w-3 mr-1" />Edit</Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -140,55 +168,57 @@ export default function ManagerAssessmentPage() {
         </ScrollArea>
       </Card>
 
-      {/* View Dialog */}
-      <Dialog open={!!viewAssessment && !editAssessment} onOpenChange={open => { if (!open) setViewAssessment(null); }}>
+      <Dialog open={!!viewAssessment && !editAssessment} onOpenChange={open => { if (!open) setViewId(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Manager Assessment</DialogTitle>
-            <DialogDescription>{viewAssessment && `${getEmp(viewAssessment.employeeId)?.firstName} ${getEmp(viewAssessment.employeeId)?.lastName} — ${viewAssessment.cycle}`}</DialogDescription>
+            <DialogDescription>{viewAssessment && (() => { const e = getEmp(viewAssessment.employee_id); return e ? `${e.firstName} ${e.lastName} — ${selectedCycle?.name || ""}` : ""; })()}</DialogDescription>
           </DialogHeader>
           {viewAssessment && (
             <div className="space-y-4">
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Performance Summary</p><p className="text-sm">{viewAssessment.performance}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Strengths</p><p className="text-sm">{viewAssessment.strengths}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Development Areas</p><p className="text-sm">{viewAssessment.development}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Goals</p><p className="text-sm">{viewAssessment.goals}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Rating</p><p className="text-sm font-medium capitalize">{viewAssessment.rating}</p></div>
+              {Object.entries(viewAssessment.responses || {}).map(([k, v]) => (
+                <div key={k}><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">{k}</p><p className="text-sm">{String(v)}</p></div>
+              ))}
+              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Rating</p><p className="text-sm font-medium">{viewAssessment.rating ?? "—"}</p></div>
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setViewAssessment(null)}>Close</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setViewId(null)}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editAssessment} onOpenChange={open => { if (!open) setEditAssessment(null); }}>
+      <Dialog open={!!editAssessment || createOpen} onOpenChange={open => { if (!open) { setEditAssessment(null); setCreateOpen(false); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Assessment</DialogTitle>
-            <DialogDescription>{editAssessment && `${getEmp(editAssessment.employeeId)?.firstName} ${getEmp(editAssessment.employeeId)?.lastName}`}</DialogDescription>
+            <DialogTitle>{editAssessment ? "Edit" : "New"} Assessment</DialogTitle>
+            <DialogDescription>Provide the manager's evaluation.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Performance Summary</Label><Textarea value={editData.performance} onChange={e => setEditData({ ...editData, performance: e.target.value })} rows={3} /></div>
-            <div className="space-y-2"><Label>Strengths</Label><Input value={editData.strengths} onChange={e => setEditData({ ...editData, strengths: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Development Areas</Label><Input value={editData.development} onChange={e => setEditData({ ...editData, development: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Goals</Label><Input value={editData.goals} onChange={e => setEditData({ ...editData, goals: e.target.value })} /></div>
+            {!editAssessment && (
+              <div className="space-y-2">
+                <Label>Employee</Label>
+                <Select value={form.employee_id} onValueChange={v => setForm({ ...form, employee_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                  <SelectContent>{activeEmployees.map(e => <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2"><Label>Performance Summary</Label><Textarea value={form.performance} onChange={e => setForm({ ...form, performance: e.target.value })} rows={3} /></div>
+            <div className="space-y-2"><Label>Strengths</Label><Input value={form.strengths} onChange={e => setForm({ ...form, strengths: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Development Areas</Label><Input value={form.development} onChange={e => setForm({ ...form, development: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Goals</Label><Input value={form.goals} onChange={e => setForm({ ...form, goals: e.target.value })} /></div>
             <div className="space-y-2">
               <Label>Rating</Label>
-              <Select value={editData.rating} onValueChange={v => setEditData({ ...editData, rating: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={String(form.rating || "")} onValueChange={v => setForm({ ...form, rating: Number(v) })}>
+                <SelectTrigger><SelectValue placeholder="Select rating" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="outstanding">Outstanding</SelectItem>
-                  <SelectItem value="exceeds">Exceeds Expectations</SelectItem>
-                  <SelectItem value="meets">Meets Expectations</SelectItem>
-                  <SelectItem value="below">Below Expectations</SelectItem>
-                  <SelectItem value="unsatisfactory">Unsatisfactory</SelectItem>
+                  {sortedRatings.map(r => <SelectItem key={r.id} value={String(r.value)}>{r.name} ({r.value})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditAssessment(null)}>Cancel</Button>
-            <Button onClick={handleSave}>Submit Assessment</Button>
+            <Button variant="outline" onClick={() => { setEditAssessment(null); setCreateOpen(false); }}>Cancel</Button>
+            <Button onClick={handleSave} disabled={upsert.isPending}>Submit</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
