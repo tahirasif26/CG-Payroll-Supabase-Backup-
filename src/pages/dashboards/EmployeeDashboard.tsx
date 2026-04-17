@@ -39,7 +39,7 @@ export default function EmployeeDashboard() {
   // Profile completion (basic heuristic on mock data)
   const profileCompletion = (() => {
     if (!emp) return 60;
-    const fields = [emp.firstName, emp.lastName, emp.email, emp.phone, emp.dateOfBirth, emp.nationalId];
+    const fields = [emp.firstName, emp.lastName, emp.email, emp.phone, emp.dateOfBirth, emp.department];
     const filled = fields.filter(Boolean).length;
     return Math.round((filled / fields.length) * 100);
   })();
