@@ -4,7 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useRole } from "@/contexts/RoleContext";
 import { useAdvances } from "@/contexts/AdvanceContext";
-import { payrollRuns } from "@/data/mockData";
+import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Eye, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, X, FilterX } from "lucide-react";
@@ -31,6 +31,7 @@ export default function AdvancesPage() {
   const { role } = useRole();
   const { toast } = useToast();
   const { advances, addAdvance, approveAdvance, rejectAdvance } = useAdvances();
+  const { data: payrollRuns = [] } = usePayrollRuns();
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
