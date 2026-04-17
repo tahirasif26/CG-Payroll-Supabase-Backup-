@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useExpenses } from "@/hooks/queries/useExpenses";
 import { usePayrollRuns } from "@/hooks/queries/usePayroll";
@@ -52,10 +52,13 @@ export default function ExpenseAnalytics() {
   const [chartFilter, setChartFilter] = useState<string | null>(null);
 
   // Initialize selections once runs load
-  if (!baseRunId && completedRuns[0]) setBaseRunId(completedRuns[0].id);
-  if (!compareRunId && (completedRuns[1] || completedRuns[0])) {
-    setCompareRunId((completedRuns[1] || completedRuns[0]).id);
-  }
+  useEffect(() => {
+    if (!baseRunId && completedRuns[0]) setBaseRunId(completedRuns[0].id);
+    if (!compareRunId && (completedRuns[1] || completedRuns[0])) {
+      setCompareRunId((completedRuns[1] || completedRuns[0]).id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [completedRuns]);
 
   const baseLabel = completedRuns.find((r) => r.id === baseRunId)?.label || "Period 1";
   const compareLabel = completedRuns.find((r) => r.id === compareRunId)?.label || "Period 2";
