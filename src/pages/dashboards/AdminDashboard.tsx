@@ -64,7 +64,7 @@ export default function AdminDashboard() {
   // Payroll trend (placeholder)
   const payrollTrend = ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr"].map((m) => ({
     month: m,
-    cost: Math.round((lastPayroll?.totalNet ?? 100000) * (0.85 + Math.random() * 0.3)),
+    cost: Math.round((Number(lastPayroll?.total_net) || 100000) * (0.85 + Math.random() * 0.3)),
   }));
 
   const statusData = [

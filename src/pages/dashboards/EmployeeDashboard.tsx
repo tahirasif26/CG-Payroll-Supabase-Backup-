@@ -140,7 +140,7 @@ export default function EmployeeDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{p.month} {p.year}</p>
-                      <p className="text-[11px] text-muted-foreground">SAR {p.totalNet.toLocaleString()}</p>
+                      <p className="text-[11px] text-muted-foreground">SAR {(Number(p.total_net) || 0).toLocaleString()}</p>
                     </div>
                     <Button variant="ghost" size="icon" className="h-7 w-7"><Download className="h-3.5 w-3.5" /></Button>
                   </li>
