@@ -161,29 +161,37 @@ export function useCreateEmployee() {
       const subInserts: Promise<unknown>[] = [];
       if (input.address && Object.values(input.address).some(Boolean)) {
         subInserts.push(
-          supabase.from("employee_addresses").insert({
-            employee_id: emp.id, client_id: clientId, type: "current", ...input.address,
-          })
+          Promise.resolve(
+            supabase.from("employee_addresses").insert({
+              employee_id: emp.id, client_id: clientId, type: "current", ...input.address,
+            })
+          )
         );
       }
       if (input.bank && Object.values(input.bank).some(Boolean)) {
         subInserts.push(
-          supabase.from("employee_bank_details").insert({
-            employee_id: emp.id, client_id: clientId, ...input.bank,
-          })
+          Promise.resolve(
+            supabase.from("employee_bank_details").insert({
+              employee_id: emp.id, client_id: clientId, ...input.bank,
+            })
+          )
         );
       }
       if (input.emergency_contact && Object.values(input.emergency_contact).some(Boolean)) {
         subInserts.push(
-          supabase.from("employee_emergency_contacts").insert({
-            employee_id: emp.id, client_id: clientId, ...input.emergency_contact,
-          })
+          Promise.resolve(
+            supabase.from("employee_emergency_contacts").insert({
+              employee_id: emp.id, client_id: clientId, ...input.emergency_contact,
+            })
+          )
         );
       }
       if (input.education?.length) {
         subInserts.push(
-          supabase.from("employee_education").insert(
-            input.education.map((e) => ({ employee_id: emp.id, client_id: clientId, ...e }))
+          Promise.resolve(
+            supabase.from("employee_education").insert(
+              input.education.map((e) => ({ employee_id: emp.id, client_id: clientId, ...e }))
+            )
           )
         );
       }
