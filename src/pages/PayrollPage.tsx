@@ -321,7 +321,7 @@ export default function PayrollPage() {
 
   const [processedSeps, setProcessedSeps] = useState<Set<string>>(() => {
     const set = new Set<string>();
-    const completedRunIds = new Set(payrollRuns.filter(r => r.status === "completed").map(r => r.id));
+    const completedRunIds = new Set(runs.filter(r => r.status === "completed").map(r => r.id));
     separations.forEach(sep => {
       if (sep.status === "approved" && sep.payrollRunId && completedRunIds.has(sep.payrollRunId)) {
         set.add(sep.employeeId);
