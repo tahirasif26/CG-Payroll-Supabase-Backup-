@@ -34,16 +34,17 @@ export const mileageEntries: MileageEntry[] = [];
 
 export function getUpcomingBirthdays(emps: Employee[]) {
   const today = new Date();
-  const thisMonth = today.getMonth();
+  const currentYear = today.getFullYear();
   return emps
-    .filter((e) => {
-      if (!e.dateOfBirth) return false;
-      const dob = new Date(e.dateOfBirth);
-      return dob.getMonth() === thisMonth;
+    .filter((e) => !!e.dateOfBirth)
+    .map((e) => {
+      const dob = new Date(e.dateOfBirth!);
+      const birthMonth = dob.getMonth();
+      const birthDay = dob.getDate();
+      let next = new Date(currentYear, birthMonth, birthDay);
+      if (next < today) next = new Date(currentYear + 1, birthMonth, birthDay);
+      const daysUntil = Math.ceil((next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return { ...e, birthMonth, birthDay, daysUntil };
     })
-    .sort((a, b) => {
-      const da = new Date(a.dateOfBirth!).getDate();
-      const db = new Date(b.dateOfBirth!).getDate();
-      return da - db;
-    });
+    .sort((a, b) => a.daysUntil - b.daysUntil);
 }
