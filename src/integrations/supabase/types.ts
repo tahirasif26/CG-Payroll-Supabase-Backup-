@@ -1670,6 +1670,7 @@ export type Database = {
       }
       expenses: {
         Row: {
+          advance_id: string | null
           amount: number
           approved_at: string | null
           approved_by: string | null
@@ -1679,8 +1680,11 @@ export type Database = {
           currency: string
           description: string | null
           employee_id: string
+          exchange_rate: number | null
           expense_date: string
           id: string
+          original_amount: number | null
+          original_currency: string | null
           paid_date: string | null
           payment_method: string | null
           payroll_run_id: string | null
@@ -1688,9 +1692,11 @@ export type Database = {
           receipt_url: string | null
           rejection_reason: string | null
           status: string
+          submission_date: string
           updated_at: string
         }
         Insert: {
+          advance_id?: string | null
           amount?: number
           approved_at?: string | null
           approved_by?: string | null
@@ -1700,8 +1706,11 @@ export type Database = {
           currency?: string
           description?: string | null
           employee_id: string
+          exchange_rate?: number | null
           expense_date?: string
           id?: string
+          original_amount?: number | null
+          original_currency?: string | null
           paid_date?: string | null
           payment_method?: string | null
           payroll_run_id?: string | null
@@ -1709,9 +1718,11 @@ export type Database = {
           receipt_url?: string | null
           rejection_reason?: string | null
           status?: string
+          submission_date?: string
           updated_at?: string
         }
         Update: {
+          advance_id?: string | null
           amount?: number
           approved_at?: string | null
           approved_by?: string | null
@@ -1721,8 +1732,11 @@ export type Database = {
           currency?: string
           description?: string | null
           employee_id?: string
+          exchange_rate?: number | null
           expense_date?: string
           id?: string
+          original_amount?: number | null
+          original_currency?: string | null
           paid_date?: string | null
           payment_method?: string | null
           payroll_run_id?: string | null
@@ -1730,9 +1744,17 @@ export type Database = {
           receipt_url?: string | null
           rejection_reason?: string | null
           status?: string
+          submission_date?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "advances"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_category_id_fkey"
             columns: ["category_id"]
