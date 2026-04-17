@@ -165,18 +165,22 @@ function isModuleActive(mod: typeof primaryModules[0], pathname: string): boolea
   return pathname.startsWith(mod.path);
 }
 
+// Modules visible only to admin/hr (not employees)
+const ADMIN_ONLY_MODULES = new Set(["Payroll", "Assets", "Settings"]);
+
 export function TopNavLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, signOut, role } = useRole();
+  const { profile, signOut, role, appRole } = useRole();
 
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
-  const activeModule = primaryModules.find(m => isModuleActive(m, location.pathname));
-  const subNav = activeModule?.subNav || [];
+  const isEmployee = appRole === "employee";
+  const visibleModules = primaryModules.filter(m => !isEmployee || !ADMIN_ONLY_MODULES.has(m.label));
 
-  const isAdmin = role === "employer";
+  const activeModule = visibleModules.find(m => isModuleActive(m, location.pathname));
+  const subNav = activeModule?.subNav || [];
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
@@ -232,11 +236,11 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Primary Module Navigation - Icon Buttons */}
-      {isAdmin && (
+      {appRole && (
         <div className="border-b bg-card sticky top-12 z-20">
           <div className="px-4">
             <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide py-3 justify-center">
-              {primaryModules.map((mod) => {
+              {visibleModules.map((mod) => {
                 const active = isModuleActive(mod, location.pathname);
                 const Icon = mod.icon;
                 return (
@@ -289,7 +293,7 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Sub-Navigation Bar */}
-      {isAdmin && subNav.length > 0 && (
+      {appRole && subNav.length > 0 && (
         <div className="border-b bg-card/80 backdrop-blur-sm sticky top-[6.75rem] z-10">
           <div className="px-6">
             <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mb-px">
