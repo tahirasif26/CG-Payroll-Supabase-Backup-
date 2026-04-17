@@ -143,7 +143,7 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
         notes: adv.notes ?? "",
         reminder_history: adv.reminderHistory ?? [],
       };
-      const { error } = await supabase.from("advances").insert(payload);
+      const { error } = await (supabase as any).from("advances").insert(payload);
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -151,7 +151,7 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
 
   const updateMut = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
-      const { error } = await supabase.from("advances").update(patch).eq("id", id);
+      const { error } = await (supabase as any).from("advances").update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: invalidate,
