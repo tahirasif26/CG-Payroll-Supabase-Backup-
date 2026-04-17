@@ -128,6 +128,13 @@ export type Database = {
             foreignKeyName: "feature_toggles_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_toggles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -175,6 +182,13 @@ export type Database = {
             foreignKeyName: "profiles_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -207,6 +221,13 @@ export type Database = {
             foreignKeyName: "user_roles_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -214,7 +235,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      client_stats: {
+        Row: {
+          base_currency: string | null
+          company_email: string | null
+          company_name: string | null
+          company_phone: string | null
+          company_slug: string | null
+          country: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          last_activity: string | null
+          status: Database["public"]["Enums"]["client_status"] | null
+          subscription_plan:
+            | Database["public"]["Enums"]["subscription_plan"]
+            | null
+          timezone: string | null
+          updated_at: string | null
+          user_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
