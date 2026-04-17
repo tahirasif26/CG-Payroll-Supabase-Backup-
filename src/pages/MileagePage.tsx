@@ -1,7 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { mileageEntries } from "@/data/mockData";
-import { MileageEntry } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Navigation, Plus, Eye, CheckCircle2, XCircle, Trash2 } from "lucide-react";
@@ -12,58 +10,135 @@ import { defaultMileageSettings } from "@/data/settingsData";
 import { MileageEntryDialog } from "@/components/expenses/MileageEntryDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
+import { useMileageEntries, useCreateMileageEntry } from "@/hooks/queries/useExpenses";
+import { useEmployees } from "@/contexts/EmployeeContext";
+import { useRole } from "@/contexts/RoleContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+
+interface UiMileage {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  vehicleType: string;
+  distance: number;
+  rate: number;
+  amount: number;
+  status: "pending" | "approved" | "rejected";
+  fromAddress?: string;
+  toAddress?: string;
+  notes?: string;
+}
 
 export default function MileagePage() {
-  const [entries, setEntries] = useState<MileageEntry[]>(mileageEntries);
-  const [manualDialogOpen, setManualDialogOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<MileageEntry | null>(null);
+  const { employees } = useEmployees();
+  const { clientId } = useRole();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
-  // Pick up GPS submissions via sessionStorage
+  const { data: rawEntries = [] } = useMileageEntries();
+  const createMileage = useCreateMileageEntry();
+
+  const entries: UiMileage[] = useMemo(() => {
+    return (rawEntries as any[]).map((r) => {
+      const emp = employees.find((e) => e.id === r.employee_id);
+      return {
+        id: r.id,
+        employeeId: r.employee_id,
+        employeeName: emp ? `${emp.firstName} ${emp.lastName}` : "Unknown",
+        date: r.date,
+        vehicleType: r.vehicle_type ?? "car",
+        distance: Number(r.distance ?? 0),
+        rate: Number(r.rate ?? 0),
+        amount: Number(r.amount ?? 0),
+        status: r.status ?? "pending",
+        fromAddress: r.from_address ?? undefined,
+        toAddress: r.to_address ?? undefined,
+        notes: r.notes ?? undefined,
+      };
+    });
+  }, [rawEntries, employees]);
+
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<UiMileage | null>(null);
+
+  // Pick up GPS submissions via sessionStorage → push to DB
   useEffect(() => {
     const raw = sessionStorage.getItem("newMileageEntry");
-    if (raw) {
-      sessionStorage.removeItem("newMileageEntry");
-      try {
-        const entry = JSON.parse(raw);
-        const newEntry: MileageEntry = { ...entry, id: String(Date.now()), status: "pending" };
-        setEntries(prev => [newEntry, ...prev]);
-      } catch {}
-    }
-  }, []);
+    if (!raw || !clientId) return;
+    sessionStorage.removeItem("newMileageEntry");
+    try {
+      const entry = JSON.parse(raw);
+      createMileage.mutate({
+        client_id: clientId,
+        employee_id: entry.employeeId,
+        date: entry.date,
+        vehicle_type: entry.vehicleType ?? "car",
+        distance: entry.distance,
+        rate: entry.rate,
+        amount: Math.round(entry.amount),
+        from_address: entry.fromAddress ?? null,
+        to_address: entry.toAddress ?? null,
+        notes: entry.notes ?? null,
+        status: "pending",
+      });
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
 
-  const handleSubmit = (entry: Omit<MileageEntry, "id" | "status">) => {
+  const handleSubmit = (entry: any) => {
+    if (!clientId) return;
     if (defaultMileageSettings.dailyDistanceCap && entry.distance > defaultMileageSettings.dailyDistanceCap) {
-      toast({ title: "Policy Warning", description: `Distance of ${entry.distance} km exceeds the daily cap of ${defaultMileageSettings.dailyDistanceCap} km. Submitting for review.`, variant: "destructive" });
+      toast({
+        title: "Policy Warning",
+        description: `Distance of ${entry.distance} km exceeds the daily cap of ${defaultMileageSettings.dailyDistanceCap} km. Submitting for review.`,
+        variant: "destructive",
+      });
     }
-    const newEntry: MileageEntry = { ...entry, id: String(Date.now()), status: "pending" };
-    setEntries(prev => [newEntry, ...prev]);
-    toast({ title: "Mileage Claim Submitted", description: `${entry.distance} km × SAR ${entry.rate}/km = SAR ${entry.amount.toFixed(2)}` });
+    createMileage.mutate({
+      client_id: clientId,
+      employee_id: entry.employeeId,
+      date: entry.date,
+      vehicle_type: entry.vehicleType ?? "car",
+      distance: entry.distance,
+      rate: entry.rate,
+      amount: Math.round(entry.amount),
+      from_address: entry.fromAddress ?? null,
+      to_address: entry.toAddress ?? null,
+      notes: entry.notes ?? null,
+      status: "pending",
+    });
   };
 
-  const handleApprove = (entry: MileageEntry) => {
-    setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: "approved" } : e));
-    toast({ title: "Approved", description: `Mileage claim for ${entry.employeeName} approved.` });
+  const updateStatus = async (id: string, status: "approved" | "rejected") => {
+    const { error } = await (supabase as any).from("mileage_entries").update({ status }).eq("id", id);
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["mileage_entries"] });
+    toast({ title: status === "approved" ? "Approved" : "Rejected" });
   };
 
-  const handleReject = (entry: MileageEntry) => {
-    setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: "rejected" } : e));
-    toast({ title: "Rejected", description: `Mileage claim for ${entry.employeeName} rejected.` });
-  };
-
-  const handleDelete = (id: string) => {
-    setEntries(prev => prev.filter(e => e.id !== id));
+  const handleDelete = async (id: string) => {
+    const { error } = await (supabase as any).from("mileage_entries").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["mileage_entries"] });
     toast({ title: "Deleted" });
   };
 
-  const pending = entries.filter(e => e.status === "pending");
-  const processed = entries.filter(e => e.status !== "pending");
+  const pending = entries.filter((e) => e.status === "pending");
+  const processed = entries.filter((e) => e.status !== "pending");
   const totalDistance = entries.reduce((s, e) => s + e.distance, 0);
   const totalAmount = entries.reduce((s, e) => s + e.amount, 0);
 
-  const renderRow = (entry: MileageEntry) => (
+  const renderRow = (entry: UiMileage) => (
     <TableRow key={entry.id}>
       <TableCell className="font-medium">{entry.employeeName}</TableCell>
       <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
@@ -79,10 +154,10 @@ export default function MileagePage() {
           </Button>
           {entry.status === "pending" && (
             <>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={() => handleApprove(entry)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={() => updateStatus(entry.id, "approved")}>
                 <CheckCircle2 className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleReject(entry)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => updateStatus(entry.id, "rejected")}>
                 <XCircle className="h-3.5 w-3.5" />
               </Button>
             </>
@@ -123,7 +198,6 @@ export default function MileagePage() {
         </div>
       </PageHeader>
 
-      {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card rounded-xl border p-4">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Claims</p>
@@ -139,7 +213,6 @@ export default function MileagePage() {
         </div>
       </div>
 
-      {/* Pending */}
       <div>
         <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Pending Approval ({pending.length})</h3>
         <div className="bg-card rounded-xl border overflow-hidden">
@@ -156,7 +229,6 @@ export default function MileagePage() {
         </div>
       </div>
 
-      {/* Processed */}
       <div>
         <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Approved / Rejected ({processed.length})</h3>
         <div className="bg-card rounded-xl border overflow-hidden">
@@ -173,10 +245,8 @@ export default function MileagePage() {
         </div>
       </div>
 
-      {/* Manual Entry Dialog */}
       <MileageEntryDialog open={manualDialogOpen} onOpenChange={setManualDialogOpen} onSubmit={handleSubmit} />
 
-      {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent>
           <DialogHeader>
