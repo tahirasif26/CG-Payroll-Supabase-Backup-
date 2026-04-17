@@ -3,10 +3,18 @@ import { useAuth, type AppRole, type Profile } from "@/hooks/useAuth";
 import type { Session, User } from "@supabase/supabase-js";
 
 export type LegacyRole = "employer" | "employee";
+export type RoleValue = AppRole | LegacyRole;
 
 interface RoleContextType {
-  // New (preferred)
-  role: AppRole | null;
+  /**
+   * DEPRECATED legacy role string. For backward compatibility with the bulk of
+   * the app that still checks `role === "employer"` / `"employee"`.
+   * Migrate consumers to `appRole` / `isSuperAdmin` / `hasFeature` over time.
+   */
+  role: LegacyRole;
+
+  // New (preferred) — use these in all new code:
+  appRole: AppRole | null;
   isSuperAdmin: boolean;
   clientId: string | null;
   features: Set<string>;
@@ -19,8 +27,7 @@ interface RoleContextType {
   loading: boolean;
   signOut: () => Promise<void>;
 
-  // Backward-compat (DEPRECATED — will be removed in later steps)
-  legacyRole: LegacyRole;
+  // Legacy convenience
   currentEmployeeId: string;
 }
 
@@ -37,7 +44,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   return (
     <RoleContext.Provider
       value={{
-        role: auth.role,
+        role: legacyRole,
+        appRole: auth.role,
         isSuperAdmin: auth.isSuperAdmin,
         clientId: auth.clientId,
         features: auth.features,
@@ -47,7 +55,6 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         session: auth.session,
         loading: auth.loading,
         signOut: auth.signOut,
-        legacyRole,
         currentEmployeeId: auth.profile?.employee_id || "1",
       }}
     >
