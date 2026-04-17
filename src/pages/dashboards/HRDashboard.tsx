@@ -2,7 +2,8 @@ import { Users, Calendar, UserPlus, UserMinus, Gift, FileWarning, Briefcase, Cli
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
-import { leaveRequests, getUpcomingBirthdays, employees } from "@/data/mockData";
+import { leaveRequests, getUpcomingBirthdays } from "@/data/mockData";
+import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { MetricCard } from "@/components/dashboards/MetricCard";
 import { DashboardSection } from "@/components/dashboards/DashboardSection";
 import { QuickActionButton } from "@/components/dashboards/QuickActionButton";

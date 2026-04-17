@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Users, DollarSign, Calendar, TrendingUp, Gift, Clock, X, Briefcase, Receipt, Package, Award, BarChart3, Settings, FileText } from "lucide-react";
-import { employees, payrollRuns, leaveRequests, expenses, getUpcomingBirthdays } from "@/data/mockData";
+import { payrollRuns, leaveRequests, expenses, getUpcomingBirthdays } from "@/data/mockData";
+import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
