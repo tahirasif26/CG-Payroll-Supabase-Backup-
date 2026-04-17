@@ -12,7 +12,7 @@ import type {
   PayrollSetupSnapshot,
   PayrollTaxRule,
 } from "../types";
-import { toMinorUnits, fromMinorUnits } from "../money";
+import { toMinorUnits, fromMinorUnits } from "@/lib/money";
 
 const baseEmployee: PayrollEmployee = {
   id: "emp-1",
