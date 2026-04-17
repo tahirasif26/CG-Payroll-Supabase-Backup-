@@ -62,6 +62,616 @@ export type Database = {
         }
         Relationships: []
       }
+      departments: {
+        Row: {
+          client_id: string
+          code: string | null
+          created_at: string
+          head_employee_id: string | null
+          id: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          client_id: string
+          code?: string | null
+          created_at?: string
+          head_employee_id?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          code?: string | null
+          created_at?: string
+          head_employee_id?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_head_employee_id_fkey"
+            columns: ["head_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      designations: {
+        Row: {
+          client_id: string
+          created_at: string
+          department_id: string | null
+          id: string
+          level: number | null
+          name: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          level?: number | null
+          name: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          level?: number | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "designations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "designations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "designations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_addresses: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          client_id: string
+          country: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          postal_code: string | null
+          state: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          client_id: string
+          country?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          postal_code?: string | null
+          state?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          client_id?: string
+          country?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          postal_code?: string | null
+          state?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_addresses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_addresses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_addresses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_bank_details: {
+        Row: {
+          bank_address: string | null
+          bank_country: string | null
+          bank_currency: string | null
+          bank_name: string | null
+          beneficiary_name: string | null
+          client_id: string
+          created_at: string
+          employee_id: string
+          iban: string | null
+          id: string
+          swift_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          bank_address?: string | null
+          bank_country?: string | null
+          bank_currency?: string | null
+          bank_name?: string | null
+          beneficiary_name?: string | null
+          client_id: string
+          created_at?: string
+          employee_id: string
+          iban?: string | null
+          id?: string
+          swift_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bank_address?: string | null
+          bank_country?: string | null
+          bank_currency?: string | null
+          bank_name?: string | null
+          beneficiary_name?: string | null
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          iban?: string | null
+          id?: string
+          swift_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_bank_details_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_bank_details_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_bank_details_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_compensation: {
+        Row: {
+          amount: number
+          client_id: string
+          component_name: string
+          component_type: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          employee_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          client_id: string
+          component_name: string
+          component_type?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          employee_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          component_name?: string
+          component_type?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          employee_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_compensation_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_compensation_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_compensation_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_documents: {
+        Row: {
+          client_id: string
+          created_at: string
+          doc_number: string | null
+          doc_type: string
+          employee_id: string
+          expiry_date: string | null
+          file_url: string | null
+          id: string
+          issue_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          doc_number?: string | null
+          doc_type: string
+          employee_id: string
+          expiry_date?: string | null
+          file_url?: string | null
+          id?: string
+          issue_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          doc_number?: string | null
+          doc_type?: string
+          employee_id?: string
+          expiry_date?: string | null
+          file_url?: string | null
+          id?: string
+          issue_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_education: {
+        Row: {
+          client_id: string
+          created_at: string
+          degree: string | null
+          employee_id: string
+          end_year: number | null
+          field_of_study: string | null
+          id: string
+          institution: string | null
+          start_year: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          degree?: string | null
+          employee_id: string
+          end_year?: number | null
+          field_of_study?: string | null
+          id?: string
+          institution?: string | null
+          start_year?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          degree?: string | null
+          employee_id?: string
+          end_year?: number | null
+          field_of_study?: string | null
+          id?: string
+          institution?: string | null
+          start_year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_education_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_education_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_education_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_emergency_contacts: {
+        Row: {
+          client_id: string
+          created_at: string
+          email: string | null
+          employee_id: string
+          id: string
+          name: string | null
+          phone: string | null
+          relation: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          email?: string | null
+          employee_id: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          relation?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          email?: string | null
+          employee_id?: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          relation?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_emergency_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_emergency_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_emergency_contacts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          avatar_url: string | null
+          category: string | null
+          client_id: string
+          created_at: string
+          date_of_birth: string | null
+          department: string | null
+          designation: string | null
+          division: string | null
+          email: string | null
+          emp_id: string
+          first_name: string | null
+          gender: string | null
+          id: string
+          joining_date: string | null
+          last_name: string | null
+          marital_status: string | null
+          middle_name: string | null
+          nationality: string | null
+          pay_currency: string | null
+          payroll_setup_id: string | null
+          personal_email: string | null
+          personal_phone: string | null
+          phone: string | null
+          probation_end_date: string | null
+          religion: string | null
+          reports_to: string | null
+          separation_date: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          work_location_city: string | null
+          work_location_country: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          category?: string | null
+          client_id: string
+          created_at?: string
+          date_of_birth?: string | null
+          department?: string | null
+          designation?: string | null
+          division?: string | null
+          email?: string | null
+          emp_id: string
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          joining_date?: string | null
+          last_name?: string | null
+          marital_status?: string | null
+          middle_name?: string | null
+          nationality?: string | null
+          pay_currency?: string | null
+          payroll_setup_id?: string | null
+          personal_email?: string | null
+          personal_phone?: string | null
+          phone?: string | null
+          probation_end_date?: string | null
+          religion?: string | null
+          reports_to?: string | null
+          separation_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          work_location_city?: string | null
+          work_location_country?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          category?: string | null
+          client_id?: string
+          created_at?: string
+          date_of_birth?: string | null
+          department?: string | null
+          designation?: string | null
+          division?: string | null
+          email?: string | null
+          emp_id?: string
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          joining_date?: string | null
+          last_name?: string | null
+          marital_status?: string | null
+          middle_name?: string | null
+          nationality?: string | null
+          pay_currency?: string | null
+          payroll_setup_id?: string | null
+          personal_email?: string | null
+          personal_phone?: string | null
+          phone?: string | null
+          probation_end_date?: string | null
+          religion?: string | null
+          reports_to?: string | null
+          separation_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          work_location_city?: string | null
+          work_location_country?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_reports_to_fkey"
+            columns: ["reports_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_definitions: {
         Row: {
           created_at: string
@@ -280,6 +890,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_admin_or_hr_in_client: {
+        Args: { _client_id: string; _user_id: string }
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
