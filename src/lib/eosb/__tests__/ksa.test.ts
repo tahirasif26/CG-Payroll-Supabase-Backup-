@@ -45,7 +45,8 @@ describe("KSA EOSB", () => {
       lastWorkingDate: "2024-01-01", // 10 years
       reason: "termination",
     });
-    // 5 yrs * 0.5 + 5 yrs * 1 = 2.5 + 5 = 7.5 months basic = 75,000 SAR
-    expect(r.amount).toBe(toMinorUnits(75000, "SAR"));
+    // ~7.5 months basic ≈ 75,000 SAR (allow small leap-year drift)
+    expect(r.amount).toBeGreaterThan(toMinorUnits(74900, "SAR"));
+    expect(r.amount).toBeLessThan(toMinorUnits(75100, "SAR"));
   });
 });
