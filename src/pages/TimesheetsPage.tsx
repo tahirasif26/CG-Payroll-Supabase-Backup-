@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
-import { timesheets, projects, employees } from "@/data/mockData";
-import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { useTimesheets, useCreateTimesheet, useApproveTimesheet } from "@/hooks/queries/useTimesheets";
+import { useProjects } from "@/hooks/queries/useProjects";
+import { useEmployees } from "@/hooks/queries/useEmployees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -11,32 +12,52 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 
 export default function TimesheetsPage() {
   const { role, currentEmployeeId } = useRole();
-  const activeEmps = useActiveEmployees();
-  const activeIds = new Set(activeEmps.map(e => e.id));
   const [logOpen, setLogOpen] = useState(false);
   const [approveId, setApproveId] = useState<string | null>(null);
-  const { toast } = useToast();
 
+  const { data: projects = [] } = useProjects();
+  const { data: employees = [] } = useEmployees({ status: "active" });
+  const myEmployee = useMemo(
+    () => employees.find((e: any) => e.id === currentEmployeeId || e.user_id === currentEmployeeId),
+    [employees, currentEmployeeId]
+  );
+
+  const { data: allTimesheets = [] } = useTimesheets(
+    role === "employee" && myEmployee ? { employee_id: myEmployee.id } : undefined
+  );
+  const createTimesheet = useCreateTimesheet();
+  const approveTimesheet = useApproveTimesheet();
+
+  // Filter to active employees only for employer view
   const displayTimesheets = role === "employee"
-    ? timesheets.filter(t => t.employeeId === currentEmployeeId)
-    : timesheets.filter(t => activeIds.has(t.employeeId));
+    ? allTimesheets
+    : allTimesheets.filter((t: any) => t.employees?.status === "active");
 
-  const handleLogTime = (e: React.FormEvent) => {
+  const handleLogTime = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!myEmployee) return;
+    const f = e.target as any;
+    await createTimesheet.mutateAsync({
+      employee_id: myEmployee.id,
+      project_id: f.project.value,
+      week_starting: f.week.value,
+      hours: Number(f.hours.value),
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+    });
     setLogOpen(false);
-    toast({ title: "Time Logged", description: "Your timesheet entry has been submitted." });
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
+    if (!approveId) return;
+    await approveTimesheet.mutateAsync(approveId);
     setApproveId(null);
-    toast({ title: "Timesheet Approved", description: "The timesheet has been approved." });
   };
 
-  const approveTs = timesheets.find(t => t.id === approveId);
+  const approveTs = displayTimesheets.find((t: any) => t.id === approveId);
 
   return (
     <div className="space-y-6">
@@ -64,31 +85,35 @@ export default function TimesheetsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayTimesheets.map(ts => {
-              const project = projects.find(p => p.id === ts.projectId);
-              const emp = employees.find(e => e.id === ts.employeeId);
-              return (
-                <TableRow key={ts.id} className="hover:bg-muted/30 transition-colors">
-                  {role === "employer" && <TableCell className="font-medium">{emp?.firstName} {emp?.lastName}</TableCell>}
-                  <TableCell>{project?.name || ts.projectId}</TableCell>
-                  <TableCell>{ts.weekStarting}</TableCell>
-                  <TableCell className="text-right font-semibold">{ts.hours}h</TableCell>
-                  <TableCell><StatusBadge status={ts.status} /></TableCell>
-                  {role === "employer" && (
-                    <TableCell className="text-right">
-                      {ts.status === "submitted" && (
-                        <Button variant="outline" size="sm" onClick={() => setApproveId(ts.id)}>Approve</Button>
-                      )}
-                    </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
+            {displayTimesheets.map((ts: any) => (
+              <TableRow key={ts.id} className="hover:bg-muted/30 transition-colors">
+                {role === "employer" && (
+                  <TableCell className="font-medium">{ts.employees?.first_name} {ts.employees?.last_name}</TableCell>
+                )}
+                <TableCell>{ts.projects?.name || "—"}</TableCell>
+                <TableCell>{ts.week_starting}</TableCell>
+                <TableCell className="text-right font-semibold">{ts.hours}h</TableCell>
+                <TableCell><StatusBadge status={ts.status} /></TableCell>
+                {role === "employer" && (
+                  <TableCell className="text-right">
+                    {ts.status === "submitted" && (
+                      <Button variant="outline" size="sm" onClick={() => setApproveId(ts.id)}>Approve</Button>
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+            {displayTimesheets.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={role === "employer" ? 6 : 4} className="text-center text-muted-foreground py-8">
+                  No timesheets yet.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
 
-      {/* Log Time Dialog */}
       <Dialog open={logOpen} onOpenChange={setLogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -98,32 +123,25 @@ export default function TimesheetsPage() {
           <form onSubmit={handleLogTime} className="space-y-4">
             <div className="space-y-2">
               <Label>Project</Label>
-              <Select required>
+              <Select name="project" required>
                 <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
                 <SelectContent>
-                  {projects.filter(p => p.status === "active").map(p => (
+                  {projects.filter((p: any) => p.status === "active").map((p: any) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Week Starting</Label>
-              <Input type="date" required />
-            </div>
-            <div className="space-y-2">
-              <Label>Hours</Label>
-              <Input type="number" placeholder="0" required min={1} max={60} />
-            </div>
+            <div className="space-y-2"><Label>Week Starting</Label><Input name="week" type="date" required /></div>
+            <div className="space-y-2"><Label>Hours</Label><Input name="hours" type="number" placeholder="0" required min={1} max={60} /></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setLogOpen(false)}>Cancel</Button>
-              <Button type="submit">Submit</Button>
+              <Button type="submit" disabled={createTimesheet.isPending}>Submit</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Approve Dialog */}
       <Dialog open={!!approveId} onOpenChange={() => setApproveId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -132,15 +150,15 @@ export default function TimesheetsPage() {
           </DialogHeader>
           {approveTs && (
             <div className="space-y-2 text-sm">
-              <p><span className="font-medium">Employee:</span> {employees.find(e => e.id === approveTs.employeeId)?.firstName} {employees.find(e => e.id === approveTs.employeeId)?.lastName}</p>
-              <p><span className="font-medium">Project:</span> {projects.find(p => p.id === approveTs.projectId)?.name}</p>
-              <p><span className="font-medium">Week:</span> {approveTs.weekStarting}</p>
+              <p><span className="font-medium">Employee:</span> {approveTs.employees?.first_name} {approveTs.employees?.last_name}</p>
+              <p><span className="font-medium">Project:</span> {approveTs.projects?.name}</p>
+              <p><span className="font-medium">Week:</span> {approveTs.week_starting}</p>
               <p><span className="font-medium">Hours:</span> {approveTs.hours}h</p>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setApproveId(null)}>Cancel</Button>
-            <Button onClick={handleApprove}>Approve</Button>
+            <Button onClick={handleApprove} disabled={approveTimesheet.isPending}>Approve</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

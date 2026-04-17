@@ -1,13 +1,13 @@
 import { PageHeader } from "@/components/PageHeader";
-import { costAllocations } from "@/data/mockData";
-import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { useCostAllocations } from "@/hooks/queries/useProjects";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 
 export default function CostAllocationPage() {
-  const activeEmps = useActiveEmployees();
-  const activeIds = new Set(activeEmps.map(e => e.id));
-  const filtered = costAllocations.filter(ca => activeIds.has(ca.employeeId));
+  const { data: allocations = [], isLoading } = useCostAllocations();
+  // Active employees only
+  const filtered = allocations.filter((ca: any) => ca.employees?.status === "active");
+
   return (
     <div className="space-y-6">
       <PageHeader title="Cost Allocation" description="Track employee time and cost allocation across projects." />
@@ -24,20 +24,27 @@ export default function CostAllocationPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((ca) => (
+            {filtered.map((ca: any) => (
               <TableRow key={ca.id}>
-                <TableCell className="font-medium">{ca.employeeName}</TableCell>
-                <TableCell className="font-mono text-sm">{ca.projectCode}</TableCell>
-                <TableCell>{ca.projectName}</TableCell>
-                <TableCell className="text-muted-foreground">{ca.month}</TableCell>
+                <TableCell className="font-medium">{ca.employees?.first_name} {ca.employees?.last_name}</TableCell>
+                <TableCell className="font-mono text-sm">{ca.projects?.code || "—"}</TableCell>
+                <TableCell>{ca.projects?.name || "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{ca.month} {ca.year}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3 min-w-[140px]">
-                    <Progress value={ca.allocation} className="h-2 flex-1" />
-                    <span className="text-sm font-semibold w-10 text-right">{ca.allocation}%</span>
+                    <Progress value={Number(ca.allocation)} className="h-2 flex-1" />
+                    <span className="text-sm font-semibold w-10 text-right">{Number(ca.allocation)}%</span>
                   </div>
                 </TableCell>
               </TableRow>
             ))}
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  {isLoading ? "Loading…" : "No cost allocations recorded yet."}
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
