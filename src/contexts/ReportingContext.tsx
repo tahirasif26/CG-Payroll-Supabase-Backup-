@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
-import { employees } from "@/data/mockData";
+import { useEmployees } from "@/contexts/EmployeeContext";
 
 interface ReportMapping {
   [empId: string]: string; // empId -> reportsToEmpId
@@ -23,6 +23,7 @@ const defaultMap: ReportMapping = {};
 
 export function ReportingProvider({ children }: { children: ReactNode }) {
   const [reportMap, setReportMap] = useState<ReportMapping>(defaultMap);
+  const { employees } = useEmployees();
 
   const setReportTo = useCallback((empId: string, managerId: string | null) => {
     setReportMap(prev => {
@@ -41,7 +42,7 @@ export function ReportingProvider({ children }: { children: ReactNode }) {
     if (!managerId) return null;
     const mgr = employees.find(e => e.id === managerId);
     return mgr ? `${mgr.firstName} ${mgr.lastName}` : null;
-  }, [reportMap]);
+  }, [reportMap, employees]);
 
   const getManagerId = useCallback((empId: string): string | null => {
     return reportMap[empId] || null;
