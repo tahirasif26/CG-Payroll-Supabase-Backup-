@@ -201,7 +201,7 @@ function CollapsibleNavGroup({ label, icon: Icon, items }: { label: string; icon
 }
 
 export function AppSidebar() {
-  const { role } = useRole();
+  const { role, isSuperAdmin } = useRole();
   const { client } = useClient();
 
   const isAdmin = role === "employer";
@@ -218,7 +218,9 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2 overflow-y-auto scrollbar-hide">
-        {isAdmin ? (
+        {isSuperAdmin ? (
+          <NavItems items={superAdminNav} />
+        ) : isAdmin ? (
           <>
             <NavItems items={employerNav} />
             <CollapsibleNavGroup label="Employees" icon={Users} items={employeesSubNav} />
@@ -237,7 +239,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-3">
         <div className="text-[10px] text-sidebar-foreground/40 text-center font-medium">
-          {isAdmin ? "Admin Panel" : "Employee Portal"}
+          {isSuperAdmin ? "Super Admin" : isAdmin ? "Admin Panel" : "Employee Portal"}
         </div>
       </SidebarFooter>
     </Sidebar>
