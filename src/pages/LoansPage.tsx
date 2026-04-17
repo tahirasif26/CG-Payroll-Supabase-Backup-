@@ -252,7 +252,7 @@ export default function LoansPage() {
             <p className="text-sm text-muted-foreground">Loan #{loan.id.slice(0, 8)} details</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <StatusBadge status={loan.status} />
+            <StatusBadge status={loan.status as any} />
             {isPaused && (
               <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">
                 <PauseCircle className="h-3 w-3 mr-1" />EMI Paused
@@ -522,7 +522,7 @@ export default function LoansPage() {
                 <TableCell>{new Date(loan.start_date).toLocaleDateString()}</TableCell>
                 <TableCell>{loan.end_date ? new Date(loan.end_date).toLocaleDateString() : "—"}</TableCell>
                 <TableCell className="flex items-center gap-1">
-                  <StatusBadge status={loan.status} />
+                  <StatusBadge status={loan.status as any} />
                   {loan.paused_until && (
                     <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">
                       <PauseCircle className="h-3 w-3 mr-1" />Paused
