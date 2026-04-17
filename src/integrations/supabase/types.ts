@@ -846,6 +846,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          setup_completed_at: string | null
+          setup_completed_steps: string[]
+          setup_dismissed_at: string | null
           status: Database["public"]["Enums"]["client_status"]
           subscription_plan: Database["public"]["Enums"]["subscription_plan"]
           timezone: string
@@ -861,6 +864,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          setup_completed_at?: string | null
+          setup_completed_steps?: string[]
+          setup_dismissed_at?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           timezone?: string
@@ -876,6 +882,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          setup_completed_at?: string | null
+          setup_completed_steps?: string[]
+          setup_dismissed_at?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           timezone?: string
