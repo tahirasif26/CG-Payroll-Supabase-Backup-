@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner";
 
 // Primary module definitions with their sub-navigation
 const primaryModules = [
@@ -184,6 +185,9 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
+      {/* Onboarding banner (admin/hr with incomplete setup) */}
+      <OnboardingBanner />
+
       {/* Top Utility Bar */}
       <header className="h-12 border-b bg-card flex items-center justify-between px-6 sticky top-0 z-30">
         <div className="flex items-center gap-6">
