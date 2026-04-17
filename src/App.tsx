@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { RoleProvider, useRole } from "@/contexts/RoleContext";
 import { ClientProvider } from "@/contexts/ClientContext";
 import { SeparationProvider } from "@/contexts/SeparationContext";
@@ -139,6 +140,7 @@ function AppRoutes() {
 
   return (
     <AppLayout>
+      <ChunkErrorBoundary>
       <Suspense fallback={<RouteLoader />}>
         <Routes>
           <Route path="/auth" element={<RouteRedirector />} />
@@ -331,6 +333,7 @@ function AppRoutes() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
+      </ChunkErrorBoundary>
     </AppLayout>
   );
 }
