@@ -906,6 +906,522 @@ export type Database = {
           },
         ]
       }
+      payroll_lines: {
+        Row: {
+          advance_given: number
+          allowances: number
+          basic: number
+          client_id: string
+          created_at: string
+          employee_id: string
+          exchange_rate: number
+          expense_reimbursement: number
+          gross: number
+          id: string
+          loan_deduction: number
+          net_in_reporting_currency: number
+          net_pay: number
+          one_off_benefits: number
+          one_off_deductions: number
+          other_deductions: number
+          pay_currency: string
+          payroll_run_id: string
+          separation_settlement: number
+          snapshot_data: Json
+          statutory_deduction: number
+          tax_deduction: number
+          total_deductions: number
+        }
+        Insert: {
+          advance_given?: number
+          allowances?: number
+          basic?: number
+          client_id: string
+          created_at?: string
+          employee_id: string
+          exchange_rate?: number
+          expense_reimbursement?: number
+          gross?: number
+          id?: string
+          loan_deduction?: number
+          net_in_reporting_currency?: number
+          net_pay?: number
+          one_off_benefits?: number
+          one_off_deductions?: number
+          other_deductions?: number
+          pay_currency?: string
+          payroll_run_id: string
+          separation_settlement?: number
+          snapshot_data?: Json
+          statutory_deduction?: number
+          tax_deduction?: number
+          total_deductions?: number
+        }
+        Update: {
+          advance_given?: number
+          allowances?: number
+          basic?: number
+          client_id?: string
+          created_at?: string
+          employee_id?: string
+          exchange_rate?: number
+          expense_reimbursement?: number
+          gross?: number
+          id?: string
+          loan_deduction?: number
+          net_in_reporting_currency?: number
+          net_pay?: number
+          one_off_benefits?: number
+          one_off_deductions?: number
+          other_deductions?: number
+          pay_currency?: string
+          payroll_run_id?: string
+          separation_settlement?: number
+          snapshot_data?: Json
+          statutory_deduction?: number
+          tax_deduction?: number
+          total_deductions?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_lines_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_one_off_adjustments: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          name: string
+          payroll_run_id: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          name: string
+          payroll_run_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          name?: string
+          payroll_run_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_one_off_adjustments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_one_off_adjustments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_one_off_adjustments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_one_off_adjustments_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_runs: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          employee_count: number
+          id: string
+          locked: boolean
+          locked_at: string | null
+          locked_by: string | null
+          month: string
+          payroll_setup_id: string | null
+          run_date: string
+          status: string
+          total_deductions: number
+          total_gross: number
+          total_net: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          employee_count?: number
+          id?: string
+          locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          month: string
+          payroll_setup_id?: string | null
+          run_date?: string
+          status?: string
+          total_deductions?: number
+          total_gross?: number
+          total_net?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          employee_count?: number
+          id?: string
+          locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          month?: string
+          payroll_setup_id?: string | null
+          run_date?: string
+          status?: string
+          total_deductions?: number
+          total_gross?: number
+          total_net?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_runs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_runs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_runs_payroll_setup_id_fkey"
+            columns: ["payroll_setup_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_setups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_setup_components: {
+        Row: {
+          calculation_type: string
+          client_id: string
+          created_at: string
+          formula: string | null
+          id: string
+          name: string
+          order_index: number
+          payroll_setup_id: string
+          status: string
+          type: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          calculation_type?: string
+          client_id: string
+          created_at?: string
+          formula?: string | null
+          id?: string
+          name: string
+          order_index?: number
+          payroll_setup_id: string
+          status?: string
+          type: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          calculation_type?: string
+          client_id?: string
+          created_at?: string
+          formula?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+          payroll_setup_id?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_setup_components_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_setup_components_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_setup_components_payroll_setup_id_fkey"
+            columns: ["payroll_setup_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_setups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_setup_tax_rules: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          income_from: number
+          income_to: number
+          order_index: number
+          payroll_setup_id: string
+          percentage: number
+          slab_name: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          income_from?: number
+          income_to?: number
+          order_index?: number
+          payroll_setup_id: string
+          percentage?: number
+          slab_name: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          income_from?: number
+          income_to?: number
+          order_index?: number
+          payroll_setup_id?: string
+          percentage?: number
+          slab_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_setup_tax_rules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_setup_tax_rules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_setup_tax_rules_payroll_setup_id_fkey"
+            columns: ["payroll_setup_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_setups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_setups: {
+        Row: {
+          client_id: string
+          country: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          id: string
+          name: string
+          options: Json
+          pay_frequency: string
+          status: string
+          updated_at: string
+          year_end_date: string | null
+        }
+        Insert: {
+          client_id: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          name: string
+          options?: Json
+          pay_frequency?: string
+          status?: string
+          updated_at?: string
+          year_end_date?: string | null
+        }
+        Update: {
+          client_id?: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          name?: string
+          options?: Json
+          pay_frequency?: string
+          status?: string
+          updated_at?: string
+          year_end_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_setups_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_setups_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payslips: {
+        Row: {
+          client_id: string
+          created_at: string
+          emailed_at: string | null
+          employee_id: string
+          id: string
+          issued_at: string | null
+          payroll_line_id: string
+          pdf_url: string | null
+          viewed_by_employee_at: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          emailed_at?: string | null
+          employee_id: string
+          id?: string
+          issued_at?: string | null
+          payroll_line_id: string
+          pdf_url?: string | null
+          viewed_by_employee_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          emailed_at?: string | null
+          employee_id?: string
+          id?: string
+          issued_at?: string | null
+          payroll_line_id?: string
+          pdf_url?: string | null
+          viewed_by_employee_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_payroll_line_id_fkey"
+            columns: ["payroll_line_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
