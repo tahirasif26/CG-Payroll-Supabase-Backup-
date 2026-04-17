@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { taxConfigs as initialTaxConfigs } from "@/data/mockData";
-import { TaxConfig } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -20,14 +18,29 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
 import { EmployeeTypeMultiSelect, EmployeeTypeBadges } from "@/components/EmployeeTypeMultiSelect";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+interface DBTaxConfig {
+  id: string;
+  client_id: string;
+  name: string;
+  rate: number;
+  applies_to: string[];
+  applies_to_countries: string[];
+  is_active: boolean;
+}
 
 export default function TaxPage() {
-  const [items, setItems] = useState<TaxConfig[]>(initialTaxConfigs);
+  const { clientId } = useAuth();
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editItem, setEditItem] = useState<TaxConfig | null>(null);
+  const [editItem, setEditItem] = useState<DBTaxConfig | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const [formName, setFormName] = useState("");
   const [formRate, setFormRate] = useState("");
@@ -35,23 +48,63 @@ export default function TaxPage() {
   const [formApplicableTo, setFormApplicableTo] = useState<string[]>([]);
   const [formCountries, setFormCountries] = useState<string[]>([]);
 
+  const { data: items = [] } = useQuery({
+    queryKey: ["tax_configs", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("tax_configs")
+        .select("*")
+        .eq("client_id", clientId!)
+        .order("name");
+      if (error) throw error;
+      return (data || []) as DBTaxConfig[];
+    },
+  });
+
+  const upsertMut = useMutation({
+    mutationFn: async (payload: Partial<DBTaxConfig> & { id?: string }) => {
+      if (payload.id) {
+        const { id, ...patch } = payload;
+        const { error } = await (supabase as any).from("tax_configs").update(patch).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("tax_configs").insert({ ...payload, client_id: clientId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tax_configs"] });
+      toast({ title: editItem ? "Updated" : "Added", description: `${formName} saved.` });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("tax_configs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tax_configs"] });
+      toast({ title: "Deleted", description: "Tax rule removed." });
+    },
+  });
+
   const openAdd = () => {
     setEditItem(null);
-    setFormName("");
-    setFormRate("");
-    setFormIsActive(true);
-    setFormApplicableTo([]);
-    setFormCountries([]);
+    setFormName(""); setFormRate(""); setFormIsActive(true);
+    setFormApplicableTo([]); setFormCountries([]);
     setDialogOpen(true);
   };
 
-  const openEdit = (item: TaxConfig) => {
+  const openEdit = (item: DBTaxConfig) => {
     setEditItem(item);
     setFormName(item.name);
     setFormRate(String(item.rate));
-    setFormIsActive(item.isActive);
-    setFormApplicableTo(item.applicableTo || []);
-    setFormCountries(item.appliesToCountries || []);
+    setFormIsActive(item.is_active);
+    setFormApplicableTo(item.applies_to || []);
+    setFormCountries(item.applies_to_countries || []);
     setDialogOpen(true);
   };
 
@@ -61,29 +114,19 @@ export default function TaxPage() {
       toast({ title: "Error", description: "Please select at least one employee type.", variant: "destructive" });
       return;
     }
-    const newTax: TaxConfig = {
-      id: editItem?.id || String(Date.now()),
+    upsertMut.mutate({
+      id: editItem?.id,
       name: formName,
       rate: Number(formRate),
-      applicableTo: formApplicableTo,
-      isActive: formIsActive,
-      appliesToCountries: formCountries,
-    };
-    if (editItem) {
-      setItems((prev) => prev.map((i) => (i.id === editItem.id ? newTax : i)));
-      toast({ title: "Updated", description: `${formName} updated.` });
-    } else {
-      setItems((prev) => [...prev, newTax]);
-      toast({ title: "Added", description: `${formName} added.` });
-    }
+      applies_to: formApplicableTo,
+      applies_to_countries: formCountries,
+      is_active: formIsActive,
+    });
     setDialogOpen(false);
   };
 
   const handleDelete = () => {
-    if (deleteId) {
-      setItems((prev) => prev.filter((i) => i.id !== deleteId));
-      toast({ title: "Deleted", description: "Tax rule removed." });
-    }
+    if (deleteId) deleteMut.mutate(deleteId);
     setDeleteOpen(false);
     setDeleteId(null);
   };
@@ -110,33 +153,21 @@ export default function TaxPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((t) => (
+            {items.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No tax rules configured.</TableCell></TableRow>
+            ) : items.map((t) => (
               <TableRow key={t.id}>
                 <TableCell className="font-medium">{t.name}</TableCell>
                 <TableCell className="text-right font-semibold">{t.rate}%</TableCell>
-                <TableCell>
-                  <EmployeeTypeBadges typeIds={t.applicableTo} />
-                </TableCell>
-                <TableCell>
-                  <CountryBadges countries={t.appliesToCountries} />
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={t.isActive ? "active" : "inactive"} />
-                </TableCell>
+                <TableCell><EmployeeTypeBadges typeIds={t.applies_to} /></TableCell>
+                <TableCell><CountryBadges countries={t.applies_to_countries} /></TableCell>
+                <TableCell><StatusBadge status={t.is_active ? "active" : "inactive"} /></TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => {
-                        setDeleteId(t.id);
-                        setDeleteOpen(true);
-                      }}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { setDeleteId(t.id); setDeleteOpen(true); }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -160,14 +191,7 @@ export default function TaxPage() {
             </div>
             <div className="space-y-2">
               <Label>Rate (%)</Label>
-              <Input
-                type="number"
-                value={formRate}
-                onChange={(e) => setFormRate(e.target.value)}
-                required
-                min={0}
-                step="0.01"
-              />
+              <Input type="number" value={formRate} onChange={(e) => setFormRate(e.target.value)} required min={0} step="0.01" />
             </div>
             <div className="space-y-2">
               <Label>Applicable To</Label>
@@ -182,10 +206,8 @@ export default function TaxPage() {
               <Label>Active</Label>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">{editItem ? "Update" : "Add"}</Button>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={upsertMut.isPending}>{editItem ? "Update" : "Add"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -198,12 +220,8 @@ export default function TaxPage() {
             <DialogDescription>Are you sure you want to remove this tax rule?</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
