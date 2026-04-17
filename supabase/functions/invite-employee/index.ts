@@ -1,171 +1,118 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const BodySchema = z.object({
+  email: z.string().trim().email().max(255),
+  full_name: z.string().trim().min(2).max(200),
+  employee_id: z.string().trim().max(50).optional(),
+  phone: z.string().trim().max(50).optional(),
+  role: z.enum(["admin", "hr", "employee"]),
+  client_id: z.string().uuid(),
+});
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify caller and get their client_id
     const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+    const { data: { user }, error: userErr } = await callerClient.auth.getUser();
+    if (userErr || !user) return json({ error: "Unauthorized" }, 401);
 
-    const { data: { user }, error: userError } = await callerClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const callerId = user.id;
-
-    // Use service role for DB operations
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get caller's role and client_id
-    const { data: callerData, error: callerError } = await adminClient
+    // Get caller's roles
+    const { data: callerRoles } = await adminClient
       .from("user_roles")
       .select("role, client_id")
-      .eq("user_id", callerId)
-      .in("role", ["admin", "hr", "super_admin"])
-      .order("role", { ascending: true }) // admin first
-      .limit(1)
-      .single();
+      .eq("user_id", user.id);
+    if (!callerRoles?.length) return json({ error: "Forbidden" }, 403);
 
-    if (callerError || !callerData) {
-      return new Response(JSON.stringify({ error: "Forbidden: admin, hr, or super_admin role required" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const isSuperAdmin = callerRoles.some((r) => r.role === "super_admin");
+    const adminRow = callerRoles.find((r) => r.role === "admin");
+    const hrRow = callerRoles.find((r) => r.role === "hr");
+
+    const parsed = BodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, 400);
     }
+    const { email, full_name, employee_id, phone, role, client_id } = parsed.data;
 
-    // Super admins need to provide client_id; admins/hr use their own
-    const body = await req.json();
-    const { email, full_name, employee_id, role = "employee", client_id: providedClientId } = body;
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return new Response(JSON.stringify({ error: "Valid email is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!full_name || full_name.trim().length === 0) {
-      return new Response(JSON.stringify({ error: "Full name is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Validate role - only admin can assign admin/hr, all can assign employee
-    if (!["employee", "hr", "admin"].includes(role)) {
-      return new Response(JSON.stringify({ error: "Invalid role. Must be employee, hr, or admin" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Only admins can assign admin/hr roles
-    if (role !== "employee" && callerData.role !== "admin" && callerData.role !== "super_admin") {
-      return new Response(JSON.stringify({ error: "Only admins can assign admin or hr roles" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Determine client_id
-    let targetClientId: string;
-    if (callerData.role === "super_admin") {
-      if (!providedClientId) {
-        return new Response(JSON.stringify({ error: "Super admin must provide client_id" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+    // Authorization
+    if (!isSuperAdmin) {
+      const callerClientId = adminRow?.client_id ?? hrRow?.client_id;
+      if (!callerClientId || callerClientId !== client_id) {
+        return json({ error: "Forbidden: cannot invite into another client" }, 403);
       }
-      targetClientId = providedClientId;
-    } else {
-      targetClientId = callerData.client_id;
-      if (!targetClientId) {
-        return new Response(JSON.stringify({ error: "Caller has no associated client" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (role === "admin" || role === "hr") {
+        if (!adminRow) return json({ error: "Forbidden: admin role required to assign admin/hr" }, 403);
+      } else if (role === "employee") {
+        if (!adminRow && !hrRow) return json({ error: "Forbidden: admin or hr required" }, 403);
       }
     }
 
-    // Get origin for redirect
+    // Verify client exists
+    const { data: clientExists } = await adminClient
+      .from("clients")
+      .select("id")
+      .eq("id", client_id)
+      .maybeSingle();
+    if (!clientExists) return json({ error: "Client not found" }, 404);
+
+    // Check email doesn't exist
+    const { data: existingUsers } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (existingUsers?.users?.some((u) => u.email?.toLowerCase() === email.toLowerCase())) {
+      return json({ error: "Email already registered" }, 409);
+    }
+
     const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || "";
 
-    // Invite user
-    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
+    const { data: invite, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${origin}/reset-password`,
-      data: {
-        full_name: full_name.trim(),
-        employee_id: employee_id || null,
-      },
+      data: { full_name, employee_id: employee_id ?? null, client_id, role },
     });
+    if (inviteErr || !invite?.user) return json({ error: inviteErr?.message ?? "Invite failed" }, 400);
 
-    if (inviteError) {
-      return new Response(JSON.stringify({ error: inviteError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const newUserId = invite.user.id;
 
-    const newUserId = inviteData.user.id;
-
-    // Insert user_roles with client_id
-    const { error: roleError } = await adminClient.from("user_roles").insert({
+    await adminClient.from("user_roles").insert({
       user_id: newUserId,
-      role: role,
-      client_id: targetClientId,
+      role,
+      client_id,
     });
 
-    if (roleError) {
-      // Log but don't fail - role might already be assigned by trigger
-      console.error("Role assignment error:", roleError);
-    }
-
-    // Update profile with client_id
     await adminClient
       .from("profiles")
-      .update({ client_id: targetClientId })
+      .update({
+        client_id,
+        full_name,
+        ...(phone ? { phone } : {}),
+        ...(employee_id ? { employee_id } : {}),
+      })
       .eq("id", newUserId);
 
-    return new Response(JSON.stringify({
-      success: true,
-      user_id: newUserId,
-      client_id: targetClientId,
-      role: role,
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
+    return json({ success: true, user_id: newUserId, client_id, role }, 200);
   } catch (err) {
-    console.error("Error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("invite-employee error:", err);
+    return json({ error: "Internal server error" }, 500);
   }
 });

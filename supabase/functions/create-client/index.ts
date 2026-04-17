@@ -1,207 +1,156 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const BodySchema = z.object({
+  company_name: z.string().trim().min(2).max(200),
+  company_email: z.string().trim().email().max(255),
+  company_phone: z.string().trim().max(50).optional(),
+  country: z.string().trim().min(2).max(100),
+  timezone: z.string().trim().max(100).optional().default("Asia/Riyadh"),
+  base_currency: z.string().trim().min(3).max(10).optional().default("SAR"),
+  subscription_plan: z.enum(["starter", "pro", "enterprise"]).optional().default("starter"),
+  status: z.enum(["trial", "active"]).optional().default("trial"),
+  admin_full_name: z.string().trim().min(2).max(200),
+  admin_email: z.string().trim().email().max(255),
+});
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+}
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify caller is super_admin
     const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+    const { data: { user }, error: userErr } = await callerClient.auth.getUser();
+    if (userErr || !user) return json({ error: "Unauthorized" }, 401);
 
-    const { data: { user }, error: userError } = await callerClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const callerId = user.id;
-
-    // Use service role for DB operations
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify super_admin role
-    const { data: callerData, error: callerError } = await adminClient
+    // Verify super_admin
+    const { data: roleRow } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", callerId)
+      .eq("user_id", user.id)
       .eq("role", "super_admin")
-      .single();
+      .maybeSingle();
+    if (!roleRow) return json({ error: "Forbidden: super_admin required" }, 403);
 
-    if (callerError || !callerData) {
-      return new Response(JSON.stringify({ error: "Forbidden: super_admin role required" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Validate body
+    const parsed = BodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, 400);
+    }
+    const input = parsed.data;
+
+    // Check admin_email doesn't already exist
+    const { data: existingUsers } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (existingUsers?.users?.some((u) => u.email?.toLowerCase() === input.admin_email.toLowerCase())) {
+      return json({ error: "Admin email already registered" }, 409);
     }
 
-    // Parse and validate input
-    const body = await req.json();
-    const {
-      company_name,
-      company_slug,
-      company_email,
-      company_phone,
-      country,
-      timezone = "Asia/Riyadh",
-      base_currency = "SAR",
-      admin_email,
-      admin_full_name,
-    } = body;
-
-    // Validate required fields
-    if (!company_name || company_name.trim().length === 0) {
-      return new Response(JSON.stringify({ error: "Company name is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Generate unique slug
+    const baseSlug = slugify(input.company_name);
+    let slug = baseSlug;
+    let suffix = 0;
+    while (true) {
+      const { data: hit } = await adminClient
+        .from("clients")
+        .select("id")
+        .eq("company_slug", slug)
+        .maybeSingle();
+      if (!hit) break;
+      suffix += 1;
+      slug = `${baseSlug}-${suffix}`;
     }
 
-    if (!company_slug || !/^[a-z0-9-]+$/.test(company_slug)) {
-      return new Response(JSON.stringify({ error: "Valid company slug is required (lowercase, hyphenated)" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!admin_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(admin_email)) {
-      return new Response(JSON.stringify({ error: "Valid admin email is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!admin_full_name || admin_full_name.trim().length === 0) {
-      return new Response(JSON.stringify({ error: "Admin full name is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Check if slug is already taken
-    const { data: existingClient } = await adminClient
-      .from("clients")
-      .select("id")
-      .eq("company_slug", company_slug.toLowerCase())
-      .single();
-
-    if (existingClient) {
-      return new Response(JSON.stringify({ error: "Company slug is already taken" }), {
-        status: 409,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Create the client company
-    const { data: clientData, error: clientError } = await adminClient
+    // Create client
+    const { data: clientRow, error: clientErr } = await adminClient
       .from("clients")
       .insert({
-        company_name: company_name.trim(),
-        company_slug: company_slug.toLowerCase(),
-        company_email: company_email || null,
-        company_phone: company_phone || null,
-        country: country || null,
-        timezone,
-        base_currency,
-        status: "trial",
-        subscription_plan: "starter",
-        created_by: callerId,
+        company_name: input.company_name,
+        company_slug: slug,
+        company_email: input.company_email,
+        company_phone: input.company_phone ?? null,
+        country: input.country,
+        timezone: input.timezone,
+        base_currency: input.base_currency,
+        subscription_plan: input.subscription_plan,
+        status: input.status,
+        created_by: user.id,
       })
       .select()
       .single();
+    if (clientErr || !clientRow) return json({ error: clientErr?.message || "Failed to create client" }, 500);
 
-    if (clientError || !clientData) {
-      console.error("Client creation error:", clientError);
-      return new Response(JSON.stringify({ error: "Failed to create client company" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const clientId = clientData.id;
-
-    // Get origin for redirect
+    const clientId = clientRow.id;
     const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || "";
 
-    // Invite the initial admin user
-    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(admin_email, {
+    // Invite admin
+    const { data: invite, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(input.admin_email, {
       redirectTo: `${origin}/reset-password`,
-      data: {
-        full_name: admin_full_name.trim(),
-        employee_id: "ADMIN001",
-      },
+      data: { full_name: input.admin_full_name, client_id: clientId, role: "admin" },
     });
 
-    if (inviteError) {
-      // Rollback client creation by deleting
-      await adminClient.from("clients").delete().eq("id", clientId);
-      return new Response(JSON.stringify({ error: `Failed to invite admin: ${inviteError.message}` }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (inviteErr || !invite?.user) {
+      // Don't rollback — client is saved, admin can be re-invited
+      return json({
+        success: true,
+        client_id: clientId,
+        admin_user_id: null,
+        warning: `Client created but invite failed: ${inviteErr?.message ?? "unknown"}`,
+      }, 207);
     }
 
-    const adminUserId = inviteData.user.id;
+    const adminUserId = invite.user.id;
 
-    // Assign admin role with client_id
-    const { error: roleError } = await adminClient.from("user_roles").insert({
+    await adminClient.from("user_roles").insert({
       user_id: adminUserId,
       role: "admin",
       client_id: clientId,
     });
 
-    if (roleError) {
-      console.error("Role assignment error:", roleError);
-    }
-
-    // Update profile with client_id
     await adminClient
       .from("profiles")
-      .update({ client_id: clientId })
+      .update({ client_id: clientId, full_name: input.admin_full_name })
       .eq("id", adminUserId);
 
-    return new Response(JSON.stringify({
+    return json({
       success: true,
-      client: {
-        id: clientId,
-        company_name: company_name.trim(),
-        company_slug: company_slug.toLowerCase(),
-      },
-      admin: {
-        user_id: adminUserId,
-        email: admin_email,
-      },
-    }), {
-      status: 201,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
+      client_id: clientId,
+      admin_user_id: adminUserId,
+      message: "Client created and invitation sent",
+    }, 201);
   } catch (err) {
-    console.error("Error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("create-client error:", err);
+    return json({ error: "Internal server error" }, 500);
   }
 });
