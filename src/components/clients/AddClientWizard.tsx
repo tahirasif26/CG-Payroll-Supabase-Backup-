@@ -1,0 +1,307 @@
+import { useState } from "react";
+import { z } from "zod";
+import { Building2, User, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Sparkles, Crown, Rocket } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
+
+const COUNTRIES = [
+  { code: "SA", name: "Saudi Arabia", tz: "Asia/Riyadh", currency: "SAR" },
+  { code: "AE", name: "United Arab Emirates", tz: "Asia/Dubai", currency: "AED" },
+  { code: "BH", name: "Bahrain", tz: "Asia/Bahrain", currency: "BHD" },
+  { code: "KW", name: "Kuwait", tz: "Asia/Kuwait", currency: "KWD" },
+  { code: "OM", name: "Oman", tz: "Asia/Muscat", currency: "OMR" },
+  { code: "QA", name: "Qatar", tz: "Asia/Qatar", currency: "QAR" },
+  { code: "EG", name: "Egypt", tz: "Africa/Cairo", currency: "EGP" },
+  { code: "JO", name: "Jordan", tz: "Asia/Amman", currency: "JOD" },
+  { code: "US", name: "United States", tz: "America/New_York", currency: "USD" },
+  { code: "GB", name: "United Kingdom", tz: "Europe/London", currency: "GBP" },
+  { code: "DE", name: "Germany", tz: "Europe/Berlin", currency: "EUR" },
+  { code: "IN", name: "India", tz: "Asia/Kolkata", currency: "INR" },
+];
+
+const TIMEZONES = ["Asia/Riyadh", "Asia/Dubai", "Asia/Bahrain", "Asia/Kuwait", "Asia/Muscat", "Asia/Qatar", "Africa/Cairo", "Asia/Amman", "Europe/London", "Europe/Berlin", "America/New_York", "Asia/Kolkata", "UTC"];
+const CURRENCIES = ["SAR", "AED", "USD", "EUR", "GBP", "BHD", "KWD", "OMR", "QAR", "EGP", "JOD", "INR"];
+
+const PLANS = [
+  { id: "starter", name: "Starter", icon: Sparkles, desc: "Up to 25 employees, core HR + payroll", color: "text-slate-600", bg: "bg-slate-50 border-slate-200" },
+  { id: "pro", name: "Pro", icon: Rocket, desc: "Up to 250 employees, all modules + analytics", color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
+  { id: "enterprise", name: "Enterprise", icon: Crown, desc: "Unlimited, dedicated support + custom integrations", color: "text-purple-600", bg: "bg-purple-50 border-purple-200" },
+] as const;
+
+const step1Schema = z.object({
+  company_name: z.string().trim().min(2, "Company name is required"),
+  company_email: z.string().trim().email("Valid email required"),
+  company_phone: z.string().trim().optional(),
+  country: z.string().min(1, "Country is required"),
+  timezone: z.string().min(1, "Timezone is required"),
+  base_currency: z.string().min(1, "Currency is required"),
+});
+
+const step2Schema = z.object({
+  admin_full_name: z.string().trim().min(2, "Admin name is required"),
+  admin_email: z.string().trim().email("Valid email required"),
+  subscription_plan: z.enum(["starter", "pro", "enterprise"]),
+  status: z.enum(["trial", "active"]),
+});
+
+type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema>;
+
+const initialForm: FormState = {
+  company_name: "",
+  company_email: "",
+  company_phone: "",
+  country: "Saudi Arabia",
+  timezone: "Asia/Riyadh",
+  base_currency: "SAR",
+  admin_full_name: "",
+  admin_email: "",
+  subscription_plan: "starter",
+  status: "trial",
+};
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function AddClientWizard({ open, onOpenChange }: Props) {
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const createClient = useCreateClient();
+
+  const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
+
+  const handleCountryChange = (countryName: string) => {
+    const c = COUNTRIES.find((x) => x.name === countryName);
+    update({ country: countryName, ...(c ? { timezone: c.tz, base_currency: c.currency } : {}) });
+  };
+
+  const validateStep = (s: number): boolean => {
+    const schema = s === 1 ? step1Schema : step2Schema;
+    const result = schema.safeParse(form);
+    if (!result.success) {
+      const errs: Record<string, string> = {};
+      result.error.issues.forEach((i) => { errs[i.path[0] as string] = i.message; });
+      setErrors(errs);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
+  const handleNext = () => { if (validateStep(step)) setStep(step + 1); };
+  const handleBack = () => { setErrors({}); setStep(step - 1); };
+
+  const handleSubmit = async () => {
+    if (!validateStep(2)) return;
+    try {
+      const payload: CreateClientInput = { ...form };
+      await createClient.mutateAsync(payload);
+      onOpenChange(false);
+      setStep(1);
+      setForm(initialForm);
+    } catch {
+      /* toast handled in hook */
+    }
+  };
+
+  const reset = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      setStep(1);
+      setForm(initialForm);
+      setErrors({});
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={reset}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Add New Client</DialogTitle>
+        </DialogHeader>
+
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 py-2">
+          {[1, 2, 3].map((s) => (
+            <div key={s} className="flex items-center gap-2">
+              <div className={cn(
+                "h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-colors",
+                step === s ? "bg-primary text-primary-foreground border-primary" :
+                step > s ? "bg-primary/10 text-primary border-primary" : "bg-muted text-muted-foreground border-border"
+              )}>
+                {step > s ? <CheckCircle2 className="h-4 w-4" /> : s}
+              </div>
+              {s < 3 && <div className={cn("h-0.5 w-12", step > s ? "bg-primary" : "bg-border")} />}
+            </div>
+          ))}
+        </div>
+
+        {step === 1 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <Building2 className="h-4 w-4" /> Company Information
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Company Name *" error={errors.company_name}>
+                <Input value={form.company_name} onChange={(e) => update({ company_name: e.target.value })} placeholder="Acme Corp" />
+              </Field>
+              <Field label="Company Email *" error={errors.company_email}>
+                <Input type="email" value={form.company_email} onChange={(e) => update({ company_email: e.target.value })} placeholder="contact@acme.com" />
+              </Field>
+              <Field label="Phone" error={errors.company_phone}>
+                <Input value={form.company_phone} onChange={(e) => update({ company_phone: e.target.value })} placeholder="+966 50 000 0000" />
+              </Field>
+              <Field label="Country *" error={errors.country}>
+                <Select value={form.country} onValueChange={handleCountryChange}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              <Field label="Timezone *" error={errors.timezone}>
+                <Select value={form.timezone} onValueChange={(v) => update({ timezone: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{TIMEZONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              <Field label="Base Currency *" error={errors.base_currency}>
+                <Select value={form.base_currency} onValueChange={(v) => update({ base_currency: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <User className="h-4 w-4" /> Admin Account & Plan
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Admin Full Name *" error={errors.admin_full_name}>
+                <Input value={form.admin_full_name} onChange={(e) => update({ admin_full_name: e.target.value })} placeholder="Jane Doe" />
+              </Field>
+              <Field label="Admin Email *" error={errors.admin_email}>
+                <Input type="email" value={form.admin_email} onChange={(e) => update({ admin_email: e.target.value })} placeholder="jane@acme.com" />
+              </Field>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Subscription Plan</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {PLANS.map((p) => {
+                  const Icon = p.icon;
+                  const selected = form.subscription_plan === p.id;
+                  return (
+                    <button key={p.id} type="button" onClick={() => update({ subscription_plan: p.id })}
+                      className={cn(
+                        "text-left rounded-lg border-2 p-3 transition-all",
+                        selected ? `${p.bg} border-current ${p.color} ring-2 ring-current/20` : "border-border hover:border-muted-foreground/40"
+                      )}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Icon className={cn("h-4 w-4", selected ? p.color : "text-muted-foreground")} />
+                        <span className="font-semibold text-sm">{p.name}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-snug">{p.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Initial Status</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["trial", "active"] as const).map((s) => (
+                  <button key={s} type="button" onClick={() => update({ status: s })}
+                    className={cn(
+                      "rounded-lg border-2 p-3 text-sm font-medium capitalize transition-all",
+                      form.status === s ? "border-primary bg-primary/5 text-primary" : "border-border hover:border-muted-foreground/40"
+                    )}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4" /> Review & Confirm
+            </div>
+            <ReviewSection title="Company">
+              <ReviewRow k="Name" v={form.company_name} />
+              <ReviewRow k="Email" v={form.company_email} />
+              {form.company_phone && <ReviewRow k="Phone" v={form.company_phone} />}
+              <ReviewRow k="Country" v={form.country} />
+              <ReviewRow k="Timezone" v={form.timezone} />
+              <ReviewRow k="Currency" v={form.base_currency} />
+            </ReviewSection>
+            <ReviewSection title="Admin & Plan">
+              <ReviewRow k="Admin Name" v={form.admin_full_name} />
+              <ReviewRow k="Admin Email" v={form.admin_email} />
+              <ReviewRow k="Plan" v={form.subscription_plan} className="capitalize" />
+              <ReviewRow k="Status" v={form.status} className="capitalize" />
+            </ReviewSection>
+            <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
+              An invitation email will be sent to <strong>{form.admin_email}</strong> to set their password and access the platform.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-4 border-t">
+          <Button variant="ghost" onClick={handleBack} disabled={step === 1 || createClient.isPending}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back
+          </Button>
+          {step < 3 ? (
+            <Button onClick={handleNext}>
+              Next <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={createClient.isPending}>
+              {createClient.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</> : "Create Client & Send Invitation"}
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium">{label}</Label>
+      {children}
+      {error && <p className="text-[11px] text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function ReviewSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border bg-muted/20 p-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{title}</p>
+      <div className="space-y-1">{children}</div>
+    </div>
+  );
+}
+
+function ReviewRow({ k, v, className }: { k: string; v: string; className?: string }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">{k}</span>
+      <span className={cn("font-medium", className)}>{v}</span>
+    </div>
+  );
+}
