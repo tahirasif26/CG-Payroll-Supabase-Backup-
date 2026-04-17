@@ -56,7 +56,7 @@ function OrgNodeCard({
 }: {
   node: OrgNode;
   level?: number;
-  onClickEmployee: (emp: typeof employees[0]) => void;
+  onClickEmployee: (emp: Employee) => void;
   highlightId: string | null;
   hoveredParentId: string | null;
   onHoverNode: (empId: string | null) => void;
@@ -144,7 +144,7 @@ function ChildOrgNodeCard({
 }: {
   node: OrgNode;
   level?: number;
-  onClickEmployee: (emp: typeof employees[0]) => void;
+  onClickEmployee: (emp: Employee) => void;
   highlightId: string | null;
   hoveredParentId: string | null;
   onHoverNode: (empId: string | null) => void;
@@ -222,7 +222,7 @@ export default function OrgChartPage() {
   const { employees } = useEmployeesCtx();
   const activeEmployees = useActiveEmployees();
   const { reportMap, setReportTo, getManagerName, getManagerId } = useReporting();
-  const [editEmp, setEditEmp] = useState<typeof employees[0] | null>(null);
+  const [editEmp, setEditEmp] = useState<Employee | null>(null);
   const [selectedManager, setSelectedManager] = useState("__none__");
   const [search, setSearch] = useState("");
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -245,7 +245,7 @@ export default function OrgChartPage() {
     setTimeout(() => setHighlightId(null), 3000);
   };
 
-  const openEditDialog = (emp: typeof employees[0]) => {
+  const openEditDialog = (emp: Employee) => {
     setEditEmp(emp);
     const currentMgr = getManagerId(emp.id);
     setSelectedManager(currentMgr || "__none__");
