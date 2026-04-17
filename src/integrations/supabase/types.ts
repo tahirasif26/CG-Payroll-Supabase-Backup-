@@ -218,6 +218,13 @@ export type Database = {
     }
     Functions: {
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
+      get_user_features: {
+        Args: { _user_id: string }
+        Returns: {
+          enabled: boolean
+          feature_key: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
