@@ -1,3 +1,9 @@
+// ⚠️ DEPRECATED (Step 10): localStorage-backed approval roles. The DB-backed
+// replacement lives at @/hooks/queries/useApprovals (useApprovalRoles,
+// useApprovalAssignments, buildPermissionChecker). New code should use those.
+// This context is kept temporarily so existing pages (LoansPage, ExpensesPage,
+// PayrollPage, ApprovalMatrixPage) keep working with their numeric mock employee
+// IDs until they're migrated to real auth user UUIDs.
 import { createContext, useContext, useState, ReactNode } from "react";
 import { employees } from "@/data/mockData";
 
