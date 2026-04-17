@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
             <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
             <span className="text-[28px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
           </div>
-          <p className="text-sm text-muted-foreground">Set your new password</p>
+          <p className="text-sm text-muted-foreground">{isInvite ? "Welcome! Set a password to activate your account" : "Set your new password"}</p>
         </CardHeader>
         <CardContent className="pt-4 pb-8 px-8">
           <form onSubmit={handleReset} className="space-y-4">
