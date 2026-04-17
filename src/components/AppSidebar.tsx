@@ -197,7 +197,7 @@ export function AppSidebar() {
   const { role } = useRole();
   const { client } = useClient();
 
-  const isAdmin = role === "employer" || role === "admin" || role === "hr";
+  const isAdmin = role === "employer";
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0">

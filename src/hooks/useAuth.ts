@@ -2,69 +2,90 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
-export type AppRole = "admin" | "hr" | "employee";
+export type AppRole = "super_admin" | "admin" | "hr" | "employee";
 
-interface Profile {
+export interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
   employee_id: string | null;
+  client_id: string | null;
+  phone: string | null;
+  is_active: boolean;
 }
 
-interface AuthState {
+export interface AuthState {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  role: AppRole;
+  role: AppRole | null;
+  clientId: string | null;
+  isSuperAdmin: boolean;
+  features: Set<string>;
   loading: boolean;
 }
 
+const initialState: AuthState = {
+  session: null,
+  user: null,
+  profile: null,
+  role: null,
+  clientId: null,
+  isSuperAdmin: false,
+  features: new Set<string>(),
+  loading: true,
+};
+
 export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    session: null,
-    user: null,
-    profile: null,
-    role: "employee",
-    loading: true,
-  });
+  const [state, setState] = useState<AuthState>(initialState);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          // Fetch profile and role with setTimeout to avoid deadlock
-          setTimeout(async () => {
-            const [profileRes, roleRes] = await Promise.all([
-              supabase.from("profiles").select("*").eq("id", session.user.id).single(),
-              supabase.rpc("get_user_role", { _user_id: session.user.id }),
-            ]);
+    const loadAuthData = async (session: Session) => {
+      const userId = session.user.id;
 
-            setState({
-              session,
-              user: session.user,
-              profile: profileRes.data as Profile | null,
-              role: (roleRes.data as AppRole) || "employee",
-              loading: false,
-            });
-          }, 0);
-        } else {
-          setState({
-            session: null,
-            user: null,
-            profile: null,
-            role: "employee",
-            loading: false,
-          });
-        }
+      const [profileRes, roleRes, featuresRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+        supabase.rpc("get_user_role", { _user_id: userId }),
+        supabase.rpc("get_user_features", { _user_id: userId }),
+      ]);
+
+      const profile = (profileRes.data as Profile | null) ?? null;
+      const role = (roleRes.data as AppRole | null) ?? null;
+      const featureRows = (featuresRes.data as Array<{ feature_key: string; enabled: boolean }> | null) ?? [];
+      const features = new Set(featureRows.filter((r) => r.enabled).map((r) => r.feature_key));
+
+      setState({
+        session,
+        user: session.user,
+        profile,
+        role,
+        clientId: profile?.client_id ?? null,
+        isSuperAdmin: role === "super_admin",
+        features,
+        loading: false,
+      });
+
+      // Update last_login_at (fire and forget)
+      supabase
+        .from("profiles")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("id", userId)
+        .then(() => {});
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        // defer to avoid deadlock
+        setTimeout(() => loadAuthData(session), 0);
+      } else {
+        setState({ ...initialState, loading: false });
       }
-    );
+    });
 
-    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        setState(prev => ({ ...prev, loading: false }));
+        setState((prev) => ({ ...prev, loading: false }));
       }
-      // onAuthStateChange will handle the session if it exists
     });
 
     return () => subscription.unsubscribe();
@@ -74,5 +95,7 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { ...state, signOut };
+  const hasFeature = (key: string): boolean => state.isSuperAdmin || state.features.has(key);
+
+  return { ...state, hasFeature, signOut };
 }

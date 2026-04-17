@@ -176,7 +176,7 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
   const activeModule = primaryModules.find(m => isModuleActive(m, location.pathname));
   const subNav = activeModule?.subNav || [];
 
-  const isAdmin = role === "employer" || role === "admin" || role === "hr";
+  const isAdmin = role === "employer";
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
