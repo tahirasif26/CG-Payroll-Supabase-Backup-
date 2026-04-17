@@ -21,7 +21,14 @@ export default function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      toast({ title: "Login failed", description: error.message, variant: "destructive" });
+      const isInvalidCreds = /invalid login credentials/i.test(error.message);
+      toast({
+        title: "Login failed",
+        description: isInvalidCreds
+          ? "Wrong email/password — or your account is not yet activated. Check your email for the invite link to set a password."
+          : error.message,
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };

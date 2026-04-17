@@ -223,15 +223,15 @@ export function useCreateEmployee() {
       qc.invalidateQueries({ queryKey: ["employees"] });
       if (invite.ok) {
         toast({
-          title: "Employee added",
-          description: `${employee.first_name} ${employee.last_name} created. Invitation sent to ${employee.email}.`,
+          title: "Employee added — invite sent",
+          description: `${employee.first_name} ${employee.last_name} must click the link in the email sent to ${employee.email} to set a password before they can sign in.`,
         });
       } else {
         toast({
           title: "Employee added",
           description: invite.error
-            ? `Created, but invite email failed: ${invite.error}`
-            : `${employee.first_name} ${employee.last_name} has been onboarded.`,
+            ? `Created, but invite email failed: ${invite.error}. They won't be able to sign in until re-invited.`
+            : `${employee.first_name} ${employee.last_name} has been onboarded. No login invite was sent.`,
         });
       }
     },

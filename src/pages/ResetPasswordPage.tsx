@@ -15,11 +15,16 @@ export default function ResetPasswordPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const [isInvite, setIsInvite] = useState(false);
+
   useEffect(() => {
-    // Check if we have a recovery token in the URL
+    // Supabase puts recovery / invite tokens in the URL hash
     const hash = window.location.hash;
-    if (!hash.includes("type=recovery")) {
-      toast({ title: "Invalid link", description: "This password reset link is invalid or expired.", variant: "destructive" });
+    const isRecovery = hash.includes("type=recovery");
+    const invite = hash.includes("type=invite");
+    setIsInvite(invite);
+    if (!isRecovery && !invite) {
+      toast({ title: "Invalid link", description: "This link is invalid or expired.", variant: "destructive" });
     }
   }, []);
 
@@ -44,7 +49,7 @@ export default function ResetPasswordPage() {
             <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
             <span className="text-[28px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
           </div>
-          <p className="text-sm text-muted-foreground">Set your new password</p>
+          <p className="text-sm text-muted-foreground">{isInvite ? "Welcome! Set a password to activate your account" : "Set your new password"}</p>
         </CardHeader>
         <CardContent className="pt-4 pb-8 px-8">
           <form onSubmit={handleReset} className="space-y-4">
