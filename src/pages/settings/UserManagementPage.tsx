@@ -19,6 +19,7 @@ const roleBadgeStyles: Record<string, string> = {
 };
 
 export default function UserManagementPage() {
+  const { employees } = useEmployeesCtx();
   const [items, setItems] = useState<UserPermission[]>(userPermissions);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<UserPermission | null>(null);

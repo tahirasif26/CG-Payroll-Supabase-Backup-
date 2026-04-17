@@ -12,6 +12,7 @@ import { useRole } from "@/contexts/RoleContext";
 // TODO: replace with React Query in Prompt 2 (data currently from mockData contexts)
 
 export default function HRDashboard() {
+  const { employees } = useEmployeesCtx();
   const { profile } = useRole();
   const activeEmps = useActiveEmployees();
   const pendingLeaves = leaveRequests.filter((l) => l.status === "pending");

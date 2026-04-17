@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ApprovalMatrixPage() {
+  const { employees } = useEmployeesCtx();
   const { roles, assignments, addRole, updateRole, deleteRole, addAssignment, updateAssignment, deleteAssignment } = useApprovals();
   const { toast } = useToast();
 

@@ -34,6 +34,7 @@ const mockReviews: PeerReview[] = [
 ];
 
 export default function PeerAssessmentPage() {
+  const { employees } = useEmployeesCtx();
   const activeEmployees = useActiveEmployees();
   const [reviews, setReviews] = useState(mockReviews);
   const [search, setSearch] = useState("");

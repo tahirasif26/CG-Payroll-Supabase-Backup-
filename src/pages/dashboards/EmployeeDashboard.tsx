@@ -14,6 +14,7 @@ import { QuickActionButton } from "@/components/dashboards/QuickActionButton";
 // TODO: replace with React Query in Prompt 2 (data currently from mockData contexts)
 
 export default function EmployeeDashboard() {
+  const { employees } = useEmployeesCtx();
   const { profile, hasFeature, currentEmployeeId } = useRole();
   const activeEmps = useActiveEmployees();
   const emp = employees.find((e) => e.id === currentEmployeeId);

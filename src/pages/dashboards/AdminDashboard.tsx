@@ -30,6 +30,7 @@ function getChartColors() {
 }
 
 export default function AdminDashboard() {
+  const { employees } = useEmployeesCtx();
   const { profile } = useRole();
   const CHART_COLORS = useMemo(() => getChartColors(), []);
   const activeEmps = useActiveEmployees();

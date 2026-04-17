@@ -34,6 +34,7 @@ const mockAssessments: SelfAssessment[] = [
 ];
 
 export default function SelfAssessmentPage() {
+  const { employees } = useEmployeesCtx();
   const [assessments] = useState(mockAssessments);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

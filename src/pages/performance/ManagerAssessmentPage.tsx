@@ -34,6 +34,7 @@ const mockAssessments: ManagerAssessment[] = [
 ];
 
 export default function ManagerAssessmentPage() {
+  const { employees } = useEmployeesCtx();
   const [assessments, setAssessments] = useState(mockAssessments);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

@@ -51,6 +51,7 @@ const initialData: CalibrationEntry[] = [
 ];
 
 export default function RatingCalibrationPage() {
+  const { employees } = useEmployeesCtx();
   const activeEmployees = useActiveEmployees();
   const [entries, setEntries] = useState<CalibrationEntry[]>(initialData);
   const [search, setSearch] = useState("");

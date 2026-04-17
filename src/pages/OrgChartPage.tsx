@@ -219,6 +219,7 @@ function ChildOrgNodeCard({
 }
 
 export default function OrgChartPage() {
+  const { employees } = useEmployeesCtx();
   const activeEmployees = useActiveEmployees();
   const { reportMap, setReportTo, getManagerName, getManagerId } = useReporting();
   const [editEmp, setEditEmp] = useState<typeof employees[0] | null>(null);
