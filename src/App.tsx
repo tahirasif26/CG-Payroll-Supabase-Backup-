@@ -83,8 +83,13 @@ import PayrollSetupViewPage from "@/pages/PayrollSetupViewPage";
 
 const queryClient = new QueryClient();
 
+function RouteRedirector() {
+  const { isSuperAdmin } = useRole();
+  return <Navigate to={isSuperAdmin ? "/manage/clients" : "/"} replace />;
+}
+
 function AppRoutes() {
-  const { session, loading } = useRole();
+  const { session, loading, isSuperAdmin } = useRole();
 
   if (loading) {
     return (
@@ -111,14 +116,14 @@ function AppRoutes() {
     );
   }
 
-  // Super admin client management — accessible via direct slug
-  const isAdmin = true; // TODO: check super-admin role
-
   return (
     <AppLayout>
       <Routes>
-        <Route path="/auth" element={<Navigate to="/" replace />} />
-        <Route path="/manage/clients" element={<ClientManagementPage />} />
+        <Route path="/auth" element={<RouteRedirector />} />
+        <Route
+          path="/manage/clients"
+          element={isSuperAdmin ? <ClientManagementPage /> : <Navigate to="/" replace />}
+        />
         <Route path="/" element={<DashboardPage />} />
         <Route path="/employees" element={<EmployeesPage />} />
         <Route path="/payroll/setup" element={<PayrollSetupPage />} />
