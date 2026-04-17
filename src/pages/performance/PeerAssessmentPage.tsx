@@ -10,80 +10,76 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
-import { Search, Filter, Plus, Eye, Users } from "lucide-react";
+import { Search, Filter, Plus, Eye } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface PeerReview {
-  id: string;
-  revieweeId: string;
-  reviewerId: string;
-  cycle: string;
-  status: "pending" | "completed";
-  collaboration: string;
-  communication: string;
-  feedback: string;
-  rating: string;
-}
-
-const mockReviews: PeerReview[] = [
-  { id: "1", revieweeId: "1", reviewerId: "3", cycle: "2025-H1", status: "completed", collaboration: "Excellent team player, always willing to help.", communication: "Clear and concise in meetings.", feedback: "Great colleague to work with.", rating: "exceeds" },
-  { id: "2", revieweeId: "1", reviewerId: "5", cycle: "2025-H1", status: "pending", collaboration: "", communication: "", feedback: "", rating: "" },
-  { id: "3", revieweeId: "2", reviewerId: "8", cycle: "2025-H1", status: "completed", collaboration: "Knowledgeable, provides good guidance.", communication: "Sometimes slow to respond to emails.", feedback: "Overall solid collaborator.", rating: "meets" },
-  { id: "4", revieweeId: "4", reviewerId: "2", cycle: "2025-H1", status: "completed", collaboration: "Strong leader, inspires the team.", communication: "Excellent presentation skills.", feedback: "Exceptional leadership qualities.", rating: "outstanding" },
-  { id: "5", revieweeId: "8", reviewerId: "1", cycle: "2025-H1", status: "pending", collaboration: "", communication: "", feedback: "", rating: "" },
-];
+import { usePerformanceCycles, usePerformanceAssessments, useUpsertPerformanceAssessment } from "@/hooks/queries/usePerformance";
 
 export default function PeerAssessmentPage() {
   const { employees } = useEmployeesCtx();
   const activeEmployees = useActiveEmployees();
-  const [reviews, setReviews] = useState(mockReviews);
+  const { data: cycles = [] } = usePerformanceCycles();
+  const [selectedCycleId, setSelectedCycleId] = useState<string>("");
+  const cycleId = selectedCycleId || cycles[0]?.id || "";
+  const selectedCycle = cycles.find(c => c.id === cycleId);
+  const { data: reviews = [], isLoading } = usePerformanceAssessments({ cycle_id: cycleId || undefined, type: "peer" });
+  const upsert = useUpsertPerformanceAssessment();
+  const { toast } = useToast();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [viewReview, setViewReview] = useState<PeerReview | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
   const [showAssign, setShowAssign] = useState(false);
   const [assignReviewee, setAssignReviewee] = useState("");
   const [assignReviewer, setAssignReviewer] = useState("");
-  const { toast } = useToast();
 
-  const getEmp = (id: string) => employees.find(e => e.id === id);
+  const getEmp = (id: string | null) => id ? employees.find(e => e.id === id) : undefined;
 
   const filtered = reviews.filter(r => {
-    const reviewee = getEmp(r.revieweeId);
-    const reviewer = getEmp(r.reviewerId);
-    if (!reviewee || !reviewer) return false;
+    const reviewee = getEmp(r.employee_id);
+    const reviewer = getEmp(r.reviewer_id);
+    if (!reviewee) return false;
     const q = search.toLowerCase();
-    const matchSearch = !q || `${reviewee.firstName} ${reviewee.lastName}`.toLowerCase().includes(q) || `${reviewer.firstName} ${reviewer.lastName}`.toLowerCase().includes(q);
+    const matchSearch = !q || `${reviewee.firstName} ${reviewee.lastName}`.toLowerCase().includes(q) || (reviewer && `${reviewer.firstName} ${reviewer.lastName}`.toLowerCase().includes(q));
     const matchStatus = statusFilter === "all" || r.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const handleAssign = () => {
-    if (!assignReviewee || !assignReviewer || assignReviewee === assignReviewer) {
-      toast({ title: "Invalid", description: "Please select different employees.", variant: "destructive" });
+  const handleAssign = async () => {
+    if (!assignReviewee || !assignReviewer || assignReviewee === assignReviewer || !cycleId) {
+      toast({ title: "Invalid", description: "Pick reviewee, reviewer (different) and a cycle.", variant: "destructive" });
       return;
     }
-    setReviews(prev => [...prev, {
-      id: String(Date.now()),
-      revieweeId: assignReviewee,
-      reviewerId: assignReviewer,
-      cycle: "2025-H1",
+    await upsert.mutateAsync({
+      cycle_id: cycleId,
+      employee_id: assignReviewee,
+      reviewer_id: assignReviewer,
+      type: "peer",
       status: "pending",
-      collaboration: "", communication: "", feedback: "", rating: "",
-    }]);
-    toast({ title: "Assigned", description: "Peer review assignment created." });
+      responses: {},
+    });
     setShowAssign(false);
     setAssignReviewee("");
     setAssignReviewer("");
   };
 
+  const viewReview = reviews.find(r => r.id === viewId);
+
   return (
     <div className="space-y-6">
       <PageHeader title="Peer Assessments" description="Manage and track peer-to-peer performance feedback and reviews.">
-        <Button onClick={() => setShowAssign(true)}><Plus className="h-4 w-4 mr-1" />Assign Review</Button>
+        <Button onClick={() => setShowAssign(true)} disabled={!cycleId}><Plus className="h-4 w-4 mr-1" />Assign Review</Button>
       </PageHeader>
 
+      <div className="flex items-center gap-3">
+        <Label className="text-sm font-medium">Cycle:</Label>
+        <Select value={cycleId} onValueChange={setSelectedCycleId}>
+          <SelectTrigger className="w-[220px] h-9"><SelectValue placeholder="Select cycle" /></SelectTrigger>
+          <SelectContent>{cycles.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Completed</p><p className="text-2xl font-bold text-success">{reviews.filter(r => r.status === "completed").length}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Completed</p><p className="text-2xl font-bold text-success">{reviews.filter(r => r.status === "completed" || r.status === "submitted").length}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Pending</p><p className="text-2xl font-bold text-warning">{reviews.filter(r => r.status === "pending").length}</p></CardContent></Card>
       </div>
 
@@ -115,24 +111,27 @@ export default function PeerAssessmentPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {isLoading && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>}
+              {!isLoading && filtered.length === 0 && (
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No peer reviews assigned.</TableCell></TableRow>
+              )}
               {filtered.map(r => {
-                const reviewee = getEmp(r.revieweeId);
-                const reviewer = getEmp(r.reviewerId);
-                if (!reviewee || !reviewer) return null;
+                const reviewee = getEmp(r.employee_id);
+                const reviewer = getEmp(r.reviewer_id);
+                if (!reviewee) return null;
+                const done = r.status === "completed" || r.status === "submitted";
                 return (
                   <TableRow key={r.id}>
                     <TableCell><p className="text-sm font-medium">{reviewee.firstName} {reviewee.lastName}</p><p className="text-xs text-muted-foreground">{reviewee.department}</p></TableCell>
-                    <TableCell><p className="text-sm">{reviewer.firstName} {reviewer.lastName}</p></TableCell>
-                    <TableCell className="text-sm font-mono">{r.cycle}</TableCell>
+                    <TableCell><p className="text-sm">{reviewer ? `${reviewer.firstName} ${reviewer.lastName}` : "—"}</p></TableCell>
+                    <TableCell className="text-sm font-mono">{selectedCycle?.name}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${r.status === "completed" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
-                        {r.status === "completed" ? "Completed" : "Pending"}
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${done ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
+                        {r.status}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      {r.status === "completed" && (
-                        <Button size="sm" variant="outline" onClick={() => setViewReview(r)}><Eye className="h-3 w-3 mr-1" />View</Button>
-                      )}
+                      <Button size="sm" variant="outline" onClick={() => setViewId(r.id)}><Eye className="h-3 w-3 mr-1" />View</Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -142,21 +141,21 @@ export default function PeerAssessmentPage() {
         </ScrollArea>
       </Card>
 
-      <Dialog open={!!viewReview} onOpenChange={open => { if (!open) setViewReview(null); }}>
+      <Dialog open={!!viewReview} onOpenChange={open => { if (!open) setViewId(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Peer Review</DialogTitle>
-            <DialogDescription>{viewReview && `${getEmp(viewReview.revieweeId)?.firstName} reviewed by ${getEmp(viewReview.reviewerId)?.firstName}`}</DialogDescription>
+            <DialogDescription>{viewReview && (() => { const re = getEmp(viewReview.employee_id); const rr = getEmp(viewReview.reviewer_id); return re && rr ? `${re.firstName} reviewed by ${rr.firstName}` : ""; })()}</DialogDescription>
           </DialogHeader>
           {viewReview && (
             <div className="space-y-4">
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Collaboration</p><p className="text-sm">{viewReview.collaboration}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Communication</p><p className="text-sm">{viewReview.communication}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Overall Feedback</p><p className="text-sm">{viewReview.feedback}</p></div>
-              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Rating</p><p className="text-sm font-medium capitalize">{viewReview.rating}</p></div>
+              {Object.entries(viewReview.responses || {}).map(([k, v]) => (
+                <div key={k}><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">{k}</p><p className="text-sm">{String(v)}</p></div>
+              ))}
+              <div><p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Rating</p><p className="text-sm font-medium">{viewReview.rating ?? "—"}</p></div>
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setViewReview(null)}>Close</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setViewId(null)}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -184,7 +183,7 @@ export default function PeerAssessmentPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAssign(false)}>Cancel</Button>
-            <Button onClick={handleAssign}>Assign</Button>
+            <Button onClick={handleAssign} disabled={upsert.isPending}>Assign</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

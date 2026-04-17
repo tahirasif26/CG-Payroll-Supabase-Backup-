@@ -166,6 +166,39 @@ export type Database = {
           },
         ]
       }
+      assessment_ratings: {
+        Row: {
+          client_id: string
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          client_id: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          client_id?: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       asset_audit_entries: {
         Row: {
           asset_id: string | null
@@ -3070,6 +3103,7 @@ export type Database = {
           id: string
           notes: string | null
           original_rating: number | null
+          status: string
         }
         Insert: {
           calibrated_by?: string | null
@@ -3081,6 +3115,7 @@ export type Database = {
           id?: string
           notes?: string | null
           original_rating?: number | null
+          status?: string
         }
         Update: {
           calibrated_by?: string | null
@@ -3092,6 +3127,7 @@ export type Database = {
           id?: string
           notes?: string | null
           original_rating?: number | null
+          status?: string
         }
         Relationships: [
           {

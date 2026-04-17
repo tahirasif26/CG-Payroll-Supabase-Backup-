@@ -13,7 +13,6 @@ import { AssetProvider } from "@/contexts/AssetContext";
 import { ReportingProvider } from "@/contexts/ReportingContext";
 import { EmployeeProvider } from "@/contexts/EmployeeContext";
 import { DeductionProvider } from "@/contexts/DeductionContext";
-import { PerformanceCycleProvider } from "@/contexts/PerformanceCycleContext";
 import { AuditProvider } from "@/contexts/AuditContext";
 import { BLEAccessProvider } from "@/contexts/BLEAccessContext";
 import { LeaveTypeProvider } from "@/contexts/LeaveTypeContext";
@@ -324,7 +323,6 @@ const App = () => {
           <EmployeeProvider>
           <ReportingProvider>
           <DeductionProvider>
-          <PerformanceCycleProvider>
           <AuditProvider>
           <BLEAccessProvider>
           <LeaveTypeProvider>
@@ -346,7 +344,6 @@ const App = () => {
           </LeaveTypeProvider>
           </BLEAccessProvider>
           </AuditProvider>
-          </PerformanceCycleProvider>
           </DeductionProvider>
           </ReportingProvider>
           </EmployeeProvider>

@@ -6,41 +6,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { usePerformanceCycles, AssessmentRating } from "@/contexts/PerformanceCycleContext";
+import { useAssessmentRatings, useUpsertAssessmentRating, useDeleteAssessmentRating, DBAssessmentRating } from "@/hooks/queries/usePerformance";
 
 export default function AssessmentRatingsPage() {
-  const { ratings, addRating, updateRating, deleteRating } = usePerformanceCycles();
+  const { data: ratings = [], isLoading } = useAssessmentRatings();
+  const upsert = useUpsertAssessmentRating();
+  const del = useDeleteAssessmentRating();
   const [editOpen, setEditOpen] = useState(false);
-  const [editItem, setEditItem] = useState<AssessmentRating | null>(null);
-  const { toast } = useToast();
+  const [editItem, setEditItem] = useState<Partial<DBAssessmentRating> | null>(null);
 
   const openAdd = () => {
-    setEditItem({ id: String(Date.now()), name: "", value: 0, description: "", color: "bg-muted text-muted-foreground" });
+    setEditItem({ name: "", value: 0, description: "", color: "bg-muted text-muted-foreground" });
     setEditOpen(true);
   };
 
-  const openEdit = (r: AssessmentRating) => {
+  const openEdit = (r: DBAssessmentRating) => {
     setEditItem({ ...r });
     setEditOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editItem || !editItem.name) return;
-    const exists = ratings.find(r => r.id === editItem.id);
-    if (exists) {
-      updateRating(editItem.id, editItem);
-    } else {
-      addRating(editItem);
-    }
+    await upsert.mutateAsync(editItem);
     setEditOpen(false);
-    toast({ title: "Saved", description: `Rating "${editItem.name}" saved.` });
   };
 
-  const handleDelete = (id: string) => {
-    deleteRating(id);
-    toast({ title: "Deleted", description: "Rating removed." });
-  };
+  const sorted = [...ratings].sort((a, b) => Number(b.value) - Number(a.value));
 
   return (
     <div className="space-y-6">
@@ -62,7 +53,8 @@ export default function AssessmentRatingsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {ratings.sort((a, b) => b.value - a.value).map(r => (
+            {isLoading && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>}
+            {!isLoading && sorted.map(r => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium">{r.name}</TableCell>
                 <TableCell className="text-center font-semibold">{r.value}</TableCell>
@@ -73,7 +65,7 @@ export default function AssessmentRatingsPage() {
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(r.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => del.mutate(r.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -85,28 +77,28 @@ export default function AssessmentRatingsPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editItem && ratings.find(r => r.id === editItem.id) ? "Edit" : "Add"} Rating</DialogTitle>
+            <DialogTitle>{editItem?.id ? "Edit" : "Add"} Rating</DialogTitle>
             <DialogDescription>Configure the rating level details.</DialogDescription>
           </DialogHeader>
           {editItem && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Name</Label>
-                <Input value={editItem.name} onChange={e => setEditItem({ ...editItem, name: e.target.value })} placeholder="e.g. Outstanding" />
+                <Input value={editItem.name || ""} onChange={e => setEditItem({ ...editItem, name: e.target.value })} placeholder="e.g. Outstanding" />
               </div>
               <div className="space-y-2">
                 <Label>Numeric Value</Label>
-                <Input type="number" min={1} max={10} value={editItem.value} onChange={e => setEditItem({ ...editItem, value: Number(e.target.value) })} />
+                <Input type="number" min={1} max={10} value={editItem.value ?? 0} onChange={e => setEditItem({ ...editItem, value: Number(e.target.value) })} />
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>
-                <Input value={editItem.description} onChange={e => setEditItem({ ...editItem, description: e.target.value })} placeholder="Short description..." />
+                <Input value={editItem.description || ""} onChange={e => setEditItem({ ...editItem, description: e.target.value })} placeholder="Short description..." />
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>Save</Button>
+            <Button onClick={handleSave} disabled={upsert.isPending}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
