@@ -139,7 +139,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
         category: emp.category || null,
         work_location_country: emp.workLocationCountry || null,
         pay_currency: emp.payCurrency || null,
-        payroll_setup_id: emp.payrollSetupId || null,
+        // payroll_setup_id intentionally omitted — local mock IDs (e.g. "ps-3") aren't valid UUIDs.
       });
       if (error) throw error;
     },
