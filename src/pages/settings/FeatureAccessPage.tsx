@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, THeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Accordion,
   AccordionContent,
@@ -41,13 +41,13 @@ import {
   useBulkApplyPreset,
   useUpsertPreset,
   useDeletePreset,
+  useUserFeatureToggles,
   computeEffective,
   type FeatureDefinition,
   type FeaturePreset,
 } from "@/hooks/queries/useFeatureAccess";
 
-// shadcn table re-import (the codebase exports TableHeader as THeader-like — fall back to safe name)
-import { TableHeader } from "@/components/ui/table";
+// (TableHeader imported above)
 
 interface EmployeeWithUser {
   id: string;
@@ -266,7 +266,7 @@ function ToggleEditorSheet({
   presets: FeaturePreset[];
   onClose: () => void;
 }) {
-  const { data: userToggles = [] } = useUserToggles(userId);
+  const { data: userToggles = [] } = useUserFeatureToggles(userId);
   const bulkSet = useBulkSetToggles();
   const bulkApply = useBulkApplyPreset();
 
@@ -424,13 +424,7 @@ function ToggleEditorSheet({
   );
 }
 
-// Local hook wrapper to avoid circular import in same file
-function useUserToggles(userId: string | null) {
-  // re-export from the hooks file
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { useUserFeatureToggles } = require("@/hooks/queries/useFeatureAccess");
-  return useUserFeatureToggles(userId);
-}
+// (useUserFeatureToggles imported at top)
 
 // =============================================================================
 // Preset manager

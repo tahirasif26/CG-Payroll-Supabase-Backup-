@@ -68,7 +68,7 @@ export default function MyAccessPage() {
                         className="flex items-center gap-3 text-sm py-1"
                       >
                         {on ? (
-                          <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                          <Check className="h-4 w-4 text-primary shrink-0" />
                         ) : (
                           <X className="h-4 w-4 text-muted-foreground shrink-0" />
                         )}
