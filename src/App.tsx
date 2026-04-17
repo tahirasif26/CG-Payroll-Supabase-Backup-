@@ -348,8 +348,8 @@ const App = () => {
           </AuditProvider>
           </PerformanceCycleProvider>
           </DeductionProvider>
-          </EmployeeProvider>
           </ReportingProvider>
+          </EmployeeProvider>
           </AssetProvider>
           </SeparationProvider>
           </ClientProvider>
