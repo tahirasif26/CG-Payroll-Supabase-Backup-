@@ -5,6 +5,7 @@ import { useThemeInit } from "@/hooks/useThemeInit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProvider, useRole } from "@/contexts/RoleContext";
 import { ClientProvider } from "@/contexts/ClientContext";
 import { SeparationProvider } from "@/contexts/SeparationContext";
@@ -89,7 +90,7 @@ function RouteRedirector() {
 }
 
 function AppRoutes() {
-  const { session, loading, isSuperAdmin } = useRole();
+  const { session, loading } = useRole();
 
   if (loading) {
     return (
@@ -120,70 +121,187 @@ function AppRoutes() {
     <AppLayout>
       <Routes>
         <Route path="/auth" element={<RouteRedirector />} />
-        <Route
-          path="/manage/clients"
-          element={isSuperAdmin ? <ClientManagementPage /> : <Navigate to="/" replace />}
-        />
+
+        {/* Super-admin only */}
+        <Route path="/manage/clients" element={
+          <ProtectedRoute requiredRole="super_admin"><ClientManagementPage /></ProtectedRoute>
+        } />
+
+        {/* Open to all logged-in users (page-level filtering) */}
         <Route path="/" element={<DashboardPage />} />
-        <Route path="/employees" element={<EmployeesPage />} />
-        <Route path="/payroll/setup" element={<PayrollSetupPage />} />
-        <Route path="/payroll/setup/new" element={<PayrollSetupEditorPage />} />
-        <Route path="/payroll/setup/:id/view" element={<PayrollSetupViewPage />} />
-        <Route path="/payroll/setup/:id" element={<PayrollSetupEditorPage />} />
-        <Route path="/payroll" element={<PayrollPage />} />
         <Route path="/payslips" element={<PayslipsPage />} />
-        <Route path="/compensation" element={<CompensationPage />} />
-        <Route path="/deductions" element={<DeductionsPage />} />
-        <Route path="/settings/deductions" element={<PayrollSettingsPage />} />
-        <Route path="/settings/tax" element={<PayrollSettingsPage />} />
-        <Route path="/loans" element={<LoansPage />} />
-        <Route path="/expenses" element={<ExpensesPage />} />
-        <Route path="/expense-analytics" element={<ExpenseAnalyticsPage />} />
-        <Route path="/advances" element={<AdvancesPage />} />
-        <Route path="/outstanding-advances" element={<OutstandingAdvancesPage />} />
-        <Route path="/expenses/gps" element={<GPSTrackingPage />} />
-        <Route path="/cost-allocation" element={<CostAllocationPage />} />
         <Route path="/leave" element={<LeavePage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/birthdays" element={<BirthdaysPage />} />
-        <Route path="/assets/inventory" element={<AssetInventoryPage />} />
-        <Route path="/assets/master-data" element={<AssetMasterDataPage />} />
-        <Route path="/assets/categories" element={<AssetMasterDataPage />} />
-        <Route path="/assets/store" element={<AssetStorePage />} />
-        <Route path="/assets/requests" element={<AssetRequestsPage />} />
-        <Route path="/assets/audits" element={<AssetAuditsPage />} />
-        <Route path="/assets/dashboard" element={<AssetDashboardPage />} />
         <Route path="/org-chart" element={<OrgChartPage />} />
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="/timesheets" element={<TimesheetsPage />} />
-        <Route path="/settings/payroll" element={<PayrollSettingsPage />} />
-        <Route path="/settings/compensation" element={<PayrollSettingsPage />} />
-        <Route path="/settings/company-structure" element={<CompanyStructurePage />} />
-        <Route path="/settings/job-titles" element={<CompanyStructurePage />} />
-        <Route path="/settings/departments" element={<CompanyStructurePage />} />
-        <Route path="/settings/divisions" element={<CompanyStructurePage />} />
-        <Route path="/settings/expense-categories" element={<ExpenseCategoriesPage />} />
-        <Route path="/settings/users" element={<ApprovalMatrixPage />} />
-        <Route path="/settings/approval-matrix" element={<ApprovalMatrixPage />} />
-        <Route path="/settings/currency" element={<Navigate to="/settings/company" replace />} />
-        <Route path="/settings/projects" element={<ProjectSettingsPage />} />
-        <Route path="/settings/company" element={<CompanyProfilePage />} />
-        <Route path="/settings/gl-codes" element={<CompanyProfilePage />} />
-        <Route path="/settings/reminders" element={<ReminderSettingsPage />} />
-        <Route path="/settings/company-policies" element={<CompanyPoliciesSettingsPage />} />
         <Route path="/company-policies" element={<CompanyPoliciesPage />} />
-        <Route path="/settings/eos-benefits" element={<PayrollSettingsPage />} />
-        <Route path="/settings/leave-types" element={<PayrollSettingsPage />} />
-        <Route path="/separations" element={<SeparationsPage />} />
-        <Route path="/analytics" element={<PayrollAnalyticsPage />} />
-        <Route path="/id-cards" element={<IDCardsPage />} />
-        <Route path="/access-management" element={<AccessManagementPage />} />
-        <Route path="/performance/ratings" element={<RatingsOverviewPage />} />
-        <Route path="/performance/calibration" element={<RatingCalibrationPage />} />
-        <Route path="/performance/self-assessment" element={<SelfAssessmentPage />} />
-        <Route path="/performance/peer-assessment" element={<PeerAssessmentPage />} />
-        <Route path="/performance/manager-assessment" element={<ManagerAssessmentPage />} />
-        <Route path="/performance/questionnaire" element={<QuestionnaireSettingsPage />} />
-        <Route path="/performance/assessment-ratings" element={<AssessmentRatingsPage />} />
+        <Route path="/assets/store" element={<AssetStorePage />} />
+        <Route path="/timesheets" element={<TimesheetsPage />} />
+
+        {/* Employees — admin/hr */}
+        <Route path="/employees" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><EmployeesPage /></ProtectedRoute>
+        } />
+
+        {/* Payroll — admin/hr */}
+        <Route path="/payroll/setup" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSetupPage /></ProtectedRoute>
+        } />
+        <Route path="/payroll/setup/new" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSetupEditorPage /></ProtectedRoute>
+        } />
+        <Route path="/payroll/setup/:id/view" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSetupViewPage /></ProtectedRoute>
+        } />
+        <Route path="/payroll/setup/:id" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSetupEditorPage /></ProtectedRoute>
+        } />
+        <Route path="/payroll" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollPage /></ProtectedRoute>
+        } />
+        <Route path="/compensation" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><CompensationPage /></ProtectedRoute>
+        } />
+        <Route path="/deductions" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><DeductionsPage /></ProtectedRoute>
+        } />
+        <Route path="/loans" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><LoansPage /></ProtectedRoute>
+        } />
+        <Route path="/expense-analytics" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><ExpenseAnalyticsPage /></ProtectedRoute>
+        } />
+        <Route path="/advances" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><AdvancesPage /></ProtectedRoute>
+        } />
+        <Route path="/outstanding-advances" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><OutstandingAdvancesPage /></ProtectedRoute>
+        } />
+        <Route path="/expenses/gps" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><GPSTrackingPage /></ProtectedRoute>
+        } />
+        <Route path="/cost-allocation" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><CostAllocationPage /></ProtectedRoute>
+        } />
+
+        {/* Settings (admin/hr) */}
+        <Route path="/settings/deductions" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/tax" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/payroll" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/compensation" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/company-structure" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyStructurePage /></ProtectedRoute>
+        } />
+        <Route path="/settings/job-titles" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyStructurePage /></ProtectedRoute>
+        } />
+        <Route path="/settings/departments" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyStructurePage /></ProtectedRoute>
+        } />
+        <Route path="/settings/divisions" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyStructurePage /></ProtectedRoute>
+        } />
+        <Route path="/settings/expense-categories" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><ExpenseCategoriesPage /></ProtectedRoute>
+        } />
+        {/* Admin only — user mgmt + approval matrix */}
+        <Route path="/settings/users" element={
+          <ProtectedRoute requiredRole="admin"><ApprovalMatrixPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/approval-matrix" element={
+          <ProtectedRoute requiredRole="admin"><ApprovalMatrixPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/currency" element={<Navigate to="/settings/company" replace />} />
+        <Route path="/settings/projects" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><ProjectSettingsPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/company" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyProfilePage /></ProtectedRoute>
+        } />
+        <Route path="/settings/gl-codes" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyProfilePage /></ProtectedRoute>
+        } />
+        <Route path="/settings/reminders" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><ReminderSettingsPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/company-policies" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyPoliciesSettingsPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/eos-benefits" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
+        } />
+        <Route path="/settings/leave-types" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
+        } />
+
+        {/* Assets */}
+        <Route path="/assets/inventory" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="assets.view_inventory"><AssetInventoryPage /></ProtectedRoute>
+        } />
+        <Route path="/assets/master-data" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><AssetMasterDataPage /></ProtectedRoute>
+        } />
+        <Route path="/assets/categories" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><AssetMasterDataPage /></ProtectedRoute>
+        } />
+        <Route path="/assets/requests" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="assets.approve_requests"><AssetRequestsPage /></ProtectedRoute>
+        } />
+        <Route path="/assets/audits" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><AssetAuditsPage /></ProtectedRoute>
+        } />
+        <Route path="/assets/dashboard" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><AssetDashboardPage /></ProtectedRoute>
+        } />
+
+        {/* Other admin/hr */}
+        <Route path="/projects" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><ProjectsPage /></ProtectedRoute>
+        } />
+        <Route path="/separations" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><SeparationsPage /></ProtectedRoute>
+        } />
+        <Route path="/analytics" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollAnalyticsPage /></ProtectedRoute>
+        } />
+        <Route path="/id-cards" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><IDCardsPage /></ProtectedRoute>
+        } />
+        <Route path="/access-management" element={
+          <ProtectedRoute requiredRole="admin"><AccessManagementPage /></ProtectedRoute>
+        } />
+
+        {/* Performance */}
+        <Route path="/performance/ratings" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><RatingsOverviewPage /></ProtectedRoute>
+        } />
+        <Route path="/performance/calibration" element={
+          <ProtectedRoute requiredRole="admin"><RatingCalibrationPage /></ProtectedRoute>
+        } />
+        <Route path="/performance/self-assessment" element={
+          <ProtectedRoute requiredFeature="performance.self_assessment"><SelfAssessmentPage /></ProtectedRoute>
+        } />
+        <Route path="/performance/peer-assessment" element={
+          <ProtectedRoute requiredFeature="performance.peer_assessment"><PeerAssessmentPage /></ProtectedRoute>
+        } />
+        <Route path="/performance/manager-assessment" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><ManagerAssessmentPage /></ProtectedRoute>
+        } />
+        <Route path="/performance/questionnaire" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><QuestionnaireSettingsPage /></ProtectedRoute>
+        } />
+        <Route path="/performance/assessment-ratings" element={
+          <ProtectedRoute requiredRole={["admin", "hr"]}><AssessmentRatingsPage /></ProtectedRoute>
+        } />
+
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
