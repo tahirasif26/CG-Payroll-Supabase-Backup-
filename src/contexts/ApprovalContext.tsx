@@ -5,7 +5,6 @@
 // PayrollPage, ApprovalMatrixPage) keep working with their numeric mock employee
 // IDs until they're migrated to real auth user UUIDs.
 import { createContext, useContext, useState, ReactNode } from "react";
-import { employees } from "@/data/mockData";
 
 export interface ApprovalRole {
   id: string;
