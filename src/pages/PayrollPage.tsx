@@ -2,7 +2,23 @@ import React, { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { payrollRuns, loans, expenses, taxConfigs as initialTaxConfigs } from "@/data/mockData";
+import { loans, expenses, taxConfigs as initialTaxConfigs } from "@/data/mockData";
+import { usePayrollRuns, type PayrollRunRow } from "@/hooks/queries/usePayroll";
+
+function adaptPayrollRun(r: PayrollRunRow): PayrollRun {
+  return {
+    id: r.id,
+    month: r.month,
+    year: r.year,
+    status: (r.status as PayrollRun["status"]) ?? "draft",
+    totalGross: Number(r.total_gross) || 0,
+    totalDeductions: Number(r.total_deductions) || 0,
+    totalNet: Number(r.total_net) || 0,
+    runDate: r.run_date,
+    employeeCount: r.employee_count ?? 0,
+    payrollSetupId: r.payroll_setup_id ?? undefined,
+  };
+}
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { PayrollRun, OneOffAdjustment, Employee, Deduction, TaxConfig } from "@/types/hcm";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
