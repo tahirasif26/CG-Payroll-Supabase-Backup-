@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useRole } from "@/contexts/RoleContext";
-import { leaveRequests, expenses, payrollRuns, getUpcomingBirthdays } from "@/data/mockData";
+import { leaveRequests, expenses, getUpcomingBirthdays } from "@/data/mockData";
+import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { MetricCard } from "@/components/dashboards/MetricCard";
@@ -31,8 +32,9 @@ export default function EmployeeDashboard() {
   const upcomingLeaves = myLeaves.filter((l) => l.status === "approved" || l.status === "pending").slice(0, 3);
   const myExpenses = expenses.filter((e) => e.employeeId === currentEmployeeId);
   const pendingExpenses = myExpenses.filter((e) => e.status === "pending");
-  const lastPayslip = payrollRuns.find((p) => p.status === "completed");
-  const recentPayslips = payrollRuns.filter((p) => p.status === "completed").slice(0, 3);
+  const { data: payrollRuns = [] } = usePayrollRuns({ status: "completed" });
+  const lastPayslip = payrollRuns[0];
+  const recentPayslips = payrollRuns.slice(0, 3);
   const birthdays = getUpcomingBirthdays(activeEmps).slice(0, 5);
 
   const annualBalance = 21;

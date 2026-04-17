@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Users, DollarSign, Calendar, TrendingUp, Gift, Clock, X, Briefcase, Receipt, Package, Award, BarChart3, Settings, FileText } from "lucide-react";
-import { payrollRuns, leaveRequests, expenses, getUpcomingBirthdays } from "@/data/mockData";
+import { leaveRequests, expenses, getUpcomingBirthdays } from "@/data/mockData";
+import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,13 +35,14 @@ export default function AdminDashboard() {
   const { profile } = useRole();
   const CHART_COLORS = useMemo(() => getChartColors(), []);
   const activeEmps = useActiveEmployees();
+  const { data: payrollRuns = [] } = usePayrollRuns();
   const lastPayroll = payrollRuns.find((p) => p.status === "completed");
   const pendingLeaves = leaveRequests.filter((l) => l.status === "pending").length;
   const pendingExpenses = expenses.filter((e) => e.status === "pending");
   const pendingApprovals = pendingLeaves + pendingExpenses.length;
   const birthdays = getUpcomingBirthdays(activeEmps).slice(0, 5);
 
-  const monthPayrollTotal = payrollRuns.filter((p) => p.status === "completed").reduce((s, p) => s + p.totalNet, 0);
+  const monthPayrollTotal = payrollRuns.filter((p) => p.status === "completed").reduce((s, p) => s + (Number(p.total_net) || 0), 0);
   const newHires = activeEmps.filter((e) => {
     const d = new Date(e.joiningDate);
     const now = new Date();
