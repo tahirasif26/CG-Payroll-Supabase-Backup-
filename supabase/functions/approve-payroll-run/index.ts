@@ -64,6 +64,18 @@ Deno.serve(async (req) => {
     // Service-role client for trusted reads/writes after we've verified the caller.
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    const { data: rlOk } = await admin.rpc("check_rate_limit", {
+      _key: `user:${user.id}:fn:approve-payroll-run`,
+      _max: 20,
+      _window_seconds: 60,
+    });
+    if (rlOk === false) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // 1. Load the run
     const { data: run, error: runErr } = await admin
       .from("payroll_runs")

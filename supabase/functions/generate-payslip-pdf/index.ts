@@ -45,6 +45,13 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
+    const { data: rlOk } = await admin.rpc("check_rate_limit", {
+      _key: `user:${userData.user.id}:fn:generate-payslip-pdf`,
+      _max: 50,
+      _window_seconds: 60,
+    });
+    if (rlOk === false) return json({ error: "Rate limit exceeded" }, 429);
+
     const [{ data: emp }, { data: run }, { data: client }] = await Promise.all([
       admin.from("employees").select("*").eq("id", line.employee_id).maybeSingle(),
       admin.from("payroll_runs").select("*").eq("id", line.payroll_run_id).maybeSingle(),
