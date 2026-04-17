@@ -1,3 +1,7 @@
+// TODO (Step 9 follow-up): migrate this page to useEmployees() from
+// @/hooks/queries/useEmployees and split into EmployeeList / EmployeeStats /
+// EmployeeFilters / EmployeeDetailDrawer. Currently still reads from mockData
+// for backward compat with other unmigrated pages.
 import { useState, useMemo } from "react";
 import { useAudit } from "@/contexts/AuditContext";
 import { format, differenceInDays, isPast, parseISO } from "date-fns";

@@ -14,8 +14,8 @@ import { cn } from "@/lib/utils";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { useCreateEmployee } from "@/hooks/queries/useEmployees";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Check, AlertCircle, User, Briefcase, DollarSign, Calendar, FileText, Monitor,
   ChevronLeft, Calculator, Settings, Phone, MapPin, CreditCard, GraduationCap, Heart,
@@ -76,6 +76,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const { activeTypes } = useEmployeeTypes();
   const { setups } = usePayrollSetups();
   const { addEmployee, employees: allEmployees } = useEmployees();
+  const createEmployee = useCreateEmployee();
   const { toast } = useToast();
   const activeSetups = setups.filter(s => s.status === "active");
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
@@ -171,33 +172,57 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
       compensation: [],
     };
 
+    // Keep legacy in-memory context populated so unmigrated pages still see this employee.
     addEmployee(newEmp);
 
-    // Send invite email if toggle is on
-    if (sendInvite) {
+    // Persist to Supabase (multi-tenant). Best-effort: if it fails, the user is
+    // still added to the local context — but we surface a toast so they know.
+    setInviting(true);
+    try {
       const inviteEmail = form.workEmail?.trim() || form.personalEmail?.trim() || form.email.trim();
-      if (inviteEmail) {
-        setInviting(true);
-        try {
-          const { data: inviteData, error: inviteError } = await supabase.functions.invoke("invite-employee", {
-            body: {
-              email: inviteEmail,
-              full_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-              employee_id: newEmp.empId,
-            },
-          });
-          if (inviteError) throw inviteError;
-          toast({ title: "Employee Added & Invited", description: `${newEmp.firstName} ${newEmp.lastName} onboarded. Login invite sent to ${inviteEmail}.` });
-        } catch (err: any) {
-          toast({ title: "Employee Added", description: `Onboarded successfully, but invite email failed: ${err?.message || "Unknown error"}. You can resend later.`, variant: "destructive" });
-        } finally {
-          setInviting(false);
-        }
-      } else {
-        toast({ title: "Employee Added", description: `${newEmp.firstName} ${newEmp.lastName} has been onboarded. No email provided for invite.` });
-      }
-    } else {
-      toast({ title: "Employee Added", description: `${newEmp.firstName} ${newEmp.lastName} has been successfully onboarded.` });
+      await createEmployee.mutateAsync({
+        emp_id: newEmp.empId,
+        first_name: newEmp.firstName,
+        last_name: newEmp.lastName,
+        email: inviteEmail,
+        phone: form.personalPhone || undefined,
+        department: form.department || undefined,
+        designation: form.designation || undefined,
+        category: form.category || undefined,
+        division: form.division || undefined,
+        joining_date: newEmp.joiningDate,
+        date_of_birth: form.dateOfBirth || undefined,
+        gender: form.gender || undefined,
+        marital_status: form.maritalStatus || undefined,
+        nationality: form.nationality || undefined,
+        religion: form.religion || undefined,
+        work_location_country: form.workLocationCountry || undefined,
+        work_location_city: form.workLocationCity || undefined,
+        payroll_setup_id: form.payrollSetupId || undefined,
+        reports_to: form.reportsTo || undefined,
+        address: {
+          address_line1: form.addressLine1, address_line2: form.addressLine2,
+          city: form.city, state: form.state, country: form.country, postal_code: form.postalCode,
+        },
+        bank: {
+          bank_name: form.bankName, bank_country: form.bankCountry, swift_code: form.swiftCode,
+          iban: form.iban, bank_currency: form.bankCurrency, beneficiary_name: form.beneficiaryName,
+          bank_address: form.bankAddress,
+        },
+        emergency_contact: {
+          name: form.emergencyName, relation: form.emergencyRelation,
+          phone: form.emergencyPhone, email: form.emergencyEmail,
+        },
+        education: education.map(e => ({
+          institution: e.institution, degree: e.degree, field_of_study: e.field,
+          start_year: e.year ? Number(e.year) : undefined,
+        })),
+        send_invite: sendInvite,
+      });
+    } catch (err) {
+      // Toast already raised by the mutation's onError. Fall through so we still close.
+    } finally {
+      setInviting(false);
     }
 
     resetAndClose();
