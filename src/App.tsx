@@ -114,6 +114,26 @@ function RouteRedirector() {
 function AppRoutes() {
   const { session, loading } = useRole();
 
+  // CRITICAL: Detect invite/recovery URLs BEFORE auth check.
+  // The URL hash (#access_token=...&type=invite|recovery) MUST land on
+  // ResetPasswordPage so the user can set a password — regardless of session state.
+  const hash = typeof window !== "undefined" ? window.location.hash : "";
+  const isInviteOrRecovery =
+    hash.includes("type=invite") ||
+    hash.includes("type=recovery") ||
+    hash.includes("access_token");
+  const isOnResetPasswordRoute =
+    typeof window !== "undefined" && window.location.pathname === "/reset-password";
+
+  if (isInviteOrRecovery || isOnResetPasswordRoute) {
+    return (
+      <Routes>
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="*" element={<ResetPasswordPage />} />
+      </Routes>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
