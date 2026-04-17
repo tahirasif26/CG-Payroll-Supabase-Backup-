@@ -63,7 +63,7 @@ function toDbUpdates(updates: Partial<Employee>): Record<string, unknown> {
   if (updates.category !== undefined) out.category = updates.category;
   if (updates.workLocationCountry !== undefined) out.work_location_country = updates.workLocationCountry;
   if (updates.payCurrency !== undefined) out.pay_currency = updates.payCurrency;
-  if (updates.payrollSetupId !== undefined) out.payroll_setup_id = updates.payrollSetupId;
+  // payrollSetupId skipped — mock IDs (e.g. "ps-3") aren't valid UUIDs for the DB.
   return out;
 }
 
