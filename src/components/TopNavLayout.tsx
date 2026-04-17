@@ -172,13 +172,53 @@ const ADMIN_ONLY_MODULES = new Set(["Payroll", "Assets", "Settings"]);
 export function TopNavLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, signOut, role, appRole } = useRole();
+  const { profile, signOut, role, appRole, isSuperAdmin } = useRole();
 
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
   const isEmployee = appRole === "employee";
-  const visibleModules = primaryModules.filter(m => !isEmployee || !ADMIN_ONLY_MODULES.has(m.label));
+  const superAdminModules = [
+    {
+      label: "Clients",
+      subtitle: "Tenants",
+      icon: Briefcase,
+      iconColor: "text-primary",
+      iconBg: "bg-primary/10",
+      path: "/manage/clients",
+      exact: false,
+      hasPending: false,
+      matchPaths: ["/manage/clients"],
+      subNav: [],
+    },
+    {
+      label: "Feature Access",
+      subtitle: "Toggles",
+      icon: ShieldCheck,
+      iconColor: "text-violet-600",
+      iconBg: "bg-violet-50 dark:bg-violet-950/40",
+      path: "/settings/feature-access",
+      exact: false,
+      hasPending: false,
+      matchPaths: ["/settings/feature-access"],
+      subNav: [],
+    },
+    {
+      label: "Users",
+      subtitle: "Management",
+      icon: Users,
+      iconColor: "text-emerald-600",
+      iconBg: "bg-emerald-50 dark:bg-emerald-950/40",
+      path: "/settings/users",
+      exact: false,
+      hasPending: false,
+      matchPaths: ["/settings/users"],
+      subNav: [],
+    },
+  ];
+  const visibleModules = isSuperAdmin
+    ? superAdminModules
+    : primaryModules.filter(m => !isEmployee || !ADMIN_ONLY_MODULES.has(m.label));
 
   const activeModule = visibleModules.find(m => isModuleActive(m, location.pathname));
   const subNav = activeModule?.subNav || [];
