@@ -238,7 +238,7 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Primary Module Navigation - Icon Buttons */}
-      {isAdmin && (
+      {appRole && (
         <div className="border-b bg-card sticky top-12 z-20">
           <div className="px-4">
             <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide py-3 justify-center">
@@ -295,7 +295,7 @@ export function TopNavLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Sub-Navigation Bar */}
-      {isAdmin && subNav.length > 0 && (
+      {appRole && subNav.length > 0 && (
         <div className="border-b bg-card/80 backdrop-blur-sm sticky top-[6.75rem] z-10">
           <div className="px-6">
             <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mb-px">
