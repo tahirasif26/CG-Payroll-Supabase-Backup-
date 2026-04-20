@@ -66,17 +66,7 @@ function getDocExpiryStatus(expiryDate?: string, reminderDays: number = 30): Doc
   return "active";
 }
 
-const initialEmployeeDocs: Record<string, EmployeeDoc[]> = {
-  "1": [
-    { id: "d1", name: "National ID", type: "Identity", uploadedDate: "2021-03-15", expiryDate: "2025-06-01", version: 1, previousVersions: [] },
-    { id: "d2", name: "Employment Contract", type: "Contract", uploadedDate: "2021-03-15", version: 1, previousVersions: [] },
-    { id: "d3", name: "Work Permit", type: "Certificate", uploadedDate: "2023-01-10", expiryDate: "2024-12-31", version: 2, previousVersions: [{ name: "Work Permit", uploadedDate: "2021-03-15", expiryDate: "2022-12-31" }] },
-  ],
-  "2": [
-    { id: "d4", name: "National ID", type: "Identity", uploadedDate: "2019-06-01", expiryDate: "2029-06-01", version: 1, previousVersions: [] },
-    { id: "d5", name: "Tax Certificate", type: "Tax", uploadedDate: "2024-01-10", expiryDate: "2025-12-31", version: 1, previousVersions: [] },
-  ],
-};
+const initialEmployeeDocs: Record<string, EmployeeDoc[]> = {};
 
 // Extended employee data (mock - in production this would come from DB)
 interface ExtendedEmployeeData {
