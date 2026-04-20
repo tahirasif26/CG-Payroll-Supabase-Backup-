@@ -189,7 +189,7 @@ function filterItems(items: NavItem[], role: AppRole, hasFeature: (k: string) =>
       }
       return { ...item, children };
     })
-    .filter((x): x is NavItem => x !== null);
+    .filter((x: NavItem | null): x is NavItem => x !== null);
 }
 
 export function filterNavigationForUser(
