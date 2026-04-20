@@ -3941,6 +3941,7 @@ export type Database = {
         Args: { _key: string; _max: number; _window_seconds: number }
         Returns: boolean
       }
+      generate_emp_id: { Args: { _client_id: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
       get_user_features: {
         Args: { _user_id: string }
