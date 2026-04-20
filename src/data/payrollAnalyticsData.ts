@@ -1,46 +1,14 @@
-// Stub: real payroll analytics now read from Supabase via React Query hooks.
-// This file is retained only to satisfy legacy imports in PayrollAnalyticsPage
-// until that page is migrated. All exports return empty data so the page
-// renders its empty-state branches instead of crashing.
+// Stub: real payroll analytics will be migrated to Supabase via React Query hooks.
+// Retained only to satisfy legacy imports in PayrollAnalyticsPage. All exports
+// return empty data so the page renders empty-state branches instead of crashing.
+// TODO: Migrate PayrollAnalyticsPage to a hooks-based implementation and delete this file.
 
-export interface PayrollEmployeeDetail {
-  employeeId: string;
-  name: string;
-  department?: string;
-  designation?: string;
-  gross: number;
-  net: number;
-  deductions: number;
-  status?: string;
-}
-
-export interface CompletedRun {
-  id: string;
-  label: string;
-  month: string;
-  year: number;
-  totalGross: number;
-  totalNet: number;
-  totalDeductions: number;
-  employeeCount: number;
-  details: PayrollEmployeeDetail[];
-}
-
-export interface ComparisonResult {
-  current: CompletedRun | null;
-  previous: CompletedRun | null;
-  deltas: {
-    gross: number;
-    net: number;
-    deductions: number;
-    headcount: number;
-    grossPct: number;
-    netPct: number;
-  };
-  joiners: PayrollEmployeeDetail[];
-  leavers: PayrollEmployeeDetail[];
-  changed: Array<{ employee: PayrollEmployeeDetail; previousNet: number; deltaNet: number }>;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PayrollEmployeeDetail = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type CompletedRun = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ComparisonResult = any;
 
 export function getCompletedRuns(): CompletedRun[] {
   return [];
@@ -48,11 +16,20 @@ export function getCompletedRuns(): CompletedRun[] {
 
 export function computeComparison(_currentId?: string, _previousId?: string): ComparisonResult {
   return {
-    current: null,
-    previous: null,
-    deltas: { gross: 0, net: 0, deductions: 0, headcount: 0, grossPct: 0, netPct: 0 },
-    joiners: [],
-    leavers: [],
-    changed: [],
+    baseRun: null,
+    compareRun: null,
+    bridge: [],
+    departmentBreakdown: [],
+    compareGross: 0,
+    grossChange: 0,
+    compareNet: 0,
+    netChange: 0,
+    compareDeductions: 0,
+    deductionsChange: 0,
+    compareHeadcount: 0,
+    headcountChange: 0,
+    newHires: [],
+    separations: [],
+    salaryChanges: [],
   };
 }
