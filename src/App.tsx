@@ -171,22 +171,22 @@ function AppRoutes() {
             <ProtectedRoute requiredRole="super_admin"><ClientManagementPage /></ProtectedRoute>
           } />
 
-          {/* Open to all logged-in users (page-level filtering) */}
+          {/* Open to all logged-in client users (admin/hr/employee) — super_admin redirected */}
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/payslips" element={<PayslipsPage />} />
-          <Route path="/leave" element={<LeavePage />} />
-          <Route path="/expenses" element={<ExpensesPage />} />
-          <Route path="/birthdays" element={<BirthdaysPage />} />
-          <Route path="/org-chart" element={<OrgChartPage />} />
-          <Route path="/company-policies" element={<CompanyPoliciesPage />} />
-          <Route path="/assets/store" element={<AssetStorePage />} />
-          <Route path="/timesheets" element={<TimesheetsPage />} />
-          <Route path="/my-access" element={<MyAccessPage />} />
+          <Route path="/payslips" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><PayslipsPage /></ProtectedRoute>} />
+          <Route path="/leave" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><LeavePage /></ProtectedRoute>} />
+          <Route path="/expenses" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><ExpensesPage /></ProtectedRoute>} />
+          <Route path="/birthdays" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><BirthdaysPage /></ProtectedRoute>} />
+          <Route path="/org-chart" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><OrgChartPage /></ProtectedRoute>} />
+          <Route path="/company-policies" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><CompanyPoliciesPage /></ProtectedRoute>} />
+          <Route path="/assets/store" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><AssetStorePage /></ProtectedRoute>} />
+          <Route path="/timesheets" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><TimesheetsPage /></ProtectedRoute>} />
+          <Route path="/my-access" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><MyAccessPage /></ProtectedRoute>} />
           <Route path="/onboarding" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><OnboardingPage /></ProtectedRoute>
           } />
           <Route path="/settings/feature-access" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><FeatureAccessPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["super_admin","admin","hr"]}><FeatureAccessPage /></ProtectedRoute>
           } />
 
           {/* Employees — admin/hr */}
@@ -265,7 +265,7 @@ function AppRoutes() {
           } />
           {/* Admin only — user mgmt + approval matrix */}
           <Route path="/settings/users" element={
-            <ProtectedRoute requiredRole="admin"><ApprovalMatrixPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["super_admin","admin"]}><ApprovalMatrixPage /></ProtectedRoute>
           } />
           <Route path="/settings/approval-matrix" element={
             <ProtectedRoute requiredRole="admin"><ApprovalMatrixPage /></ProtectedRoute>
