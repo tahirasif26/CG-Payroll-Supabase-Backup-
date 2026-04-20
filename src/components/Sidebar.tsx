@@ -142,6 +142,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                   const active = isItemActive(location.pathname, item);
                   const hasChildren = !!item.children?.length;
                   const open = openParents.has(item.path);
+                  const label = appRole ? resolveLabel(item, appRole) : item.label;
 
                   return (
                     <li key={item.path}>
@@ -149,13 +150,12 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                         onClick={() => {
                           if (hasChildren && !collapsed) {
                             toggleParent(item.path);
-                            // Also navigate to first child or self
                             if (!active) handleNav(item.path);
                           } else {
                             handleNav(item.path);
                           }
                         }}
-                        title={collapsed ? item.label : undefined}
+                        title={collapsed ? label : undefined}
                         className={cn(
                           "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors relative group",
                           collapsed && "justify-center px-0",
@@ -167,10 +167,10 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                         {active && (
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] bg-primary rounded-r-full" />
                         )}
-                        <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
+                        {Icon && <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />}
                         {!collapsed && (
                           <>
-                            <span className="flex-1 text-left truncate">{item.label}</span>
+                            <span className="flex-1 text-left truncate">{label}</span>
                             {hasChildren && (
                               <ChevronDown
                                 className={cn(
@@ -183,13 +183,13 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                         )}
                       </button>
 
-                      {/* Children */}
                       {hasChildren && open && !collapsed && (
                         <ul className="mt-0.5 ml-5 pl-3 border-l border-sidebar-border space-y-0.5">
                           {item.children!.map((child) => {
                             const childActive =
                               location.pathname === child.path ||
                               location.pathname.startsWith(child.path + "/");
+                            const childLabel = appRole ? resolveLabel(child, appRole) : child.label;
                             return (
                               <li key={child.path}>
                                 <button
@@ -201,7 +201,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                                       : "text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                   )}
                                 >
-                                  {child.label}
+                                  {childLabel}
                                 </button>
                               </li>
                             );
