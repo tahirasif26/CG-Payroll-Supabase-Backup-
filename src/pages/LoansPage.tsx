@@ -27,7 +27,7 @@ const empName = (l: DbLoan) =>
 
 export default function LoansPage() {
   const { canUserApproveHR } = useApprovals();
-  const { currentEmployeeId } = useRole();
+  const { currentEmployeeId, hasFeature } = useRole();
   const { toast } = useToast();
 
   const { data: loanList = [], isLoading } = useLoans();
@@ -470,9 +470,11 @@ export default function LoansPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Employee Loans" description="Track and manage employee loan disbursements.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />New Loan
-        </Button>
+        {hasFeature("loans.request") && (
+          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />New Loan
+          </Button>
+        )}
       </PageHeader>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

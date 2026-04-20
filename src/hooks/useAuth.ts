@@ -88,7 +88,19 @@ export function useAuth() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Refresh features when the tab regains focus, so admin-side toggle changes
+    // take effect quickly for the affected employee.
+    const onFocus = () => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) loadAuthData(session);
+      });
+    };
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   const signOut = async () => {

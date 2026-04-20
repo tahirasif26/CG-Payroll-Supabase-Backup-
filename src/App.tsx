@@ -173,14 +173,14 @@ function AppRoutes() {
 
           {/* Open to all logged-in client users (admin/hr/employee) — super_admin redirected */}
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/payslips" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><PayslipsPage /></ProtectedRoute>} />
-          <Route path="/leave" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><LeavePage /></ProtectedRoute>} />
-          <Route path="/expenses" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><ExpensesPage /></ProtectedRoute>} />
-          <Route path="/birthdays" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><BirthdaysPage /></ProtectedRoute>} />
-          <Route path="/org-chart" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><OrgChartPage /></ProtectedRoute>} />
-          <Route path="/company-policies" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><CompanyPoliciesPage /></ProtectedRoute>} />
-          <Route path="/assets/store" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><AssetStorePage /></ProtectedRoute>} />
-          <Route path="/timesheets" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><TimesheetsPage /></ProtectedRoute>} />
+          <Route path="/payslips" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="payroll.view_own_payslip"><PayslipsPage /></ProtectedRoute>} />
+          <Route path="/leave" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="leave.view_balance"><LeavePage /></ProtectedRoute>} />
+          <Route path="/expenses" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="expenses.view_own"><ExpensesPage /></ProtectedRoute>} />
+          <Route path="/birthdays" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="employees.view_birthdays"><BirthdaysPage /></ProtectedRoute>} />
+          <Route path="/org-chart" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="employees.view_org_chart"><OrgChartPage /></ProtectedRoute>} />
+          <Route path="/company-policies" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="policies.view"><CompanyPoliciesPage /></ProtectedRoute>} />
+          <Route path="/assets/store" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="assets.request_new"><AssetStorePage /></ProtectedRoute>} />
+          <Route path="/timesheets" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="timesheets.submit"><TimesheetsPage /></ProtectedRoute>} />
           <Route path="/my-access" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><MyAccessPage /></ProtectedRoute>} />
           <Route path="/onboarding" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><OnboardingPage /></ProtectedRoute>

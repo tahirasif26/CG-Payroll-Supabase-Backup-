@@ -28,7 +28,7 @@ import { availableCurrencies } from "@/data/settingsData";
 
 export default function AdvancesPage() {
   const { employees } = useEmployees();
-  const { role } = useRole();
+  const { role, hasFeature } = useRole();
   const { toast } = useToast();
   const { advances, addAdvance, approveAdvance, rejectAdvance } = useAdvances();
   const { data: payrollRuns = [] } = usePayrollRuns();
@@ -158,7 +158,9 @@ export default function AdvancesPage() {
   return (
     <div>
       <PageHeader title="Employee Advances" description="Manage business advance requests and settlements">
-        <Button onClick={() => setFormOpen(true)}><Plus className="h-4 w-4 mr-1" />Request Advance</Button>
+        {hasFeature("advances.request") && (
+          <Button onClick={() => setFormOpen(true)}><Plus className="h-4 w-4 mr-1" />Request Advance</Button>
+        )}
       </PageHeader>
 
       {/* KPI Summary Cards */}
