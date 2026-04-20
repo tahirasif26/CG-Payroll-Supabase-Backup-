@@ -26,11 +26,10 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
   const location = useLocation();
   const navigate = useNavigate();
 
-  const sections: NavSection[] = useMemo(() => {
-    if (isSuperAdmin) return superAdminNav;
-    if (appRole === "employee") return employeeNav;
-    return adminNav; // admin / hr
-  }, [isSuperAdmin, appRole]);
+  const sections = useMemo(() => {
+    if (!appRole) return [];
+    return filterNavigationForUser(navigationConfig, appRole, (k) => isSuperAdmin || useRoleHasFeature(k));
+  }, [appRole, isSuperAdmin]);
 
   // Track which expandable parents are open
   const [openParents, setOpenParents] = useState<Set<string>>(() => {
