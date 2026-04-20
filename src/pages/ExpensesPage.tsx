@@ -82,7 +82,7 @@ interface UiExpense {
 export default function ExpensesPage() {
   const { employees } = useEmployees();
   const { canUserApproveExpense } = useApprovals();
-  const { currentEmployeeId, clientId } = useRole();
+  const { currentEmployeeId, clientId, hasFeature } = useRole();
   const { getEmployeeAdvances, useAdvanceAmount } = useAdvances();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -376,16 +376,22 @@ export default function ExpensesPage() {
       <div className="flex items-center justify-between">
         <div />
         <div className="flex items-center gap-2">
-          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold"
-            onClick={() => { resetForm(); setNewOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" /> New Claim
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setAutoScanOpen(true)}>
-            <ScanLine className="h-4 w-4 mr-2" /> Auto Scan
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => navigate("/expenses/gps")}>
-            <Navigation className="h-4 w-4 mr-2" /> GPS Tracking
-          </Button>
+          {hasFeature("expenses.submit") && (
+            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold"
+              onClick={() => { resetForm(); setNewOpen(true); }}>
+              <Plus className="h-4 w-4 mr-2" /> New Claim
+            </Button>
+          )}
+          {hasFeature("expenses.submit") && (
+            <Button size="sm" variant="outline" onClick={() => setAutoScanOpen(true)}>
+              <ScanLine className="h-4 w-4 mr-2" /> Auto Scan
+            </Button>
+          )}
+          {hasFeature("expenses.submit") && (
+            <Button size="sm" variant="outline" onClick={() => navigate("/expenses/gps")}>
+              <Navigation className="h-4 w-4 mr-2" /> GPS Tracking
+            </Button>
+          )}
         </div>
       </div>
 

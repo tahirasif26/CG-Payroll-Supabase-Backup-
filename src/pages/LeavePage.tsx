@@ -6,6 +6,7 @@ import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useClient } from "@/contexts/ClientContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -45,6 +46,7 @@ interface DBLeaveRequest {
 export default function LeavePage() {
   const activeEmps = useActiveEmployees();
   const { clientId } = useAuth();
+  const { hasFeature } = useRole();
   const { leaveTypes, initializeBalances, balances, recordLeaveUsage } = useLeaveTypes();
   const { client } = useClient();
   const { getSetupById } = usePayrollSetups();
@@ -221,9 +223,11 @@ export default function LeavePage() {
     <div className="space-y-6">
       <PageHeader title="Leave Management" description="Track and approve employee leave requests.">
         <div className="flex gap-2">
-          <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />New Request
-          </Button>
+          {hasFeature("leave.apply") && (
+            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />New Request
+            </Button>
+          )}
         </div>
       </PageHeader>
 
