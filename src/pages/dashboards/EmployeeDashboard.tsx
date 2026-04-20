@@ -1,26 +1,44 @@
-import { Calendar, DollarSign, Receipt, Package, Plus, Clock, FileText, Gift, Megaphone, Award, FileWarning, Download, BookOpen } from "lucide-react";
+import { Calendar, DollarSign, Receipt, Package, Plus, Clock, FileText, Gift, Megaphone, FileWarning, Download, BookOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useRole } from "@/contexts/RoleContext";
-import { leaveRequests, expenses, getUpcomingBirthdays } from "@/data/mockData";
-import { usePayrollRuns } from "@/hooks/queries/usePayroll";
-import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
-import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { useMyDashboard } from "@/hooks/queries/useMyDashboard";
 import { MetricCard } from "@/components/dashboards/MetricCard";
 import { DashboardSection } from "@/components/dashboards/DashboardSection";
 import { QuickActionButton } from "@/components/dashboards/QuickActionButton";
 
-// TODO: replace with React Query in Prompt 2 (data currently from mockData contexts)
+function fmtMoney(amount: number | null | undefined, currency = "SAR") {
+  if (amount == null) return "—";
+  return `${currency} ${Number(amount).toLocaleString()}`;
+}
+
+function daysUntil(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return Math.ceil((d.getTime() - Date.now()) / 86400000);
+}
 
 export default function EmployeeDashboard() {
-  const { employees } = useEmployeesCtx();
-  const { profile, hasFeature, currentEmployeeId } = useRole();
-  const activeEmps = useActiveEmployees();
-  const emp = employees.find((e) => e.id === currentEmployeeId);
+  const { profile, hasFeature } = useRole();
+  const {
+    employee,
+    latestPayslip,
+    recentPayslips,
+    annualLeaveBalance,
+    sickLeaveBalance,
+    upcomingLeaves,
+    expenses,
+    pendingExpenseCount,
+    assets,
+    documents,
+    holidays,
+    birthdays,
+    profileCompletion,
+  } = useMyDashboard();
 
-  const firstName = (profile?.full_name?.split(" ")[0]) ?? emp?.firstName ?? "there";
+  const firstName = employee?.first_name || profile?.full_name?.split(" ")[0] || "there";
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
@@ -28,25 +46,10 @@ export default function EmployeeDashboard() {
     return "Good evening";
   })();
 
-  const myLeaves = leaveRequests.filter((l) => l.employeeId === currentEmployeeId);
-  const upcomingLeaves = myLeaves.filter((l) => l.status === "approved" || l.status === "pending").slice(0, 3);
-  const myExpenses = expenses.filter((e) => e.employeeId === currentEmployeeId);
-  const pendingExpenses = myExpenses.filter((e) => e.status === "pending");
-  const { data: payrollRuns = [] } = usePayrollRuns({ status: "completed" });
-  const lastPayslip = payrollRuns[0];
-  const recentPayslips = payrollRuns.slice(0, 3);
-  const birthdays = getUpcomingBirthdays(activeEmps).slice(0, 5);
-
-  const annualBalance = 21;
-  const sickBalance = 10;
-
-  // Profile completion (basic heuristic on mock data)
-  const profileCompletion = (() => {
-    if (!emp) return 60;
-    const fields = [emp.firstName, emp.lastName, emp.email, emp.phone, emp.dateOfBirth, emp.department];
-    const filled = fields.filter(Boolean).length;
-    return Math.round((filled / fields.length) * 100);
-  })();
+  const expiringDocs = documents
+    .map((d: any) => ({ ...d, daysLeft: daysUntil(d.expiry_date) }))
+    .filter((d) => d.daysLeft != null && d.daysLeft <= 180)
+    .slice(0, 4);
 
   return (
     <div className="space-y-6">
@@ -60,7 +63,7 @@ export default function EmployeeDashboard() {
         </div>
       </div>
 
-      {profileCompletion < 100 && (
+      {employee && profileCompletion < 100 && (
         <Card className="bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-900/40">
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-4">
@@ -78,20 +81,48 @@ export default function EmployeeDashboard() {
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {hasFeature("leave.view_balance") && (
-          <MetricCard label="Leave Balance" value={`${annualBalance}d`} sublabel={`Sick: ${sickBalance}d`} icon={Calendar} accent="blue" />
+          <MetricCard
+            label="Leave Balance"
+            value={annualLeaveBalance ? `${annualLeaveBalance.remaining}d` : "—"}
+            sublabel={sickLeaveBalance != null ? `Sick: ${sickLeaveBalance}d` : "No allocation yet"}
+            icon={Calendar}
+            accent="blue"
+          />
         )}
-        {hasFeature("payroll.view_own_payslip") && lastPayslip && (
-          <MetricCard label="Latest Payslip" value={`SAR ${(Number(lastPayslip.total_net) || 0).toLocaleString()}`} sublabel={`${lastPayslip.month} ${lastPayslip.year}`} icon={DollarSign} accent="emerald" />
+        {hasFeature("payroll.view_own_payslip") && (
+          <MetricCard
+            label="Latest Payslip"
+            value={latestPayslip ? fmtMoney((latestPayslip as any).net_pay, (latestPayslip as any).pay_currency) : "—"}
+            sublabel={
+              latestPayslip && (latestPayslip as any).payroll_runs
+                ? `${(latestPayslip as any).payroll_runs.month} ${(latestPayslip as any).payroll_runs.year}`
+                : "No payslip yet"
+            }
+            icon={DollarSign}
+            accent="emerald"
+          />
         )}
         {hasFeature("expenses.view_own") && (
-          <MetricCard label="My Expenses" value={pendingExpenses.length} sublabel={`${myExpenses.length} total this year`} icon={Receipt} accent="amber" />
+          <MetricCard
+            label="My Expenses"
+            value={pendingExpenseCount}
+            sublabel={`${expenses.length} total recent`}
+            icon={Receipt}
+            accent="amber"
+          />
         )}
         {hasFeature("assets.view_my_assets") && (
-          <MetricCard label="My Assets" value={2} sublabel="Assigned to you" icon={Package} accent="purple" />
+          <MetricCard
+            label="My Assets"
+            value={assets.length}
+            sublabel={assets.length === 0 ? "None assigned" : "Assigned to you"}
+            icon={Package}
+            accent="purple"
+          />
         )}
       </div>
 
-      {/* Quick action buttons */}
+      {/* Quick actions */}
       <DashboardSection title="Quick Actions">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {hasFeature("leave.apply") && <QuickActionButton icon={Plus} label="Apply Leave" to="/leave" accent="blue" />}
@@ -111,14 +142,14 @@ export default function EmployeeDashboard() {
                 <p className="py-6 text-center text-sm text-muted-foreground">No upcoming leaves.</p>
               ) : (
                 <ul className="divide-y divide-border/40">
-                  {upcomingLeaves.map((l) => (
+                  {upcomingLeaves.map((l: any) => (
                     <li key={l.id} className="flex items-center gap-3 p-2.5">
                       <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
                         <Calendar className="h-3.5 w-3.5 text-blue-700 dark:text-blue-300" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium capitalize">{l.type} leave</p>
-                        <p className="text-[11px] text-muted-foreground">{l.days} days · {l.startDate}</p>
+                        <p className="text-sm font-medium capitalize">{l.leave_types?.name ?? "Leave"}</p>
+                        <p className="text-[11px] text-muted-foreground">{l.days} days · {l.start_date}</p>
                       </div>
                       <Badge variant="outline" className="text-[10px] capitalize">{l.status}</Badge>
                     </li>
@@ -132,110 +163,167 @@ export default function EmployeeDashboard() {
         {hasFeature("payroll.view_own_payslip") && (
           <DashboardSection title="Recent Payslips" viewAllHref="/payslips">
             <Card><CardContent className="p-2">
-              <ul className="divide-y divide-border/40">
-                {recentPayslips.map((p) => (
-                  <li key={p.id} className="flex items-center gap-3 p-2.5">
-                    <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
-                      <DollarSign className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{p.month} {p.year}</p>
-                      <p className="text-[11px] text-muted-foreground">SAR {(Number(p.total_net) || 0).toLocaleString()}</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7"><Download className="h-3.5 w-3.5" /></Button>
-                  </li>
-                ))}
-              </ul>
+              {recentPayslips.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  No payslips yet — your first one will appear after the next payroll run.
+                </p>
+              ) : (
+                <ul className="divide-y divide-border/40">
+                  {recentPayslips.map((p: any) => (
+                    <li key={p.id} className="flex items-center gap-3 p-2.5">
+                      <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+                        <DollarSign className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">
+                          {p.payroll_runs ? `${p.payroll_runs.month} ${p.payroll_runs.year}` : "Payslip"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">{fmtMoney(p.net_pay, p.pay_currency)}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7"><Download className="h-3.5 w-3.5" /></Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent></Card>
           </DashboardSection>
         )}
 
-        {hasFeature("profile.upload_documents") && (
-          <DashboardSection title="My Documents">
+        {hasFeature("expenses.view_own") && (
+          <DashboardSection title="Recent Expenses" viewAllHref="/expenses">
+            <Card><CardContent className="p-2">
+              {expenses.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">No expenses submitted yet.</p>
+              ) : (
+                <ul className="divide-y divide-border/40">
+                  {expenses.slice(0, 5).map((e: any) => (
+                    <li key={e.id} className="flex items-center gap-3 p-2.5">
+                      <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+                        <Receipt className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {e.description || e.expense_categories?.name || "Expense"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {fmtMoney(e.amount, e.currency)} · {e.expense_date}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] capitalize">{e.status}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent></Card>
+          </DashboardSection>
+        )}
+
+        {hasFeature("assets.view_my_assets") && (
+          <DashboardSection title="My Assets" viewAllHref="/assets/inventory">
+            <Card><CardContent className="p-2">
+              {assets.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">No assets assigned.</p>
+              ) : (
+                <ul className="divide-y divide-border/40">
+                  {assets.slice(0, 5).map((a: any) => (
+                    <li key={a.id} className="flex items-center gap-3 p-2.5">
+                      <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
+                        <Package className="h-3.5 w-3.5 text-purple-700 dark:text-purple-300" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{a.name}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {a.asset_tag} · {a.asset_categories?.name ?? "Uncategorised"}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] capitalize">{a.status}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent></Card>
+          </DashboardSection>
+        )}
+
+        {hasFeature("profile.upload_documents") && expiringDocs.length > 0 && (
+          <DashboardSection title="Document Expiry">
             <Card><CardContent className="p-2">
               <ul className="divide-y divide-border/40">
-                {[
-                  { doc: "Passport", expires: "12 months" },
-                  { doc: "Visa", expires: "8 months", warn: true },
-                  { doc: "Iqama", expires: "3 months", warn: true },
-                ].map((d, i) => (
-                  <li key={i} className="flex items-center gap-3 p-2.5">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${d.warn ? "bg-amber-100 dark:bg-amber-900/40" : "bg-muted"}`}>
-                      <FileWarning className={`h-3.5 w-3.5 ${d.warn ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{d.doc}</p>
-                      <p className="text-[11px] text-muted-foreground">Expires in {d.expires}</p>
-                    </div>
-                  </li>
-                ))}
+                {expiringDocs.map((d) => {
+                  const warn = (d.daysLeft ?? 999) <= 90;
+                  return (
+                    <li key={d.id} className="flex items-center gap-3 p-2.5">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${warn ? "bg-amber-100 dark:bg-amber-900/40" : "bg-muted"}`}>
+                        <FileWarning className={`h-3.5 w-3.5 ${warn ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{d.doc_type}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {d.daysLeft! < 0 ? "Expired" : `Expires in ${d.daysLeft} days`}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </CardContent></Card>
           </DashboardSection>
         )}
 
-        <DashboardSection title="Holidays This Month">
+        <DashboardSection title="Upcoming Holidays">
           <Card><CardContent className="p-2">
-            <ul className="divide-y divide-border/40">
-              {[
-                { name: "Eid al-Fitr Holiday", date: "Apr 21" },
-                { name: "National Day Observed", date: "Apr 28" },
-              ].map((h, i) => (
-                <li key={i} className="flex items-center gap-3 p-2.5">
-                  <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
-                    <Calendar className="h-3.5 w-3.5 text-purple-700 dark:text-purple-300" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{h.name}</p>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">{h.date}</p>
-                </li>
-              ))}
-            </ul>
+            {holidays.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No upcoming holidays.</p>
+            ) : (
+              <ul className="divide-y divide-border/40">
+                {holidays.map((h: any) => (
+                  <li key={h.id} className="flex items-center gap-3 p-2.5">
+                    <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
+                      <Calendar className="h-3.5 w-3.5 text-purple-700 dark:text-purple-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{h.name}</p>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {new Date(h.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent></Card>
         </DashboardSection>
 
         {hasFeature("employees.view_birthdays") && (
           <DashboardSection title="Team Birthdays" viewAllHref="/birthdays">
             <Card><CardContent className="p-2">
-              <ul className="divide-y divide-border/40">
-                {birthdays.map((b) => (
-                  <li key={b.id} className="flex items-center gap-3 p-2.5">
-                    <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
-                      <Gift className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{b.firstName} {b.lastName}</p>
-                      <p className="text-[11px] text-muted-foreground">{b.department}</p>
-                    </div>
-                    <p className="text-[11px] font-medium">{b.daysUntil === 0 ? "🎉 Today" : `in ${b.daysUntil}d`}</p>
-                  </li>
-                ))}
-              </ul>
+              {birthdays.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">No birthdays in the next 30 days.</p>
+              ) : (
+                <ul className="divide-y divide-border/40">
+                  {birthdays.map((b: any) => (
+                    <li key={b.id} className="flex items-center gap-3 p-2.5">
+                      <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+                        <Gift className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{b.first_name} {b.last_name}</p>
+                        <p className="text-[11px] text-muted-foreground">{b.department ?? ""}</p>
+                      </div>
+                      <p className="text-[11px] font-medium">{b.daysUntil === 0 ? "🎉 Today" : `in ${b.daysUntil}d`}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent></Card>
           </DashboardSection>
         )}
-      </div>
 
-      {/* Performance + Company */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {hasFeature("performance.view_own_ratings") && (
-          <DashboardSection title="My Performance">
-            <Card><CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
-                  <Award className="h-5 w-5 text-purple-700 dark:text-purple-300" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Latest rating</p>
-                  <p className="text-lg font-bold">Exceeds Expectations</p>
-                  <p className="text-[11px] text-muted-foreground">2025 H2 cycle</p>
-                </div>
-              </div>
-              <div className="rounded-md border border-amber-200/50 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/40 p-2.5 text-xs">
-                <p className="font-semibold">1 self-assessment pending</p>
-                <p className="text-muted-foreground">2026 H1 cycle — due in 7 days</p>
-              </div>
+        {hasFeature("policies.view") && (
+          <DashboardSection title="Company Policies" viewAllHref="/company-policies">
+            <Card><CardContent className="p-4 text-center text-sm text-muted-foreground">
+              <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              View all company policies
             </CardContent></Card>
           </DashboardSection>
         )}
@@ -246,30 +334,6 @@ export default function EmployeeDashboard() {
             No announcements right now.
           </CardContent></Card>
         </DashboardSection>
-
-        {hasFeature("policies.view") && (
-          <DashboardSection title="Latest Policies" viewAllHref="/company-policies">
-            <Card><CardContent className="p-2">
-              <ul className="divide-y divide-border/40">
-                {[
-                  { name: "Code of Conduct", updated: "Updated last week" },
-                  { name: "Leave Policy 2026", updated: "Updated 2 weeks ago" },
-                  { name: "Travel & Expense Policy", updated: "Updated last month" },
-                ].map((p, i) => (
-                  <li key={i} className="flex items-center gap-3 p-2.5 hover:bg-muted/30 rounded-md">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
-                      <BookOpen className="h-3.5 w-3.5 text-blue-700 dark:text-blue-300" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{p.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{p.updated}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </CardContent></Card>
-          </DashboardSection>
-        )}
       </div>
     </div>
   );
