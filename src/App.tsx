@@ -265,7 +265,7 @@ function AppRoutes() {
           } />
           {/* Admin only — user mgmt + approval matrix */}
           <Route path="/settings/users" element={
-            <ProtectedRoute requiredRole="admin"><ApprovalMatrixPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["super_admin","admin"]}><ApprovalMatrixPage /></ProtectedRoute>
           } />
           <Route path="/settings/approval-matrix" element={
             <ProtectedRoute requiredRole="admin"><ApprovalMatrixPage /></ProtectedRoute>
