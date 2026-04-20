@@ -247,10 +247,11 @@ export function useCreateEmployee() {
     },
     onSuccess: ({ employee, invite }) => {
       qc.invalidateQueries({ queryKey: ["employees"] });
+      const idLabel = employee.emp_id ? ` (ID: ${employee.emp_id})` : "";
       if (invite.ok) {
         toast({
           title: "Employee added — invite sent",
-          description: `${employee.first_name} ${employee.last_name} must click the link in the email sent to ${employee.email} to set a password before they can sign in.`,
+          description: `${employee.first_name} ${employee.last_name}${idLabel} must click the link in the email sent to ${employee.email} to set a password before they can sign in.`,
         });
       } else {
         toast({
