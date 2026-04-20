@@ -80,7 +80,8 @@ export function useEmployee(id: string | undefined) {
 }
 
 export interface CreateEmployeeInput {
-  emp_id: string;
+  /** Optional — if omitted, the database trigger auto-generates a unique ID per client. */
+  emp_id?: string;
   first_name: string;
   last_name: string;
   email: string;
