@@ -35,21 +35,30 @@ export function ProtectedRoute({
     return <Navigate to="/auth" replace />;
   }
 
-  // Super admin bypasses all checks
+  // Super admin scoping: only allowed on routes with no role requirement
+  // OR routes that explicitly include "super_admin" in requiredRole.
+  // Client-scoped routes (admin/hr/employee) are blocked → redirect to dashboard.
   if (isSuperAdmin) {
-    return <>{children}</>;
-  }
-
-  // Role check
-  if (requiredRole) {
-    const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    if (!appRole || !allowed.includes(appRole)) {
-      return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
+    if (!requiredRole) {
+      // Still respect feature checks below
+    } else {
+      const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+      if (!allowed.includes("super_admin")) {
+        return <Navigate to="/" replace />;
+      }
+    }
+  } else {
+    // Role check (non-super-admin)
+    if (requiredRole) {
+      const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+      if (!appRole || !allowed.includes(appRole)) {
+        return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
+      }
     }
   }
 
-  // Feature check
-  if (requiredFeature && !hasFeature(requiredFeature)) {
+  // Feature check (applies to everyone except super_admin, who bypasses features)
+  if (!isSuperAdmin && requiredFeature && !hasFeature(requiredFeature)) {
     return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
   }
 

@@ -5,7 +5,7 @@ import { useRole } from "@/contexts/RoleContext";
 
 export function AccessDenied() {
   const navigate = useNavigate();
-  const { signOut } = useRole();
+  const { signOut, isSuperAdmin } = useRole();
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
@@ -15,12 +15,16 @@ export function AccessDenied() {
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">Access Denied</h1>
-          <p className="text-sm text-muted-foreground">
-            You don't have permission to view this page.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            If you think this is a mistake, contact your administrator.
-          </p>
+          {isSuperAdmin ? (
+            <p className="text-sm text-muted-foreground">
+              This is a client-specific area. Super admin accounts manage clients globally, not individual company data.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">You don't have permission to view this page.</p>
+              <p className="text-sm text-muted-foreground">If you think this is a mistake, contact your administrator.</p>
+            </>
+          )}
         </div>
         <div className="flex items-center justify-center gap-3">
           <Button onClick={() => navigate("/")}>Go to Dashboard</Button>
