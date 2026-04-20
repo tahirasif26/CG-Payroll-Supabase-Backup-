@@ -22,14 +22,14 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
-  const { appRole, isSuperAdmin, profile, signOut, role } = useRole();
+  const { appRole, isSuperAdmin, profile, signOut, role, hasFeature } = useRole();
   const location = useLocation();
   const navigate = useNavigate();
 
   const sections = useMemo(() => {
     if (!appRole) return [];
-    return filterNavigationForUser(navigationConfig, appRole, (k) => isSuperAdmin || useRoleHasFeature(k));
-  }, [appRole, isSuperAdmin]);
+    return filterNavigationForUser(navigationConfig, appRole, hasFeature);
+  }, [appRole, hasFeature]);
 
   // Track which expandable parents are open
   const [openParents, setOpenParents] = useState<Set<string>>(() => {
