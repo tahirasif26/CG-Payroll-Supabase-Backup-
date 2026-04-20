@@ -109,12 +109,7 @@ export const expenseCategories: ExpenseCategory[] = [
   { id: "5", name: "Office Supplies", maxAmount: 500, requiresApproval: false, isActive: true },
 ];
 
-export const userPermissions: UserPermission[] = [
-  { id: "1", userId: "7", userName: "Layla Qasim", role: "admin", canApproveExpenses: true, canApproveLeave: true, canRunPayroll: true, canManageEmployees: true },
-  { id: "2", userId: "2", userName: "Omar Al-Faisal", role: "manager", canApproveExpenses: true, canApproveLeave: true, canRunPayroll: false, canManageEmployees: false },
-  { id: "3", userId: "4", userName: "Khalid Nasser", role: "manager", canApproveExpenses: true, canApproveLeave: true, canRunPayroll: false, canManageEmployees: false },
-  { id: "4", userId: "8", userName: "Tariq Zaman", role: "manager", canApproveExpenses: false, canApproveLeave: true, canRunPayroll: false, canManageEmployees: false },
-];
+export const userPermissions: UserPermission[] = [];
 
 export const availableCurrencies: CurrencySetting[] = [
   { code: "SAR", name: "Saudi Riyal", symbol: "SAR" },

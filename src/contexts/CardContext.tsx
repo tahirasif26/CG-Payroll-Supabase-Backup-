@@ -63,11 +63,7 @@ export function CardProvider({ children }: { children: React.ReactNode }) {
 
   const [enabledEmployees, setEnabledEmployees] = useState<Record<string, { birthday: boolean; anniversary: boolean }>>({});
 
-  const [history, setHistory] = useState<CardHistoryEntry[]>([
-    { id: "h1", employeeId: "1", employeeName: "Aisha Rahman", occasion: "birthday", dateSent: "2025-07-12", designIndex: 0, designName: "Confetti Burst", status: "sent" },
-    { id: "h2", employeeId: "4", employeeName: "Khalid Nasser", occasion: "anniversary", dateSent: "2025-09-20", designIndex: 6, designName: "Starlight", status: "sent" },
-    { id: "h3", employeeId: "7", employeeName: "Layla Qasim", occasion: "eid", dateSent: "2025-04-01", designIndex: 12, designName: "Crescent Moon", status: "sent" },
-  ]);
+  const [history, setHistory] = useState<CardHistoryEntry[]>([]);
 
   const updateSettings = useCallback((partial: Partial<CardSettings>) => {
     setSettings(prev => ({ ...prev, ...partial }));

@@ -121,6 +121,42 @@ Deno.serve(async (req) => {
     const clientId = clientRow.id;
     const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || "";
 
+    // Seed per-client defaults (best-effort; failures are logged but don't block client creation).
+    // approval_roles + default feature_preset are seeded automatically by DB triggers.
+    try {
+      await Promise.all([
+        adminClient.from("leave_types").insert([
+          { client_id: clientId, name: "Annual Leave", code: "AL", days_per_year: 21, accrual_type: "yearly", max_carryforward: 10, requires_approval: true, is_active: true },
+          { client_id: clientId, name: "Sick Leave", code: "SL", days_per_year: 10, accrual_type: "yearly", max_carryforward: 0, requires_approval: false, is_active: true },
+          { client_id: clientId, name: "Compassionate Leave", code: "CL", days_per_year: 5, accrual_type: "yearly", max_carryforward: 0, requires_approval: true, is_active: true },
+          { client_id: clientId, name: "Unpaid Leave", code: "UL", days_per_year: 0, accrual_type: "none", max_carryforward: 0, requires_approval: true, is_active: true },
+        ]),
+        adminClient.from("asset_categories").insert([
+          { client_id: clientId, name: "Laptops", description: "Portable computers", status: "active" },
+          { client_id: clientId, name: "Monitors", description: "Desktop displays", status: "active" },
+          { client_id: clientId, name: "Mobile Phones", description: "Company phones", status: "active" },
+          { client_id: clientId, name: "Accessories", description: "Keyboards, mice, headsets", status: "active" },
+        ]),
+        adminClient.from("asset_conditions").insert([
+          { client_id: clientId, name: "New", status: "active" },
+          { client_id: clientId, name: "Good", status: "active" },
+          { client_id: clientId, name: "Used", status: "active" },
+          { client_id: clientId, name: "Damaged", status: "active" },
+          { client_id: clientId, name: "Under Maintenance", status: "active" },
+        ]),
+        adminClient.from("expense_categories").insert([
+          { client_id: clientId, name: "Travel", code: "TRAVEL", is_active: true },
+          { client_id: clientId, name: "Meals", code: "MEALS", is_active: true },
+          { client_id: clientId, name: "Office Supplies", code: "OFFICE", is_active: true },
+          { client_id: clientId, name: "Software", code: "SW", is_active: true },
+          { client_id: clientId, name: "Training", code: "TRAIN", is_active: true },
+          { client_id: clientId, name: "Other", code: "OTHER", is_active: true },
+        ]),
+      ]);
+    } catch (seedErr) {
+      console.error("create-client seed defaults error (non-fatal):", seedErr);
+    }
+
     // Invite admin
     const { data: invite, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(input.admin_email, {
       redirectTo: `${origin}/reset-password`,

@@ -66,17 +66,7 @@ function getDocExpiryStatus(expiryDate?: string, reminderDays: number = 30): Doc
   return "active";
 }
 
-const initialEmployeeDocs: Record<string, EmployeeDoc[]> = {
-  "1": [
-    { id: "d1", name: "National ID", type: "Identity", uploadedDate: "2021-03-15", expiryDate: "2025-06-01", version: 1, previousVersions: [] },
-    { id: "d2", name: "Employment Contract", type: "Contract", uploadedDate: "2021-03-15", version: 1, previousVersions: [] },
-    { id: "d3", name: "Work Permit", type: "Certificate", uploadedDate: "2023-01-10", expiryDate: "2024-12-31", version: 2, previousVersions: [{ name: "Work Permit", uploadedDate: "2021-03-15", expiryDate: "2022-12-31" }] },
-  ],
-  "2": [
-    { id: "d4", name: "National ID", type: "Identity", uploadedDate: "2019-06-01", expiryDate: "2029-06-01", version: 1, previousVersions: [] },
-    { id: "d5", name: "Tax Certificate", type: "Tax", uploadedDate: "2024-01-10", expiryDate: "2025-12-31", version: 1, previousVersions: [] },
-  ],
-};
+const initialEmployeeDocs: Record<string, EmployeeDoc[]> = {};
 
 // Extended employee data (mock - in production this would come from DB)
 interface ExtendedEmployeeData {
@@ -113,36 +103,7 @@ interface ExtendedEmployeeData {
   compensationHistory: { effectiveDate: string; components: { name: string; amount: number }[]; reason: string }[];
 }
 
-const extendedData: Record<string, ExtendedEmployeeData> = {
-  "1": {
-    gender: "Female", maritalStatus: "Single", religion: "Islam", nationality: "Saudi",
-    bankName: "Al Rajhi Bank", bankCountry: "Saudi Arabia", swiftCode: "RJHISARI", bankAddress: "Riyadh Main Branch", iban: "SA0380000000608010167519", bankCurrency: "SAR", beneficiaryName: "Aisha Rahman",
-    addressLine1: "123 King Fahd Road", addressLine2: "Apt 4B", city: "Riyadh", state: "Riyadh Province", country: "Saudi Arabia", postalCode: "11564",
-    personalPhone: "+966 50 123 4567", personalEmail: "aisha.personal@gmail.com",
-    emergencyName: "Ahmed Rahman", emergencyRelation: "Father", emergencyPhone: "+966 50 999 8888", emergencyEmail: "ahmed.rahman@gmail.com",
-    education: [{ degree: "Bachelor of Accounting", institution: "King Saud University", year: "2016", field: "Accounting" }],
-    dependants: [],
-    reportsTo: "Layla Qasim", workEmail: "aisha.rahman@cg.com", workLocationCity: "Riyadh", workLocationCountry: "Saudi Arabia", division: "Assurance",
-    compensationHistory: [
-      { effectiveDate: "2024-01-01", components: [{ name: "Basic Salary", amount: 10800 }, { name: "Housing Allowance", amount: 4500 }, { name: "Travel Allowance", amount: 900 }, { name: "Medical Allowance", amount: 900 }, { name: "Other Allowances", amount: 900 }], reason: "Annual Review" },
-      { effectiveDate: "2021-03-15", components: [{ name: "Basic Salary", amount: 9000 }, { name: "Housing Allowance", amount: 3750 }, { name: "Travel Allowance", amount: 750 }, { name: "Medical Allowance", amount: 750 }, { name: "Other Allowances", amount: 750 }], reason: "Joining" },
-    ],
-  },
-  "2": {
-    gender: "Male", maritalStatus: "Married", religion: "Islam", nationality: "Saudi",
-    bankName: "Saudi National Bank", bankCountry: "Saudi Arabia", swiftCode: "NCBKSAJE", bankAddress: "Jeddah Branch", iban: "SA4420000001234567891234", bankCurrency: "SAR", beneficiaryName: "Omar Al-Faisal",
-    addressLine1: "456 Tahlia Street", addressLine2: "", city: "Jeddah", state: "Makkah Province", country: "Saudi Arabia", postalCode: "21589",
-    personalPhone: "+966 55 234 5678", personalEmail: "omar.faisal@gmail.com",
-    emergencyName: "Nadia Al-Faisal", emergencyRelation: "Wife", emergencyPhone: "+966 55 111 2222", emergencyEmail: "nadia.faisal@gmail.com",
-    education: [{ degree: "Master of Taxation", institution: "KFUPM", year: "2018", field: "Tax Law" }, { degree: "Bachelor of Business", institution: "King Abdulaziz University", year: "2013", field: "Finance" }],
-    dependants: [{ name: "Lina Al-Faisal", relation: "Daughter", dateOfBirth: "2020-05-15" }, { name: "Adam Al-Faisal", relation: "Son", dateOfBirth: "2022-09-20" }],
-    reportsTo: "Layla Qasim", workEmail: "omar.alfaisal@cg.com", workLocationCity: "Riyadh", workLocationCountry: "Saudi Arabia", division: "Tax",
-    compensationHistory: [
-      { effectiveDate: "2024-07-01", components: [{ name: "Basic Salary", amount: 16800 }, { name: "Housing Allowance", amount: 7000 }, { name: "Travel Allowance", amount: 1400 }, { name: "Medical Allowance", amount: 1400 }, { name: "Other Allowances", amount: 1400 }], reason: "Promotion to Manager" },
-      { effectiveDate: "2019-06-01", components: [{ name: "Basic Salary", amount: 12000 }, { name: "Housing Allowance", amount: 5000 }, { name: "Travel Allowance", amount: 1000 }, { name: "Medical Allowance", amount: 1000 }, { name: "Other Allowances", amount: 1000 }], reason: "Joining" },
-    ],
-  },
-};
+const extendedData: Record<string, ExtendedEmployeeData> = {};
 
 function getExtData(empId: string): ExtendedEmployeeData {
   return extendedData[empId] || {
