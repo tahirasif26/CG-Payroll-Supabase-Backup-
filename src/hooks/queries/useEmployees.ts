@@ -127,36 +127,61 @@ export function useCreateEmployee() {
     mutationFn: async (input: CreateEmployeeInput) => {
       if (!clientId) throw new Error("No client context — cannot create employee.");
 
-      // 1. Insert employee row
+      const normalizedEmail = input.email.trim().toLowerCase();
+
+      // Pre-flight: friendly error if email already exists for this client
+      const { data: existing } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("client_id", clientId)
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+      if (existing) {
+        throw new Error(`An employee with email ${input.email} already exists in this company.`);
+      }
+
+      // 1. Insert employee row — let DB trigger generate emp_id if not provided
+      const insertPayload: Record<string, unknown> = {
+        client_id: clientId,
+        first_name: input.first_name,
+        last_name: input.last_name,
+        email: normalizedEmail,
+        phone: input.phone || null,
+        department: input.department || null,
+        designation: input.designation || null,
+        category: input.category || null,
+        division: input.division || null,
+        joining_date: input.joining_date || null,
+        date_of_birth: input.date_of_birth || null,
+        gender: input.gender || null,
+        marital_status: input.marital_status || null,
+        nationality: input.nationality || null,
+        religion: input.religion || null,
+        work_location_country: input.work_location_country || null,
+        work_location_city: input.work_location_city || null,
+        pay_currency: input.pay_currency || null,
+        payroll_setup_id: input.payroll_setup_id || null,
+        reports_to: input.reports_to || null,
+        status: "active",
+      };
+      if (input.emp_id && input.emp_id.trim()) {
+        insertPayload.emp_id = input.emp_id.trim();
+      }
+
       const { data: emp, error: empErr } = await supabase
         .from("employees")
-        .insert({
-          client_id: clientId,
-          emp_id: input.emp_id,
-          first_name: input.first_name,
-          last_name: input.last_name,
-          email: input.email,
-          phone: input.phone || null,
-          department: input.department || null,
-          designation: input.designation || null,
-          category: input.category || null,
-          division: input.division || null,
-          joining_date: input.joining_date || null,
-          date_of_birth: input.date_of_birth || null,
-          gender: input.gender || null,
-          marital_status: input.marital_status || null,
-          nationality: input.nationality || null,
-          religion: input.religion || null,
-          work_location_country: input.work_location_country || null,
-          work_location_city: input.work_location_city || null,
-          pay_currency: input.pay_currency || null,
-          payroll_setup_id: input.payroll_setup_id || null,
-          reports_to: input.reports_to || null,
-          status: "active",
-        })
+        .insert(insertPayload as never)
         .select()
         .single();
-      if (empErr) throw empErr;
+      if (empErr) {
+        if (empErr.message.includes("employees_client_id_email_key")) {
+          throw new Error("An employee with this email already exists in your company.");
+        }
+        if (empErr.message.includes("employees_client_id_emp_id_key")) {
+          throw new Error("Could not generate a unique employee ID. Please try again.");
+        }
+        throw empErr;
+      }
 
       // 2. Insert sub-records (best-effort, won't fail the whole op)
       const subInserts: Promise<unknown>[] = [];
