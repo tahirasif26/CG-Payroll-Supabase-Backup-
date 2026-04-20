@@ -1,161 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  LayoutDashboard, TrendingUp, Users, Network, Cake, CalendarDays,
-  Wallet, FileText, DollarSign, Calculator, Banknote,
-  Receipt, MapPin, PieChart, Briefcase,
-  Package, Store, Inbox, ClipboardCheck,
-  Star, UserCheck,
-  Clock, Scroll,
-  Settings, Building2, ShieldCheck, ChevronDown, ChevronLeft, ChevronRight,
-  X, type LucideIcon,
-} from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
-
-type NavChild = { label: string; path: string };
-type NavItem = {
-  icon: LucideIcon;
-  label: string;
-  path: string;
-  children?: NavChild[];
-};
-type NavSection = { label: string; items: NavItem[] };
-
-// Admin / HR navigation (full)
-const adminNav: NavSection[] = [
-  {
-    label: "Overview",
-    items: [
-      { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-      { icon: TrendingUp, label: "Payroll Analytics", path: "/analytics" },
-    ],
-  },
-  {
-    label: "People",
-    items: [
-      { icon: Users, label: "Employees", path: "/employees" },
-      { icon: Network, label: "Org Chart", path: "/org-chart" },
-      { icon: Cake, label: "Important Dates", path: "/birthdays" },
-      { icon: CalendarDays, label: "Leave Management", path: "/leave" },
-    ],
-  },
-  {
-    label: "Payroll & Finance",
-    items: [
-      {
-        icon: Wallet, label: "Payroll", path: "/payroll",
-        children: [
-          { label: "Payroll Setup", path: "/payroll/setup" },
-          { label: "Payroll Runs", path: "/payroll" },
-          { label: "End of Service", path: "/separations" },
-        ],
-      },
-      { icon: FileText, label: "Payslips", path: "/payslips" },
-      { icon: DollarSign, label: "Compensation", path: "/compensation" },
-      { icon: Calculator, label: "Deductions", path: "/deductions" },
-      {
-        icon: Banknote, label: "Loans & Advances", path: "/loans",
-        children: [
-          { label: "Loans", path: "/loans" },
-          { label: "Advances", path: "/advances" },
-          { label: "Outstanding Advances", path: "/outstanding-advances" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Expenses",
-    items: [
-      { icon: Receipt, label: "Expenses", path: "/expenses" },
-      { icon: MapPin, label: "Mileage & GPS", path: "/expenses/gps" },
-      { icon: PieChart, label: "Expense Analytics", path: "/expense-analytics" },
-      { icon: Briefcase, label: "Cost Allocation", path: "/cost-allocation" },
-    ],
-  },
-  {
-    label: "Assets",
-    items: [
-      { icon: PieChart, label: "Asset Dashboard", path: "/assets/dashboard" },
-      { icon: Package, label: "Inventory", path: "/assets/inventory" },
-      { icon: Store, label: "Asset Store", path: "/assets/store" },
-      { icon: Inbox, label: "Requests", path: "/assets/requests" },
-      { icon: ClipboardCheck, label: "Audits", path: "/assets/audits" },
-    ],
-  },
-  {
-    label: "Performance",
-    items: [
-      { icon: Star, label: "Ratings Overview", path: "/performance/ratings" },
-      { icon: UserCheck, label: "Self Assessment", path: "/performance/self-assessment" },
-      { icon: Users, label: "Peer Assessment", path: "/performance/peer-assessment" },
-      { icon: UserCheck, label: "Manager Assessment", path: "/performance/manager-assessment" },
-    ],
-  },
-  {
-    label: "Work",
-    items: [
-      { icon: Briefcase, label: "Projects", path: "/projects" },
-      { icon: Clock, label: "Timesheets", path: "/timesheets" },
-      { icon: Scroll, label: "Company Policies", path: "/company-policies" },
-    ],
-  },
-  {
-    label: "Settings",
-    items: [
-      {
-        icon: Settings, label: "Settings", path: "/settings/company",
-        children: [
-          { label: "Company Profile", path: "/settings/company" },
-          { label: "Company Structure", path: "/settings/company-structure" },
-          { label: "Payroll Settings", path: "/settings/payroll" },
-          { label: "Approval Matrix", path: "/settings/approval-matrix" },
-          { label: "Feature Access", path: "/settings/feature-access" },
-          { label: "Expense Categories", path: "/settings/expense-categories" },
-          { label: "Leave Types", path: "/settings/leave-types" },
-          { label: "Reminders", path: "/settings/reminders" },
-        ],
-      },
-    ],
-  },
-];
-
-// Super-admin navigation (SaaS only) — skip routes that don't exist yet
-const superAdminNav: NavSection[] = [
-  {
-    label: "Platform",
-    items: [
-      { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-      { icon: Building2, label: "Client Management", path: "/manage/clients" },
-      { icon: ShieldCheck, label: "Feature Access", path: "/settings/feature-access" },
-      { icon: Users, label: "System Users", path: "/settings/users" },
-    ],
-  },
-];
-
-// Employee self-service navigation
-const employeeNav: NavSection[] = [
-  {
-    label: "My Workspace",
-    items: [
-      { icon: LayoutDashboard, label: "My Dashboard", path: "/" },
-      { icon: FileText, label: "My Payslips", path: "/payslips" },
-      { icon: CalendarDays, label: "My Leave", path: "/leave" },
-      { icon: Receipt, label: "My Expenses", path: "/expenses" },
-      { icon: Package, label: "My Assets", path: "/assets/requests" },
-      { icon: Clock, label: "My Timesheets", path: "/timesheets" },
-      { icon: Star, label: "Performance", path: "/performance/self-assessment" },
-    ],
-  },
-  {
-    label: "Company",
-    items: [
-      { icon: Store, label: "Asset Store", path: "/assets/store" },
-      { icon: Scroll, label: "Company Policies", path: "/company-policies" },
-      { icon: Users, label: "Directory", path: "/org-chart" },
-    ],
-  },
-];
+import { navigationConfig, filterNavigationForUser, resolveLabel, type NavItem } from "@/lib/navigation";
 
 const COLLAPSE_KEY = "connecthr_sidebar_collapsed";
 
@@ -174,15 +22,14 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
-  const { appRole, isSuperAdmin, profile, signOut, role } = useRole();
+  const { appRole, isSuperAdmin, profile, signOut, role, hasFeature } = useRole();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const sections: NavSection[] = useMemo(() => {
-    if (isSuperAdmin) return superAdminNav;
-    if (appRole === "employee") return employeeNav;
-    return adminNav; // admin / hr
-  }, [isSuperAdmin, appRole]);
+  const sections = useMemo(() => {
+    if (!appRole) return [];
+    return filterNavigationForUser(navigationConfig, appRole, hasFeature);
+  }, [appRole, hasFeature]);
 
   // Track which expandable parents are open
   const [openParents, setOpenParents] = useState<Set<string>>(() => {
@@ -295,6 +142,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                   const active = isItemActive(location.pathname, item);
                   const hasChildren = !!item.children?.length;
                   const open = openParents.has(item.path);
+                  const label = appRole ? resolveLabel(item, appRole) : item.label;
 
                   return (
                     <li key={item.path}>
@@ -302,13 +150,12 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                         onClick={() => {
                           if (hasChildren && !collapsed) {
                             toggleParent(item.path);
-                            // Also navigate to first child or self
                             if (!active) handleNav(item.path);
                           } else {
                             handleNav(item.path);
                           }
                         }}
-                        title={collapsed ? item.label : undefined}
+                        title={collapsed ? label : undefined}
                         className={cn(
                           "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors relative group",
                           collapsed && "justify-center px-0",
@@ -320,10 +167,10 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                         {active && (
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] bg-primary rounded-r-full" />
                         )}
-                        <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
+                        {Icon && <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />}
                         {!collapsed && (
                           <>
-                            <span className="flex-1 text-left truncate">{item.label}</span>
+                            <span className="flex-1 text-left truncate">{label}</span>
                             {hasChildren && (
                               <ChevronDown
                                 className={cn(
@@ -336,13 +183,13 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                         )}
                       </button>
 
-                      {/* Children */}
                       {hasChildren && open && !collapsed && (
                         <ul className="mt-0.5 ml-5 pl-3 border-l border-sidebar-border space-y-0.5">
                           {item.children!.map((child) => {
                             const childActive =
                               location.pathname === child.path ||
                               location.pathname.startsWith(child.path + "/");
+                            const childLabel = appRole ? resolveLabel(child, appRole) : child.label;
                             return (
                               <li key={child.path}>
                                 <button
@@ -354,7 +201,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                                       : "text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                   )}
                                 >
-                                  {child.label}
+                                  {childLabel}
                                 </button>
                               </li>
                             );
