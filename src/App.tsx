@@ -186,7 +186,7 @@ function AppRoutes() {
             <ProtectedRoute requiredRole={["admin", "hr"]}><OnboardingPage /></ProtectedRoute>
           } />
           <Route path="/settings/feature-access" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><FeatureAccessPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["super_admin","admin","hr"]}><FeatureAccessPage /></ProtectedRoute>
           } />
 
           {/* Employees — admin/hr */}
