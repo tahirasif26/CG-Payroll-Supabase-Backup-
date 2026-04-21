@@ -131,6 +131,13 @@ export default function LeavePage() {
   const [newEnd, setNewEnd] = useState("");
   const [newReason, setNewReason] = useState("");
 
+  // Auto-fill employee for non-admin/HR users when opening the new request dialog
+  useEffect(() => {
+    if (newOpen && isEmployeeRole && currentEmpRow?.id && !newEmployee) {
+      setNewEmployee(currentEmpRow.id);
+    }
+  }, [newOpen, isEmployeeRole, currentEmpRow?.id, newEmployee]);
+
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
