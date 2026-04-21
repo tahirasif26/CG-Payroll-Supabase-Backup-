@@ -84,6 +84,8 @@ export function ImageUpload({ value, onChange, label = "Image", required = false
           <img
             src={value}
             alt="Preview"
+            loading="lazy"
+            decoding="async"
             className="w-full h-36 object-cover"
           />
           <Button
