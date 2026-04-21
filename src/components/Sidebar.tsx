@@ -81,7 +81,8 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
 
       <aside
         className={cn(
-          "h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-200 ease-out z-50",
+          "h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-50",
+          "transition-[width] duration-300 ease-in-out",
           // Desktop: in-flow, fixed width
           "hidden md:flex shrink-0",
           widthClass,
