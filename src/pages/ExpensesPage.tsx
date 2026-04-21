@@ -357,6 +357,7 @@ export default function ExpensesPage() {
           "Payment Method": exp.paymentMethod || "—",
         };
       });
+      const XLSX = await import("xlsx");
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Expenses");
