@@ -50,6 +50,7 @@ export interface CreateClientInput {
   status?: "trial" | "active";
   admin_full_name: string;
   admin_email: string;
+  enabled_modules?: string[];
 }
 
 export function useClients(filters?: ClientFilters) {

@@ -17,6 +17,7 @@ const BodySchema = z.object({
   status: z.enum(["trial", "active"]).optional().default("trial"),
   admin_full_name: z.string().trim().min(2).max(200),
   admin_email: z.string().trim().email().max(255),
+  enabled_modules: z.array(z.string().trim().min(1).max(64)).max(64).optional().default([]),
 });
 
 function slugify(s: string): string {
@@ -112,6 +113,7 @@ Deno.serve(async (req) => {
         base_currency: input.base_currency,
         subscription_plan: input.subscription_plan,
         status: input.status,
+        enabled_modules: input.enabled_modules ?? [],
         created_by: user.id,
       })
       .select()

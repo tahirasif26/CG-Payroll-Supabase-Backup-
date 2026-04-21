@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { z } from "zod";
-import { Building2, User, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Sparkles, Crown, Rocket } from "lucide-react";
+import { Building2, User, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Sparkles, Crown, Rocket, Layers } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
+import { useFeatureDefinitions, groupByModule } from "@/hooks/queries/useFeatureAccess";
+import { ModulePicker } from "@/components/permissions/ModulePicker";
 
 const COUNTRIES = [
   { code: "SA", name: "Saudi Arabia", tz: "Asia/Riyadh", currency: "SAR" },
@@ -49,7 +51,7 @@ const step2Schema = z.object({
   status: z.enum(["trial", "active"]),
 });
 
-type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema>;
+type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & { enabled_modules: string[] };
 
 const initialForm: FormState = {
   company_name: "",
@@ -62,6 +64,7 @@ const initialForm: FormState = {
   admin_email: "",
   subscription_plan: "starter",
   status: "trial",
+  enabled_modules: [],
 };
 
 interface Props {
@@ -74,6 +77,8 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const createClient = useCreateClient();
+  const { data: defs = [] } = useFeatureDefinitions();
+  const allModules = useMemo(() => groupByModule(defs), [defs]);
 
   const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -101,8 +106,11 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const handleSubmit = async () => {
     if (!validateStep(2)) return;
     try {
-      const payload: CreateClientInput = { ...form } as CreateClientInput;
-      await createClient.mutateAsync(payload);
+      const payload: CreateClientInput & { enabled_modules: string[] } = {
+        ...form,
+        enabled_modules: form.enabled_modules,
+      } as CreateClientInput & { enabled_modules: string[] };
+      await createClient.mutateAsync(payload as CreateClientInput);
       onOpenChange(false);
       setStep(1);
       setForm(initialForm);
@@ -129,7 +137,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-2 py-2">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div className={cn(
                 "h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-colors",
@@ -138,7 +146,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
               )}>
                 {step > s ? <CheckCircle2 className="h-4 w-4" /> : s}
               </div>
-              {s < 3 && <div className={cn("h-0.5 w-12", step > s ? "bg-primary" : "bg-border")} />}
+              {s < 4 && <div className={cn("h-0.5 w-8", step > s ? "bg-primary" : "bg-border")} />}
             </div>
           ))}
         </div>
@@ -237,6 +245,22 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
         {step === 3 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <Layers className="h-4 w-4" /> Modules
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select which modules this client will have access to. Leave all unchecked to enable everything.
+            </p>
+            <ModulePicker
+              modules={allModules}
+              selected={form.enabled_modules}
+              onChange={(next) => update({ enabled_modules: next })}
+            />
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <CheckCircle2 className="h-4 w-4" /> Review & Confirm
             </div>
             <ReviewSection title="Company">
@@ -253,6 +277,12 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
               <ReviewRow k="Plan" v={form.subscription_plan} className="capitalize" />
               <ReviewRow k="Status" v={form.status} className="capitalize" />
             </ReviewSection>
+            <ReviewSection title="Modules">
+              <ReviewRow
+                k="Enabled"
+                v={form.enabled_modules.length === 0 ? "All modules" : `${form.enabled_modules.length} selected`}
+              />
+            </ReviewSection>
             <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
               An invitation email will be sent to <strong>{form.admin_email}</strong> to set their password and access the platform.
             </p>
@@ -263,7 +293,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
           <Button variant="ghost" onClick={handleBack} disabled={step === 1 || createClient.isPending}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
-          {step < 3 ? (
+          {step < 4 ? (
             <Button onClick={handleNext}>
               Next <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
