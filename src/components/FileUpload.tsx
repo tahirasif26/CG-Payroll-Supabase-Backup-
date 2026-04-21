@@ -108,7 +108,7 @@ export function FileUpload({
       {previewUrl ? (
         <div className="relative rounded-lg border border-border overflow-hidden bg-muted/30">
           {isImage ? (
-            <img src={previewUrl} alt="Preview" className="w-full h-36 object-cover" />
+            <img src={previewUrl} alt="Preview" loading="lazy" decoding="async" className="w-full h-36 object-cover" />
           ) : (
             <a
               href={previewUrl}

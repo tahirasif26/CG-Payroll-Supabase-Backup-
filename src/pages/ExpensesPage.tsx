@@ -22,7 +22,7 @@ import {
   Plus, Search, Eye, CheckCircle2, XCircle, Pencil, Trash2,
   FileText, Paperclip, ScanLine, Navigation, Download, Loader2,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+// xlsx is dynamically imported in handleExport to keep it out of the initial bundle
 import { AutoScanDialog } from "@/components/expenses/AutoScanDialog";
 import { useNavigate } from "react-router-dom";
 import {
@@ -357,6 +357,7 @@ export default function ExpensesPage() {
           "Payment Method": exp.paymentMethod || "—",
         };
       });
+      const XLSX = await import("xlsx");
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Expenses");
