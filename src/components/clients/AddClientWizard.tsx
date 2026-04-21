@@ -51,7 +51,7 @@ const step2Schema = z.object({
   status: z.enum(["trial", "active"]),
 });
 
-type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema>;
+type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & { enabled_modules: string[] };
 
 const initialForm: FormState = {
   company_name: "",
@@ -64,6 +64,7 @@ const initialForm: FormState = {
   admin_email: "",
   subscription_plan: "starter",
   status: "trial",
+  enabled_modules: [],
 };
 
 interface Props {
@@ -76,6 +77,8 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const createClient = useCreateClient();
+  const { data: defs = [] } = useFeatureDefinitions();
+  const allModules = useMemo(() => groupByModule(defs), [defs]);
 
   const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
