@@ -845,6 +845,7 @@ export type Database = {
           country: string | null
           created_at: string
           created_by: string | null
+          enabled_modules: string[]
           id: string
           setup_completed_at: string | null
           setup_completed_steps: string[]
@@ -863,6 +864,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          enabled_modules?: string[]
           id?: string
           setup_completed_at?: string | null
           setup_completed_steps?: string[]
@@ -881,6 +883,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          enabled_modules?: string[]
           id?: string
           setup_completed_at?: string | null
           setup_completed_steps?: string[]
@@ -1845,6 +1848,7 @@ export type Database = {
           feature_key: string
           id: string
           module: string
+          module_key: string
           name: string
         }
         Insert: {
@@ -1854,6 +1858,7 @@ export type Database = {
           feature_key: string
           id?: string
           module: string
+          module_key: string
           name: string
         }
         Update: {
@@ -1863,6 +1868,7 @@ export type Database = {
           feature_key?: string
           id?: string
           module?: string
+          module_key?: string
           name?: string
         }
         Relationships: []
@@ -1920,6 +1926,7 @@ export type Database = {
       }
       feature_toggles: {
         Row: {
+          access_level: Database["public"]["Enums"]["feature_access_level"]
           client_id: string
           created_at: string
           enabled_by: string | null
@@ -1930,6 +1937,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_level?: Database["public"]["Enums"]["feature_access_level"]
           client_id: string
           created_at?: string
           enabled_by?: string | null
@@ -1940,6 +1948,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_level?: Database["public"]["Enums"]["feature_access_level"]
           client_id?: string
           created_at?: string
           enabled_by?: string | null
@@ -3941,8 +3950,20 @@ export type Database = {
         Args: { _key: string; _max: number; _window_seconds: number }
         Returns: boolean
       }
+      client_has_module: {
+        Args: { _client_id: string; _module_key: string }
+        Returns: boolean
+      }
       generate_emp_id: { Args: { _client_id: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
+      get_user_feature_access: {
+        Args: { _user_id: string }
+        Returns: {
+          access_level: Database["public"]["Enums"]["feature_access_level"]
+          feature_key: string
+          module_key: string
+        }[]
+      }
       get_user_features: {
         Args: { _user_id: string }
         Returns: {
@@ -3974,6 +3995,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "hr" | "employee" | "super_admin"
       client_status: "active" | "suspended" | "trial"
+      feature_access_level: "none" | "view" | "edit"
       subscription_plan: "starter" | "pro" | "enterprise"
     }
     CompositeTypes: {
@@ -4104,6 +4126,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "hr", "employee", "super_admin"],
       client_status: ["active", "suspended", "trial"],
+      feature_access_level: ["none", "view", "edit"],
       subscription_plan: ["starter", "pro", "enterprise"],
     },
   },
