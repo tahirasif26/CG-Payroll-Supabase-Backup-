@@ -7,6 +7,7 @@ import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useClient } from "@/contexts/ClientContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/contexts/RoleContext";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -46,7 +47,9 @@ interface DBLeaveRequest {
 export default function LeavePage() {
   const activeEmps = useActiveEmployees();
   const { clientId } = useAuth();
-  const { hasFeature } = useRole();
+  const { hasFeature, appRole } = useRole();
+  const { data: currentEmpRow } = useCurrentEmployee();
+  const isEmployeeRole = appRole === "employee";
   const { leaveTypes, initializeBalances, balances, recordLeaveUsage } = useLeaveTypes();
   const { client } = useClient();
   const { getSetupById } = usePayrollSetups();
@@ -363,14 +366,26 @@ export default function LeavePage() {
           <form onSubmit={handleSubmitRequest} className="space-y-4">
             <div className="space-y-2">
               <Label>Employee</Label>
-              <Select value={newEmployee} onValueChange={setNewEmployee} required>
-                <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
-                <SelectContent>
-                  {activeEmps.map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.empId})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isEmployeeRole ? (
+                <Input
+                  value={
+                    currentEmpRow
+                      ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
+                      : ""
+                  }
+                  disabled
+                  readOnly
+                />
+              ) : (
+                <Select value={newEmployee} onValueChange={setNewEmployee} required>
+                  <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                  <SelectContent>
+                    {activeEmps.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.empId})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Leave Type</Label>
