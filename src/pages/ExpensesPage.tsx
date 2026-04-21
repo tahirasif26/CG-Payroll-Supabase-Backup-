@@ -6,6 +6,7 @@ import { useEmployees } from "@/contexts/EmployeeContext";
 import { Employee } from "@/types/hcm";
 import { useApprovals } from "@/contexts/ApprovalContext";
 import { useRole } from "@/contexts/RoleContext";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import {
   useExpenses,
@@ -82,7 +83,9 @@ interface UiExpense {
 export default function ExpensesPage() {
   const { employees } = useEmployees();
   const { canUserApproveExpense } = useApprovals();
-  const { currentEmployeeId, clientId, hasFeature } = useRole();
+  const { currentEmployeeId, clientId, hasFeature, appRole } = useRole();
+  const { data: currentEmpRow } = useCurrentEmployee();
+  const isEmployeeRole = appRole === "employee";
   const { getEmployeeAdvances, useAdvanceAmount } = useAdvances();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -538,14 +541,26 @@ export default function ExpensesPage() {
               <form onSubmit={cfg.onSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Employee</Label>
-                  <Select value={formEmployee} onValueChange={handleEmployeeChange} required>
-                    <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
-                    <SelectContent>
-                      {employees.filter((e) => e.status === "active" || e.status === "on-leave").map((e) => (
-                        <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {isEmployeeRole ? (
+                    <Input
+                      value={
+                        currentEmpRow
+                          ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
+                          : ""
+                      }
+                      disabled
+                      readOnly
+                    />
+                  ) : (
+                    <Select value={formEmployee} onValueChange={handleEmployeeChange} required>
+                      <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                      <SelectContent>
+                        {employees.filter((e) => e.status === "active" || e.status === "on-leave").map((e) => (
+                          <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 {formEmployee && getEmployeeAdvances(formEmployee).length > 0 && (
                   <div className="space-y-2">
