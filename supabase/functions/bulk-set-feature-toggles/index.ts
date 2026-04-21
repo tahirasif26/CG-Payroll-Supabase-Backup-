@@ -6,11 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const AccessLevel = z.enum(["none", "view", "edit"]);
 const BodySchema = z.object({
   user_id: z.string().uuid(),
   toggles: z.array(z.object({
     feature_key: z.string().trim().min(1).max(100),
-    is_enabled: z.boolean(),
+    // Backward-compat: accept legacy is_enabled boolean OR new access_level enum.
+    is_enabled: z.boolean().optional(),
+    access_level: AccessLevel.optional(),
   })).min(1).max(200),
 });
 
@@ -86,14 +89,20 @@ Deno.serve(async (req) => {
     if (invalid.length) return json({ error: "Unknown feature_key(s)", invalid }, 404);
 
     const now = new Date().toISOString();
-    const rows = toggles.map((t) => ({
-      client_id: targetClientId,
-      user_id,
-      feature_key: t.feature_key,
-      is_enabled: t.is_enabled,
-      enabled_by: user.id,
-      updated_at: now,
-    }));
+    const rows = toggles.map((t) => {
+      // Resolve to a single access_level. Prefer explicit access_level; fall back to is_enabled.
+      const level: "none" | "view" | "edit" =
+        t.access_level ?? (t.is_enabled === false ? "none" : "edit");
+      return {
+        client_id: targetClientId,
+        user_id,
+        feature_key: t.feature_key,
+        access_level: level,
+        is_enabled: level !== "none", // kept in sync by trigger too, but set explicitly for clarity
+        enabled_by: user.id,
+        updated_at: now,
+      };
+    });
 
     const { error: upsertErr } = await adminClient
       .from("feature_toggles")
