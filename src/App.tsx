@@ -358,6 +358,7 @@ function AppRoutes() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </RouteErrorBoundary>
       </Suspense>
       </ChunkErrorBoundary>
     </AppLayout>
