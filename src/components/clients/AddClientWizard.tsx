@@ -106,8 +106,11 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const handleSubmit = async () => {
     if (!validateStep(2)) return;
     try {
-      const payload: CreateClientInput = { ...form } as CreateClientInput;
-      await createClient.mutateAsync(payload);
+      const payload: CreateClientInput & { enabled_modules: string[] } = {
+        ...form,
+        enabled_modules: form.enabled_modules,
+      } as CreateClientInput & { enabled_modules: string[] };
+      await createClient.mutateAsync(payload as CreateClientInput);
       onOpenChange(false);
       setStep(1);
       setForm(initialForm);
