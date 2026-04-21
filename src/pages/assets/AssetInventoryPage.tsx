@@ -26,7 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import * as XLSX from "xlsx";
+// xlsx is dynamically imported in handleBulkFileUpload to keep it out of the initial bundle
 
 let assetIdCounter = 100;
 let storeIdCounter = 200;
@@ -163,8 +163,9 @@ export default function AssetInventoryPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       const data = evt.target?.result;
+      const XLSX = await import("xlsx");
       const workbook = XLSX.read(data, { type: "binary" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet);
