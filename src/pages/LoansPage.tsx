@@ -84,6 +84,13 @@ export default function LoansPage() {
   const [newStart, setNewStart] = useState("");
   const [newEnd, setNewEnd] = useState("");
 
+  // Auto-fill employee for non-admin/HR users when opening the new loan dialog
+  useEffect(() => {
+    if (newOpen && isEmployeeRole && currentEmpRow?.id && !newEmployee) {
+      setNewEmployee(currentEmpRow.id);
+    }
+  }, [newOpen, isEmployeeRole, currentEmpRow?.id, newEmployee]);
+
   const activeLoans = loanList.filter((l) => l.status === "active");
   const totalOutstanding = activeLoans.reduce((s, l) => s + (l.remaining_balance || 0), 0);
 
@@ -562,14 +569,26 @@ export default function LoansPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Employee</Label>
-              <Select value={newEmployee} onValueChange={setNewEmployee} required>
-                <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
-                <SelectContent>
-                  {employeesData.filter(e => e.status === "active" || e.status === "on-leave").map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isEmployeeRole ? (
+                <Input
+                  value={
+                    currentEmpRow
+                      ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
+                      : ""
+                  }
+                  disabled
+                  readOnly
+                />
+              ) : (
+                <Select value={newEmployee} onValueChange={setNewEmployee} required>
+                  <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                  <SelectContent>
+                    {employeesData.filter(e => e.status === "active" || e.status === "on-leave").map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Loan Amount (SAR)</Label>
