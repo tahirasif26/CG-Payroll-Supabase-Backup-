@@ -137,7 +137,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-2 py-2">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div className={cn(
                 "h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-colors",
@@ -146,7 +146,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
               )}>
                 {step > s ? <CheckCircle2 className="h-4 w-4" /> : s}
               </div>
-              {s < 3 && <div className={cn("h-0.5 w-12", step > s ? "bg-primary" : "bg-border")} />}
+              {s < 4 && <div className={cn("h-0.5 w-8", step > s ? "bg-primary" : "bg-border")} />}
             </div>
           ))}
         </div>
