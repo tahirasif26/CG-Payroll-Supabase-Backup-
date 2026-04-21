@@ -22,4 +22,20 @@ export default defineConfig(({ mode }) => ({
     include: ["react-leaflet", "leaflet", "@react-leaflet/core"],
     force: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-query": ["@tanstack/react-query"],
+          "vendor-charts": ["recharts"],
+          "vendor-leaflet": ["leaflet", "react-leaflet", "@react-leaflet/core"],
+          "vendor-pdf": ["jspdf", "jspdf-autotable", "html2canvas"],
+          "vendor-xlsx": ["xlsx"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 800,
+  },
 }));
