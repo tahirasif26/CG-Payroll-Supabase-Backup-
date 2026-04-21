@@ -184,6 +184,14 @@ export default function ExpensesPage() {
     setFormAdvanceId("");
   };
 
+  // Auto-fill employee for non-admin/HR users when the new-expense dialog opens
+  useEffect(() => {
+    if (newOpen && isEmployeeRole && currentEmpRow?.id && !formEmployee) {
+      handleEmployeeChange(currentEmpRow.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newOpen, isEmployeeRole, currentEmpRow?.id]);
+
   const handleCurrencyChange = (currency: string) => {
     setFormCurrency(currency);
     const payCurrency = formEmployee ? getEmployeePayCurrency(formEmployee, employees) : "SAR";
