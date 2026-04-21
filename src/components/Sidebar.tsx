@@ -132,11 +132,14 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
         <nav className="flex-1 overflow-y-auto scrollbar-hide px-2 py-3 space-y-4">
           {sections.map((section) => (
             <div key={section.label}>
-              {!collapsed && (
-                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
-                  {section.label}
-                </p>
-              )}
+              <p
+                className={cn(
+                  "px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 transition-opacity duration-200 overflow-hidden whitespace-nowrap",
+                  collapsed ? "opacity-0 h-0 mb-0" : "opacity-100"
+                )}
+              >
+                {section.label}
+              </p>
               <ul className="space-y-0.5">
                 {section.items.map((item) => {
                   const Icon = item.icon;
