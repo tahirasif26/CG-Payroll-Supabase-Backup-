@@ -63,8 +63,8 @@ export function PermissionsTree({
     <div className="space-y-3">
       {modules.map((mod) => {
         const isOpen = expanded.has(mod.key);
-        const counts = useModuleCounts(mod, getLevel);
-        const moduleOn = counts.granted > 0;
+        const granted = mod.features.filter((f) => getLevel(f.feature_key) !== "none").length;
+        const moduleOn = granted > 0;
         return (
           <div
             key={mod.key}
@@ -83,7 +83,7 @@ export function PermissionsTree({
                 <div className="min-w-0">
                   <div className="font-semibold text-sm truncate">{mod.label}</div>
                   <div className="text-[11px] text-muted-foreground">
-                    {counts.granted} of {mod.features.length} features enabled
+                    {granted} of {mod.features.length} features enabled
                   </div>
                 </div>
                 {isOpen ? (
@@ -161,13 +161,4 @@ function FeatureRow({
       </Select>
     </div>
   );
-}
-
-function useModuleCounts(mod: ModuleInfo, getLevel: (k: string) => AccessLevel) {
-  return useMemo(() => {
-    let granted = 0;
-    for (const f of mod.features) if (getLevel(f.feature_key) !== "none") granted++;
-    return { granted };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mod, getLevel]);
 }
