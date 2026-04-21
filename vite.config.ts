@@ -30,7 +30,6 @@ export default defineConfig(({ mode }) => ({
           "vendor-query": ["@tanstack/react-query"],
           "vendor-charts": ["recharts"],
           "vendor-leaflet": ["leaflet", "react-leaflet", "@react-leaflet/core"],
-          "vendor-pdf": ["jspdf", "jspdf-autotable", "html2canvas"],
           "vendor-xlsx": ["xlsx"],
           "vendor-supabase": ["@supabase/supabase-js"],
         },
