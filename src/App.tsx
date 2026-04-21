@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { RoleProvider, useRole } from "@/contexts/RoleContext";
 import { ClientProvider } from "@/contexts/ClientContext";
 import { SeparationProvider } from "@/contexts/SeparationContext";
@@ -163,6 +164,7 @@ function AppRoutes() {
     <AppLayout>
       <ChunkErrorBoundary>
       <Suspense fallback={<RouteLoader />}>
+        <RouteErrorBoundary>
         <Routes>
           <Route path="/auth" element={<RouteRedirector />} />
 
@@ -356,6 +358,7 @@ function AppRoutes() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </RouteErrorBoundary>
       </Suspense>
       </ChunkErrorBoundary>
     </AppLayout>
