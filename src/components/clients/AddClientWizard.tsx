@@ -245,6 +245,22 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
         {step === 3 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <Layers className="h-4 w-4" /> Modules
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select which modules this client will have access to. Leave all unchecked to enable everything.
+            </p>
+            <ModulePicker
+              modules={allModules}
+              selected={form.enabled_modules}
+              onChange={(next) => update({ enabled_modules: next })}
+            />
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <CheckCircle2 className="h-4 w-4" /> Review & Confirm
             </div>
             <ReviewSection title="Company">
@@ -261,6 +277,12 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
               <ReviewRow k="Plan" v={form.subscription_plan} className="capitalize" />
               <ReviewRow k="Status" v={form.status} className="capitalize" />
             </ReviewSection>
+            <ReviewSection title="Modules">
+              <ReviewRow
+                k="Enabled"
+                v={form.enabled_modules.length === 0 ? "All modules" : `${form.enabled_modules.length} selected`}
+              />
+            </ReviewSection>
             <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
               An invitation email will be sent to <strong>{form.admin_email}</strong> to set their password and access the platform.
             </p>
@@ -271,7 +293,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
           <Button variant="ghost" onClick={handleBack} disabled={step === 1 || createClient.isPending}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
-          {step < 3 ? (
+          {step < 4 ? (
             <Button onClick={handleNext}>
               Next <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
