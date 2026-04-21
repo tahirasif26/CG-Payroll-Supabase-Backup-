@@ -66,7 +66,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
-  const widthClass = collapsed ? "w-[64px]" : "w-[252px]";
+  const widthClass = collapsed ? "w-[80px]" : "w-[260px]";
 
   return (
     <>
