@@ -66,7 +66,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
-  const widthClass = collapsed ? "w-[64px]" : "w-[252px]";
+  const widthClass = collapsed ? "w-[80px]" : "w-[260px]";
 
   return (
     <>
@@ -81,7 +81,8 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
 
       <aside
         className={cn(
-          "h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-200 ease-out z-50",
+          "h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-50",
+          "transition-[width] duration-300 ease-in-out",
           // Desktop: in-flow, fixed width
           "hidden md:flex shrink-0",
           widthClass,
@@ -131,11 +132,14 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
         <nav className="flex-1 overflow-y-auto scrollbar-hide px-2 py-3 space-y-4">
           {sections.map((section) => (
             <div key={section.label}>
-              {!collapsed && (
-                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
-                  {section.label}
-                </p>
-              )}
+              <p
+                className={cn(
+                  "px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 transition-opacity duration-200 overflow-hidden whitespace-nowrap",
+                  collapsed ? "opacity-0 h-0 mb-0" : "opacity-100"
+                )}
+              >
+                {section.label}
+              </p>
               <ul className="space-y-0.5">
                 {section.items.map((item) => {
                   const Icon = item.icon;
