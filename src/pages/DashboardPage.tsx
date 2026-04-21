@@ -11,6 +11,5 @@ export default function DashboardPage() {
   if (loading) return <DashboardSkeleton />;
   if (isSuperAdmin) return <SuperAdminDashboard />;
   if (appRole === "admin") return <AdminDashboard />;
-  if (appRole === "hr") return <HRDashboard />;
   return <EmployeeDashboard />;
 }
