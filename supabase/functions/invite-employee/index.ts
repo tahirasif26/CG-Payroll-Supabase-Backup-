@@ -124,11 +124,11 @@ Deno.serve(async (req) => {
         client_id,
         full_name,
         ...(phone ? { phone } : {}),
-        ...(employee_id ? { employee_id } : {}),
+        employee_id: generatedEmpId,
       })
       .eq("id", newUserId);
 
-    return json({ success: true, user_id: newUserId, client_id, role }, 200);
+    return json({ success: true, user_id: newUserId, client_id, role, emp_id: generatedEmpId, employee: { emp_id: generatedEmpId } }, 200);
   } catch (err) {
     console.error("invite-employee error:", err);
     return json({ error: "Internal server error" }, 500);
