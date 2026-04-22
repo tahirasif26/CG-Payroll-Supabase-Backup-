@@ -79,10 +79,28 @@ Deno.serve(async (req) => {
     }
     const input = parsed.data;
 
-    // Check admin_email doesn't already exist
-    const { data: existingUsers } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (existingUsers?.users?.some((u) => u.email?.toLowerCase() === input.admin_email.toLowerCase())) {
-      return json({ error: "Admin email already registered" }, 409);
+    // Check admin_email doesn't already exist (paginate through all users)
+    console.log("[create-client] checking admin email:", input.admin_email);
+    const targetEmail = input.admin_email.toLowerCase();
+    let page = 1;
+    let emailExists = false;
+    while (true) {
+      const { data: pageData, error: listErr } = await adminClient.auth.admin.listUsers({ page, perPage: 1000 });
+      if (listErr) {
+        console.error("[create-client] listUsers error:", listErr);
+        return json({ error: `Failed to verify admin email: ${listErr.message}` }, 500);
+      }
+      const users = pageData?.users ?? [];
+      if (users.some((u) => u.email?.toLowerCase() === targetEmail)) {
+        emailExists = true;
+        break;
+      }
+      if (users.length < 1000) break;
+      page += 1;
+      if (page > 20) break; // hard cap
+    }
+    if (emailExists) {
+      return json({ error: `Admin email "${input.admin_email}" is already registered. Use a different email.` }, 409);
     }
 
     // Generate unique slug

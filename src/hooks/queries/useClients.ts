@@ -106,7 +106,18 @@ export function useCreateClient() {
   return useMutation({
     mutationFn: async (input: CreateClientInput) => {
       const { data, error } = await supabase.functions.invoke("create-client", { body: input });
-      if (error) throw error;
+      if (error) {
+        let detail = error.message;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx?.body) {
+            const text = typeof ctx.body === "string" ? ctx.body : await new Response(ctx.body).text();
+            const parsed = JSON.parse(text);
+            if (parsed?.error) detail = parsed.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
       if ((data as any)?.error) throw new Error((data as any).error);
       return data;
     },
