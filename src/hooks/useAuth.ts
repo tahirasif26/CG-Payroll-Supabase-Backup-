@@ -22,6 +22,7 @@ export interface AuthState {
   clientId: string | null;
   isSuperAdmin: boolean;
   features: Set<string>;
+  enabledModules: string[] | null;
   loading: boolean;
 }
 
@@ -33,6 +34,7 @@ const initialState: AuthState = {
   clientId: null,
   isSuperAdmin: false,
   features: new Set<string>(),
+  enabledModules: null,
   loading: true,
 };
 
@@ -54,6 +56,19 @@ export function useAuth() {
       const featureRows = (featuresRes.data as Array<{ feature_key: string; enabled: boolean }> | null) ?? [];
       const features = new Set(featureRows.filter((r) => r.enabled).map((r) => r.feature_key));
 
+      // Fetch the client's enabled_modules so the sidebar can hide entire modules.
+      let enabledModules: string[] | null = null;
+      if (profile?.client_id) {
+        const { data: clientRow } = await supabase
+          .from("clients")
+          .select("enabled_modules")
+          .eq("id", profile.client_id)
+          .maybeSingle();
+        const raw = (clientRow?.enabled_modules ?? null) as string[] | null;
+        // Empty array = "no restriction" (all modules) → treat as null
+        enabledModules = raw && raw.length > 0 ? raw : null;
+      }
+
       setState({
         session,
         user: session.user,
@@ -62,6 +77,7 @@ export function useAuth() {
         clientId: profile?.client_id ?? null,
         isSuperAdmin: role === "super_admin",
         features,
+        enabledModules,
         loading: false,
       });
 

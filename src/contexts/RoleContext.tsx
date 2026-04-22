@@ -18,6 +18,7 @@ interface RoleContextType {
   isSuperAdmin: boolean;
   clientId: string | null;
   features: Set<string>;
+  enabledModules: string[] | null;
   hasFeature: (key: string) => boolean;
 
   // Auth + profile
@@ -49,6 +50,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         isSuperAdmin: auth.isSuperAdmin,
         clientId: auth.clientId,
         features: auth.features,
+        enabledModules: auth.enabledModules,
         hasFeature: auth.hasFeature,
         user: auth.user,
         profile: auth.profile,
