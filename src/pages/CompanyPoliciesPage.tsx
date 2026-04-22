@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, CheckCircle2, Clock, Search } from "lucide-react";
 import { toast } from "sonner";
+import { useMyPolicyAcks, useAcknowledgePolicy } from "@/hooks/queries/usePolicyAcks";
 
 const categoryLabels: Record<PolicyCategory, string> = {
   hr: "HR",
