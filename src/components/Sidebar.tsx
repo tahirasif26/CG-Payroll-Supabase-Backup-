@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
-import { navigationConfig, filterNavigationForUser, resolveLabel, type NavItem } from "@/lib/navigation";
+import {
+  navigationModules,
+  superAdminModules,
+  filterModulesForUser,
+  resolveModuleLabel,
+  type NavModule,
+} from "@/lib/navigation";
 
 const COLLAPSE_KEY = "connecthr_sidebar_collapsed";
 
-function isItemActive(pathname: string, item: NavItem): boolean {
-  if (item.path === "/") return pathname === "/";
-  if (pathname === item.path) return true;
-  if (pathname.startsWith(item.path + "/")) return true;
-  return item.children?.some((c) => pathname === c.path || pathname.startsWith(c.path + "/")) ?? false;
+function isModuleActive(pathname: string, m: NavModule): boolean {
+  if (m.basePath === "/") return pathname === "/";
+  if (pathname === m.basePath) return true;
+  return pathname.startsWith(m.basePath + "/");
 }
 
 interface SidebarProps {
@@ -22,41 +27,15 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
-  const { appRole, isSuperAdmin, profile, signOut, role, hasFeature, enabledModules } = useRole();
+  const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin } = useRole();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const sections = useMemo(() => {
+  const modules = useMemo(() => {
     if (!appRole) return [];
-    return filterNavigationForUser(navigationConfig, appRole, hasFeature, enabledModules);
-  }, [appRole, hasFeature, enabledModules]);
-
-  // Track which expandable parents are open
-  const [openParents, setOpenParents] = useState<Set<string>>(() => {
-    const initial = new Set<string>();
-    sections.forEach((s) => s.items.forEach((it) => {
-      if (it.children && isItemActive(location.pathname, it)) initial.add(it.path);
-    }));
-    return initial;
-  });
-
-  // Auto-open parent of current route when route changes
-  useEffect(() => {
-    setOpenParents((prev) => {
-      const next = new Set(prev);
-      sections.forEach((s) => s.items.forEach((it) => {
-        if (it.children && isItemActive(location.pathname, it)) next.add(it.path);
-      }));
-      return next;
-    });
-  }, [location.pathname, sections]);
-
-  const toggleParent = (path: string) =>
-    setOpenParents((prev) => {
-      const next = new Set(prev);
-      next.has(path) ? next.delete(path) : next.add(path);
-      return next;
-    });
+    const source = isSuperAdmin ? superAdminModules : navigationModules;
+    return filterModulesForUser(source, appRole, hasFeature, enabledModules);
+  }, [appRole, hasFeature, enabledModules, isSuperAdmin]);
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -66,11 +45,10 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
-  const widthClass = collapsed ? "w-[80px]" : "w-[260px]";
+  const widthClass = collapsed ? "w-[80px]" : "w-[240px]";
 
   return (
     <>
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm md:hidden"
@@ -83,14 +61,12 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
         className={cn(
           "h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-50",
           "transition-[width] duration-300 ease-in-out",
-          // Desktop: in-flow, fixed width
           "hidden md:flex shrink-0",
           widthClass,
-          // Mobile: slide-over drawer
-          mobileOpen && "!flex fixed inset-y-0 left-0 w-[260px] md:relative shadow-2xl",
+          mobileOpen && "!flex fixed inset-y-0 left-0 w-[240px] md:relative shadow-2xl",
         )}
       >
-        {/* Logo + mobile close */}
+        {/* Logo */}
         <div className="h-14 px-4 flex items-center justify-between border-b border-sidebar-border shrink-0">
           <button
             onClick={() => handleNav("/")}
@@ -102,22 +78,12 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             >
               {collapsed ? "C" : "Connect"}
             </span>
-            {!collapsed && (
-              <span
-                className="text-[18px] font-extrabold tracking-tighter text-primary"
-                style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}
-              >
-                HR
-              </span>
-            )}
-            {collapsed && (
-              <span
-                className="text-[18px] font-extrabold tracking-tighter text-primary"
-                style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}
-              >
-                H
-              </span>
-            )}
+            <span
+              className="text-[18px] font-extrabold tracking-tighter text-primary"
+              style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}
+            >
+              {collapsed ? "H" : "HR"}
+            </span>
           </button>
           <button
             onClick={onCloseMobile}
@@ -128,114 +94,48 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
           </button>
         </div>
 
-        {/* Scrollable nav */}
-        <nav className="flex-1 overflow-y-auto scrollbar-hide px-2 py-3 space-y-4">
-          {sections.map((section) => (
-            <div key={section.label}>
-              <p
-                className={cn(
-                  "px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 transition-opacity duration-200 overflow-hidden whitespace-nowrap",
-                  collapsed ? "opacity-0 h-0 mb-0" : "opacity-100"
-                )}
-              >
-                {section.label}
-              </p>
-              <ul className="space-y-0.5">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  const active = isItemActive(location.pathname, item);
-                  const hasChildren = !!item.children?.length;
-                  const open = openParents.has(item.path);
-                  const label = appRole ? resolveLabel(item, appRole) : item.label;
+        {/* Modules — flat list */}
+        <nav className="flex-1 overflow-y-auto scrollbar-hide px-2 py-3">
+          <ul className="space-y-0.5">
+            {modules.map((m) => {
+              const Icon = m.icon;
+              const active = isModuleActive(location.pathname, m);
+              const label = appRole ? resolveModuleLabel(m, appRole) : m.label;
 
-                  return (
-                    <li key={item.path}>
-                      <button
-                        onClick={() => {
-                          if (hasChildren && !collapsed) {
-                            toggleParent(item.path);
-                            if (!active) handleNav(item.path);
-                          } else {
-                            handleNav(item.path);
-                          }
-                        }}
-                        title={collapsed ? label : undefined}
-                        className={cn(
-                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors relative group",
-                          collapsed && "justify-center px-0",
-                          active
-                            ? "bg-primary/10 text-primary"
-                            : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                        )}
-                      >
-                        {active && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] bg-primary rounded-r-full" />
-                        )}
-                        {Icon && <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />}
-                        {!collapsed && (
-                          <>
-                            <span className="flex-1 text-left truncate">{label}</span>
-                            {hasChildren && (
-                              <ChevronDown
-                                className={cn(
-                                  "h-3.5 w-3.5 transition-transform shrink-0 opacity-60",
-                                  open && "rotate-180"
-                                )}
-                              />
-                            )}
-                          </>
-                        )}
-                      </button>
-
-                      {hasChildren && open && !collapsed && (
-                        <ul className="mt-0.5 ml-5 pl-3 border-l border-sidebar-border space-y-0.5">
-                          {item.children!.map((child) => {
-                            const childActive =
-                              location.pathname === child.path ||
-                              location.pathname.startsWith(child.path + "/");
-                            const childLabel = appRole ? resolveLabel(child, appRole) : child.label;
-                            return (
-                              <li key={child.path}>
-                                <button
-                                  onClick={() => handleNav(child.path)}
-                                  className={cn(
-                                    "w-full text-left px-3 py-1.5 rounded-md text-[12.5px] transition-colors",
-                                    childActive
-                                      ? "text-primary font-semibold bg-primary/5"
-                                      : "text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                                  )}
-                                >
-                                  {childLabel}
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+              return (
+                <li key={m.key}>
+                  <button
+                    onClick={() => handleNav(m.basePath)}
+                    title={collapsed ? label : undefined}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors relative",
+                      collapsed && "justify-center px-0",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    )}
+                  >
+                    {active && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] bg-primary rounded-r-full" />
+                    )}
+                    <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
+                    {!collapsed && <span className="flex-1 text-left truncate">{label}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
-        {/* Footer: profile + collapse */}
+        {/* Footer */}
         <div className="border-t border-sidebar-border p-2 shrink-0">
-          <div
-            className={cn(
-              "flex items-center gap-2 p-2 rounded-md",
-              collapsed && "justify-center"
-            )}
-          >
+          <div className={cn("flex items-center gap-2 p-2 rounded-md", collapsed && "justify-center")}>
             <div className="h-8 w-8 rounded-full bg-foreground flex items-center justify-center shrink-0">
               <span className="text-[11px] font-semibold text-background">{initials}</span>
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold truncate text-sidebar-foreground">
-                  {displayName}
-                </p>
+                <p className="text-[12px] font-semibold truncate text-sidebar-foreground">{displayName}</p>
                 <p className="text-[10px] text-sidebar-foreground/55 capitalize truncate">{role}</p>
               </div>
             )}
@@ -250,7 +150,6 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             )}
           </div>
 
-          {/* Collapse toggle (desktop only) */}
           <button
             onClick={onToggleCollapse}
             className="hidden md:flex w-full items-center justify-center gap-1 mt-1 py-1.5 rounded-md text-[11px] text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
