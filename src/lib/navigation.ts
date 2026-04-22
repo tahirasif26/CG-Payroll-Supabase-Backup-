@@ -36,7 +36,7 @@ export const navigationConfig: NavSection[] = [
     label: "Overview",
     items: [
       { label: "Dashboard", path: "/", icon: LayoutDashboard },
-      { label: "Payroll Analytics", path: "/analytics", icon: TrendingUp, requiredRoles: ["admin", "hr"] },
+      { label: "Payroll Analytics", path: "/analytics", icon: TrendingUp, requiredRoles: ["admin", "hr"], module: "payroll" },
     ],
   },
 
