@@ -93,9 +93,20 @@ Deno.serve(async (req) => {
 
     const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || "";
 
+    // Generate emp_id server-side using company-name prefix
+    const { data: generatedEmpId, error: rpcErr } = await adminClient.rpc(
+      "generate_next_emp_id",
+      { _client_id: client_id }
+    );
+    if (rpcErr || !generatedEmpId) {
+      console.error("[invite-employee] Failed to generate emp_id:", rpcErr);
+      return json({ error: "Could not generate employee ID", detail: rpcErr?.message }, 500);
+    }
+    console.log("[invite-employee] Generated emp_id:", generatedEmpId, "client:", client_id);
+
     const { data: invite, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${origin}/reset-password`,
-      data: { full_name, employee_id: employee_id ?? null, client_id, role },
+      data: { full_name, employee_id: generatedEmpId, client_id, role },
     });
     if (inviteErr || !invite?.user) return json({ error: inviteErr?.message ?? "Invite failed" }, 400);
 
