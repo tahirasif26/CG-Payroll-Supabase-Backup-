@@ -180,13 +180,28 @@ export function useDeleteClient() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("clients").delete().eq("id", id);
-      if (error) throw error;
-      return id;
+      const { data, error } = await supabase.functions.invoke("delete-client", {
+        body: { client_id: id },
+      });
+      if (error) {
+        let detail = error.message;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx?.body) {
+            const text = typeof ctx.body === "string" ? ctx.body : await new Response(ctx.body).text();
+            const parsed = JSON.parse(text);
+            if (parsed?.error) detail = parsed.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return { id, result: data };
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["clients"] });
-      toast.success("Client deleted");
+      // Invalidate everything tenant-scoped so the UI clears immediately
+      qc.invalidateQueries();
+      toast.success("Client deleted", { description: "All related data has been removed." });
     },
     onError: (err: Error) => {
       toast.error("Failed to delete client", { description: err.message });
