@@ -2528,35 +2528,47 @@ export type Database = {
       }
       notifications: {
         Row: {
+          actor_user_id: string | null
           body: string | null
           category: string
-          client_id: string
+          client_id: string | null
           created_at: string
+          entity_id: string | null
+          entity_type: string | null
           id: string
           link: string | null
           read_at: string | null
+          severity: string
           title: string
           user_id: string
         }
         Insert: {
+          actor_user_id?: string | null
           body?: string | null
           category?: string
-          client_id: string
+          client_id?: string | null
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           link?: string | null
           read_at?: string | null
+          severity?: string
           title: string
           user_id: string
         }
         Update: {
+          actor_user_id?: string | null
           body?: string | null
           category?: string
-          client_id?: string
+          client_id?: string | null
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           link?: string | null
           read_at?: string | null
+          severity?: string
           title?: string
           user_id?: string
         }
@@ -3954,6 +3966,20 @@ export type Database = {
         Args: { _client_id: string; _module_key: string }
         Returns: boolean
       }
+      create_notification: {
+        Args: {
+          _action_url?: string
+          _body?: string
+          _category?: string
+          _client_id?: string
+          _entity_id?: string
+          _entity_type?: string
+          _recipient_user_id: string
+          _severity?: string
+          _title: string
+        }
+        Returns: string
+      }
       generate_emp_id: { Args: { _client_id: string }; Returns: string }
       generate_emp_id_prefix: {
         Args: { _company_name: string }
@@ -3996,6 +4022,19 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      notify_client_admins: {
+        Args: {
+          _action_url?: string
+          _body?: string
+          _category?: string
+          _client_id: string
+          _entity_id?: string
+          _entity_type?: string
+          _severity?: string
+          _title: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "employee"
