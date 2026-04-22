@@ -32,6 +32,11 @@ export default function CompanyPoliciesPage() {
   const { policies, acknowledgePolicy } = usePolicy();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const { data: ackedSet } = useMyPolicyAcks();
+  const ackMutation = useAcknowledgePolicy();
+
+  const isAcked = (policyId: string, fallback: boolean) =>
+    ackedSet?.has(policyId) ?? fallback;
 
   const activePolicies = policies.filter((p) => p.status === "active");
 
@@ -41,11 +46,13 @@ export default function CompanyPoliciesPage() {
     return matchesSearch && matchesCat;
   });
 
-  const pendingCount = activePolicies.filter((p) => p.requiresAck && !p.acknowledgments.includes(CURRENT_EMPLOYEE_ID)).length;
+  const pendingCount = activePolicies.filter(
+    (p) => p.requiresAck && !isAcked(p.id, p.acknowledgments.includes(CURRENT_EMPLOYEE_ID))
+  ).length;
 
   const handleAcknowledge = (policyId: string) => {
     acknowledgePolicy(policyId, CURRENT_EMPLOYEE_ID);
-    toast.success("Policy acknowledged successfully");
+    ackMutation.mutate(policyId);
   };
 
   return (
