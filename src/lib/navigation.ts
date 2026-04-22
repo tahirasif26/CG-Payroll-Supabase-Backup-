@@ -19,12 +19,16 @@ export interface NavItem {
   requiredRoles?: AppRole[];
   hideForRoles?: AppRole[];
   labelsByRole?: Partial<Record<AppRole, string>>;
+  /** If set, item is hidden when client's enabled_modules doesn't include this key. */
+  module?: string;
 }
 
 export interface NavSection {
   label: string;
   items: NavItem[];
   requiredRoles?: AppRole[];
+  /** If set, section is hidden when client's enabled_modules doesn't include this key. */
+  module?: string;
 }
 
 export const navigationConfig: NavSection[] = [
