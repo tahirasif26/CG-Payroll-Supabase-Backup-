@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Asset, AssetCategory, AssetStoreItem, AssetRequest, AssetConditionItem, AssetLocationItem } from "@/types/hcm";
 import { AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
+import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
 
 export interface AssetHistoryEntry {
   id: string;
