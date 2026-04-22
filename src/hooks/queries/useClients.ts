@@ -110,7 +110,17 @@ export function useCreateClient() {
         let detail = error.message;
         try {
           const ctx: any = (error as any).context;
-          if (ctx?.body) {
+          // ctx is typically a Response object
+          if (ctx && typeof ctx.clone === "function") {
+            const text = await ctx.clone().text();
+            try {
+              const parsed = JSON.parse(text);
+              if (parsed?.error) detail = parsed.error;
+              else if (text) detail = text;
+            } catch {
+              if (text) detail = text;
+            }
+          } else if (ctx?.body) {
             const text = typeof ctx.body === "string" ? ctx.body : await new Response(ctx.body).text();
             const parsed = JSON.parse(text);
             if (parsed?.error) detail = parsed.error;
