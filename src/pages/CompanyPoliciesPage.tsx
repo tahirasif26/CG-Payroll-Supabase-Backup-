@@ -99,7 +99,7 @@ export default function CompanyPoliciesPage() {
           </Card>
         ) : (
           filtered.map((policy) => {
-            const isAcknowledged = policy.acknowledgments.includes(CURRENT_EMPLOYEE_ID);
+            const isAcknowledged = isAcked(policy.id, policy.acknowledgments.includes(CURRENT_EMPLOYEE_ID));
             const needsAck = policy.requiresAck && !isAcknowledged;
 
             return (
