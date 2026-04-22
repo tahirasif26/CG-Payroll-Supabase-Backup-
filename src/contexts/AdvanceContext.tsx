@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
 
 export interface ReminderEntry {
   sentAt: string;
@@ -143,18 +144,54 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
         notes: adv.notes ?? "",
         reminder_history: adv.reminderHistory ?? [],
       };
-      const { error } = await (supabase as any).from("advances").insert(payload);
+      const { data, error } = await (supabase as any).from("advances").insert(payload).select().single();
       if (error) throw error;
+      return { row: data, adv };
     },
-    onSuccess: invalidate,
+    onSuccess: async ({ row, adv }) => {
+      invalidate();
+      await notifyClientAdmins(clientId, {
+        title: "New advance request",
+        body: `${adv.employeeName} requested ${adv.currency} ${adv.amount.toLocaleString()}${adv.purpose ? ` — ${adv.purpose}` : ""}`,
+        category: "advance",
+        severity: "info",
+        entityType: "advance",
+        entityId: row?.id,
+        actionUrl: "/advances",
+      });
+    },
   });
 
   const updateMut = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
       const { error } = await (supabase as any).from("advances").update(patch).eq("id", id);
       if (error) throw error;
+      return { id, patch };
     },
-    onSuccess: invalidate,
+    onSuccess: async ({ id, patch }) => {
+      invalidate();
+      const status = patch?.status as string | undefined;
+      if (status === "approved" || status === "rejected") {
+        const current = rows.find((r) => r.id === id);
+        if (current) {
+          const recipient = await getEmployeeUserId(current.employee_id);
+          if (recipient) {
+            await notifyUser(recipient, {
+              title: status === "approved" ? "Advance approved" : "Advance rejected",
+              body: status === "approved"
+                ? `Your advance of ${current.currency} ${(Number(current.amount) / 1).toLocaleString()} has been approved.`
+                : `Your advance request was rejected.`,
+              category: "advance",
+              severity: status === "approved" ? "success" : "warning",
+              entityType: "advance",
+              entityId: id,
+              actionUrl: "/advances",
+              clientId,
+            });
+          }
+        }
+      }
+    },
   });
 
   const addAdvance = useCallback((adv: Advance) => {

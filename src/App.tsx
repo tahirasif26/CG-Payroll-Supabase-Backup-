@@ -85,6 +85,7 @@ const PayrollSetupViewPage = lazy(() => import("@/pages/PayrollSetupViewPage"));
 const UserPermissionsPage = lazy(() => import("@/pages/settings/UserPermissionsPage"));
 const MyAccessPage = lazy(() => import("@/pages/MyAccessPage"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
+const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -184,6 +185,7 @@ function AppRoutes() {
           <Route path="/assets/store" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="assets.request_new"><AssetStorePage /></ProtectedRoute>} />
           <Route path="/timesheets" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="timesheets.submit"><TimesheetsPage /></ProtectedRoute>} />
           <Route path="/my-access" element={<ProtectedRoute requiredRole={["admin","hr","employee"]}><MyAccessPage /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute requiredRole={["super_admin","admin","hr","employee"]}><NotificationsPage /></ProtectedRoute>} />
           <Route path="/onboarding" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><OnboardingPage /></ProtectedRoute>
           } />

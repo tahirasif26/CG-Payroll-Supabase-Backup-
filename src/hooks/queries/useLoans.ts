@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { notifyUser, getEmployeeUserId } from "@/lib/notify";
 
 export interface DbLoan {
   id: string;
@@ -126,9 +127,22 @@ export function useCreateLoan() {
 
       return data as DbLoan;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       qc.invalidateQueries({ queryKey: ["loans"] });
       toast.success("Loan created");
+      const recipient = await getEmployeeUserId(data.employee_id);
+      if (recipient) {
+        await notifyUser(recipient, {
+          title: "Loan disbursed",
+          body: `A loan of ${(Number(data.principal) / 100).toLocaleString()} has been disbursed. Monthly EMI: ${(Number(data.monthly_deduction) / 100).toLocaleString()}.`,
+          category: "loan",
+          severity: "success",
+          entityType: "loan",
+          entityId: data.id,
+          actionUrl: "/loans",
+          clientId: data.client_id,
+        });
+      }
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to create loan"),
   });

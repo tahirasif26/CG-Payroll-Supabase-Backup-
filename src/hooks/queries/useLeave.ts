@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRole } from "@/contexts/RoleContext";
+import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
 
 export function useLeaveTypes() {
   return useQuery({

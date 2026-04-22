@@ -1,4 +1,5 @@
-import { Bell, HelpCircle, LogOut, Menu, Search, Settings } from "lucide-react";
+import { HelpCircle, LogOut, Menu, Search, Settings } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,10 +40,7 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-1">
-        <button className="relative p-2 rounded-lg hover:bg-muted transition-colors" aria-label="Notifications">
-          <Bell className="h-4 w-4 text-muted-foreground" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
-        </button>
+        <NotificationBell />
         {!isSuperAdmin && (
           <button
             className="p-2 rounded-lg hover:bg-muted transition-colors"
