@@ -11,7 +11,7 @@ const BodySchema = z.object({
   full_name: z.string().trim().min(2).max(200),
   employee_id: z.string().trim().max(50).optional(),
   phone: z.string().trim().max(50).optional(),
-  role: z.literal("employee"),
+  role: z.enum(["admin", "hr", "employee"]),
   client_id: z.string().uuid(),
 });
 
@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
 
     const isSuperAdmin = callerRoles.some((r) => r.role === "super_admin");
     const adminRow = callerRoles.find((r) => r.role === "admin");
+    const hrRow = callerRoles.find((r) => r.role === "hr");
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -63,10 +64,16 @@ Deno.serve(async (req) => {
     }
     const { email, full_name, employee_id, phone, role, client_id } = parsed.data;
 
-    // Authorization: only super_admin (any client) or the admin of THIS client may invite.
+    // Authorization
     if (!isSuperAdmin) {
-      if (!adminRow || adminRow.client_id !== client_id) {
-        return json({ error: "Forbidden: only the client admin can invite employees" }, 403);
+      const callerClientId = adminRow?.client_id ?? hrRow?.client_id;
+      if (!callerClientId || callerClientId !== client_id) {
+        return json({ error: "Forbidden: cannot invite into another client" }, 403);
+      }
+      if (role === "admin" || role === "hr") {
+        if (!adminRow) return json({ error: "Forbidden: admin role required to assign admin/hr" }, 403);
+      } else if (role === "employee") {
+        if (!adminRow && !hrRow) return json({ error: "Forbidden: admin or hr required" }, 403);
       }
     }
 

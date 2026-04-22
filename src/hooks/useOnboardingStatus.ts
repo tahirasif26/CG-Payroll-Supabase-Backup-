@@ -70,7 +70,7 @@ const STEP_DEFS: Omit<OnboardingStep, "done" | "detected">[] = [
 export function useOnboardingStatus() {
   const { clientId, appRole, isSuperAdmin } = useRole();
 
-  const enabled = !!clientId && appRole === "admin" && !isSuperAdmin;
+  const enabled = !!clientId && (appRole === "admin" || appRole === "hr") && !isSuperAdmin;
 
   const query = useQuery({
     queryKey: ["onboarding-status", clientId],

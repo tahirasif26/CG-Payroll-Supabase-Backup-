@@ -28,7 +28,7 @@ export interface ClientUserRow {
   is_active: boolean;
   last_login_at: string | null;
   created_at: string;
-  role?: "super_admin" | "admin" | "employee" | null;
+  role?: "super_admin" | "admin" | "hr" | "employee" | null;
   email?: string | null;
 }
 

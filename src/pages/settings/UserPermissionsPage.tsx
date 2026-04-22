@@ -1,11 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, Save, RotateCcw, Activity, Pencil, Users, Crown, ShieldCheck } from "lucide-react";
-import { useClientUsers } from "@/hooks/queries/useClients";
-import { useTransferAdmin } from "@/hooks/queries/useTransferAdmin";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Search, Save, RotateCcw, Activity, Pencil, Users } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -59,15 +53,6 @@ export default function UserPermissionsPage() {
   const { data: allToggles = [] } = useAllFeatureToggles();
   const { data: presets = [] } = useFeaturePresets();
   const { data: enabledModules = [] } = useClientModules(clientId);
-  const { data: clientUsers = [] } = useClientUsers(clientId);
-  const transferAdmin = useTransferAdmin();
-
-  // Map: user_id -> role (so we can show a Crown next to the current admin).
-  const roleByUserId = useMemo(() => {
-    const m = new Map<string, string>();
-    clientUsers.forEach((u) => u.role && m.set(u.id, u.role));
-    return m;
-  }, [clientUsers]);
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState<string>("all");
@@ -203,7 +188,6 @@ export default function UserPermissionsPage() {
               )}
               {filtered.map((emp) => {
                 const overrides = togglesByUser.get(emp.user_id!)?.size ?? 0;
-                const isAdmin = roleByUserId.get(emp.user_id!) === "admin";
                 return (
                   <TableRow key={emp.id}>
                     <TableCell>
@@ -215,13 +199,8 @@ export default function UserPermissionsPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium text-sm flex items-center gap-1.5">
+                          <div className="font-medium text-sm">
                             {emp.first_name} {emp.last_name}
-                            {isAdmin && (
-                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] gap-1">
-                                <Crown className="h-3 w-3" /> Admin
-                              </Badge>
-                            )}
                           </div>
                           <div className="text-[11px] text-muted-foreground">{emp.emp_id}</div>
                         </div>
@@ -235,46 +214,16 @@ export default function UserPermissionsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {!isAdmin && emp.user_id && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" title="Make this user the client admin">
-                                <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Make admin
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Transfer admin role?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  <strong>{emp.first_name} {emp.last_name}</strong> will become the client admin
-                                  with full access. The current admin will be demoted to a regular employee.
-                                  Each client can only have one admin at a time.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => transferAdmin.mutate(emp.user_id!)}
-                                  disabled={transferAdmin.isPending}
-                                >
-                                  Transfer admin
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setOpenUserId(emp.user_id);
-                            setOpenEmployeeId(emp.id);
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setOpenUserId(emp.user_id);
+                          setOpenEmployeeId(emp.id);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );

@@ -32,7 +32,7 @@ export const navigationConfig: NavSection[] = [
     label: "Overview",
     items: [
       { label: "Dashboard", path: "/", icon: LayoutDashboard },
-      { label: "Payroll Analytics", path: "/analytics", icon: TrendingUp, requiredRoles: ["admin"] },
+      { label: "Payroll Analytics", path: "/analytics", icon: TrendingUp, requiredRoles: ["admin", "hr"] },
     ],
   },
 
@@ -49,7 +49,7 @@ export const navigationConfig: NavSection[] = [
 
   {
     label: "People",
-    requiredRoles: ["admin", "employee"],
+    requiredRoles: ["admin", "hr", "employee"],
     items: [
       {
         label: "Employees", path: "/employees", icon: Users,
@@ -68,15 +68,15 @@ export const navigationConfig: NavSection[] = [
 
   {
     label: "Payroll & Finance",
-    requiredRoles: ["admin", "employee"],
+    requiredRoles: ["admin", "hr", "employee"],
     items: [
       {
         label: "Payroll", path: "/payroll", icon: Wallet,
-        requiredRoles: ["admin"],
+        requiredRoles: ["admin", "hr"],
         children: [
-          { label: "Payroll Setup", path: "/payroll/setup", requiredRoles: ["admin"] },
-          { label: "Payroll Runs", path: "/payroll", requiredRoles: ["admin"] },
-          { label: "End of Service", path: "/separations", requiredRoles: ["admin"] },
+          { label: "Payroll Setup", path: "/payroll/setup", requiredRoles: ["admin", "hr"] },
+          { label: "Payroll Runs", path: "/payroll", requiredRoles: ["admin", "hr"] },
+          { label: "End of Service", path: "/separations", requiredRoles: ["admin", "hr"] },
         ],
       },
       {
@@ -84,14 +84,14 @@ export const navigationConfig: NavSection[] = [
         requiredFeature: "payroll.view_own_payslip",
         labelsByRole: { employee: "My Payslips" },
       },
-      { label: "Compensation", path: "/compensation", icon: DollarSign, requiredRoles: ["admin"] },
-      { label: "Deductions", path: "/deductions", icon: Calculator, requiredRoles: ["admin"] },
+      { label: "Compensation", path: "/compensation", icon: DollarSign, requiredRoles: ["admin", "hr"] },
+      { label: "Deductions", path: "/deductions", icon: Calculator, requiredRoles: ["admin", "hr"] },
       {
         label: "Loans & Advances", path: "/loans", icon: Banknote,
         children: [
           { label: "Loans", path: "/loans", requiredFeature: "loans.view_own" },
           { label: "Advances", path: "/advances", requiredFeature: "advances.view_own" },
-          { label: "Outstanding Advances", path: "/outstanding-advances", requiredRoles: ["admin"] },
+          { label: "Outstanding Advances", path: "/outstanding-advances", requiredRoles: ["admin", "hr"] },
         ],
       },
     ],
@@ -99,35 +99,35 @@ export const navigationConfig: NavSection[] = [
 
   {
     label: "Expenses",
-    requiredRoles: ["admin", "employee"],
+    requiredRoles: ["admin", "hr", "employee"],
     items: [
       {
         label: "Expenses", path: "/expenses", icon: Receipt,
         requiredFeature: "expenses.view_own",
         labelsByRole: { employee: "My Expenses" },
       },
-      { label: "Expense Analytics", path: "/expense-analytics", icon: PieChart, requiredRoles: ["admin"] },
-      { label: "Cost Allocation", path: "/cost-allocation", icon: Briefcase, requiredRoles: ["admin"] },
+      { label: "Expense Analytics", path: "/expense-analytics", icon: PieChart, requiredRoles: ["admin", "hr"] },
+      { label: "Cost Allocation", path: "/cost-allocation", icon: Briefcase, requiredRoles: ["admin", "hr"] },
     ],
   },
 
   {
     label: "Assets",
-    requiredRoles: ["admin", "employee"],
+    requiredRoles: ["admin", "hr", "employee"],
     items: [
-      { label: "Asset Dashboard", path: "/assets/dashboard", icon: PieChart, requiredRoles: ["admin"] },
+      { label: "Asset Dashboard", path: "/assets/dashboard", icon: PieChart, requiredRoles: ["admin", "hr"] },
       { label: "Inventory", path: "/assets/inventory", icon: Package, requiredFeature: "assets.view_inventory" },
       { label: "Asset Store", path: "/assets/store", icon: Store, requiredFeature: "assets.request_new" },
       { label: "Requests", path: "/assets/requests", icon: Inbox, requiredFeature: "assets.approve_requests" },
-      { label: "Audits", path: "/assets/audits", icon: Package, requiredRoles: ["admin"] },
+      { label: "Audits", path: "/assets/audits", icon: Package, requiredRoles: ["admin", "hr"] },
     ],
   },
 
   {
     label: "Performance",
-    requiredRoles: ["admin", "employee"],
+    requiredRoles: ["admin", "hr", "employee"],
     items: [
-      { label: "Ratings Overview", path: "/performance/ratings", icon: Star, requiredRoles: ["admin"] },
+      { label: "Ratings Overview", path: "/performance/ratings", icon: Star, requiredRoles: ["admin", "hr"] },
       { label: "Self Assessment", path: "/performance/self-assessment", icon: UserCheck, requiredFeature: "performance.self_assessment" },
       { label: "Peer Assessment", path: "/performance/peer-assessment", icon: Users, requiredFeature: "performance.peer_assessment" },
       { label: "Manager Assessment", path: "/performance/manager-assessment", icon: UserCheck, requiredFeature: "performance.manager_assessment" },
@@ -136,9 +136,9 @@ export const navigationConfig: NavSection[] = [
 
   {
     label: "Work",
-    requiredRoles: ["admin", "employee"],
+    requiredRoles: ["admin", "hr", "employee"],
     items: [
-      { label: "Projects", path: "/projects", icon: Briefcase, requiredRoles: ["admin"] },
+      { label: "Projects", path: "/projects", icon: Briefcase, requiredRoles: ["admin", "hr"] },
       {
         label: "Timesheets", path: "/timesheets", icon: Clock,
         requiredFeature: "timesheets.submit",
@@ -150,17 +150,17 @@ export const navigationConfig: NavSection[] = [
 
   {
     label: "Settings",
-    requiredRoles: ["admin"],
+    requiredRoles: ["admin", "hr"],
     items: [
       {
         label: "Settings", path: "/settings/company", icon: Settings,
-        requiredRoles: ["admin"],
+        requiredRoles: ["admin", "hr"],
         children: [
           { label: "Company Profile", path: "/settings/company" },
           { label: "Company Structure", path: "/settings/company-structure" },
           { label: "Payroll Settings", path: "/settings/payroll" },
           { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
-          { label: "Feature Access", path: "/settings/feature-access", requiredRoles: ["admin"] },
+          { label: "Feature Access", path: "/settings/feature-access", requiredRoles: ["admin", "hr"] },
           { label: "Expense Categories", path: "/settings/expense-categories" },
           { label: "Leave Types", path: "/settings/leave-types" },
           { label: "Reminders", path: "/settings/reminders" },

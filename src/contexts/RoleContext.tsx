@@ -37,7 +37,9 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
 
   const legacyRole: LegacyRole =
-    auth.role === "admin" || auth.role === "super_admin" ? "employer" : "employee";
+    auth.role === "admin" || auth.role === "hr" || auth.role === "super_admin"
+      ? "employer"
+      : "employee";
 
   return (
     <RoleContext.Provider

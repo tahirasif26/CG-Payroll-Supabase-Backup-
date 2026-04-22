@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 const ROLE_COLORS: Record<string, string> = {
   super_admin: "bg-purple-50 text-purple-700 border-purple-200",
   admin: "bg-blue-50 text-blue-700 border-blue-200",
+  hr: "bg-teal-50 text-teal-700 border-teal-200",
   employee: "bg-slate-50 text-slate-700 border-slate-200",
 };
 
