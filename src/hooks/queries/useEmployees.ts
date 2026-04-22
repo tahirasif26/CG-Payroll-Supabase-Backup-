@@ -140,9 +140,19 @@ export function useCreateEmployee() {
         throw new Error(`An employee with email ${input.email} already exists in this company.`);
       }
 
-      // 1. Insert employee row — let DB trigger generate emp_id if not provided
+      // 1. Generate emp_id server-side using company-name prefix
+      const { data: generatedEmpId, error: rpcErr } = await supabase.rpc(
+        "generate_next_emp_id",
+        { _client_id: clientId }
+      );
+      if (rpcErr || !generatedEmpId) {
+        console.error("[useCreateEmployee] generate_next_emp_id failed:", rpcErr);
+        throw new Error(rpcErr?.message || "Could not generate employee ID");
+      }
+
       const insertPayload: Record<string, unknown> = {
         client_id: clientId,
+        emp_id: generatedEmpId,
         first_name: input.first_name,
         last_name: input.last_name,
         email: normalizedEmail,
@@ -164,9 +174,6 @@ export function useCreateEmployee() {
         reports_to: input.reports_to || null,
         status: "active",
       };
-      if (input.emp_id && input.emp_id.trim()) {
-        insertPayload.emp_id = input.emp_id.trim();
-      }
 
       const { data: emp, error: empErr } = await supabase
         .from("employees")
@@ -178,7 +185,7 @@ export function useCreateEmployee() {
           throw new Error("An employee with this email already exists in your company.");
         }
         if (empErr.message.includes("employees_client_id_emp_id_key")) {
-          throw new Error("Could not generate a unique employee ID. Please try again.");
+          throw new Error("Employee ID conflict. Please try again.");
         }
         throw empErr;
       }
@@ -231,7 +238,6 @@ export function useCreateEmployee() {
             body: {
               email: input.email,
               full_name: `${input.first_name} ${input.last_name}`.trim(),
-              employee_id: input.emp_id,
               phone: input.phone,
               role: "employee",
               client_id: clientId,

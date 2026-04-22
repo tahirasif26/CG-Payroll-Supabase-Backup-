@@ -3955,6 +3955,11 @@ export type Database = {
         Returns: boolean
       }
       generate_emp_id: { Args: { _client_id: string }; Returns: string }
+      generate_emp_id_prefix: {
+        Args: { _company_name: string }
+        Returns: string
+      }
+      generate_next_emp_id: { Args: { _client_id: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
       get_user_feature_access: {
         Args: { _user_id: string }
@@ -3993,7 +3998,7 @@ export type Database = {
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "hr" | "employee" | "super_admin"
+      app_role: "super_admin" | "admin" | "employee"
       client_status: "active" | "suspended" | "trial"
       feature_access_level: "none" | "view" | "edit"
       subscription_plan: "starter" | "pro" | "enterprise"
@@ -4124,7 +4129,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "hr", "employee", "super_admin"],
+      app_role: ["super_admin", "admin", "employee"],
       client_status: ["active", "suspended", "trial"],
       feature_access_level: ["none", "view", "edit"],
       subscription_plan: ["starter", "pro", "enterprise"],
