@@ -3394,6 +3394,33 @@ export type Database = {
           },
         ]
       }
+      policy_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          client_id: string
+          employee_id: string
+          id: string
+          policy_id: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          client_id: string
+          employee_id: string
+          id?: string
+          policy_id: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          client_id?: string
+          employee_id?: string
+          id?: string
+          policy_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -3582,6 +3609,36 @@ export type Database = {
           id?: string
           key?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      reminder_log: {
+        Row: {
+          category: string
+          client_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          reminder_key: string
+          sent_at: string
+        }
+        Insert: {
+          category: string
+          client_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          reminder_key: string
+          sent_at?: string
+        }
+        Update: {
+          category?: string
+          client_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          reminder_key?: string
+          sent_at?: string
         }
         Relationships: []
       }

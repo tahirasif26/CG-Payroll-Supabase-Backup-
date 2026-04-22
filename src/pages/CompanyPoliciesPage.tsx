@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, CheckCircle2, Clock, Search } from "lucide-react";
 import { toast } from "sonner";
+import { useMyPolicyAcks, useAcknowledgePolicy } from "@/hooks/queries/usePolicyAcks";
 
 const categoryLabels: Record<PolicyCategory, string> = {
   hr: "HR",
@@ -31,6 +32,11 @@ export default function CompanyPoliciesPage() {
   const { policies, acknowledgePolicy } = usePolicy();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const { data: ackedSet } = useMyPolicyAcks();
+  const ackMutation = useAcknowledgePolicy();
+
+  const isAcked = (policyId: string, fallback: boolean) =>
+    ackedSet?.has(policyId) ?? fallback;
 
   const activePolicies = policies.filter((p) => p.status === "active");
 
@@ -40,11 +46,13 @@ export default function CompanyPoliciesPage() {
     return matchesSearch && matchesCat;
   });
 
-  const pendingCount = activePolicies.filter((p) => p.requiresAck && !p.acknowledgments.includes(CURRENT_EMPLOYEE_ID)).length;
+  const pendingCount = activePolicies.filter(
+    (p) => p.requiresAck && !isAcked(p.id, p.acknowledgments.includes(CURRENT_EMPLOYEE_ID))
+  ).length;
 
   const handleAcknowledge = (policyId: string) => {
     acknowledgePolicy(policyId, CURRENT_EMPLOYEE_ID);
-    toast.success("Policy acknowledged successfully");
+    ackMutation.mutate(policyId);
   };
 
   return (
@@ -91,7 +99,7 @@ export default function CompanyPoliciesPage() {
           </Card>
         ) : (
           filtered.map((policy) => {
-            const isAcknowledged = policy.acknowledgments.includes(CURRENT_EMPLOYEE_ID);
+            const isAcknowledged = isAcked(policy.id, policy.acknowledgments.includes(CURRENT_EMPLOYEE_ID));
             const needsAck = policy.requiresAck && !isAcknowledged;
 
             return (
