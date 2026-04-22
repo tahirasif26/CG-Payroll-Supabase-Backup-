@@ -238,7 +238,6 @@ export function useCreateEmployee() {
             body: {
               email: input.email,
               full_name: `${input.first_name} ${input.last_name}`.trim(),
-              employee_id: input.emp_id,
               phone: input.phone,
               role: "employee",
               client_id: clientId,
