@@ -86,6 +86,7 @@ const UserPermissionsPage = lazy(() => import("@/pages/settings/UserPermissionsP
 const MyAccessPage = lazy(() => import("@/pages/MyAccessPage"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
+const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,8 +110,9 @@ function RouteLoader() {
 }
 
 function RouteRedirector() {
-  const { isSuperAdmin } = useRole();
-  return <Navigate to={isSuperAdmin ? "/manage/clients" : "/"} replace />;
+  // All roles (including super_admin) land on `/` — DashboardPage renders the
+  // role-specific dashboard.
+  return <Navigate to="/" replace />;
 }
 
 function AppRoutes() {
@@ -359,6 +361,16 @@ function AppRoutes() {
           <Route path="/performance/assessment-ratings" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><AssessmentRatingsPage /></ProtectedRoute>
           } />
+
+          {/* Placeholder / coming-soon routes */}
+          <Route path="/upcoming-features" element={<ComingSoonPage title="Upcoming Features" description="Preview of features rolling out soon." />} />
+          <Route path="/manage/features" element={
+            <ProtectedRoute requiredRole="super_admin"><ComingSoonPage title="Feature Definitions" description="Define platform-wide feature flags." /></ProtectedRoute>
+          } />
+          <Route path="/manage/users" element={
+            <ProtectedRoute requiredRole="super_admin"><ComingSoonPage title="System Users" description="Manage system-level user accounts." /></ProtectedRoute>
+          } />
+          <Route path="/account" element={<ComingSoonPage title="My Account" description="Manage your personal account settings." />} />
 
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<NotFound />} />
