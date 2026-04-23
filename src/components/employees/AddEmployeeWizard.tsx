@@ -81,6 +81,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const { addEmployee, employees: allEmployees } = useEmployees();
   const createEmployee = useCreateEmployee();
   const { toast } = useToast();
+  const { enabledModules, enabledFeatures } = useRole();
   const activeSetups = setups.filter(s => s.status === "active");
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
 
@@ -91,6 +92,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
   const [sendInvite, setSendInvite] = useState(true);
   const [inviting, setInviting] = useState(false);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
 
   const selectedSetup = useMemo(() => activeSetups.find(s => s.id === form.payrollSetupId), [form.payrollSetupId, activeSetups]);
 
