@@ -9,6 +9,7 @@ interface EmployeeContextType {
   loading: boolean;
   updateEmployee: (empId: string, updates: Partial<Employee>) => Promise<void>;
   addEmployee: (emp: Employee) => Promise<void>;
+  removeEmployee: (empId: string) => Promise<void>;
   refresh: () => void;
 }
 
@@ -149,6 +150,20 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const removeMutation = useMutation({
+    mutationFn: async (empId: string) => {
+      const { error } = await (supabase as any)
+        .from("employees")
+        .delete()
+        .eq("id", empId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees-ctx"] });
+      qc.invalidateQueries({ queryKey: ["employees"] });
+    },
+  });
+
   const value: EmployeeContextType = {
     employees,
     loading: isLoading,
@@ -157,6 +172,9 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     },
     addEmployee: async (emp) => {
       await addMutation.mutateAsync(emp);
+    },
+    removeEmployee: async (empId) => {
+      await removeMutation.mutateAsync(empId);
     },
     refresh: () => qc.invalidateQueries({ queryKey: ["employees-ctx"] }),
   };
