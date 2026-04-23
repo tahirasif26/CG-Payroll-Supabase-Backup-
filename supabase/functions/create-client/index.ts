@@ -211,6 +211,28 @@ Deno.serve(async (req) => {
       .update({ client_id: clientId, full_name: input.admin_full_name })
       .eq("id", adminUserId);
 
+    // Also create an employees row for the admin so their "My Dashboard" tab works.
+    try {
+      const nameParts = input.admin_full_name.trim().split(/\s+/);
+      const firstName = nameParts[0] || "Admin";
+      const lastName = nameParts.slice(1).join(" ") || "User";
+
+      const { data: adminEmpId } = await adminClient.rpc("generate_next_emp_id", { _client_id: clientId });
+
+      await adminClient.from("employees").insert({
+        client_id: clientId,
+        user_id: adminUserId,
+        emp_id: adminEmpId ?? `ADM-001`,
+        first_name: firstName,
+        last_name: lastName,
+        email: input.admin_email.toLowerCase().trim(),
+        status: "active",
+        joining_date: new Date().toISOString().slice(0, 10),
+      });
+    } catch (empErr) {
+      console.error("[create-client] failed to seed admin employee row (non-fatal):", empErr);
+    }
+
     return json({
       success: true,
       client_id: clientId,
