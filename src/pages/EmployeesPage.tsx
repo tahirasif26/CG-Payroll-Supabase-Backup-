@@ -14,8 +14,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -167,6 +168,8 @@ const ITEMS_PER_PAGE = 10;
 
 function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; isEmployee?: boolean }) {
   const { getTypeName } = useEmployeeTypes();
+  const { removeEmployee } = useEmployees();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -174,6 +177,22 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await removeEmployee(deleteTarget.id);
+      toast({ title: "Employee deleted", description: `${deleteTarget.firstName} ${deleteTarget.lastName} has been removed.` });
+      setDeleteTarget(null);
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e?.message ?? "Could not delete employee.", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const departments = Array.from(new Set(empList.map(e => e.department)));
   const statuses = Array.from(new Set(empList.map(e => e.status)));
@@ -372,11 +391,20 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                 {!isEmployee && (
                   <TableCell className="text-right pr-4">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }} title="View profile">
                         <User className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }} title="Documents">
                         <FileText className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(emp); }}
+                        title="Delete employee"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </TableCell>
@@ -388,6 +416,28 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete employee?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{deleteTarget?.firstName} {deleteTarget?.lastName}</strong> ({deleteTarget?.empId}) and all their associated data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
