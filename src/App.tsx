@@ -88,6 +88,7 @@ const MyAccessPage = lazy(() => import("@/pages/MyAccessPage"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
+const MyProfilePage = lazy(() => import("@/pages/MyProfilePage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -371,7 +372,8 @@ function AppRoutes() {
           <Route path="/manage/users" element={
             <ProtectedRoute requiredRole="super_admin"><ComingSoonPage title="System Users" description="Manage system-level user accounts." /></ProtectedRoute>
           } />
-          <Route path="/account" element={<ComingSoonPage title="My Account" description="Manage your personal account settings." />} />
+          <Route path="/account" element={<ProtectedRoute requiredRole={["super_admin","admin","hr","employee"]}><MyProfilePage /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute requiredRole={["super_admin","admin","hr","employee"]}><MyProfilePage /></ProtectedRoute>} />
 
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<NotFound />} />
