@@ -86,8 +86,7 @@ export default function FeatureAccessPage() {
     <div className="space-y-6">
       <PageHeader
         title="Feature Access"
-        subtitle="Grant or revoke specific features per employee. Only features available to your company are shown."
-        icon={<Shield className="h-5 w-5" />}
+        description="Grant or revoke specific features per employee. Only features available to your company are shown."
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
