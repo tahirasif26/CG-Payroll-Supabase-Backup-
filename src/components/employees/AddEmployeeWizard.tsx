@@ -93,6 +93,17 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const createEmployee = useCreateEmployee();
   const { toast } = useToast();
   const { enabledModules, enabledFeatures } = useRole();
+  const { clientId } = useAuth();
+  const { data: clientInfo } = useQuery({
+    queryKey: ["client-name", clientId],
+    queryFn: async () => {
+      if (!clientId) return null;
+      const { data } = await supabase.from("clients").select("company_name").eq("id", clientId).maybeSingle();
+      return data;
+    },
+    enabled: !!clientId,
+  });
+  const empPrefix = computeEmpPrefix(clientInfo?.company_name);
   const activeSetups = setups.filter(s => s.status === "active");
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
 
@@ -591,7 +602,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Employee ID</p>
-                  <Input value={`CG-${String(employeeCount + 1).padStart(3, "0")}`} disabled className="h-8 text-sm bg-muted" />
+                  <Input value={`${empPrefix}-${String(employeeCount + 1).padStart(3, "0")}`} disabled className="h-8 text-sm bg-muted" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Work Email</p>
