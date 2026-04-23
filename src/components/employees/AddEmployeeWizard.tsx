@@ -225,6 +225,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
           start_year: e.year ? Number(e.year) : undefined,
         })),
         send_invite: sendInvite,
+        enabled_features: selectedFeatures.length > 0 ? selectedFeatures : null,
       });
 
       // Success — mirror into legacy in-memory context and close the wizard.
@@ -245,6 +246,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
     setErrors({});
     setEducation([]);
     setDependants([]);
+    setSelectedFeatures([]);
     onOpenChange(false);
   };
 
@@ -840,6 +842,27 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
                 <p className="text-sm text-muted-foreground">Assets can be assigned after the employee is onboarded.</p>
                 <p className="text-xs text-muted-foreground mt-1">Go to Asset Management to assign devices and equipment.</p>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== FEATURES TAB ========== */}
+        <TabsContent value="features" className="mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />Feature Access
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FeatureSelectionTree
+                availableModules={enabledModules}
+                availableFeatures={enabledFeatures}
+                selectedFeatures={selectedFeatures}
+                setSelectedFeatures={setSelectedFeatures}
+                title="Features for this employee"
+                description="Select which features this employee can access. Only features available to your company are listed. Leave everything unchecked to grant all available features."
+              />
             </CardContent>
           </Card>
         </TabsContent>
