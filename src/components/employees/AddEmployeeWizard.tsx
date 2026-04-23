@@ -16,10 +16,12 @@ import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useCreateEmployee } from "@/hooks/queries/useEmployees";
 import { useToast } from "@/hooks/use-toast";
+import { useRole } from "@/contexts/RoleContext";
+import { FeatureSelectionTree } from "@/components/features/FeatureSelectionTree";
 import {
   Check, AlertCircle, User, Briefcase, DollarSign, Calendar, FileText, Monitor,
   ChevronLeft, Calculator, Settings, Phone, MapPin, CreditCard, GraduationCap, Heart,
-  Plus, Trash2, Upload, ArrowRight, ArrowLeft, SkipForward
+  Plus, Trash2, Upload, ArrowRight, ArrowLeft, SkipForward, Shield
 } from "lucide-react";
 import type { Employee } from "@/types/hcm";
 
@@ -68,6 +70,7 @@ const TABS = [
   { id: "timeoff", label: "Time Off", icon: Calendar },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "assets", label: "Assets", icon: Monitor },
+  { id: "features", label: "Features", icon: Shield },
 ];
 
 const DEPARTMENTS = ["Assurance", "Tax", "Advisory", "Strategy", "Technology"];
@@ -78,6 +81,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const { addEmployee, employees: allEmployees } = useEmployees();
   const createEmployee = useCreateEmployee();
   const { toast } = useToast();
+  const { enabledModules, enabledFeatures } = useRole();
   const activeSetups = setups.filter(s => s.status === "active");
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
 
@@ -88,6 +92,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
   const [sendInvite, setSendInvite] = useState(true);
   const [inviting, setInviting] = useState(false);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
 
   const selectedSetup = useMemo(() => activeSetups.find(s => s.id === form.payrollSetupId), [form.payrollSetupId, activeSetups]);
 
@@ -220,6 +225,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
           start_year: e.year ? Number(e.year) : undefined,
         })),
         send_invite: sendInvite,
+        enabled_features: selectedFeatures.length > 0 ? selectedFeatures : null,
       });
 
       // Success — mirror into legacy in-memory context and close the wizard.
@@ -240,6 +246,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
     setErrors({});
     setEducation([]);
     setDependants([]);
+    setSelectedFeatures([]);
     onOpenChange(false);
   };
 
@@ -835,6 +842,27 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
                 <p className="text-sm text-muted-foreground">Assets can be assigned after the employee is onboarded.</p>
                 <p className="text-xs text-muted-foreground mt-1">Go to Asset Management to assign devices and equipment.</p>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== FEATURES TAB ========== */}
+        <TabsContent value="features" className="mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />Feature Access
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FeatureSelectionTree
+                availableModules={enabledModules}
+                availableFeatures={enabledFeatures}
+                selectedFeatures={selectedFeatures}
+                setSelectedFeatures={setSelectedFeatures}
+                title="Features for this employee"
+                description="Select which features this employee can access. Only features available to your company are listed. Leave everything unchecked to grant all available features."
+              />
             </CardContent>
           </Card>
         </TabsContent>

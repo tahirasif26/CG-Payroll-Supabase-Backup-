@@ -24,6 +24,8 @@ export interface AuthState {
   features: Set<string>;
   enabledModules: string[] | null;
   enabledFeatures: string[] | null;
+  /** Per-employee feature whitelist. Only applies when role === "employee". */
+  employeeFeatures: string[] | null;
   loading: boolean;
 }
 
@@ -37,6 +39,7 @@ const initialState: AuthState = {
   features: new Set<string>(),
   enabledModules: null,
   enabledFeatures: null,
+  employeeFeatures: null,
   loading: true,
 };
 
@@ -47,12 +50,17 @@ export function useAuth() {
     const loadAuthData = async (session: Session) => {
       const userId = session.user.id;
 
-      const [profileRes, roleRes, featuresRes, enabledModulesRes, enabledFeaturesRes] = await Promise.all([
+      const [profileRes, roleRes, featuresRes, enabledModulesRes, enabledFeaturesRes, employeeRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.rpc("get_user_role", { _user_id: userId }),
         supabase.rpc("get_user_features", { _user_id: userId }),
         (supabase as any).rpc("get_user_enabled_modules", { _user_id: userId }),
         (supabase as any).rpc("get_user_enabled_features", { _user_id: userId }),
+        (supabase as any)
+          .from("employees")
+          .select("id, enabled_features")
+          .eq("user_id", userId)
+          .maybeSingle(),
       ]);
 
       const profile = (profileRes.data as Profile | null) ?? null;
@@ -66,6 +74,9 @@ export function useAuth() {
       const rawEnabledFeatures = (enabledFeaturesRes.data ?? null) as unknown as string[] | null;
       const enabledFeatures = rawEnabledFeatures && rawEnabledFeatures.length > 0 ? rawEnabledFeatures : null;
 
+      const rawEmployeeFeatures = (employeeRes.data as { enabled_features: string[] | null } | null)?.enabled_features ?? null;
+      const employeeFeatures = Array.isArray(rawEmployeeFeatures) && rawEmployeeFeatures.length > 0 ? rawEmployeeFeatures : null;
+
       setState({
         session,
         user: session.user,
@@ -76,6 +87,7 @@ export function useAuth() {
         features,
         enabledModules,
         enabledFeatures,
+        employeeFeatures,
         loading: false,
       });
 
@@ -123,8 +135,12 @@ export function useAuth() {
 
   const hasFeature = (key: string): boolean => {
     if (state.isSuperAdmin) return true;
-    // Client-level enabled_features gate (super admin's per-feature selection)
+    // Client-level gate (set by super admin when creating client)
     if (state.enabledFeatures !== null && !state.enabledFeatures.includes(key)) return false;
+    // Per-employee gate (set by admin); admins/HR are not filtered further
+    if (state.role === "employee" && state.employeeFeatures !== null && !state.employeeFeatures.includes(key)) {
+      return false;
+    }
     return state.features.has(key);
   };
 

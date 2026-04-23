@@ -1524,6 +1524,7 @@ export type Database = {
           division: string | null
           email: string | null
           emp_id: string
+          enabled_features: string[] | null
           first_name: string | null
           gender: string | null
           id: string
@@ -1558,6 +1559,7 @@ export type Database = {
           division?: string | null
           email?: string | null
           emp_id: string
+          enabled_features?: string[] | null
           first_name?: string | null
           gender?: string | null
           id?: string
@@ -1592,6 +1594,7 @@ export type Database = {
           division?: string | null
           email?: string | null
           emp_id?: string
+          enabled_features?: string[] | null
           first_name?: string | null
           gender?: string | null
           id?: string

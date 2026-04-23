@@ -83,6 +83,7 @@ const PayrollSetupPage = lazy(() => import("@/pages/PayrollSetupPage"));
 const PayrollSetupEditorPage = lazy(() => import("@/pages/PayrollSetupEditorPage"));
 const PayrollSetupViewPage = lazy(() => import("@/pages/PayrollSetupViewPage"));
 const UserPermissionsPage = lazy(() => import("@/pages/settings/UserPermissionsPage"));
+const FeatureAccessPage = lazy(() => import("@/pages/settings/FeatureAccessPage"));
 const MyAccessPage = lazy(() => import("@/pages/MyAccessPage"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
@@ -192,7 +193,7 @@ function AppRoutes() {
             <ProtectedRoute requiredRole={["admin", "hr"]}><OnboardingPage /></ProtectedRoute>
           } />
           <Route path="/settings/feature-access" element={
-            <ProtectedRoute requiredRole={["super_admin","admin","hr"]}><UserPermissionsPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["super_admin","admin","hr"]}><FeatureAccessPage /></ProtectedRoute>
           } />
           <Route path="/settings/user-permissions" element={
             <ProtectedRoute requiredRole={["super_admin","admin","hr"]}><UserPermissionsPage /></ProtectedRoute>

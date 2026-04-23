@@ -20,6 +20,7 @@ interface RoleContextType {
   features: Set<string>;
   enabledModules: string[] | null;
   enabledFeatures: string[] | null;
+  employeeFeatures: string[] | null;
   hasFeature: (key: string) => boolean;
 
   // Auth + profile
@@ -53,6 +54,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         features: auth.features,
         enabledModules: auth.enabledModules,
         enabledFeatures: auth.enabledFeatures,
+        employeeFeatures: auth.employeeFeatures,
         hasFeature: auth.hasFeature,
         user: auth.user,
         profile: auth.profile,
