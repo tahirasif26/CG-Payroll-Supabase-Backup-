@@ -109,8 +109,9 @@ function RouteLoader() {
 }
 
 function RouteRedirector() {
-  const { isSuperAdmin } = useRole();
-  return <Navigate to={isSuperAdmin ? "/manage/clients" : "/"} replace />;
+  // All roles (including super_admin) land on `/` — DashboardPage renders the
+  // role-specific dashboard.
+  return <Navigate to="/" replace />;
 }
 
 function AppRoutes() {

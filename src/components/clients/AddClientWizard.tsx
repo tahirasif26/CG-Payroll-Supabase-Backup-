@@ -9,16 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
 import { ModulePicker } from "@/components/permissions/ModulePicker";
-import { navigationModules } from "@/lib/navigation";
+import { navigationGroups } from "@/lib/navigation";
 
-/** Module keys exempt from selection (always available, like Dashboard/Settings),
- *  or already grouped under another module in the sidebar. */
+/** Group keys exempt from selection (always available like Dashboard/Settings,
+ *  or always-visible groups that don't gate behind enabled_modules). */
 const ALWAYS_ON_MODULES = new Set([
   "dashboard",
   "settings",
-  "analytics",
-  // "birthdays" is rendered under Employees as the "Important Dates" tab.
-  "birthdays",
+  "projects",
+  "upcoming",
+  "access",
 ]);
 
 const COUNTRIES = [
@@ -87,15 +87,15 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const createClient = useCreateClient();
-  // Use the actual sidebar navigation modules so selection here exactly matches what the
-  // tenant will see in the app. Skip always-on modules (Dashboard, Settings, Analytics).
+  // Use the actual sidebar navigation groups so selection here exactly matches what the
+  // tenant will see in the app. Skip always-on groups.
   const allModules = useMemo(
     () =>
-      navigationModules
-        .filter((m) => !ALWAYS_ON_MODULES.has(m.key))
-        .map((m) => ({
-          key: m.key,
-          label: m.label,
+      navigationGroups
+        .filter((g) => !ALWAYS_ON_MODULES.has(g.key))
+        .map((g) => ({
+          key: g.key,
+          label: g.label,
           features: [] as never[],
         })),
     [],
