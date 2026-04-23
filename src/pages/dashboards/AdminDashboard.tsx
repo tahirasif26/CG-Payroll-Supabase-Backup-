@@ -32,8 +32,10 @@ function getChartColors() {
 
 export default function AdminDashboard() {
   const { employees } = useEmployeesCtx();
-  const { profile } = useRole();
+  const { profile, enabledModules } = useRole();
   const CHART_COLORS = useMemo(() => getChartColors(), []);
+  const isModuleOn = (key: string) =>
+    !enabledModules || enabledModules.length === 0 || enabledModules.includes(key);
   const activeEmps = useActiveEmployees();
   const { data: payrollRuns = [] } = usePayrollRuns();
   const lastPayroll = payrollRuns.find((p) => p.status === "completed");
