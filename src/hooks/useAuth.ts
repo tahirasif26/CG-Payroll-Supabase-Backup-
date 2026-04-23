@@ -49,7 +49,7 @@ export function useAuth() {
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.rpc("get_user_role", { _user_id: userId }),
         supabase.rpc("get_user_features", { _user_id: userId }),
-        supabase.rpc("get_user_enabled_modules", { _user_id: userId }),
+        (supabase as any).rpc("get_user_enabled_modules", { _user_id: userId }),
       ]);
 
       const profile = (profileRes.data as Profile | null) ?? null;
@@ -57,7 +57,7 @@ export function useAuth() {
       const featureRows = (featuresRes.data as Array<{ feature_key: string; enabled: boolean }> | null) ?? [];
       const features = new Set(featureRows.filter((r) => r.enabled).map((r) => r.feature_key));
 
-      const rawEnabledModules = (enabledModulesRes.data ?? null) as string[] | null;
+      const rawEnabledModules = (enabledModulesRes.data ?? null) as unknown as string[] | null;
       const enabledModules = rawEnabledModules && rawEnabledModules.length > 0 ? rawEnabledModules : null;
 
       setState({
