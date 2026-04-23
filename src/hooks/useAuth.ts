@@ -23,6 +23,7 @@ export interface AuthState {
   isSuperAdmin: boolean;
   features: Set<string>;
   enabledModules: string[] | null;
+  enabledFeatures: string[] | null;
   loading: boolean;
 }
 
@@ -35,6 +36,7 @@ const initialState: AuthState = {
   isSuperAdmin: false,
   features: new Set<string>(),
   enabledModules: null,
+  enabledFeatures: null,
   loading: true,
 };
 
@@ -45,11 +47,12 @@ export function useAuth() {
     const loadAuthData = async (session: Session) => {
       const userId = session.user.id;
 
-      const [profileRes, roleRes, featuresRes, enabledModulesRes] = await Promise.all([
+      const [profileRes, roleRes, featuresRes, enabledModulesRes, enabledFeaturesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.rpc("get_user_role", { _user_id: userId }),
         supabase.rpc("get_user_features", { _user_id: userId }),
         (supabase as any).rpc("get_user_enabled_modules", { _user_id: userId }),
+        (supabase as any).rpc("get_user_enabled_features", { _user_id: userId }),
       ]);
 
       const profile = (profileRes.data as Profile | null) ?? null;
@@ -60,6 +63,9 @@ export function useAuth() {
       const rawEnabledModules = (enabledModulesRes.data ?? null) as unknown as string[] | null;
       const enabledModules = rawEnabledModules && rawEnabledModules.length > 0 ? rawEnabledModules : null;
 
+      const rawEnabledFeatures = (enabledFeaturesRes.data ?? null) as unknown as string[] | null;
+      const enabledFeatures = rawEnabledFeatures && rawEnabledFeatures.length > 0 ? rawEnabledFeatures : null;
+
       setState({
         session,
         user: session.user,
@@ -69,6 +75,7 @@ export function useAuth() {
         isSuperAdmin: role === "super_admin",
         features,
         enabledModules,
+        enabledFeatures,
         loading: false,
       });
 
@@ -114,7 +121,12 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  const hasFeature = (key: string): boolean => state.isSuperAdmin || state.features.has(key);
+  const hasFeature = (key: string): boolean => {
+    if (state.isSuperAdmin) return true;
+    // Client-level enabled_features gate (super admin's per-feature selection)
+    if (state.enabledFeatures !== null && !state.enabledFeatures.includes(key)) return false;
+    return state.features.has(key);
+  };
 
   return { ...state, hasFeature, signOut };
 }
