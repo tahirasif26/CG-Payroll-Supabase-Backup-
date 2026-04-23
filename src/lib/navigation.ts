@@ -1,12 +1,11 @@
 import {
-  LayoutDashboard, TrendingUp, Users, Cake, CalendarDays,
-  Wallet, Receipt, Package, Star, Clock, Scroll, Settings,
-  Building2, ShieldCheck, Banknote, Network, ToggleLeft,
+  LayoutDashboard, Users, DollarSign, Receipt, Package, Shield, Star,
+  FolderOpen, Clock, Settings, Building2, ToggleLeft, UserCog,
   type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@/hooks/useAuth";
 
-export interface NavTab {
+export interface NavChild {
   label: string;
   path: string;
   requiredFeature?: string;
@@ -15,22 +14,22 @@ export interface NavTab {
   labelsByRole?: Partial<Record<AppRole, string>>;
 }
 
-export interface NavModule {
+export interface NavGroup {
   key: string;
   label: string;
   icon: LucideIcon;
-  basePath: string;
-  tabs?: NavTab[];
-  requiredFeature?: string;
+  basePath?: string;
+  children?: NavChild[];
   requiredRoles?: AppRole[];
-  hideForRoles?: AppRole[];
   labelsByRole?: Partial<Record<AppRole, string>>;
 }
 
-/** Module keys exempt from `enabled_modules` checks (always shown if role allows). */
-const EXEMPT_MODULE_KEYS = new Set(["dashboard", "settings", "analytics", "platform-clients", "platform-features", "platform-users"]);
+/** Group keys exempt from `enabled_modules` enforcement (always visible if role allows). */
+const ALWAYS_VISIBLE_GROUPS = new Set([
+  "dashboard", "settings", "projects", "upcoming", "access",
+]);
 
-export const navigationModules: NavModule[] = [
+export const navigationGroups: NavGroup[] = [
   {
     key: "dashboard",
     label: "Dashboard",
@@ -38,191 +37,154 @@ export const navigationModules: NavModule[] = [
     basePath: "/",
   },
   {
-    key: "analytics",
-    label: "Payroll Analytics",
-    icon: TrendingUp,
-    basePath: "/analytics",
-    requiredRoles: ["admin", "hr"],
-  },
-  {
     key: "employees",
     label: "Employees",
     icon: Users,
-    basePath: "/employees",
-    labelsByRole: { employee: "Directory" },
-    tabs: [
-      { label: "Directory", path: "/employees", requiredFeature: "employees.view_directory" },
+    children: [
+      { label: "Directory", path: "/employees", requiredRoles: ["admin", "hr"] },
       { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
-      { label: "Important Dates", path: "/birthdays", requiredFeature: "employees.view_birthdays" },
+      { label: "Imp Dates", path: "/birthdays", requiredFeature: "employees.view_birthdays" },
+      { label: "Leave Management", path: "/leave", requiredFeature: "leave.view_balance", labelsByRole: { employee: "My Leave" } },
     ],
-  },
-  {
-    key: "leave",
-    label: "Leave",
-    icon: CalendarDays,
-    basePath: "/leave",
-    requiredFeature: "leave.view_balance",
-    labelsByRole: { employee: "My Leave" },
   },
   {
     key: "payroll",
     label: "Payroll",
-    icon: Wallet,
-    basePath: "/payroll",
-    requiredRoles: ["admin", "hr", "employee"],
-    tabs: [
+    icon: DollarSign,
+    children: [
+      { label: "Payroll Setup", path: "/payroll/setup", requiredRoles: ["admin", "hr"] },
       { label: "Payroll Runs", path: "/payroll", requiredRoles: ["admin", "hr"] },
       { label: "Payslips", path: "/payslips", requiredFeature: "payroll.view_own_payslip", labelsByRole: { employee: "My Payslips" } },
-      { label: "Compensation", path: "/compensation", requiredRoles: ["admin", "hr"] },
-      { label: "Deductions", path: "/deductions", requiredRoles: ["admin", "hr"] },
       { label: "End of Service", path: "/separations", requiredRoles: ["admin", "hr"] },
-      { label: "Payroll Setup", path: "/payroll/setup", requiredRoles: ["admin", "hr"] },
-    ],
-  },
-  {
-    key: "loans",
-    label: "Loans & Advances",
-    icon: Banknote,
-    basePath: "/loans",
-    tabs: [
       { label: "Loans", path: "/loans", requiredFeature: "loans.view_own" },
-      { label: "Advances", path: "/advances", requiredFeature: "advances.view_own" },
-      { label: "Outstanding Advances", path: "/outstanding-advances", requiredRoles: ["admin", "hr"] },
+      { label: "Analytics", path: "/analytics", requiredRoles: ["admin", "hr"] },
     ],
   },
   {
     key: "expenses",
-    label: "Expenses",
+    label: "Expense Tracking",
     icon: Receipt,
-    basePath: "/expenses",
-    labelsByRole: { employee: "My Expenses" },
-    tabs: [
-      { label: "Expenses", path: "/expenses", requiredFeature: "expenses.view_own" },
-      { label: "Analytics", path: "/expense-analytics", requiredRoles: ["admin", "hr"] },
-      { label: "Cost Allocation", path: "/cost-allocation", requiredRoles: ["admin", "hr"] },
+    children: [
+      { label: "Expenses", path: "/expenses", requiredFeature: "expenses.view_own", labelsByRole: { employee: "My Expenses" } },
+      { label: "Advances", path: "/advances", requiredFeature: "advances.view_own" },
+      { label: "Outstanding Advances", path: "/outstanding-advances", requiredRoles: ["admin", "hr"] },
+      { label: "Expense Analytics", path: "/expense-analytics", requiredRoles: ["admin", "hr"] },
     ],
   },
   {
     key: "assets",
-    label: "Assets",
+    label: "Asset Tracking",
     icon: Package,
-    basePath: "/assets",
-    tabs: [
+    children: [
       { label: "Dashboard", path: "/assets/dashboard", requiredRoles: ["admin", "hr"] },
-      { label: "Inventory", path: "/assets/inventory", requiredFeature: "assets.view_inventory" },
+      { label: "Asset Inventory", path: "/assets/inventory", requiredFeature: "assets.view_inventory" },
+      { label: "Asset Settings", path: "/assets/master-data", requiredRoles: ["admin", "hr"] },
       { label: "Asset Store", path: "/assets/store", requiredFeature: "assets.request_new" },
-      { label: "Requests", path: "/assets/requests", requiredFeature: "assets.approve_requests" },
-      { label: "Audits", path: "/assets/audits", requiredRoles: ["admin", "hr"] },
+      { label: "Asset Requests", path: "/assets/requests", requiredFeature: "assets.approve_requests" },
+      { label: "Asset Audits", path: "/assets/audits", requiredRoles: ["admin", "hr"] },
+    ],
+  },
+  {
+    key: "access",
+    label: "Access Management",
+    icon: Shield,
+    requiredRoles: ["admin", "hr"],
+    children: [
+      { label: "ID Cards", path: "/id-cards" },
+      { label: "Door & Lock Mgmt", path: "/access-management", requiredRoles: ["admin"] },
     ],
   },
   {
     key: "performance",
     label: "Performance",
     icon: Star,
-    basePath: "/performance",
-    tabs: [
-      { label: "Ratings", path: "/performance/ratings", requiredRoles: ["admin", "hr"] },
+    children: [
+      { label: "Ratings Overview", path: "/performance/ratings", requiredRoles: ["admin", "hr"] },
+      { label: "Rating Calibration", path: "/performance/calibration", requiredRoles: ["admin"] },
       { label: "Self Assessment", path: "/performance/self-assessment", requiredFeature: "performance.self_assessment" },
       { label: "Peer Assessment", path: "/performance/peer-assessment", requiredFeature: "performance.peer_assessment" },
-      { label: "Manager Assessment", path: "/performance/manager-assessment", requiredFeature: "performance.manager_assessment" },
+      { label: "Manager Assessment", path: "/performance/manager-assessment", requiredRoles: ["admin", "hr"] },
+      { label: "Assessment Ratings", path: "/performance/assessment-ratings", requiredRoles: ["admin", "hr"] },
+      { label: "Questionnaire Settings", path: "/performance/questionnaire", requiredRoles: ["admin"] },
     ],
   },
   {
     key: "projects",
     label: "Projects",
-    icon: Network,
+    icon: FolderOpen,
     basePath: "/projects",
     requiredRoles: ["admin", "hr"],
   },
   {
-    key: "timesheets",
-    label: "Timesheets",
+    key: "upcoming",
+    label: "Upcoming Features",
     icon: Clock,
-    basePath: "/timesheets",
-    requiredFeature: "timesheets.submit",
-    labelsByRole: { employee: "My Timesheets" },
-  },
-  {
-    key: "policies",
-    label: "Company Policies",
-    icon: Scroll,
-    basePath: "/company-policies",
-    requiredFeature: "policies.view",
-  },
-  {
-    key: "birthdays",
-    label: "Important Dates",
-    icon: Cake,
-    basePath: "/birthdays",
-    hideForRoles: ["admin", "hr"], // available via Employees tabs for staff
-    requiredFeature: "employees.view_birthdays",
+    basePath: "/upcoming-features",
   },
   {
     key: "settings",
     label: "Settings",
     icon: Settings,
-    basePath: "/settings",
     requiredRoles: ["admin", "hr"],
-    tabs: [
+    children: [
       { label: "Company Profile", path: "/settings/company" },
-      { label: "Company Structure", path: "/settings/company-structure" },
       { label: "Payroll Settings", path: "/settings/payroll" },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
-      { label: "Feature Access", path: "/settings/feature-access", requiredRoles: ["admin", "hr"] },
+      { label: "Feature Access", path: "/settings/feature-access" },
       { label: "Expense Categories", path: "/settings/expense-categories" },
       { label: "Leave Types", path: "/settings/leave-types" },
-      { label: "Reminders", path: "/settings/reminders" },
+      { label: "GL Code Mapping", path: "/settings/gl-codes", requiredRoles: ["admin"] },
     ],
   },
 ];
 
-export const superAdminModules: NavModule[] = [
+export const superAdminGroups: NavGroup[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, basePath: "/" },
-  { key: "platform-clients", label: "Client Management", icon: Building2, basePath: "/manage/clients" },
-  { key: "platform-features", label: "Feature Access", icon: ShieldCheck, basePath: "/settings/feature-access" },
-  { key: "platform-users", label: "System Users", icon: Users, basePath: "/settings/users" },
+  { key: "clients", label: "Client Management", icon: Building2, basePath: "/manage/clients" },
+  { key: "features", label: "Feature Definitions", icon: ToggleLeft, basePath: "/manage/features" },
+  { key: "sysusers", label: "System Users", icon: Shield, basePath: "/manage/users" },
+  { key: "account", label: "My Account", icon: UserCog, basePath: "/account" },
 ];
 
 function moduleAllowedByEnabled(key: string, role: AppRole, enabledModules: string[] | null): boolean {
   if (role === "super_admin") return true;
-  if (EXEMPT_MODULE_KEYS.has(key)) return true;
+  if (ALWAYS_VISIBLE_GROUPS.has(key)) return true;
   if (enabledModules === null) return true;
   return enabledModules.includes(key);
 }
 
-export function filterModulesForUser(
-  modules: NavModule[],
+export function filterNavigation(
+  groups: NavGroup[],
   role: AppRole,
   hasFeature: (key: string) => boolean,
   enabledModules: string[] | null,
-): NavModule[] {
-  return modules.filter((m) => {
-    if (m.hideForRoles?.includes(role)) return false;
-    if (m.requiredRoles && !m.requiredRoles.includes(role)) return false;
-    if (!moduleAllowedByEnabled(m.key, role, enabledModules)) return false;
-    if (m.requiredFeature && role !== "super_admin" && !hasFeature(m.requiredFeature)) return false;
-    return true;
-  });
+): NavGroup[] {
+  return groups
+    .filter((g) => {
+      if (g.requiredRoles && !g.requiredRoles.includes(role)) return false;
+      if (!moduleAllowedByEnabled(g.key, role, enabledModules)) return false;
+      return true;
+    })
+    .map((g) => {
+      if (!g.children) return g;
+      const filteredChildren = g.children.filter((c) => {
+        if (c.hideForRoles?.includes(role)) return false;
+        if (c.requiredRoles && !c.requiredRoles.includes(role)) return false;
+        if (c.requiredFeature && role !== "super_admin" && !hasFeature(c.requiredFeature)) return false;
+        return true;
+      });
+      return { ...g, children: filteredChildren };
+    })
+    .filter((g) => {
+      if (g.basePath) return true;
+      return !!g.children && g.children.length > 0;
+    });
 }
 
-export function filterTabsForUser(
-  tabs: NavTab[] | undefined,
-  role: AppRole,
-  hasFeature: (key: string) => boolean,
-): NavTab[] {
-  if (!tabs) return [];
-  return tabs.filter((t) => {
-    if (t.hideForRoles?.includes(role)) return false;
-    if (t.requiredRoles && !t.requiredRoles.includes(role)) return false;
-    if (t.requiredFeature && role !== "super_admin" && !hasFeature(t.requiredFeature)) return false;
-    return true;
-  });
+export function resolveGroupLabel(g: NavGroup, role: AppRole): string {
+  return g.labelsByRole?.[role] ?? g.label;
 }
 
-export function resolveModuleLabel(m: NavModule, role: AppRole): string {
-  return m.labelsByRole?.[role] ?? m.label;
-}
-
-export function resolveTabLabel(t: NavTab, role: AppRole): string {
-  return t.labelsByRole?.[role] ?? t.label;
+export function resolveChildLabel(c: NavChild, role: AppRole): string {
+  return c.labelsByRole?.[role] ?? c.label;
 }
