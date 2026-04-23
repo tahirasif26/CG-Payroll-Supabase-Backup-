@@ -127,7 +127,10 @@ Deno.serve(async (req) => {
       .eq("id", clientId)
       .maybeSingle();
     if (clientErr) return json({ error: clientErr.message }, 500);
-    if (!clientRow) return json({ error: "Client not found" }, 404);
+    if (!clientRow) {
+      // Idempotent: already deleted (e.g. duplicate invocation). Return success.
+      return json({ success: true, client_id: clientId, already_deleted: true }, 200);
+    }
 
     // 1) Collect all auth user IDs that belong to this client (via user_roles + profiles)
     const userIdSet = new Set<string>();
