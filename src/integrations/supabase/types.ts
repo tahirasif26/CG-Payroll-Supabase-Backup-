@@ -4023,6 +4023,10 @@ export type Database = {
         Args: { _client_id: string; _module_key: string }
         Returns: boolean
       }
+      client_module_to_feature_modules: {
+        Args: { _nav_key: string }
+        Returns: string[]
+      }
       create_notification: {
         Args: {
           _action_url?: string
