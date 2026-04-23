@@ -391,10 +391,14 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
               <ReviewRow k="Plan" v={form.subscription_plan} className="capitalize" />
               <ReviewRow k="Status" v={form.status} className="capitalize" />
             </ReviewSection>
-            <ReviewSection title="Modules">
+            <ReviewSection title="Modules & Features">
               <ReviewRow
-                k="Enabled"
-                v={form.enabled_modules.length === 0 ? "All modules" : `${form.enabled_modules.length} selected`}
+                k="Modules"
+                v={form.enabled_modules.length === 0 ? "None" : `${form.enabled_modules.length} selected`}
+              />
+              <ReviewRow
+                k="Features"
+                v={form.enabled_features.length === 0 ? "None" : `${form.enabled_features.length} selected`}
               />
             </ReviewSection>
             <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
