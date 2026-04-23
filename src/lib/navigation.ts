@@ -26,7 +26,7 @@ export interface NavGroup {
 
 /** Group keys exempt from `enabled_modules` enforcement (always visible if role allows). */
 const ALWAYS_VISIBLE_GROUPS = new Set([
-  "dashboard", "settings", "projects", "upcoming", "access",
+  "dashboard", "settings", "upcoming",
 ]);
 
 export const navigationGroups: NavGroup[] = [
