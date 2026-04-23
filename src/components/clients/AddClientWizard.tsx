@@ -11,8 +11,15 @@ import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClie
 import { ModulePicker } from "@/components/permissions/ModulePicker";
 import { navigationModules } from "@/lib/navigation";
 
-/** Module keys exempt from selection (always available, like Dashboard/Settings). */
-const ALWAYS_ON_MODULES = new Set(["dashboard", "settings", "analytics"]);
+/** Module keys exempt from selection (always available, like Dashboard/Settings),
+ *  or already grouped under another module in the sidebar. */
+const ALWAYS_ON_MODULES = new Set([
+  "dashboard",
+  "settings",
+  "analytics",
+  // "birthdays" is rendered under Employees as the "Important Dates" tab.
+  "birthdays",
+]);
 
 const COUNTRIES = [
   { code: "SA", name: "Saudi Arabia", tz: "Asia/Riyadh", currency: "SAR" },
