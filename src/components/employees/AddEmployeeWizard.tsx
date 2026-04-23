@@ -16,10 +16,12 @@ import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useCreateEmployee } from "@/hooks/queries/useEmployees";
 import { useToast } from "@/hooks/use-toast";
+import { useRole } from "@/contexts/RoleContext";
+import { FeatureSelectionTree } from "@/components/features/FeatureSelectionTree";
 import {
   Check, AlertCircle, User, Briefcase, DollarSign, Calendar, FileText, Monitor,
   ChevronLeft, Calculator, Settings, Phone, MapPin, CreditCard, GraduationCap, Heart,
-  Plus, Trash2, Upload, ArrowRight, ArrowLeft, SkipForward
+  Plus, Trash2, Upload, ArrowRight, ArrowLeft, SkipForward, Shield
 } from "lucide-react";
 import type { Employee } from "@/types/hcm";
 
@@ -68,6 +70,7 @@ const TABS = [
   { id: "timeoff", label: "Time Off", icon: Calendar },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "assets", label: "Assets", icon: Monitor },
+  { id: "features", label: "Features", icon: Shield },
 ];
 
 const DEPARTMENTS = ["Assurance", "Tax", "Advisory", "Strategy", "Technology"];
