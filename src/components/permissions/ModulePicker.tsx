@@ -51,9 +51,11 @@ export function ModulePicker({ modules, selected, onChange }: ModulePickerProps)
             </div>
             <div className="min-w-0">
               <div className="font-semibold text-sm">{mod.label}</div>
-              <div className="text-[11px] text-muted-foreground mt-0.5">
-                {mod.features.length} {mod.features.length === 1 ? "feature" : "features"}
-              </div>
+              {mod.features.length > 0 && (
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {mod.features.length} {mod.features.length === 1 ? "feature" : "features"}
+                </div>
+              )}
             </div>
           </button>
         );
