@@ -1,25 +1,15 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
-import { Building2, User, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Sparkles, Crown, Rocket, Layers } from "lucide-react";
+import { Building2, User, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Sparkles, Crown, Rocket, Layers, ChevronDown, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
-import { ModulePicker } from "@/components/permissions/ModulePicker";
-import { navigationGroups } from "@/lib/navigation";
-
-/** Group keys exempt from selection (always available like Dashboard/Settings,
- *  or always-visible groups that don't gate behind enabled_modules). */
-const ALWAYS_ON_MODULES = new Set([
-  "dashboard",
-  "settings",
-  "projects",
-  "upcoming",
-  "access",
-]);
+import { MODULE_CATALOG } from "@/lib/feature-catalog";
 
 const COUNTRIES = [
   { code: "SA", name: "Saudi Arabia", tz: "Asia/Riyadh", currency: "SAR" },
@@ -61,7 +51,10 @@ const step2Schema = z.object({
   status: z.enum(["trial", "active"]),
 });
 
-type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & { enabled_modules: string[] };
+type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & {
+  enabled_modules: string[];
+  enabled_features: string[];
+};
 
 const initialForm: FormState = {
   company_name: "",
@@ -75,6 +68,7 @@ const initialForm: FormState = {
   subscription_plan: "starter",
   status: "trial",
   enabled_modules: [],
+  enabled_features: [],
 };
 
 interface Props {
