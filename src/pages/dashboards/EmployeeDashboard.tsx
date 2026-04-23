@@ -46,6 +46,25 @@ export default function EmployeeDashboard() {
     return "Good evening";
   })();
 
+  // Friendly fallback when an admin/HR user doesn't have a matching employees row yet.
+  if (!employee && (appRole === "admin" || appRole === "hr")) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="p-8 text-center space-y-3">
+          <h3 className="text-lg font-semibold">No employee profile yet</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Your account is set up as <span className="font-medium capitalize">{appRole}</span> but
+            doesn't have a matching employee record yet. Add yourself as an employee from the
+            Directory to start tracking your payslips, leave balance, expenses and assets here.
+          </p>
+          <Button asChild size="sm" className="mt-2">
+            <a href="/employees">Go to Employees Directory</a>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const expiringDocs = documents
     .map((d: any) => ({ ...d, daysLeft: daysUntil(d.expiry_date) }))
     .filter((d) => d.daysLeft != null && d.daysLeft <= 180)
