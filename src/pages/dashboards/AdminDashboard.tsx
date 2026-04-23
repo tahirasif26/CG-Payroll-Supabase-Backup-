@@ -32,8 +32,10 @@ function getChartColors() {
 
 export default function AdminDashboard() {
   const { employees } = useEmployeesCtx();
-  const { profile } = useRole();
+  const { profile, enabledModules } = useRole();
   const CHART_COLORS = useMemo(() => getChartColors(), []);
+  const isModuleOn = (key: string) =>
+    !enabledModules || enabledModules.length === 0 || enabledModules.includes(key);
   const activeEmps = useActiveEmployees();
   const { data: payrollRuns = [] } = usePayrollRuns();
   const lastPayroll = payrollRuns.find((p) => p.status === "completed");
@@ -117,12 +119,12 @@ export default function AdminDashboard() {
       {/* Module shortcuts */}
       <DashboardSection title="Modules">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickActionButton icon={Users} label="Employees" description={`${activeEmps.length} active`} to="/employees" accent="purple" />
-          <QuickActionButton icon={DollarSign} label="Payroll" description={`${payrollRuns.length} runs`} to="/payroll" accent="emerald" />
-          <QuickActionButton icon={Receipt} label="Expenses" description={`${pendingExpenses.length} pending`} to="/expenses" accent="amber" />
-          <QuickActionButton icon={Calendar} label="Leave" description={`${pendingLeaves} pending`} to="/leave" accent="blue" />
-          <QuickActionButton icon={Package} label="Assets" to="/assets/dashboard" accent="rose" />
-          <QuickActionButton icon={Award} label="Performance" to="/performance/ratings" accent="purple" />
+          {isModuleOn("employees") && <QuickActionButton icon={Users} label="Employees" description={`${activeEmps.length} active`} to="/employees" accent="purple" />}
+          {isModuleOn("payroll") && <QuickActionButton icon={DollarSign} label="Payroll" description={`${payrollRuns.length} runs`} to="/payroll" accent="emerald" />}
+          {isModuleOn("expenses") && <QuickActionButton icon={Receipt} label="Expenses" description={`${pendingExpenses.length} pending`} to="/expenses" accent="amber" />}
+          {isModuleOn("leave") && <QuickActionButton icon={Calendar} label="Leave" description={`${pendingLeaves} pending`} to="/leave" accent="blue" />}
+          {isModuleOn("assets") && <QuickActionButton icon={Package} label="Assets" to="/assets/dashboard" accent="rose" />}
+          {isModuleOn("performance") && <QuickActionButton icon={Award} label="Performance" to="/performance/ratings" accent="purple" />}
           <QuickActionButton icon={BarChart3} label="Analytics" to="/analytics" accent="primary" />
           <QuickActionButton icon={Settings} label="Settings" to="/settings/company" accent="primary" />
         </div>
