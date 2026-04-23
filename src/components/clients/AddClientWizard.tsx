@@ -8,8 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
-import { useFeatureDefinitions, groupByModule } from "@/hooks/queries/useFeatureAccess";
 import { ModulePicker } from "@/components/permissions/ModulePicker";
+import { navigationModules } from "@/lib/navigation";
+
+/** Module keys exempt from selection (always available, like Dashboard/Settings). */
+const ALWAYS_ON_MODULES = new Set(["dashboard", "settings", "analytics"]);
 
 const COUNTRIES = [
   { code: "SA", name: "Saudi Arabia", tz: "Asia/Riyadh", currency: "SAR" },
@@ -77,8 +80,19 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const createClient = useCreateClient();
-  const { data: defs = [] } = useFeatureDefinitions();
-  const allModules = useMemo(() => groupByModule(defs), [defs]);
+  // Use the actual sidebar navigation modules so selection here exactly matches what the
+  // tenant will see in the app. Skip always-on modules (Dashboard, Settings, Analytics).
+  const allModules = useMemo(
+    () =>
+      navigationModules
+        .filter((m) => !ALWAYS_ON_MODULES.has(m.key))
+        .map((m) => ({
+          key: m.key,
+          label: m.label,
+          features: [] as never[],
+        })),
+    [],
+  );
 
   const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
