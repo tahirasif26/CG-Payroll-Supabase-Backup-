@@ -51,6 +51,7 @@ export interface CreateClientInput {
   admin_full_name: string;
   admin_email: string;
   enabled_modules?: string[];
+  enabled_features?: string[];
 }
 
 export function useClients(filters?: ClientFilters) {

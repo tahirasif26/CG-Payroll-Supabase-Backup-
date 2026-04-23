@@ -845,6 +845,7 @@ export type Database = {
           country: string | null
           created_at: string
           created_by: string | null
+          enabled_features: string[] | null
           enabled_modules: string[]
           id: string
           setup_completed_at: string | null
@@ -864,6 +865,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          enabled_features?: string[] | null
           enabled_modules?: string[]
           id?: string
           setup_completed_at?: string | null
@@ -883,6 +885,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          enabled_features?: string[] | null
           enabled_modules?: string[]
           id?: string
           setup_completed_at?: string | null
@@ -4048,6 +4051,10 @@ export type Database = {
       }
       generate_next_emp_id: { Args: { _client_id: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
+      get_user_enabled_features: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
       get_user_enabled_modules: {
         Args: { _user_id: string }
         Returns: string[]

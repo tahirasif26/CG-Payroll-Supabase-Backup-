@@ -18,6 +18,7 @@ const BodySchema = z.object({
   admin_full_name: z.string().trim().min(2).max(200),
   admin_email: z.string().trim().email().max(255),
   enabled_modules: z.array(z.string().trim().min(1).max(64)).max(64).optional().default([]),
+  enabled_features: z.array(z.string().trim().min(1).max(128)).max(256).optional().default([]),
 });
 
 function slugify(s: string): string {
@@ -132,6 +133,10 @@ Deno.serve(async (req) => {
         subscription_plan: input.subscription_plan,
         status: input.status,
         enabled_modules: input.enabled_modules ?? [],
+        enabled_features:
+          Array.isArray(input.enabled_features) && input.enabled_features.length > 0
+            ? input.enabled_features
+            : null,
         created_by: user.id,
       })
       .select()

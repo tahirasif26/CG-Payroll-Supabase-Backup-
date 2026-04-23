@@ -1,25 +1,15 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
-import { Building2, User, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Sparkles, Crown, Rocket, Layers } from "lucide-react";
+import { Building2, User, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Sparkles, Crown, Rocket, Layers, ChevronDown, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
-import { ModulePicker } from "@/components/permissions/ModulePicker";
-import { navigationGroups } from "@/lib/navigation";
-
-/** Group keys exempt from selection (always available like Dashboard/Settings,
- *  or always-visible groups that don't gate behind enabled_modules). */
-const ALWAYS_ON_MODULES = new Set([
-  "dashboard",
-  "settings",
-  "projects",
-  "upcoming",
-  "access",
-]);
+import { MODULE_CATALOG } from "@/lib/feature-catalog";
 
 const COUNTRIES = [
   { code: "SA", name: "Saudi Arabia", tz: "Asia/Riyadh", currency: "SAR" },
@@ -61,7 +51,10 @@ const step2Schema = z.object({
   status: z.enum(["trial", "active"]),
 });
 
-type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & { enabled_modules: string[] };
+type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & {
+  enabled_modules: string[];
+  enabled_features: string[];
+};
 
 const initialForm: FormState = {
   company_name: "",
@@ -75,6 +68,7 @@ const initialForm: FormState = {
   subscription_plan: "starter",
   status: "trial",
   enabled_modules: [],
+  enabled_features: [],
 };
 
 interface Props {
@@ -87,19 +81,51 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const createClient = useCreateClient();
-  // Use the actual sidebar navigation groups so selection here exactly matches what the
-  // tenant will see in the app. Skip always-on groups.
-  const allModules = useMemo(
-    () =>
-      navigationGroups
-        .filter((g) => !ALWAYS_ON_MODULES.has(g.key))
-        .map((g) => ({
-          key: g.key,
-          label: g.label,
-          features: [] as never[],
-        })),
-    [],
-  );
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (key: string) => {
+    setExpandedModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleModule = (moduleKey: string, enabled: boolean) => {
+    const features = MODULE_CATALOG.find((m) => m.key === moduleKey)?.features ?? [];
+    const featureKeys = features.map((f) => f.key);
+    if (enabled) {
+      setForm((f) => ({
+        ...f,
+        enabled_modules: Array.from(new Set([...f.enabled_modules, moduleKey])),
+        enabled_features: Array.from(new Set([...f.enabled_features, ...featureKeys])),
+      }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        enabled_modules: f.enabled_modules.filter((m) => m !== moduleKey),
+        enabled_features: f.enabled_features.filter((k) => !featureKeys.includes(k)),
+      }));
+    }
+  };
+
+  const toggleFeature = (featureKey: string, moduleKey: string, enabled: boolean) => {
+    if (enabled) {
+      setForm((f) => ({
+        ...f,
+        enabled_features: Array.from(new Set([...f.enabled_features, featureKey])),
+        enabled_modules: f.enabled_modules.includes(moduleKey)
+          ? f.enabled_modules
+          : [...f.enabled_modules, moduleKey],
+      }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        enabled_features: f.enabled_features.filter((k) => k !== featureKey),
+      }));
+    }
+  };
 
   const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -127,11 +153,12 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const handleSubmit = async () => {
     if (!validateStep(2)) return;
     try {
-      const payload: CreateClientInput & { enabled_modules: string[] } = {
+      const payload = {
         ...form,
         enabled_modules: form.enabled_modules,
-      } as CreateClientInput & { enabled_modules: string[] };
-      await createClient.mutateAsync(payload as CreateClientInput);
+        enabled_features: form.enabled_features,
+      } as unknown as CreateClientInput;
+      await createClient.mutateAsync(payload);
       onOpenChange(false);
       setStep(1);
       setForm(initialForm);
@@ -266,16 +293,82 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
         {step === 3 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-              <Layers className="h-4 w-4" /> Modules
+              <Layers className="h-4 w-4" /> Modules & Features
             </div>
             <p className="text-xs text-muted-foreground">
-              Select which modules this client will have access to. Leave all unchecked to enable everything.
+              Check a module to enable it. Expand to grant or deny specific features within it.
             </p>
-            <ModulePicker
-              modules={allModules}
-              selected={form.enabled_modules}
-              onChange={(next) => update({ enabled_modules: next })}
-            />
+
+            <div className="space-y-2">
+              {MODULE_CATALOG.map((m) => {
+                const isEnabled = form.enabled_modules.includes(m.key);
+                const isExpanded = expandedModules.has(m.key);
+                const total = m.features.length;
+                const selected = m.features.filter((f) => form.enabled_features.includes(f.key)).length;
+
+                return (
+                  <div key={m.key} className="rounded-lg border border-border overflow-hidden">
+                    <div className="flex items-start gap-2 p-3 bg-muted/20">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(m.key)}
+                        className="p-1 hover:bg-muted rounded mt-0.5"
+                        aria-label={isExpanded ? "Collapse" : "Expand"}
+                      >
+                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </button>
+                      <Checkbox
+                        checked={isEnabled}
+                        onCheckedChange={(v) => toggleModule(m.key, Boolean(v))}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-foreground">{m.label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {isEnabled
+                            ? selected === total
+                              ? `All ${total} features enabled`
+                              : `${selected} of ${total} features enabled`
+                            : `${total} features available`}
+                        </div>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="bg-background border-t border-border divide-y divide-border">
+                        {m.features.map((f) => {
+                          const checked = form.enabled_features.includes(f.key);
+                          return (
+                            <label
+                              key={f.key}
+                              className="flex items-start gap-3 px-4 py-2.5 pl-12 hover:bg-muted/30 cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(v) => toggleFeature(f.key, m.key, Boolean(v))}
+                                className="mt-0.5"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm text-foreground">{f.label}</div>
+                                {f.description && (
+                                  <div className="text-xs text-muted-foreground">{f.description}</div>
+                                )}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
+              {form.enabled_modules.length === 0
+                ? "No modules selected — the client will see an empty workspace."
+                : `${form.enabled_modules.length} module${form.enabled_modules.length === 1 ? "" : "s"}, ${form.enabled_features.length} feature${form.enabled_features.length === 1 ? "" : "s"} enabled.`}
+            </p>
           </div>
         )}
 
@@ -298,10 +391,14 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
               <ReviewRow k="Plan" v={form.subscription_plan} className="capitalize" />
               <ReviewRow k="Status" v={form.status} className="capitalize" />
             </ReviewSection>
-            <ReviewSection title="Modules">
+            <ReviewSection title="Modules & Features">
               <ReviewRow
-                k="Enabled"
-                v={form.enabled_modules.length === 0 ? "All modules" : `${form.enabled_modules.length} selected`}
+                k="Modules"
+                v={form.enabled_modules.length === 0 ? "None" : `${form.enabled_modules.length} selected`}
+              />
+              <ReviewRow
+                k="Features"
+                v={form.enabled_features.length === 0 ? "None" : `${form.enabled_features.length} selected`}
               />
             </ReviewSection>
             <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
