@@ -45,10 +45,11 @@ export function useAuth() {
     const loadAuthData = async (session: Session) => {
       const userId = session.user.id;
 
-      const [profileRes, roleRes, featuresRes] = await Promise.all([
+      const [profileRes, roleRes, featuresRes, enabledModulesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.rpc("get_user_role", { _user_id: userId }),
         supabase.rpc("get_user_features", { _user_id: userId }),
+        (supabase as any).rpc("get_user_enabled_modules", { _user_id: userId }),
       ]);
 
       const profile = (profileRes.data as Profile | null) ?? null;
@@ -56,18 +57,8 @@ export function useAuth() {
       const featureRows = (featuresRes.data as Array<{ feature_key: string; enabled: boolean }> | null) ?? [];
       const features = new Set(featureRows.filter((r) => r.enabled).map((r) => r.feature_key));
 
-      // Fetch the client's enabled_modules so the sidebar can hide entire modules.
-      let enabledModules: string[] | null = null;
-      if (profile?.client_id) {
-        const { data: clientRow } = await supabase
-          .from("clients")
-          .select("enabled_modules")
-          .eq("id", profile.client_id)
-          .maybeSingle();
-        const raw = (clientRow?.enabled_modules ?? null) as string[] | null;
-        // Empty array = "no restriction" (all modules) → treat as null
-        enabledModules = raw && raw.length > 0 ? raw : null;
-      }
+      const rawEnabledModules = (enabledModulesRes.data ?? null) as unknown as string[] | null;
+      const enabledModules = rawEnabledModules && rawEnabledModules.length > 0 ? rawEnabledModules : null;
 
       setState({
         session,

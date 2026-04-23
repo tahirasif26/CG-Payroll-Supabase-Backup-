@@ -4048,6 +4048,10 @@ export type Database = {
       }
       generate_next_emp_id: { Args: { _client_id: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
+      get_user_enabled_modules: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
       get_user_feature_access: {
         Args: { _user_id: string }
         Returns: {
