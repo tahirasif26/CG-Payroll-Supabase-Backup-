@@ -10,71 +10,94 @@ export interface ModuleCatalog {
   features: ModuleFeature[];
 }
 
+/**
+ * IMPORTANT: Feature keys here MUST match `requiredFeature` values in
+ * `src/lib/navigation.ts` and rows in the `feature_definitions` table.
+ * Otherwise `hasFeature()` will silently return false and sidebar items
+ * will not render.
+ */
 export const MODULE_CATALOG: ModuleCatalog[] = [
   {
     key: "employees",
     label: "Employees",
     features: [
-      { key: "employees.directory", label: "Directory" },
-      { key: "employees.org_chart", label: "Org Chart" },
-      { key: "employees.important_dates", label: "Important Dates" },
-      { key: "employees.leave", label: "Leave Management" },
+      { key: "employees.view_directory", label: "Directory" },
+      { key: "employees.view_org_chart", label: "Org Chart" },
+      { key: "employees.view_birthdays", label: "Important Dates" },
+      { key: "leave.view_balance", label: "Leave Management" },
+      { key: "leave.apply", label: "Apply for Leave" },
+      { key: "leave.approve", label: "Approve Leave" },
+      { key: "employees.add", label: "Add Employees" },
+      { key: "employees.edit", label: "Edit Employees" },
     ],
   },
   {
     key: "payroll",
     label: "Payroll",
     features: [
-      { key: "payroll.setup", label: "Payroll Setup" },
-      { key: "payroll.runs", label: "Payroll Runs" },
-      { key: "payroll.payslips", label: "Payslips" },
-      { key: "payroll.end_of_service", label: "End of Service" },
-      { key: "payroll.loans", label: "Loans" },
-      { key: "payroll.analytics", label: "Payroll Analytics" },
+      { key: "payroll.create_run", label: "Create Payroll Run" },
+      { key: "payroll.view_all_runs", label: "View All Payroll Runs" },
+      { key: "payroll.approve_run", label: "Approve Payroll Run" },
+      { key: "payroll.view_own_payslip", label: "View Own Payslip" },
+      { key: "payroll.download_payslip", label: "Download Payslip" },
+      { key: "payroll.view_salary_breakdown", label: "View Salary Breakdown" },
+      { key: "payroll.export_csv", label: "Export Payroll CSV" },
+      { key: "loans.view_own", label: "View Own Loans" },
+      { key: "loans.request", label: "Request Loan" },
+      { key: "loans.approve", label: "Approve Loans" },
+      { key: "loans.view_all", label: "View All Loans" },
     ],
   },
   {
     key: "expenses",
     label: "Expense Tracking",
     features: [
-      { key: "expenses.list", label: "Expenses" },
-      { key: "expenses.advances", label: "Advances" },
-      { key: "expenses.outstanding", label: "Outstanding Advances" },
-      { key: "expenses.analytics", label: "Expense Analytics" },
+      { key: "expenses.view_own", label: "View Own Expenses" },
+      { key: "expenses.submit", label: "Submit Expenses" },
+      { key: "expenses.view_all", label: "View All Expenses" },
+      { key: "expenses.approve", label: "Approve Expenses" },
+      { key: "expenses.mileage_submit", label: "Submit Mileage" },
+      { key: "advances.view_own", label: "View Own Advances" },
+      { key: "advances.request", label: "Request Advance" },
+      { key: "advances.approve", label: "Approve Advances" },
     ],
   },
   {
     key: "assets",
     label: "Asset Tracking",
     features: [
-      { key: "assets.dashboard", label: "Asset Dashboard" },
-      { key: "assets.inventory", label: "Asset Inventory" },
-      { key: "assets.settings", label: "Asset Settings" },
-      { key: "assets.store", label: "Asset Store" },
-      { key: "assets.requests", label: "Asset Requests" },
-      { key: "assets.audits", label: "Asset Audits" },
-      { key: "assets.my_assets", label: "My Assets (employee view)" },
-    ],
-  },
-  {
-    key: "access",
-    label: "Access Management",
-    features: [
-      { key: "access.id_cards", label: "ID Cards" },
-      { key: "access.door_lock", label: "Door & Lock Management" },
+      { key: "assets.view_inventory", label: "Asset Inventory" },
+      { key: "assets.manage", label: "Manage Assets" },
+      { key: "assets.request_new", label: "Request New Asset" },
+      { key: "assets.approve_requests", label: "Approve Asset Requests" },
+      { key: "assets.view_my_assets", label: "View My Assets" },
     ],
   },
   {
     key: "performance",
     label: "Performance",
     features: [
-      { key: "performance.ratings_overview", label: "Ratings Overview" },
-      { key: "performance.calibration", label: "Rating Calibration" },
       { key: "performance.self_assessment", label: "Self Assessment" },
       { key: "performance.peer_assessment", label: "Peer Assessment" },
       { key: "performance.manager_assessment", label: "Manager Assessment" },
-      { key: "performance.assessment_ratings", label: "Assessment Ratings" },
-      { key: "performance.questionnaire", label: "Questionnaire Settings" },
+      { key: "performance.calibration", label: "Rating Calibration" },
+      { key: "performance.view_own_ratings", label: "View Own Ratings" },
+    ],
+  },
+  {
+    key: "policies",
+    label: "Company Policies",
+    features: [
+      { key: "policies.view", label: "View Policies" },
+      { key: "policies.acknowledge", label: "Acknowledge Policies" },
+    ],
+  },
+  {
+    key: "timesheets",
+    label: "Timesheets",
+    features: [
+      { key: "timesheets.submit", label: "Submit Timesheets" },
+      { key: "timesheets.approve", label: "Approve Timesheets" },
     ],
   },
 ];
