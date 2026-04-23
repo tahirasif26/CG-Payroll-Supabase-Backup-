@@ -17,6 +17,17 @@ import { useEmployees } from "@/contexts/EmployeeContext";
 import { useCreateEmployee } from "@/hooks/queries/useEmployees";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+function computeEmpPrefix(name?: string | null): string {
+  if (!name) return "EM";
+  const cleaned = name.replace(/[^a-zA-Z]/g, "");
+  if (!cleaned) return "EM";
+  if (cleaned.length === 1) return (cleaned[0] + "X").toUpperCase();
+  return cleaned.slice(0, 2).toUpperCase();
+}
 import { FeatureSelectionTree } from "@/components/features/FeatureSelectionTree";
 import {
   Check, AlertCircle, User, Briefcase, DollarSign, Calendar, FileText, Monitor,
