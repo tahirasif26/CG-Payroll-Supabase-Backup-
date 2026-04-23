@@ -53,8 +53,12 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="h-8 w-8 rounded-full bg-foreground flex items-center justify-center hover:opacity-90 transition-opacity ml-1">
-              <span className="text-xs font-semibold text-background">{initials}</span>
+            <button className="h-8 w-8 rounded-full bg-foreground flex items-center justify-center hover:opacity-90 transition-opacity ml-1 overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt={displayName} className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-xs font-semibold text-background">{initials}</span>
+              )}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
