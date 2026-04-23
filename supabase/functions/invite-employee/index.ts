@@ -13,6 +13,7 @@ const BodySchema = z.object({
   phone: z.string().trim().max(50).optional(),
   role: z.enum(["admin", "hr", "employee"]),
   client_id: z.string().uuid(),
+  enabled_features: z.array(z.string()).nullable().optional(),
 });
 
 const json = (body: unknown, status = 200) =>
@@ -62,7 +63,26 @@ Deno.serve(async (req) => {
     if (!parsed.success) {
       return json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, 400);
     }
-    const { email, full_name, employee_id, phone, role, client_id } = parsed.data;
+    const { email, full_name, employee_id, phone, role, client_id, enabled_features } = parsed.data;
+
+    // Validate that requested features are a subset of the client's enabled_features
+    if (Array.isArray(enabled_features) && enabled_features.length > 0) {
+      const { data: clientRow } = await adminClient
+        .from("clients")
+        .select("enabled_features")
+        .eq("id", client_id)
+        .maybeSingle();
+      const clientFeatures = clientRow?.enabled_features as string[] | null | undefined;
+      if (Array.isArray(clientFeatures) && clientFeatures.length > 0) {
+        const invalid = enabled_features.filter((f) => !clientFeatures.includes(f));
+        if (invalid.length > 0) {
+          return json(
+            { error: `These features are not available to your company: ${invalid.join(", ")}` },
+            400
+          );
+        }
+      }
+    }
 
     // Authorization
     if (!isSuperAdmin) {

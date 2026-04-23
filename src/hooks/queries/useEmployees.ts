@@ -116,6 +116,8 @@ export interface CreateEmployeeInput {
   education?: { institution?: string; degree?: string; field_of_study?: string; start_year?: number; end_year?: number }[];
   // Optional: send invite email
   send_invite?: boolean;
+  /** Per-employee feature whitelist; null = inherit all client-enabled features */
+  enabled_features?: string[] | null;
 }
 
 export function useCreateEmployee() {
@@ -173,6 +175,9 @@ export function useCreateEmployee() {
         payroll_setup_id: input.payroll_setup_id || null,
         reports_to: input.reports_to || null,
         status: "active",
+        ...(input.enabled_features !== undefined
+          ? { enabled_features: input.enabled_features && input.enabled_features.length > 0 ? input.enabled_features : null }
+          : {}),
       };
 
       const { data: emp, error: empErr } = await supabase
@@ -241,6 +246,7 @@ export function useCreateEmployee() {
               phone: input.phone,
               role: "employee",
               client_id: clientId,
+              enabled_features: input.enabled_features ?? null,
             },
           });
           inviteResult = inviteErr ? { ok: false, error: inviteErr.message } : { ok: true };
