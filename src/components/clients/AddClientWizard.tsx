@@ -81,19 +81,51 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const createClient = useCreateClient();
-  // Use the actual sidebar navigation groups so selection here exactly matches what the
-  // tenant will see in the app. Skip always-on groups.
-  const allModules = useMemo(
-    () =>
-      navigationGroups
-        .filter((g) => !ALWAYS_ON_MODULES.has(g.key))
-        .map((g) => ({
-          key: g.key,
-          label: g.label,
-          features: [] as never[],
-        })),
-    [],
-  );
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (key: string) => {
+    setExpandedModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleModule = (moduleKey: string, enabled: boolean) => {
+    const features = MODULE_CATALOG.find((m) => m.key === moduleKey)?.features ?? [];
+    const featureKeys = features.map((f) => f.key);
+    if (enabled) {
+      setForm((f) => ({
+        ...f,
+        enabled_modules: Array.from(new Set([...f.enabled_modules, moduleKey])),
+        enabled_features: Array.from(new Set([...f.enabled_features, ...featureKeys])),
+      }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        enabled_modules: f.enabled_modules.filter((m) => m !== moduleKey),
+        enabled_features: f.enabled_features.filter((k) => !featureKeys.includes(k)),
+      }));
+    }
+  };
+
+  const toggleFeature = (featureKey: string, moduleKey: string, enabled: boolean) => {
+    if (enabled) {
+      setForm((f) => ({
+        ...f,
+        enabled_features: Array.from(new Set([...f.enabled_features, featureKey])),
+        enabled_modules: f.enabled_modules.includes(moduleKey)
+          ? f.enabled_modules
+          : [...f.enabled_modules, moduleKey],
+      }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        enabled_features: f.enabled_features.filter((k) => k !== featureKey),
+      }));
+    }
+  };
 
   const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -121,11 +153,12 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const handleSubmit = async () => {
     if (!validateStep(2)) return;
     try {
-      const payload: CreateClientInput & { enabled_modules: string[] } = {
+      const payload: CreateClientInput = {
         ...form,
         enabled_modules: form.enabled_modules,
-      } as CreateClientInput & { enabled_modules: string[] };
-      await createClient.mutateAsync(payload as CreateClientInput);
+        enabled_features: form.enabled_features,
+      };
+      await createClient.mutateAsync(payload);
       onOpenChange(false);
       setStep(1);
       setForm(initialForm);
