@@ -21,7 +21,7 @@ function daysUntil(dateStr: string | null | undefined): number | null {
 }
 
 export default function EmployeeDashboard() {
-  const { profile, hasFeature } = useRole();
+  const { profile, hasFeature, appRole } = useRole();
   const {
     employee,
     latestPayslip,
