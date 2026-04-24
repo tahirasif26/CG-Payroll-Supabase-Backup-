@@ -141,20 +141,25 @@ export function AutoScanDialog({ open, onOpenChange, employees, onSubmit }: Auto
     }
     setStep("processing");
 
-    const result = await simulateExtraction();
-    setAmount(result.amount.value.replace(/,/g, ""));
-    setCurrency(result.currency.value);
-    setDate(result.date.value);
-    setCategory(result.category.value);
-    setDescription(result.description.value);
-    setConfidences({
-      amount: result.amount.confidence,
-      currency: result.currency.confidence,
-      date: result.date.confidence,
-      category: result.category.confidence,
-      description: result.description.confidence,
-    });
-    setStep("review");
+    try {
+      const result = await extractWithAI(f);
+      setAmount(result.amount.value.replace(/,/g, ""));
+      setCurrency(result.currency.value);
+      setDate(result.date.value);
+      setCategory(result.category.value);
+      setDescription(result.description.value);
+      setConfidences({
+        amount: result.amount.confidence,
+        currency: result.currency.confidence,
+        date: result.date.confidence,
+        category: result.category.confidence,
+        description: result.description.confidence,
+      });
+      setStep("review");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to scan receipt");
+      setStep("upload");
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
