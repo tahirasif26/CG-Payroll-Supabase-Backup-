@@ -148,6 +148,20 @@ Deno.serve(async (req) => {
       })
       .eq("id", newUserId);
 
+    const { data: existingEmployee } = await adminClient
+      .from("employees")
+      .select("id")
+      .eq("client_id", client_id)
+      .eq("email", email.toLowerCase())
+      .maybeSingle();
+
+    if (existingEmployee?.id) {
+      await adminClient
+        .from("employees")
+        .update({ user_id: newUserId })
+        .eq("id", existingEmployee.id);
+    }
+
     return json({ success: true, user_id: newUserId, client_id, role, emp_id: generatedEmpId, employee: { emp_id: generatedEmpId } }, 200);
   } catch (err) {
     console.error("invite-employee error:", err);
