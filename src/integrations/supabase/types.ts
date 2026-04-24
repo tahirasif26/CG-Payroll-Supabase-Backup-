@@ -3618,6 +3618,67 @@ export type Database = {
         }
         Relationships: []
       }
+      reminder_dispatches: {
+        Row: {
+          client_id: string
+          dispatch_key: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          lead_days_used: number
+          notification_id: string | null
+          recipient_user_id: string
+          rule_id: string
+          sent_at: string
+        }
+        Insert: {
+          client_id: string
+          dispatch_key: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          lead_days_used?: number
+          notification_id?: string | null
+          recipient_user_id: string
+          rule_id: string
+          sent_at?: string
+        }
+        Update: {
+          client_id?: string
+          dispatch_key?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          lead_days_used?: number
+          notification_id?: string | null
+          recipient_user_id?: string
+          rule_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_dispatches_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_dispatches_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_dispatches_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "reminder_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminder_log: {
         Row: {
           category: string
@@ -3647,6 +3708,75 @@ export type Database = {
           sent_at?: string
         }
         Relationships: []
+      }
+      reminder_rules: {
+        Row: {
+          category: Database["public"]["Enums"]["reminder_category"]
+          client_id: string
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_enabled: boolean
+          last_run_at: string | null
+          lead_days_before: number[]
+          name: string
+          priority: Database["public"]["Enums"]["reminder_priority"]
+          recipients: string[]
+          repeat_frequency: Database["public"]["Enums"]["reminder_frequency"]
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["reminder_category"]
+          client_id: string
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          lead_days_before?: number[]
+          name: string
+          priority?: Database["public"]["Enums"]["reminder_priority"]
+          recipients?: string[]
+          repeat_frequency?: Database["public"]["Enums"]["reminder_frequency"]
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["reminder_category"]
+          client_id?: string
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          lead_days_before?: number[]
+          name?: string
+          priority?: Database["public"]["Enums"]["reminder_priority"]
+          recipients?: string[]
+          repeat_frequency?: Database["public"]["Enums"]["reminder_frequency"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_rules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_rules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reminder_settings: {
         Row: {
@@ -4115,6 +4245,20 @@ export type Database = {
       app_role: "super_admin" | "admin" | "employee"
       client_status: "active" | "suspended" | "trial"
       feature_access_level: "none" | "view" | "edit"
+      reminder_category:
+        | "document_expiry"
+        | "asset_warranty"
+        | "asset_service"
+        | "advance_settlement"
+        | "probation_end"
+        | "birthday"
+        | "work_anniversary"
+        | "policy_ack"
+        | "approval_pending"
+        | "payroll_due"
+        | "performance_assessment"
+      reminder_frequency: "once" | "daily" | "weekly" | "monthly"
+      reminder_priority: "info" | "warning" | "urgent"
       subscription_plan: "starter" | "pro" | "enterprise"
     }
     CompositeTypes: {
@@ -4246,6 +4390,21 @@ export const Constants = {
       app_role: ["super_admin", "admin", "employee"],
       client_status: ["active", "suspended", "trial"],
       feature_access_level: ["none", "view", "edit"],
+      reminder_category: [
+        "document_expiry",
+        "asset_warranty",
+        "asset_service",
+        "advance_settlement",
+        "probation_end",
+        "birthday",
+        "work_anniversary",
+        "policy_ack",
+        "approval_pending",
+        "payroll_due",
+        "performance_assessment",
+      ],
+      reminder_frequency: ["once", "daily", "weekly", "monthly"],
+      reminder_priority: ["info", "warning", "urgent"],
       subscription_plan: ["starter", "pro", "enterprise"],
     },
   },

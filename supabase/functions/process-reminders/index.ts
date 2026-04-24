@@ -1,14 +1,6 @@
-// Scheduled reminders processor.
-// Runs daily via pg_cron. Scans for upcoming/overdue events and creates
-// in-app notifications using existing create_notification RPC.
-//
-// Categories handled:
-//   - document   : employee_documents.expiry_date approaching (30/15/7/0 days)
-//   - probation  : employees.probation_end_date approaching (30/7 days)
-//   - asset      : assets.warranty_expiry / service_due_date approaching (30/7 days)
-//   - loan       : active loans — monthly EMI reminder (5 days before month end)
-//   - advance    : advances.settlement_due_date approaching/overdue
-//   - policy     : company_policies requires_ack — unacknowledged reminder weekly
+// Scheduled reminders processor — RULE-DRIVEN.
+// Reads reminder_rules per client and processes only enabled categories.
+// Dedup via reminder_dispatches table.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -24,468 +16,443 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false },
 });
 
+// ---------- Types ----------
+type ReminderRule = {
+  id: string;
+  client_id: string;
+  category: string;
+  name: string;
+  is_enabled: boolean;
+  lead_days_before: number[];
+  repeat_frequency: "once" | "daily" | "weekly" | "monthly";
+  recipients: string[];
+  conditions: Record<string, unknown>;
+  priority: "info" | "warning" | "urgent";
+};
+
+// ---------- Utilities ----------
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
 function daysBetween(a: Date, b: Date) {
-  const ms = a.getTime() - b.getTime();
-  return Math.round(ms / (1000 * 60 * 60 * 24));
+  return Math.round((a.getTime() - b.getTime()) / 86400000);
 }
 
-async function alreadySent(key: string): Promise<boolean> {
+function priorityToSeverity(p: string): "info" | "warning" | "error" | "success" {
+  return p === "urgent" ? "error" : p === "warning" ? "warning" : "info";
+}
+
+function periodKey(freq: string): string {
+  const y = today.getFullYear();
+  const m = today.getMonth() + 1;
+  const d = today.getDate();
+  if (freq === "monthly") return `${y}-${m}`;
+  if (freq === "weekly") {
+    const week = Math.floor((today.getTime() - new Date(y, 0, 1).getTime()) / (7 * 86400000));
+    return `${y}-W${week}`;
+  }
+  if (freq === "daily") return `${y}-${m}-${d}`;
+  return "once"; // 'once' uses lead_day in key for natural dedup
+}
+
+async function alreadyDispatched(key: string): Promise<boolean> {
   const { data } = await supabase
-    .from("reminder_log")
+    .from("reminder_dispatches")
     .select("id")
-    .eq("reminder_key", key)
+    .eq("dispatch_key", key)
     .maybeSingle();
   return !!data;
 }
 
-async function logSent(args: {
-  key: string;
-  category: string;
-  client_id: string | null;
-  entity_type?: string;
-  entity_id?: string;
-}) {
-  await supabase.from("reminder_log").insert({
-    reminder_key: args.key,
-    category: args.category,
-    client_id: args.client_id,
-    entity_type: args.entity_type ?? null,
-    entity_id: args.entity_id ?? null,
-  });
-}
-
-async function notify(opts: {
-  user_id: string;
-  client_id: string | null;
+async function dispatch(opts: {
+  rule: ReminderRule;
+  recipientUserId: string;
+  entityType: string;
+  entityId: string | null;
+  leadDay: number;
   title: string;
   body: string;
-  category: string;
-  severity: "info" | "warning" | "error" | "success";
-  entity_type?: string;
-  entity_id?: string;
-  action_url?: string;
+  actionUrl?: string;
 }) {
-  await supabase.rpc("create_notification", {
-    _recipient_user_id: opts.user_id,
-    _title: opts.title,
-    _body: opts.body,
-    _category: opts.category,
-    _severity: opts.severity,
-    _entity_type: opts.entity_type ?? null,
-    _entity_id: opts.entity_id ?? null,
-    _action_url: opts.action_url ?? null,
-    _client_id: opts.client_id,
+  const baseKey = `${opts.rule.id}:${opts.entityType}:${opts.entityId ?? "_"}:${opts.recipientUserId}:${opts.leadDay}`;
+  const key =
+    opts.rule.repeat_frequency === "once"
+      ? baseKey
+      : `${baseKey}:${periodKey(opts.rule.repeat_frequency)}`;
+
+  if (await alreadyDispatched(key)) return false;
+
+  const { data: notif } = await supabase
+    .rpc("create_notification", {
+      _recipient_user_id: opts.recipientUserId,
+      _title: opts.title,
+      _body: opts.body,
+      _category: opts.rule.category,
+      _severity: priorityToSeverity(opts.rule.priority),
+      _entity_type: opts.entityType,
+      _entity_id: opts.entityId,
+      _action_url: opts.actionUrl ?? null,
+      _client_id: opts.rule.client_id,
+    });
+
+  await supabase.from("reminder_dispatches").insert({
+    rule_id: opts.rule.id,
+    client_id: opts.rule.client_id,
+    entity_type: opts.entityType,
+    entity_id: opts.entityId,
+    recipient_user_id: opts.recipientUserId,
+    notification_id: notif as string | null,
+    lead_days_used: opts.leadDay,
+    dispatch_key: key,
   });
+  return true;
 }
 
-async function notifyClientAdmins(opts: {
-  client_id: string;
-  title: string;
-  body: string;
-  category: string;
-  severity: "info" | "warning" | "error" | "success";
-  entity_type?: string;
-  entity_id?: string;
-  action_url?: string;
-}) {
-  await supabase.rpc("notify_client_admins", {
-    _client_id: opts.client_id,
-    _title: opts.title,
-    _body: opts.body,
-    _category: opts.category,
-    _severity: opts.severity,
-    _entity_type: opts.entity_type ?? null,
-    _entity_id: opts.entity_id ?? null,
-    _action_url: opts.action_url ?? null,
-  });
+async function resolveRecipients(rule: ReminderRule, ctx: {
+  employeeId?: string | null;
+  approverIds?: string[];
+}): Promise<string[]> {
+  const userIds = new Set<string>();
+
+  for (const r of rule.recipients) {
+    if (r === "employee" && ctx.employeeId) {
+      const { data } = await supabase
+        .from("employees").select("user_id").eq("id", ctx.employeeId).maybeSingle();
+      if (data?.user_id) userIds.add(data.user_id);
+    } else if (r === "manager" && ctx.employeeId) {
+      const { data: emp } = await supabase
+        .from("employees").select("reports_to").eq("id", ctx.employeeId).maybeSingle();
+      if (emp?.reports_to) {
+        const { data: mgr } = await supabase
+          .from("employees").select("user_id").eq("id", emp.reports_to).maybeSingle();
+        if (mgr?.user_id) userIds.add(mgr.user_id);
+      }
+    } else if (r === "hr" || r === "admin") {
+      const { data: roles } = await supabase
+        .from("user_roles").select("user_id").eq("client_id", rule.client_id).eq("role", "admin");
+      (roles ?? []).forEach(x => x.user_id && userIds.add(x.user_id));
+    } else if (r === "approver" && ctx.approverIds) {
+      ctx.approverIds.forEach(id => userIds.add(id));
+    }
+  }
+  return [...userIds];
 }
 
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-
-// ---------- 1. DOCUMENT EXPIRY ----------
-async function processDocumentExpiry() {
+// ---------- Category processors ----------
+async function processDocumentExpiry(rule: ReminderRule) {
   const { data: docs } = await supabase
     .from("employee_documents")
-    .select("id, client_id, employee_id, doc_type, expiry_date, status")
-    .not("expiry_date", "is", null)
-    .eq("status", "active");
+    .select("id, client_id, employee_id, doc_type, expiry_date")
+    .eq("client_id", rule.client_id)
+    .eq("status", "active")
+    .not("expiry_date", "is", null);
 
-  if (!docs) return 0;
   let count = 0;
+  for (const d of docs ?? []) {
+    const exp = new Date(d.expiry_date as string); exp.setHours(0,0,0,0);
+    const daysLeft = daysBetween(exp, today);
+    if (!rule.lead_days_before.includes(daysLeft)) continue;
 
-  for (const d of docs) {
-    const exp = new Date(d.expiry_date as string);
-    exp.setHours(0, 0, 0, 0);
-    const days = daysBetween(exp, today);
-
-    // Trigger at 30, 15, 7, 0 (expired)
-    let bucket: number | null = null;
-    if (days === 30) bucket = 30;
-    else if (days === 15) bucket = 15;
-    else if (days === 7) bucket = 7;
-    else if (days <= 0 && days >= -1) bucket = 0;
-    if (bucket === null) continue;
-
-    const key = `doc_expiry:${d.id}:${bucket}`;
-    if (await alreadySent(key)) continue;
-
+    const recipients = await resolveRecipients(rule, { employeeId: d.employee_id as string });
     const { data: emp } = await supabase
-      .from("employees")
-      .select("user_id, first_name, last_name")
-      .eq("id", d.employee_id)
-      .maybeSingle();
+      .from("employees").select("first_name,last_name").eq("id", d.employee_id).maybeSingle();
+    const name = `${emp?.first_name ?? ""} ${emp?.last_name ?? ""}`.trim() || "Employee";
+    const title = `${d.doc_type} expiring in ${daysLeft} day(s)`;
+    const body = `${name}'s ${d.doc_type} expires on ${d.expiry_date}.`;
 
-    const empName = emp ? `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim() : "Employee";
-    const expired = bucket === 0;
-    const title = expired
-      ? `${d.doc_type} expired`
-      : `${d.doc_type} expiring in ${bucket} days`;
-    const body = expired
-      ? `${empName}'s ${d.doc_type} has expired. Please renew immediately.`
-      : `${empName}'s ${d.doc_type} expires on ${d.expiry_date}.`;
-
-    // Notify employee
-    if (emp?.user_id) {
-      await notify({
-        user_id: emp.user_id,
-        client_id: d.client_id as string,
-        title: expired ? `Your ${d.doc_type} expired` : `Your ${d.doc_type} expires soon`,
-        body,
-        category: "document",
-        severity: expired ? "error" : "warning",
-        entity_type: "employee_document",
-        entity_id: d.id,
-        action_url: "/employees",
+    for (const uid of recipients) {
+      const sent = await dispatch({
+        rule, recipientUserId: uid, entityType: "employee_document",
+        entityId: d.id, leadDay: daysLeft, title, body, actionUrl: "/employees",
       });
+      if (sent) count++;
     }
-
-    // Notify admins
-    await notifyClientAdmins({
-      client_id: d.client_id as string,
-      title,
-      body,
-      category: "document",
-      severity: expired ? "error" : "warning",
-      entity_type: "employee_document",
-      entity_id: d.id,
-      action_url: "/employees",
-    });
-
-    await logSent({
-      key,
-      category: "document",
-      client_id: d.client_id as string,
-      entity_type: "employee_document",
-      entity_id: d.id,
-    });
-    count++;
   }
   return count;
 }
 
-// ---------- 2. PROBATION ENDING ----------
-async function processProbation() {
-  const { data: emps } = await supabase
-    .from("employees")
-    .select("id, client_id, user_id, first_name, last_name, probation_end_date, status")
-    .not("probation_end_date", "is", null)
-    .eq("status", "active");
-
-  if (!emps) return 0;
-  let count = 0;
-  for (const e of emps) {
-    const end = new Date(e.probation_end_date as string);
-    end.setHours(0, 0, 0, 0);
-    const days = daysBetween(end, today);
-    let bucket: number | null = null;
-    if (days === 30) bucket = 30;
-    else if (days === 7) bucket = 7;
-    else if (days === 0) bucket = 0;
-    if (bucket === null) continue;
-
-    const key = `probation:${e.id}:${bucket}`;
-    if (await alreadySent(key)) continue;
-
-    const empName = `${e.first_name ?? ""} ${e.last_name ?? ""}`.trim() || "Employee";
-    const title =
-      bucket === 0
-        ? `Probation ended: ${empName}`
-        : `Probation ending in ${bucket} days: ${empName}`;
-    const body = `${empName}'s probation ${bucket === 0 ? "ended" : "ends"} on ${e.probation_end_date}. Please complete the review.`;
-
-    await notifyClientAdmins({
-      client_id: e.client_id as string,
-      title,
-      body,
-      category: "probation",
-      severity: bucket === 0 ? "warning" : "info",
-      entity_type: "employee",
-      entity_id: e.id,
-      action_url: "/employees",
-    });
-
-    if (e.user_id) {
-      await notify({
-        user_id: e.user_id,
-        client_id: e.client_id as string,
-        title: bucket === 0 ? "Your probation period has ended" : `Your probation ends in ${bucket} days`,
-        body: `Your probation ${bucket === 0 ? "ended" : "ends"} on ${e.probation_end_date}.`,
-        category: "probation",
-        severity: "info",
-        entity_type: "employee",
-        entity_id: e.id,
-      });
-    }
-
-    await logSent({ key, category: "probation", client_id: e.client_id as string, entity_type: "employee", entity_id: e.id });
-    count++;
-  }
-  return count;
-}
-
-// ---------- 3. ASSET WARRANTY / SERVICE ----------
-async function processAssets() {
+async function processAssetField(rule: ReminderRule, field: "warranty_expiry" | "service_due_date") {
   const { data: assets } = await supabase
     .from("assets")
-    .select("id, client_id, asset_tag, name, warranty_expiry, service_due_date, employee_id");
-  if (!assets) return 0;
+    .select(`id, client_id, asset_tag, name, employee_id, ${field}`)
+    .eq("client_id", rule.client_id)
+    .not(field, "is", null);
+
   let count = 0;
+  for (const a of assets ?? []) {
+    const dateStr = (a as Record<string, unknown>)[field] as string | null;
+    if (!dateStr) continue;
+    const d = new Date(dateStr); d.setHours(0,0,0,0);
+    const daysLeft = daysBetween(d, today);
+    if (!rule.lead_days_before.includes(daysLeft)) continue;
 
-  for (const a of assets) {
-    for (const field of ["warranty_expiry", "service_due_date"] as const) {
-      const dateStr = a[field] as string | null;
-      if (!dateStr) continue;
-      const d = new Date(dateStr);
-      d.setHours(0, 0, 0, 0);
-      const days = daysBetween(d, today);
-      let bucket: number | null = null;
-      if (days === 30) bucket = 30;
-      else if (days === 7) bucket = 7;
-      else if (days === 0) bucket = 0;
-      if (bucket === null) continue;
+    const recipients = await resolveRecipients(rule, { employeeId: (a as { employee_id?: string }).employee_id ?? null });
+    const label = field === "warranty_expiry" ? "Warranty expires" : "Service due";
+    const title = `${(a as { name: string }).name} (${(a as { asset_tag: string }).asset_tag}) — ${label} in ${daysLeft} day(s)`;
+    const body = `${label} on ${dateStr}.`;
 
-      const tag = field === "warranty_expiry" ? "warranty" : "service";
-      const key = `asset_${tag}:${a.id}:${bucket}`;
-      if (await alreadySent(key)) continue;
-
-      const label = field === "warranty_expiry" ? "Warranty expires" : "Service due";
-      const title =
-        bucket === 0 ? `${a.name} (${a.asset_tag}) — ${label} today` : `${a.name} (${a.asset_tag}) — ${label} in ${bucket} days`;
-      const body = `Asset ${a.name} [${a.asset_tag}] ${label.toLowerCase()} on ${dateStr}.`;
-
-      await notifyClientAdmins({
-        client_id: a.client_id as string,
-        title,
-        body,
-        category: "asset",
-        severity: bucket === 0 ? "warning" : "info",
-        entity_type: "asset",
-        entity_id: a.id,
-        action_url: "/assets/inventory",
+    for (const uid of recipients) {
+      const sent = await dispatch({
+        rule, recipientUserId: uid, entityType: "asset",
+        entityId: (a as { id: string }).id, leadDay: daysLeft, title, body, actionUrl: "/assets/inventory",
       });
-
-      await logSent({ key, category: "asset", client_id: a.client_id as string, entity_type: "asset", entity_id: a.id });
-      count++;
+      if (sent) count++;
     }
   }
   return count;
 }
 
-// ---------- 4. LOAN EMI MONTHLY REMINDER ----------
-async function processLoans() {
-  // Send a reminder 5 days before month end for active loans with balance.
-  const t = new Date(today);
-  const lastDay = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
-  const dom = t.getDate();
-  if (lastDay - dom !== 5) return 0; // only run on that specific day
-
-  const { data: loans } = await supabase
-    .from("loans")
-    .select("id, client_id, employee_id, monthly_deduction, remaining_balance, status")
-    .eq("status", "active")
-    .gt("remaining_balance", 0);
-  if (!loans) return 0;
-  let count = 0;
-
-  const monthKey = `${t.getFullYear()}-${t.getMonth() + 1}`;
-  for (const l of loans) {
-    const key = `loan_emi:${l.id}:${monthKey}`;
-    if (await alreadySent(key)) continue;
-
-    const { data: emp } = await supabase
-      .from("employees")
-      .select("user_id, first_name, last_name")
-      .eq("id", l.employee_id)
-      .maybeSingle();
-
-    const emi = (Number(l.monthly_deduction) / 100).toLocaleString();
-    const bal = (Number(l.remaining_balance) / 100).toLocaleString();
-
-    if (emp?.user_id) {
-      await notify({
-        user_id: emp.user_id,
-        client_id: l.client_id as string,
-        title: "Loan EMI deduction upcoming",
-        body: `Your monthly EMI of ${emi} will be deducted in the next payroll. Remaining balance: ${bal}.`,
-        category: "loan",
-        severity: "info",
-        entity_type: "loan",
-        entity_id: l.id,
-        action_url: "/loans",
-      });
-    }
-
-    await notifyClientAdmins({
-      client_id: l.client_id as string,
-      title: "Loan EMI due this month",
-      body: `Loan ${l.id.slice(0, 8)} — EMI ${emi} due in next payroll. Balance: ${bal}.`,
-      category: "loan",
-      severity: "info",
-      entity_type: "loan",
-      entity_id: l.id,
-      action_url: "/loans",
-    });
-
-    await logSent({ key, category: "loan", client_id: l.client_id as string, entity_type: "loan", entity_id: l.id });
-    count++;
-  }
-  return count;
-}
-
-// ---------- 5. ADVANCE SETTLEMENT DUE ----------
-async function processAdvances() {
+async function processAdvanceSettlement(rule: ReminderRule) {
   const { data: advances } = await supabase
     .from("advances")
     .select("id, client_id, employee_id, advance_name, amount, settlement_due_date, status")
+    .eq("client_id", rule.client_id)
     .in("status", ["approved", "disbursed", "partially_settled"])
     .not("settlement_due_date", "is", null);
-  if (!advances) return 0;
+
   let count = 0;
+  for (const a of advances ?? []) {
+    const due = new Date(a.settlement_due_date as string); due.setHours(0,0,0,0);
+    const daysLeft = daysBetween(due, today);
+    if (!rule.lead_days_before.includes(daysLeft)) continue;
 
-  for (const a of advances) {
-    const due = new Date(a.settlement_due_date as string);
-    due.setHours(0, 0, 0, 0);
-    const days = daysBetween(due, today);
-    let bucket: number | null = null;
-    if (days === 7) bucket = 7;
-    else if (days === 0) bucket = 0;
-    else if (days < 0 && days >= -30 && days % 7 === 0) bucket = days; // weekly overdue ping
-    if (bucket === null) continue;
+    const recipients = await resolveRecipients(rule, { employeeId: a.employee_id as string });
+    const overdue = daysLeft < 0;
+    const title = overdue ? `Advance overdue by ${Math.abs(daysLeft)} day(s)` : `Advance settlement in ${daysLeft} day(s)`;
+    const amt = (Number(a.amount) / 100).toLocaleString();
+    const body = `${a.advance_name ?? "Advance"} (${amt}) — settlement due ${a.settlement_due_date}.`;
 
-    const key = `advance_due:${a.id}:${bucket}`;
-    if (await alreadySent(key)) continue;
-
-    const overdue = bucket < 0;
-    const title = overdue
-      ? `Advance overdue by ${Math.abs(bucket)} days`
-      : bucket === 0
-        ? "Advance settlement due today"
-        : `Advance settlement in ${bucket} days`;
-    const body = `${a.advance_name ?? "Advance"} (amount ${(Number(a.amount) / 100).toLocaleString()}) — settlement due ${a.settlement_due_date}.`;
-
-    const { data: emp } = await supabase
-      .from("employees")
-      .select("user_id")
-      .eq("id", a.employee_id)
-      .maybeSingle();
-    if (emp?.user_id) {
-      await notify({
-        user_id: emp.user_id,
-        client_id: a.client_id as string,
-        title,
-        body,
-        category: "advance",
-        severity: overdue ? "error" : bucket === 0 ? "warning" : "info",
-        entity_type: "advance",
-        entity_id: a.id,
-        action_url: "/advances",
+    for (const uid of recipients) {
+      const sent = await dispatch({
+        rule, recipientUserId: uid, entityType: "advance",
+        entityId: a.id, leadDay: daysLeft, title, body, actionUrl: "/advances",
       });
+      if (sent) count++;
     }
-    await notifyClientAdmins({
-      client_id: a.client_id as string,
-      title,
-      body,
-      category: "advance",
-      severity: overdue ? "error" : "warning",
-      entity_type: "advance",
-      entity_id: a.id,
-      action_url: "/advances",
-    });
-
-    await logSent({ key, category: "advance", client_id: a.client_id as string, entity_type: "advance", entity_id: a.id });
-    count++;
   }
   return count;
 }
 
-// ---------- 6. POLICY ACKNOWLEDGMENT ----------
-async function processPolicyAcks() {
-  // Weekly nudge (every Monday) for unacknowledged active policies that require ack.
-  if (today.getDay() !== 1) return 0;
-
-  const { data: policies } = await supabase
-    .from("company_policies")
-    .select("id, client_id, title, status, requires_ack")
+async function processProbation(rule: ReminderRule) {
+  const { data: emps } = await supabase
+    .from("employees")
+    .select("id, client_id, first_name, last_name, probation_end_date")
+    .eq("client_id", rule.client_id)
     .eq("status", "active")
-    .eq("requires_ack", true);
-  if (!policies) return 0;
+    .not("probation_end_date", "is", null);
+
   let count = 0;
+  for (const e of emps ?? []) {
+    const end = new Date(e.probation_end_date as string); end.setHours(0,0,0,0);
+    const daysLeft = daysBetween(end, today);
+    if (!rule.lead_days_before.includes(daysLeft)) continue;
 
-  const weekKey = `${today.getFullYear()}-W${Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 1).getTime()) / (7 * 86400000))}`;
+    const recipients = await resolveRecipients(rule, { employeeId: e.id });
+    const name = `${e.first_name ?? ""} ${e.last_name ?? ""}`.trim() || "Employee";
+    const title = `Probation ending in ${daysLeft} day(s): ${name}`;
+    const body = `${name}'s probation ends on ${e.probation_end_date}. Please complete the review.`;
 
-  for (const p of policies) {
-    // Get all active employees in client with user_id
-    const { data: emps } = await supabase
-      .from("employees")
-      .select("id, user_id")
-      .eq("client_id", p.client_id as string)
-      .eq("status", "active")
-      .not("user_id", "is", null);
-    if (!emps) continue;
-
-    // Get acks for this policy
-    const { data: acks } = await supabase
-      .from("policy_acknowledgments")
-      .select("employee_id")
-      .eq("policy_id", p.id);
-    const ackedSet = new Set((acks ?? []).map((a) => a.employee_id));
-
-    for (const e of emps) {
-      if (ackedSet.has(e.id)) continue;
-      const key = `policy_ack:${p.id}:${e.id}:${weekKey}`;
-      if (await alreadySent(key)) continue;
-
-      await notify({
-        user_id: e.user_id as string,
-        client_id: p.client_id as string,
-        title: "Policy acknowledgment pending",
-        body: `Please review and acknowledge the policy: "${p.title}".`,
-        category: "policy",
-        severity: "warning",
-        entity_type: "company_policy",
-        entity_id: p.id,
-        action_url: "/policies",
+    for (const uid of recipients) {
+      const sent = await dispatch({
+        rule, recipientUserId: uid, entityType: "employee",
+        entityId: e.id, leadDay: daysLeft, title, body, actionUrl: "/employees",
       });
-      await logSent({ key, category: "policy", client_id: p.client_id as string, entity_type: "company_policy", entity_id: p.id });
-      count++;
+      if (sent) count++;
     }
   }
   return count;
+}
+
+async function processBirthdayOrAnniversary(rule: ReminderRule, kind: "birthday" | "anniversary") {
+  const dateField = kind === "birthday" ? "date_of_birth" : "joining_date";
+  const { data: emps } = await supabase
+    .from("employees")
+    .select(`id, client_id, first_name, last_name, ${dateField}`)
+    .eq("client_id", rule.client_id)
+    .eq("status", "active")
+    .not(dateField, "is", null);
+
+  let count = 0;
+  for (const e of emps ?? []) {
+    const raw = (e as Record<string, unknown>)[dateField] as string | null;
+    if (!raw) continue;
+    const d = new Date(raw);
+    // Build this year's occurrence
+    const occ = new Date(today.getFullYear(), d.getMonth(), d.getDate());
+    if (occ < today) occ.setFullYear(occ.getFullYear() + 1);
+    const daysLeft = daysBetween(occ, today);
+    if (!rule.lead_days_before.includes(daysLeft)) continue;
+
+    const recipients = await resolveRecipients(rule, { employeeId: (e as { id: string }).id });
+    const name = `${(e as { first_name?: string }).first_name ?? ""} ${(e as { last_name?: string }).last_name ?? ""}`.trim() || "Employee";
+    const title = kind === "birthday"
+      ? `🎂 ${name}'s birthday in ${daysLeft} day(s)`
+      : `🎉 ${name}'s work anniversary in ${daysLeft} day(s)`;
+    const body = `${name}'s ${kind === "birthday" ? "birthday" : "work anniversary"} is on ${occ.toISOString().slice(0,10)}.`;
+
+    for (const uid of recipients) {
+      const sent = await dispatch({
+        rule, recipientUserId: uid, entityType: "employee",
+        entityId: (e as { id: string }).id, leadDay: daysLeft, title, body, actionUrl: "/birthdays",
+      });
+      if (sent) count++;
+    }
+  }
+  return count;
+}
+
+async function processPolicyAck(rule: ReminderRule) {
+  const { data: policies } = await supabase
+    .from("company_policies")
+    .select("id, client_id, title")
+    .eq("client_id", rule.client_id)
+    .eq("status", "active")
+    .eq("requires_ack", true);
+
+  let count = 0;
+  const leadDay = rule.lead_days_before[0] ?? 0; // policy ack is recurring nudge
+  for (const p of policies ?? []) {
+    const { data: emps } = await supabase
+      .from("employees").select("id, user_id")
+      .eq("client_id", p.client_id).eq("status", "active").not("user_id","is",null);
+    const { data: acks } = await supabase
+      .from("policy_acknowledgments").select("employee_id").eq("policy_id", p.id);
+    const ackedSet = new Set((acks ?? []).map(a => a.employee_id));
+
+    for (const e of emps ?? []) {
+      if (ackedSet.has(e.id)) continue;
+      const sent = await dispatch({
+        rule, recipientUserId: e.user_id as string, entityType: "company_policy",
+        entityId: p.id, leadDay, title: "Policy acknowledgment pending",
+        body: `Please review and acknowledge: "${p.title}".`, actionUrl: "/policies",
+      });
+      if (sent) count++;
+    }
+  }
+  return count;
+}
+
+async function processApprovalPending(rule: ReminderRule) {
+  // Pending leave + expense + advance approvals to admins
+  let count = 0;
+  const recipients = await resolveRecipients(rule, {});
+  const leadDay = rule.lead_days_before[0] ?? 0;
+
+  const sources = [
+    { table: "leave_requests", entity: "leave_request", url: "/leave" },
+    { table: "expenses", entity: "expense", url: "/expenses" },
+    { table: "advances", entity: "advance", url: "/advances" },
+  ];
+
+  for (const src of sources) {
+    const { data: rows } = await supabase
+      .from(src.table)
+      .select("id, created_at")
+      .eq("client_id", rule.client_id)
+      .eq("status", "pending");
+    const pendingCount = (rows ?? []).length;
+    if (pendingCount === 0) continue;
+
+    for (const uid of recipients) {
+      const sent = await dispatch({
+        rule, recipientUserId: uid, entityType: src.entity,
+        entityId: null, leadDay,
+        title: `${pendingCount} pending ${src.entity.replace("_"," ")} approval(s)`,
+        body: `You have ${pendingCount} pending request(s) waiting for review.`,
+        actionUrl: src.url,
+      });
+      if (sent) count++;
+    }
+  }
+  return count;
+}
+
+async function processPayrollDue(rule: ReminderRule) {
+  // Notify admins X days before month-end
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysToMonthEnd = lastDay - today.getDate();
+  if (!rule.lead_days_before.includes(daysToMonthEnd)) return 0;
+
+  const recipients = await resolveRecipients(rule, {});
+  let count = 0;
+  for (const uid of recipients) {
+    const sent = await dispatch({
+      rule, recipientUserId: uid, entityType: "payroll_cycle",
+      entityId: null, leadDay: daysToMonthEnd,
+      title: `Payroll run due in ${daysToMonthEnd} day(s)`,
+      body: `Month-end payroll cycle is approaching. Please prepare the payroll run.`,
+      actionUrl: "/payroll",
+    });
+    if (sent) count++;
+  }
+  return count;
+}
+
+async function processPerformanceAssessment(rule: ReminderRule) {
+  // Generic nudge to all active employees about pending self-assessment.
+  // (Detailed cycle integration can be added later via conditions.)
+  const leadDay = rule.lead_days_before[0] ?? 0;
+  const { data: emps } = await supabase
+    .from("employees").select("id, user_id")
+    .eq("client_id", rule.client_id).eq("status","active").not("user_id","is",null);
+  let count = 0;
+  for (const e of emps ?? []) {
+    const sent = await dispatch({
+      rule, recipientUserId: e.user_id as string, entityType: "employee",
+      entityId: e.id, leadDay,
+      title: "Performance assessment pending",
+      body: "Please complete your self-assessment for the current performance cycle.",
+      actionUrl: "/performance/self-assessment",
+    });
+    if (sent) count++;
+  }
+  return count;
+}
+
+// ---------- Dispatcher ----------
+async function processRule(rule: ReminderRule): Promise<number> {
+  switch (rule.category) {
+    case "document_expiry": return processDocumentExpiry(rule);
+    case "asset_warranty": return processAssetField(rule, "warranty_expiry");
+    case "asset_service": return processAssetField(rule, "service_due_date");
+    case "advance_settlement": return processAdvanceSettlement(rule);
+    case "probation_end": return processProbation(rule);
+    case "birthday": return processBirthdayOrAnniversary(rule, "birthday");
+    case "work_anniversary": return processBirthdayOrAnniversary(rule, "anniversary");
+    case "policy_ack": return processPolicyAck(rule);
+    case "approval_pending": return processApprovalPending(rule);
+    case "payroll_due": return processPayrollDue(rule);
+    case "performance_assessment": return processPerformanceAssessment(rule);
+    default: return 0;
+  }
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const results = {
-      documents: await processDocumentExpiry(),
-      probation: await processProbation(),
-      assets: await processAssets(),
-      loans: await processLoans(),
-      advances: await processAdvances(),
-      policies: await processPolicyAcks(),
-    };
-    return new Response(JSON.stringify({ ok: true, results }), {
+    // Optional: filter by client_id (for "Test now" button)
+    let body: { client_id?: string; rule_id?: string } = {};
+    if (req.method === "POST") {
+      try { body = await req.json(); } catch { body = {}; }
+    }
+
+    let q = supabase.from("reminder_rules").select("*").eq("is_enabled", true);
+    if (body.client_id) q = q.eq("client_id", body.client_id);
+    if (body.rule_id) q = q.eq("id", body.rule_id);
+
+    const { data: rules, error } = await q;
+    if (error) throw error;
+
+    const results: Record<string, number> = {};
+    for (const rule of (rules ?? []) as ReminderRule[]) {
+      const sent = await processRule(rule);
+      results[`${rule.category}:${rule.id.slice(0,8)}`] = sent;
+      await supabase.from("reminder_rules")
+        .update({ last_run_at: new Date().toISOString() })
+        .eq("id", rule.id);
+    }
+
+    return new Response(JSON.stringify({ ok: true, processed: rules?.length ?? 0, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

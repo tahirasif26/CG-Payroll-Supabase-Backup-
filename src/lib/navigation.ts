@@ -133,6 +133,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "Feature Access", path: "/settings/feature-access" },
       { label: "Expense Categories", path: "/settings/expense-categories" },
       { label: "Leave Types", path: "/settings/leave-types" },
+      { label: "Reminders", path: "/settings/reminders" },
       { label: "GL Code Mapping", path: "/settings/gl-codes", requiredRoles: ["admin"] },
     ],
   },
