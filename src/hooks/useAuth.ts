@@ -50,17 +50,12 @@ export function useAuth() {
     const loadAuthData = async (session: Session) => {
       const userId = session.user.id;
 
-      const [profileRes, roleRes, featuresRes, enabledModulesRes, enabledFeaturesRes, employeeRes] = await Promise.all([
+      const [profileRes, roleRes, featuresRes, enabledModulesRes, enabledFeaturesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.rpc("get_user_role", { _user_id: userId }),
         supabase.rpc("get_user_features", { _user_id: userId }),
         (supabase as any).rpc("get_user_enabled_modules", { _user_id: userId }),
         (supabase as any).rpc("get_user_enabled_features", { _user_id: userId }),
-        (supabase as any)
-          .from("employees")
-          .select("id, enabled_features")
-          .eq("user_id", userId)
-          .maybeSingle(),
       ]);
 
       const profile = (profileRes.data as Profile | null) ?? null;
@@ -74,7 +69,41 @@ export function useAuth() {
       const rawEnabledFeatures = (enabledFeaturesRes.data ?? null) as unknown as string[] | null;
       const enabledFeatures = rawEnabledFeatures && rawEnabledFeatures.length > 0 ? rawEnabledFeatures : null;
 
-      const rawEmployeeFeatures = (employeeRes.data as { enabled_features: string[] | null } | null)?.enabled_features ?? null;
+      type EmployeeAccessRow = { id: string; user_id: string | null; enabled_features: string[] | null };
+
+      const fetchEmployeeAccess = async (column: "user_id" | "emp_id" | "email", value: string) => {
+        let query = (supabase as any)
+          .from("employees")
+          .select("id, user_id, enabled_features")
+          .eq(column, value);
+
+        if (profile?.client_id) {
+          query = query.eq("client_id", profile.client_id);
+        }
+
+        const { data } = await query.maybeSingle();
+        return (data as EmployeeAccessRow | null) ?? null;
+      };
+
+      let employeeRow = await fetchEmployeeAccess("user_id", userId);
+
+      if (!employeeRow && profile?.employee_id) {
+        employeeRow = await fetchEmployeeAccess("emp_id", profile.employee_id);
+      }
+
+      if (!employeeRow && session.user.email) {
+        employeeRow = await fetchEmployeeAccess("email", session.user.email.trim().toLowerCase());
+      }
+
+      if (employeeRow && !employeeRow.user_id) {
+        supabase
+          .from("employees")
+          .update({ user_id: userId })
+          .eq("id", employeeRow.id)
+          .then(() => {});
+      }
+
+      const rawEmployeeFeatures = employeeRow?.enabled_features ?? null;
       // NULL = no override (inherit all client features). Empty array = explicit deny all.
       const employeeFeatures = Array.isArray(rawEmployeeFeatures) ? rawEmployeeFeatures : null;
 
