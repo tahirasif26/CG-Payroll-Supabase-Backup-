@@ -77,9 +77,14 @@ export default function FeatureAccessPage() {
 
   const handleSave = () => {
     if (!selected) return;
-    // Empty selection means "all available" — store NULL to inherit
-    const value = draftFeatures.length === 0 ? null : draftFeatures;
-    saveMutation.mutate({ id: selected.id, features: value });
+    // Persist exactly what the admin selected. Empty array = deny all.
+    // Use "Reset to inherit" button to clear the override (NULL).
+    saveMutation.mutate({ id: selected.id, features: draftFeatures });
+  };
+
+  const handleResetInherit = () => {
+    if (!selected) return;
+    saveMutation.mutate({ id: selected.id, features: null });
   };
 
   return (
