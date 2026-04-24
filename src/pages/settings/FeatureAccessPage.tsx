@@ -165,16 +165,25 @@ export default function FeatureAccessPage() {
                 selectedFeatures={draftFeatures}
                 setSelectedFeatures={setDraftFeatures}
                 title="Granted features"
-                description="Uncheck a feature to revoke access for this employee. Leave all unchecked to grant every feature available to your company."
+                description="Check features to grant access. Uncheck to revoke. Saving with nothing checked will deny all features for this employee."
               />
 
-              <div className="flex items-center gap-2 pt-4 border-t">
+              <div className="flex items-center gap-2 pt-4 border-t flex-wrap">
                 <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
                   <Save className="h-4 w-4 mr-1" />
                   {saveMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setSelected(null)}>
                   Cancel
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetInherit}
+                  disabled={saveMutation.isPending}
+                  className="ml-auto"
+                >
+                  Reset to inherit all
                 </Button>
               </div>
             </div>
