@@ -13,6 +13,8 @@ import { CalendarIcon, Upload, ScanLine, FileText, X, Loader2 } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { Employee } from "@/types/hcm";
 import { availableCurrencies } from "@/data/settingsData";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type Confidence = "high" | "medium" | "low";
 
@@ -29,51 +31,43 @@ interface ExtractionResult {
   description: ExtractedField<string>;
 }
 
-const MOCK_RECEIPTS: ExtractionResult[] = [
-  {
-    amount: { value: "245.00", confidence: "high" },
-    currency: { value: "SAR", confidence: "high" },
-    date: { value: new Date(2025, 1, 18), confidence: "high" },
-    category: { value: "Travel", confidence: "high" },
-    description: { value: "Uber ride to client office — Riyadh downtown", confidence: "medium" },
-  },
-  {
-    amount: { value: "1,320.50", confidence: "high" },
-    currency: { value: "SAR", confidence: "high" },
-    date: { value: new Date(2025, 2, 3), confidence: "medium" },
-    category: { value: "Client Entertainment", confidence: "medium" },
-    description: { value: "Business dinner at The Globe Restaurant, 4 guests", confidence: "high" },
-  },
-  {
-    amount: { value: "89.99", confidence: "high" },
-    currency: { value: "USD", confidence: "high" },
-    date: { value: new Date(2025, 1, 25), confidence: "high" },
-    category: { value: "Equipment", confidence: "high" },
-    description: { value: "Logitech wireless mouse — Amazon order #114-298374", confidence: "high" },
-  },
-  {
-    amount: { value: "3,500.00", confidence: "medium" },
-    currency: { value: "SAR", confidence: "high" },
-    date: { value: new Date(2025, 0, 14), confidence: "low" },
-    category: { value: "Training", confidence: "high" },
-    description: { value: "Advanced Excel workshop — 2-day training course", confidence: "medium" },
-  },
-  {
-    amount: { value: "47.25", confidence: "high" },
-    currency: { value: "AED", confidence: "medium" },
-    date: { value: new Date(2025, 2, 1), confidence: "high" },
-    category: { value: "Other", confidence: "low" },
-    description: { value: "Office supplies — printing paper and toner cartridge", confidence: "medium" },
-  },
-];
-
-function simulateExtraction(): Promise<ExtractionResult> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const template = MOCK_RECEIPTS[Math.floor(Math.random() * MOCK_RECEIPTS.length)];
-      resolve(template);
-    }, 1800);
+function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // result is data:<mime>;base64,<data>
+      const [meta, base64] = result.split(",");
+      const mimeType = meta.match(/data:(.*?);base64/)?.[1] ?? file.type;
+      resolve({ base64, mimeType });
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
   });
+}
+
+async function extractWithAI(file: File): Promise<ExtractionResult> {
+  const { base64, mimeType } = await fileToBase64(file);
+  const { data, error } = await supabase.functions.invoke("scan-receipt", {
+    body: { imageBase64: base64, mimeType },
+  });
+  if (error) throw new Error(error.message ?? "Scan failed");
+  if (!data?.success) throw new Error(data?.error ?? "Scan failed");
+
+  const r = data.data;
+  // Parse date string YYYY-MM-DD safely
+  let parsedDate: Date | undefined;
+  if (r.date?.value) {
+    const d = new Date(r.date.value);
+    if (!isNaN(d.getTime())) parsedDate = d;
+  }
+  return {
+    amount: { value: String(r.amount?.value ?? ""), confidence: r.amount?.confidence ?? "low" },
+    currency: { value: String(r.currency?.value ?? ""), confidence: r.currency?.confidence ?? "low" },
+    date: { value: parsedDate, confidence: r.date?.confidence ?? "low" },
+    category: { value: String(r.category?.value ?? ""), confidence: r.category?.confidence ?? "low" },
+    description: { value: String(r.description?.value ?? ""), confidence: r.description?.confidence ?? "low" },
+  };
 }
 
 const CONFIDENCE_COLORS: Record<Confidence, string> = {
