@@ -8,7 +8,6 @@ import {
   superAdminGroups,
   filterNavigation,
   resolveGroupLabel,
-  resolveChildLabel,
   type NavGroup,
 } from "@/lib/navigation";
 
