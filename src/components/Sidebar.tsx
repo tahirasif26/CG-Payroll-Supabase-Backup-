@@ -8,7 +8,6 @@ import {
   superAdminGroups,
   filterNavigation,
   resolveGroupLabel,
-  resolveChildLabel,
   type NavGroup,
 } from "@/lib/navigation";
 
@@ -42,32 +41,9 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
     return filterNavigation(source, appRole, hasFeature, enabledModules);
   }, [appRole, hasFeature, enabledModules, isSuperAdmin]);
 
-  // Manually toggled groups (XOR with auto-expanded active group)
-  const [manuallyToggled, setManuallyToggled] = useState<Set<string>>(new Set());
-
-  const activeGroupKey = useMemo(
-    () => groups.find((g) => g.children && isGroupActive(location.pathname, g))?.key,
-    [groups, location.pathname],
-  );
-
-  const isExpanded = (key: string) => {
-    const auto = activeGroupKey === key;
-    const manual = manuallyToggled.has(key);
-    return auto !== manual;
-  };
-
   const handleNav = (path: string) => {
     navigate(path);
     onCloseMobile();
-  };
-
-  const handleToggle = (key: string) => {
-    setManuallyToggled((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
   };
 
   const displayName = profile?.full_name || "User";
@@ -122,103 +98,39 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
           </button>
         </div>
 
-        {/* Groups */}
+        {/* Modules (top-level only — sub-tabs render in header) */}
         <nav className="flex-1 overflow-y-auto scrollbar-hide px-2 py-3">
           <ul className="space-y-0.5">
             {groups.map((g) => {
               const Icon = g.icon;
               const groupLabel = appRole ? resolveGroupLabel(g, appRole) : g.label;
 
-              // Single-link group (no children)
-              if (!g.children || g.children.length === 0) {
-                const active = g.basePath ? isPathActive(location.pathname, g.basePath) : false;
-                return (
-                  <li key={g.key}>
-                    <button
-                      onClick={() => g.basePath && handleNav(g.basePath)}
-                      title={collapsed ? groupLabel : undefined}
-                      className={cn(
-                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors relative",
-                        collapsed && "justify-center px-0",
-                        active
-                          ? "bg-primary/10 text-primary"
-                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                      )}
-                    >
-                      {active && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] bg-primary rounded-r-full" />
-                      )}
-                      <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
-                      {!collapsed && <span className="flex-1 text-left truncate">{groupLabel}</span>}
-                    </button>
-                  </li>
-                );
-              }
+              const target = g.basePath ?? g.children?.[0]?.path;
+              if (!target) return null;
 
-              // Expandable group
-              const expanded = isExpanded(g.key);
-              const groupHasActive = isGroupActive(location.pathname, g);
-
-              // When collapsed sidebar: clicking icon navigates to first child
-              const handleGroupClick = () => {
-                if (collapsed) {
-                  const firstChild = g.children?.[0];
-                  if (firstChild) handleNav(firstChild.path);
-                  return;
-                }
-                handleToggle(g.key);
-              };
+              const active = g.basePath
+                ? isPathActive(location.pathname, g.basePath)
+                : !!g.children?.some((c) => isPathActive(location.pathname, c.path));
 
               return (
                 <li key={g.key}>
                   <button
-                    onClick={handleGroupClick}
+                    onClick={() => handleNav(target)}
                     title={collapsed ? groupLabel : undefined}
-                    aria-expanded={expanded}
                     className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors",
+                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors relative",
                       collapsed && "justify-center px-0",
-                      groupHasActive
-                        ? "text-sidebar-foreground"
+                      active
+                        ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                     )}
                   >
-                    <Icon className={cn("h-4 w-4 shrink-0", groupHasActive && "text-primary")} />
-                    {!collapsed && (
-                      <>
-                        <span className="flex-1 text-left truncate">{groupLabel}</span>
-                        {expanded ? (
-                          <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                        ) : (
-                          <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                        )}
-                      </>
+                    {active && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] bg-primary rounded-r-full" />
                     )}
+                    <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
+                    {!collapsed && <span className="flex-1 text-left truncate">{groupLabel}</span>}
                   </button>
-
-                  {!collapsed && expanded && (
-                    <ul className="mt-0.5 mb-1 ml-6 pl-3 border-l border-sidebar-border/60 space-y-0.5">
-                      {g.children.map((c) => {
-                        const active = isPathActive(location.pathname, c.path);
-                        const childLabel = appRole ? resolveChildLabel(c, appRole) : c.label;
-                        return (
-                          <li key={c.path}>
-                            <button
-                              onClick={() => handleNav(c.path)}
-                              className={cn(
-                                "w-full flex items-center px-2 py-1.5 rounded-md text-[12.5px] transition-colors text-left",
-                                active
-                                  ? "bg-primary/10 text-primary font-medium"
-                                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                              )}
-                            >
-                              <span className="truncate">{childLabel}</span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
                 </li>
               );
             })}
