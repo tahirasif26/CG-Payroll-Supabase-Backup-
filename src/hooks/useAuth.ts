@@ -75,7 +75,8 @@ export function useAuth() {
       const enabledFeatures = rawEnabledFeatures && rawEnabledFeatures.length > 0 ? rawEnabledFeatures : null;
 
       const rawEmployeeFeatures = (employeeRes.data as { enabled_features: string[] | null } | null)?.enabled_features ?? null;
-      const employeeFeatures = Array.isArray(rawEmployeeFeatures) && rawEmployeeFeatures.length > 0 ? rawEmployeeFeatures : null;
+      // NULL = no override (inherit all client features). Empty array = explicit deny all.
+      const employeeFeatures = Array.isArray(rawEmployeeFeatures) ? rawEmployeeFeatures : null;
 
       setState({
         session,
