@@ -2,8 +2,20 @@ import React, { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { loans, expenses, taxConfigs as initialTaxConfigs } from "@/data/mockData";
+import { useEffect } from "react";
+import { useLoans } from "@/hooks/queries/useLoans";
+import { useExpenses } from "@/hooks/queries/useExpenses";
 import { usePayrollRuns, type PayrollRunRow } from "@/hooks/queries/usePayroll";
+
+// Tax configs are now sourced from PayrollSetup.taxRules per run; the legacy
+// global TaxConfig[] path is unused so we default it to empty.
+const initialTaxConfigs: any[] = [];
+
+// Module-level refs hydrated by the PayrollPage component via React Query.
+// The breakdown helper functions read from these so we don't have to change
+// their signatures or thread the data through every call-site.
+let loans: any[] = [];
+let expenses: any[] = [];
 
 function adaptPayrollRun(r: PayrollRunRow): PayrollRun {
   return {
@@ -273,6 +285,30 @@ export default function PayrollPage() {
   const activeSetups = setups.filter(s => s.status === "active");
   const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
   const { data: dbRuns = [] } = usePayrollRuns();
+
+  // Hydrate module-level loans/expenses caches from real DB queries so the
+  // breakdown helpers (which run outside React) see live data.
+  const { data: dbLoans = [] } = useLoans();
+  const { data: dbExpenses = [] } = useExpenses();
+  useEffect(() => {
+    loans = (dbLoans as any[]).map(l => ({
+      id: l.id,
+      employeeId: l.employee_id,
+      status: l.status,
+      monthlyDeduction: Number(l.monthly_deduction) || 0,
+      remainingBalance: Number(l.remaining_balance) || 0,
+    }));
+  }, [dbLoans]);
+  useEffect(() => {
+    expenses = (dbExpenses as any[]).map(e => ({
+      id: e.id,
+      employeeId: e.employee_id,
+      status: e.status,
+      amount: Number(e.amount) || 0,
+      payrollRunId: e.payroll_run_id ?? undefined,
+      advanceId: e.advance_id ?? undefined,
+    }));
+  }, [dbExpenses]);
   const [runs, setRuns] = useState<PayrollRun[]>([]);
   const [seededFromDb, setSeededFromDb] = useState(false);
   React.useEffect(() => {

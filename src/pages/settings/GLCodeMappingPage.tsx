@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Save } from "lucide-react";
-import { expenseCategories } from "@/data/settingsData";
+import { useExpenseCategories } from "@/hooks/queries/useExpenses";
 import { useGLMappings, useSaveGLMappings } from "@/hooks/queries/useGLMappings";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -29,18 +29,19 @@ const FIXED_ENTRIES: Omit<GLEntry, "glCode">[] = [
   { entry: "Net Pay", category: "Payable" },
 ];
 
-function buildTemplate(): Omit<GLEntry, "glCode">[] {
-  const expenseEntries = expenseCategories
-    .filter((c) => c.isActive)
+function buildTemplate(categories: { name: string; is_active?: boolean }[]): Omit<GLEntry, "glCode">[] {
+  const expenseEntries = (categories ?? [])
+    .filter((c) => c.is_active !== false)
     .map((c) => ({ entry: `Expense: ${c.name}`, category: "Expense Reimbursement" }));
   return [...FIXED_ENTRIES, ...expenseEntries];
 }
 
 export default function GLCodeMappingPage() {
   const { data: dbMappings, isLoading } = useGLMappings();
+  const { data: expenseCategoriesDb = [] } = useExpenseCategories();
   const saveMappings = useSaveGLMappings();
 
-  const template = useMemo(buildTemplate, []);
+  const template = useMemo(() => buildTemplate(expenseCategoriesDb as any[]), [expenseCategoriesDb]);
   const [entries, setEntries] = useState<GLEntry[]>([]);
 
   // Hydrate local state when DB loads (or template grows from new expense categories)
