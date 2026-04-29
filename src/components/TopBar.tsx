@@ -7,6 +7,8 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
+import { cn } from "@/lib/utils";
 
 interface TopBarProps {
   onOpenMobileSidebar: () => void;
@@ -14,6 +16,7 @@ interface TopBarProps {
 
 export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
   const { profile, signOut, role, isSuperAdmin } = useRole();
+  const { scope, setScope, hasPeopleAccess } = useViewScope();
   const navigate = useNavigate();
 
   const displayName = profile?.full_name || "User";
@@ -29,6 +32,35 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
         >
           <Menu className="h-4 w-4" />
         </button>
+
+        {!isSuperAdmin && (
+          <div className="inline-flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
+            <button
+              onClick={() => setScope("me")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-medium transition-all",
+                scope === "me"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Me
+            </button>
+            {hasPeopleAccess && (
+              <button
+                onClick={() => setScope("people")}
+                className={cn(
+                  "px-4 py-1.5 rounded-md text-xs font-medium transition-all",
+                  scope === "people"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                People
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="hidden md:flex relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />

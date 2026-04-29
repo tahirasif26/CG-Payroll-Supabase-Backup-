@@ -26,6 +26,7 @@ import { ReminderSettingsProvider } from "@/contexts/ReminderSettingsContext";
 import { PolicyProvider } from "@/contexts/PolicyContext";
 import { EmployeeTypeProvider } from "@/contexts/EmployeeTypeContext";
 import { PayrollSetupProvider } from "@/contexts/PayrollSetupContext";
+import { ViewScopeProvider } from "@/contexts/ViewScopeContext";
 
 // Eager-loaded (auth-critical, very small)
 import AuthPage from "@/pages/AuthPage";
@@ -412,7 +413,9 @@ const App = () => {
           <PolicyProvider>
           <EmployeeTypeProvider>
           <PayrollSetupProvider>
+          <ViewScopeProvider>
             <AppRoutes />
+          </ViewScopeProvider>
           </PayrollSetupProvider>
           </EmployeeTypeProvider>
           </PolicyProvider>
