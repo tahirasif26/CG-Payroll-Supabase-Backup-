@@ -18,7 +18,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/StatCard";
 import { DollarSign, Users } from "lucide-react";
 import { useSeparations, SeparationRecord } from "@/contexts/SeparationContext";
-import { payrollRuns, leaveRequests, loans, expenses } from "@/data/mockData";
+import { usePayrollRuns } from "@/hooks/queries/usePayroll";
+import { useLeaveRequests } from "@/hooks/queries/useLeave";
+import { useLoans } from "@/hooks/queries/useLoans";
+import { useExpenses } from "@/hooks/queries/useExpenses";
+
+// Map DB rows to the legacy camelCase shape this page was built against.
+function mapPayrollRuns(rows: any[]): any[] {
+  return rows.map(r => ({ id: r.id, month: r.month, year: r.year, status: r.status }));
+}
+function mapLeaves(rows: any[]): any[] {
+  return rows.map(r => ({ id: r.id, employeeId: r.employee_id, status: r.status, days: r.days ?? 0 }));
+}
+function mapLoans(rows: any[]): any[] {
+  return rows.map(r => ({
+    id: r.id, employeeId: r.employee_id, status: r.status,
+    monthlyDeduction: Number(r.monthly_deduction) || 0,
+    remainingBalance: Number(r.remaining_balance) || 0,
+  }));
+}
+function mapExpenses(rows: any[]): any[] {
+  return rows.map(r => ({ id: r.id, employeeId: r.employee_id, status: r.status, amount: Number(r.amount) || 0 }));
+}
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useBLEAccess } from "@/contexts/BLEAccessContext";
