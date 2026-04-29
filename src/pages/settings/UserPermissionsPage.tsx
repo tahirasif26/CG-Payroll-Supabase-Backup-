@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ChevronDown, Lock, Pencil, Plus, Search, Shield, Trash2, Users, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -485,7 +485,10 @@ function FeaturesTab({ role, readOnly }: { role: RoleWithRelations; readOnly: bo
   const [dirty, setDirty] = useState(false);
 
   // Re-sync when source data changes (e.g. after save invalidation)
-  useMemo(() => { setState(initialState); setDirty(false); }, [initialState]);
+  useEffect(() => {
+    setState(initialState);
+    setDirty(false);
+  }, [initialState]);
 
   const grouped = useMemo(() => {
     const m: Record<string, FeatureDef[]> = {};
