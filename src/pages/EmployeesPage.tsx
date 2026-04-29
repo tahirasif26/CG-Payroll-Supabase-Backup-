@@ -1374,7 +1374,7 @@ function PayrollSetupSelect() {
   );
 }
 
-export default function EmployeesPage() {
+function EmployeesDirectory() {
   const { role, currentEmployeeId } = useRole();
   const { reportMap, getManagerName, getManagerId } = useReporting();
   const { employees: localEmployees, updateEmployee, addEmployee } = useEmployees();
@@ -1842,4 +1842,16 @@ export default function EmployeesPage() {
       <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Scope wrapper — "Me" shows personal profile, "People" shows directory
+// ─────────────────────────────────────────────────────────────────────
+import { useViewScope as __useViewScope } from "@/contexts/ViewScopeContext";
+import MyProfilePage from "@/pages/MyProfilePage";
+
+export default function EmployeesPage() {
+  const { scope } = __useViewScope();
+  if (scope === "me") return <MyProfilePage />;
+  return <EmployeesDirectory />;
 }
