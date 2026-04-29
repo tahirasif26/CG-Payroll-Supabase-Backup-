@@ -439,7 +439,20 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                     </div>
                   </TableCell>
                 )}
-                <TableCell><StatusBadge status={emp.status} /></TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={emp.status} />
+                    {inviteStatusMap.has(emp.empId) && inviteStatusMap.get(emp.empId) ? (
+                      <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <CheckCircle2 className="h-3 w-3" /> Verified
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                        Invite pending
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
                 {!isEmployee && (
                   <TableCell className="text-right pr-4">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -449,6 +462,22 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }} title="Documents">
                         <FileText className="h-3.5 w-3.5" />
                       </Button>
+                      {!(inviteStatusMap.has(emp.empId) && inviteStatusMap.get(emp.empId)) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => { e.stopPropagation(); handleResendInvite(emp); }}
+                          title="Resend invite email"
+                          disabled={resendingId === emp.id}
+                        >
+                          {resendingId === emp.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Send className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
