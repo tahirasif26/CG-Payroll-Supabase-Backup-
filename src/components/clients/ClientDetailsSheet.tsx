@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Mail, Phone, Globe, Clock, DollarSign, CalendarDays, Users, Activity, Send } from "lucide-react";
+import { Building2, Mail, Phone, Globe, Clock, DollarSign, CalendarDays, Users, Activity, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { useClientUsers, type ClientStat } from "@/hooks/queries/useClients";
 import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const ROLE_COLORS: Record<string, string> = {
   super_admin: "bg-purple-50 text-purple-700 border-purple-200",
@@ -22,8 +25,33 @@ interface Props {
 
 export function ClientDetailsSheet({ client, open, onOpenChange }: Props) {
   const { data: users, isLoading: usersLoading } = useClientUsers(client?.id ?? null);
+  const { toast } = useToast();
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   if (!client) return null;
+
+  const handleResend = async (userId: string, displayName: string) => {
+    setResendingId(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-invite", {
+        body: { user_id: userId, client_id: client.id },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast({
+        title: "Invite resent",
+        description: `A fresh login link was sent to ${displayName}.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Could not resend invite",
+        description: err?.message ?? "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -95,9 +123,25 @@ export function ClientDetailsSheet({ client, open, onOpenChange }: Props) {
                           {u.role.replace("_", " ")}
                         </Badge>
                       )}
-                      {!u.last_login_at && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Resend invite">
-                          <Send className="h-3.5 w-3.5" />
+                      {u.last_login_at ? (
+                        <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <CheckCircle2 className="h-3 w-3" /> Verified
+                        </Badge>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 gap-1 text-[11px]"
+                          title="Resend invite email"
+                          disabled={resendingId === u.id}
+                          onClick={() => handleResend(u.id, u.full_name ?? "user")}
+                        >
+                          {resendingId === u.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Send className="h-3 w-3" />
+                          )}
+                          Resend
                         </Button>
                       )}
                     </div>

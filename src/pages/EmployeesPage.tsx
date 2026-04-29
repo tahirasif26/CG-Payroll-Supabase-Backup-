@@ -14,7 +14,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp, Trash2, Send, Loader2, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -179,6 +182,55 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const { clientId } = useRole();
+
+  // Invite/verification status keyed by emp_id (matches profiles.employee_id)
+  const { data: inviteStatusList } = useQuery({
+    queryKey: ["employee-invite-status", clientId],
+    enabled: !!clientId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("employee_id, last_login_at")
+        .eq("client_id", clientId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const inviteStatusMap = useMemo(() => {
+    const m = new Map<string, string | null>();
+    (inviteStatusList ?? []).forEach((p: any) => {
+      if (p.employee_id) m.set(p.employee_id, p.last_login_at ?? null);
+    });
+    return m;
+  }, [inviteStatusList]);
+
+  const handleResendInvite = async (emp: Employee) => {
+    if (!clientId) return;
+    setResendingId(emp.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-invite", {
+        body: { email: emp.email, client_id: clientId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast({
+        title: "Invite resent",
+        description: `A fresh login link was sent to ${emp.email}.`,
+      });
+    } catch (e: any) {
+      toast({
+        title: "Could not resend invite",
+        description: e?.message ?? "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingId(null);
+    }
+  };
+
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
@@ -387,7 +439,20 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                     </div>
                   </TableCell>
                 )}
-                <TableCell><StatusBadge status={emp.status} /></TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={emp.status} />
+                    {inviteStatusMap.has(emp.empId) && inviteStatusMap.get(emp.empId) ? (
+                      <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <CheckCircle2 className="h-3 w-3" /> Verified
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                        Invite pending
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
                 {!isEmployee && (
                   <TableCell className="text-right pr-4">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -397,6 +462,22 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }} title="Documents">
                         <FileText className="h-3.5 w-3.5" />
                       </Button>
+                      {!(inviteStatusMap.has(emp.empId) && inviteStatusMap.get(emp.empId)) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => { e.stopPropagation(); handleResendInvite(emp); }}
+                          title="Resend invite email"
+                          disabled={resendingId === emp.id}
+                        >
+                          {resendingId === emp.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Send className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
