@@ -1843,3 +1843,15 @@ function EmployeesDirectory() {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// Scope wrapper — "Me" shows personal profile, "People" shows directory
+// ─────────────────────────────────────────────────────────────────────
+import { useViewScope as __useViewScope } from "@/contexts/ViewScopeContext";
+import MyProfilePage from "@/pages/MyProfilePage";
+
+export default function EmployeesPage() {
+  const { scope } = __useViewScope();
+  if (scope === "me") return <MyProfilePage />;
+  return <EmployeesDirectory />;
+}
