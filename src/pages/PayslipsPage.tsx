@@ -2,7 +2,10 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useClient } from "@/contexts/ClientContext";
-import { loans, expenses } from "@/data/mockData";
+// Note: loans and expenses are intentionally not surfaced on the payslip view —
+// payslip deductions/reimbursements are derived from the payroll run line items.
+const loans: any[] = [];
+const expenses: any[] = [];
 import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
