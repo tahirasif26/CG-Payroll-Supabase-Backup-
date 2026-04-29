@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useAssets } from "@/contexts/AssetContext";
 import { AssetStoreItem } from "@/types/hcm";
@@ -22,7 +23,9 @@ let storeIdCounter = 100;
 let reqIdCounter = 100;
 
 export default function AssetStorePage() {
-  const { role, currentEmployeeId } = useRole();
+  const { role, currentEmployeeId, hasFeature } = useRole();
+  const { scope } = useViewScope();
+  const canManageStore = scope === "people" && hasFeature("assets.manage_store");
   const activeEmps = useActiveEmployees();
   const {
     categories, storeItems, addStoreItem, updateStoreItem, deleteStoreItem, canDeleteStoreItem, getStoreItemsForDisplay,
@@ -220,9 +223,11 @@ export default function AssetStorePage() {
                   <List className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => openStoreDialog()}>
-                <Plus className="h-4 w-4 mr-2" />Add to Store
-              </Button>
+              {canManageStore && (
+                <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => openStoreDialog()}>
+                  <Plus className="h-4 w-4 mr-2" />Add to Store
+                </Button>
+              )}
             </>
           )}
         </div>

@@ -68,6 +68,7 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
     features: [
       { key: "assets.view_inventory", label: "Asset Inventory" },
       { key: "assets.manage", label: "Manage Assets" },
+      { key: "assets.manage_store", label: "Manage Asset Store (Add Items)" },
       { key: "assets.request_new", label: "Request New Asset" },
       { key: "assets.approve_requests", label: "Approve Asset Requests" },
       { key: "assets.view_my_assets", label: "View My Assets" },
