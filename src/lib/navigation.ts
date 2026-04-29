@@ -131,13 +131,10 @@ export const navigationGroups: NavGroup[] = [
     requiredRoles: ["admin", "hr"],
     children: [
       { label: "Company Profile", path: "/settings/company" },
-      { label: "Payroll Settings", path: "/settings/payroll" },
+      { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"] },
+      { label: "Feature Access", path: "/settings/feature-access", requiredRoles: ["admin"] },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
-      { label: "Feature Access", path: "/settings/feature-access" },
-      { label: "Expense Categories", path: "/settings/expense-categories" },
-      { label: "Leave Types", path: "/settings/leave-types" },
-      { label: "Reminders", path: "/settings/reminders" },
-      { label: "GL Code Mapping", path: "/settings/gl-codes", requiredRoles: ["admin"] },
+      { label: "Visual Preferences", path: "/settings/visual" },
     ],
   },
 ];
