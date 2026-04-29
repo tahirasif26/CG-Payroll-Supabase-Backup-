@@ -193,5 +193,11 @@ export function useAuth() {
     return state.features.has(key);
   };
 
-  return { ...state, hasFeature, signOut };
+  const hasPeopleFeature = (key: string): boolean => {
+    if (state.isSuperAdmin) return true;
+    if (state.role === "admin") return true;
+    return state.peopleFeatures.has(key);
+  };
+
+  return { ...state, hasFeature, hasPeopleFeature, signOut };
 }
