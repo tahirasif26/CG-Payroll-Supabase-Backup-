@@ -56,18 +56,29 @@ export function useAuth() {
     const loadAuthData = async (session: Session) => {
       const userId = session.user.id;
 
-      const [profileRes, roleRes, featuresRes, enabledModulesRes, enabledFeaturesRes] = await Promise.all([
+      const [profileRes, roleRes, featuresRes, enabledModulesRes, enabledFeaturesRes, roleFeaturesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.rpc("get_user_role", { _user_id: userId }),
         supabase.rpc("get_user_features", { _user_id: userId }),
         (supabase as any).rpc("get_user_enabled_modules", { _user_id: userId }),
         (supabase as any).rpc("get_user_enabled_features", { _user_id: userId }),
+        (supabase as any).rpc("get_role_features", { _user_id: userId }),
       ]);
 
       const profile = (profileRes.data as Profile | null) ?? null;
       const role = (roleRes.data as AppRole | null) ?? null;
       const featureRows = (featuresRes.data as Array<{ feature_key: string; enabled: boolean }> | null) ?? [];
-      const features = new Set(featureRows.filter((r) => r.enabled).map((r) => r.feature_key));
+      const baseFeatures = new Set(featureRows.filter((r) => r.enabled).map((r) => r.feature_key));
+
+      const roleFeatureRows = ((roleFeaturesRes as any)?.data ?? []) as Array<{
+        feature_key: string;
+        people_enabled: boolean;
+      }>;
+      const roleFeatures = new Set(roleFeatureRows.map((r) => r.feature_key));
+      const peopleFeatures = new Set(roleFeatureRows.filter((r) => r.people_enabled).map((r) => r.feature_key));
+
+      // Merge: role features UNION employee-level overrides (employee feature_toggles)
+      const features = new Set<string>([...baseFeatures, ...roleFeatures]);
 
       const rawEnabledModules = (enabledModulesRes.data ?? null) as unknown as string[] | null;
       const enabledModules = rawEnabledModules && rawEnabledModules.length > 0 ? rawEnabledModules : null;
