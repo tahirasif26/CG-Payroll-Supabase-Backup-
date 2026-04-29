@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useAssets } from "@/contexts/AssetContext";
 import { AssetStoreItem } from "@/types/hcm";
