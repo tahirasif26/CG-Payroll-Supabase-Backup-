@@ -520,10 +520,145 @@ async function processPerformanceAssessment(rule: ReminderRule) {
   return count;
 }
 
+// ---------- New: doc-type-based expiry (visa, iqama, contract, medical insurance) ----------
+async function processDocTypeExpiry(rule: ReminderRule, opts: {
+  docTypeMatch: string[];   // values to match against employee_documents.doc_type (case-insensitive)
+  label: string;            // human label e.g. "Visa"
+}) {
+  const { data: docs } = await supabase
+    .from("employee_documents")
+    .select("id, client_id, employee_id, doc_type, expiry_date")
+    .eq("client_id", rule.client_id)
+    .eq("status", "active")
+    .not("expiry_date", "is", null);
+
+  let count = 0;
+  const matchSet = new Set(opts.docTypeMatch.map((s) => s.toLowerCase()));
+
+  for (const d of docs ?? []) {
+    const dt = String(d.doc_type ?? "").toLowerCase();
+    if (![...matchSet].some((m) => dt.includes(m))) continue;
+
+    const exp = new Date(d.expiry_date as string); exp.setHours(0, 0, 0, 0);
+    const daysLeft = daysBetween(exp, today);
+    if (!rule.lead_days_before.includes(daysLeft)) continue;
+
+    const recipients = await resolveRecipients(rule, { employeeId: d.employee_id as string });
+    const { data: emp } = await supabase
+      .from("employees").select("first_name,last_name").eq("id", d.employee_id).maybeSingle();
+    const name = `${emp?.first_name ?? ""} ${emp?.last_name ?? ""}`.trim() || "Employee";
+    const title = `${opts.label} expiring in ${daysLeft} day(s): ${name}`;
+    const body = `${name}'s ${opts.label.toLowerCase()} (${d.doc_type}) expires on ${d.expiry_date}.`;
+
+    for (const uid of recipients) {
+      const sent = await dispatch({
+        rule, recipientUserId: uid, entityType: "employee_document",
+        entityId: d.id, leadDay: daysLeft, title, body, actionUrl: "/employees",
+      });
+      if (sent) count++;
+    }
+  }
+  return count;
+}
+
+// ---------- New: loan instalment due ----------
+async function processLoanInstalment(rule: ReminderRule) {
+  // Compute next instalment date as the next monthly anniversary of start_date
+  // for active loans with remaining balance.
+  const { data: loans } = await supabase
+    .from("loans")
+    .select("id, client_id, employee_id, start_date, end_date, monthly_deduction, remaining_balance, paused_until")
+    .eq("client_id", rule.client_id)
+    .eq("status", "active")
+    .gt("remaining_balance", 0);
+
+  let count = 0;
+  for (const l of loans ?? []) {
+    if (!l.start_date || !l.monthly_deduction) continue;
+
+    // Skip paused loans
+    if (l.paused_until) {
+      const pu = new Date(l.paused_until); pu.setHours(0, 0, 0, 0);
+      if (pu >= today) continue;
+    }
+
+    const start = new Date(l.start_date as string); start.setHours(0, 0, 0, 0);
+    const day = start.getDate();
+    let next = new Date(today.getFullYear(), today.getMonth(), day);
+    if (next < today) next = new Date(today.getFullYear(), today.getMonth() + 1, day);
+
+    if (l.end_date) {
+      const end = new Date(l.end_date as string); end.setHours(0, 0, 0, 0);
+      if (next > end) continue;
+    }
+
+    const daysLeft = daysBetween(next, today);
+    if (!rule.lead_days_before.includes(daysLeft)) continue;
+
+    const recipients = await resolveRecipients(rule, { employeeId: l.employee_id as string });
+    const amt = (Number(l.monthly_deduction) / 100).toLocaleString();
+    const title = `Loan instalment due in ${daysLeft} day(s)`;
+    const body = `Your monthly loan instalment of ${amt} will be deducted on ${next.toISOString().slice(0, 10)}.`;
+
+    for (const uid of recipients) {
+      const sent = await dispatch({
+        rule, recipientUserId: uid, entityType: "loan",
+        entityId: l.id, leadDay: daysLeft, title, body, actionUrl: "/loans",
+      });
+      if (sent) count++;
+    }
+  }
+  return count;
+}
+
+// ---------- New: leave balance lapse (year-end) ----------
+async function processLeaveBalanceLapse(rule: ReminderRule) {
+  // Compute days until calendar year-end
+  const yearEnd = new Date(today.getFullYear(), 11, 31);
+  yearEnd.setHours(0, 0, 0, 0);
+  const daysLeft = daysBetween(yearEnd, today);
+  if (!rule.lead_days_before.includes(daysLeft)) return 0;
+
+  const year = today.getFullYear();
+  const { data: balances } = await supabase
+    .from("leave_balances")
+    .select("id, employee_id, leave_type_id, allocated, used, carryforward_in, carried_forward")
+    .eq("client_id", rule.client_id)
+    .eq("year", year);
+
+  let count = 0;
+  for (const b of balances ?? []) {
+    const allocated = Number(b.allocated ?? 0);
+    const used = Number(b.used ?? 0);
+    const cfIn = Number(b.carryforward_in ?? 0);
+    const remaining = allocated + cfIn - used;
+    if (remaining <= 0) continue;
+
+    const recipients = await resolveRecipients(rule, { employeeId: b.employee_id as string });
+    const title = `${remaining} leave day(s) will lapse in ${daysLeft} day(s)`;
+    const body = `You have ${remaining} unused leave day(s) for ${year}. They may lapse at year-end on ${yearEnd.toISOString().slice(0, 10)}.`;
+
+    for (const uid of recipients) {
+      const sent = await dispatch({
+        rule, recipientUserId: uid, entityType: "leave_balance",
+        entityId: b.id, leadDay: daysLeft, title, body, actionUrl: "/leave",
+      });
+      if (sent) count++;
+    }
+  }
+  return count;
+}
+
 // ---------- Dispatcher ----------
 async function processRule(rule: ReminderRule): Promise<number> {
   switch (rule.category) {
     case "document_expiry": return processDocumentExpiry(rule);
+    case "visa_expiry": return processDocTypeExpiry(rule, { docTypeMatch: ["visa"], label: "Visa" });
+    case "iqama_expiry": return processDocTypeExpiry(rule, { docTypeMatch: ["iqama", "residence"], label: "Iqama" });
+    case "contract_expiry": return processDocTypeExpiry(rule, { docTypeMatch: ["contract"], label: "Contract" });
+    case "medical_insurance": return processDocTypeExpiry(rule, { docTypeMatch: ["medical", "insurance", "health"], label: "Medical insurance" });
+    case "loan_instalment": return processLoanInstalment(rule);
+    case "leave_balance_lapse": return processLeaveBalanceLapse(rule);
     case "asset_warranty": return processAssetField(rule, "warranty_expiry");
     case "asset_service": return processAssetField(rule, "service_due_date");
     case "advance_settlement": return processAdvanceSettlement(rule);
