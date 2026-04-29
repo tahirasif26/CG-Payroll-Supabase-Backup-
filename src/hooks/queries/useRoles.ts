@@ -106,7 +106,7 @@ export function useUpdateRole() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { id: string; client_id: string; name?: string; description?: string; color?: string }): Promise<Role> => {
-      const patch: Record<string, unknown> = {};
+      const patch: { name?: string; description?: string | null; color?: string } = {};
       if (input.name !== undefined) patch.name = input.name.trim();
       if (input.description !== undefined) patch.description = input.description;
       if (input.color !== undefined) patch.color = input.color;
