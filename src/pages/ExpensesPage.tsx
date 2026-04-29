@@ -43,6 +43,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { routeApprovalRequest } from "@/lib/approvalRouting";
 
 // ----- Helpers -----
 function getEmployeePayCurrency(employeeId: string, emps: Employee[]): string {
