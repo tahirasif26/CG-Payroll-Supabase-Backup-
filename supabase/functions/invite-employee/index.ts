@@ -162,6 +162,37 @@ Deno.serve(async (req) => {
         .eq("id", existingEmployee.id);
     }
 
+    // Auto-assign system role based on the user's app role
+    try {
+      const targetRoleName = role === "admin" ? "Admin" : role === "hr" ? "HR" : "Employee";
+      const { data: roleRow } = await adminClient
+        .from("roles")
+        .select("id")
+        .eq("client_id", client_id)
+        .eq("name", targetRoleName)
+        .maybeSingle();
+      // Fallback to "Employee" role if the named one doesn't exist (e.g. HR not seeded)
+      let roleId = roleRow?.id;
+      if (!roleId && targetRoleName !== "Employee") {
+        const { data: fallback } = await adminClient
+          .from("roles")
+          .select("id")
+          .eq("client_id", client_id)
+          .eq("name", "Employee")
+          .maybeSingle();
+        roleId = fallback?.id;
+      }
+      if (roleId) {
+        await adminClient
+          .from("employees")
+          .update({ role_id: roleId })
+          .eq("client_id", client_id)
+          .eq("user_id", newUserId);
+      }
+    } catch (roleErr) {
+      console.error("[invite-employee] failed to assign role to employee (non-fatal):", roleErr);
+    }
+
     return json({ success: true, user_id: newUserId, client_id, role, emp_id: generatedEmpId, employee: { emp_id: generatedEmpId } }, 200);
   } catch (err) {
     console.error("invite-employee error:", err);
