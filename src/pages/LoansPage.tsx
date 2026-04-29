@@ -21,6 +21,7 @@ import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useLoans, useLoanTransactions, useCreateLoan, useUpdateLoan, useAddLoanTransaction, type DbLoan } from "@/hooks/queries/useLoans";
 import { useEmployees } from "@/hooks/queries/useEmployees";
+import { routeApprovalRequest } from "@/lib/approvalRouting";
 
 type FilterTab = "all" | "active" | "completed" | "defaulted";
 
