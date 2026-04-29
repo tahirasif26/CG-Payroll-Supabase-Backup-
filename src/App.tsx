@@ -50,6 +50,7 @@ const LeavePage = lazy(() => import("@/pages/LeavePage"));
 const BirthdaysPage = lazy(() => import("@/pages/BirthdaysPage"));
 const PayslipsPage = lazy(() => import("@/pages/PayslipsPage"));
 const AssetInventoryPage = lazy(() => import("@/pages/assets/AssetInventoryPage"));
+const MyAssetsPage = lazy(() => import("@/pages/assets/MyAssetsPage"));
 const AssetMasterDataPage = lazy(() => import("@/pages/assets/AssetMasterDataPage"));
 const AssetStorePage = lazy(() => import("@/pages/assets/AssetStorePage"));
 const AssetRequestsPage = lazy(() => import("@/pages/assets/AssetRequestsPage"));
@@ -310,6 +311,9 @@ function AppRoutes() {
           {/* Assets */}
           <Route path="/assets/inventory" element={
             <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="assets.view_inventory"><AssetInventoryPage /></ProtectedRoute>
+          } />
+          <Route path="/assets/mine" element={
+            <ProtectedRoute requiredRole={["admin","hr","employee"]}><MyAssetsPage /></ProtectedRoute>
           } />
           <Route path="/assets/master-data" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><AssetMasterDataPage /></ProtectedRoute>
