@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Save } from "lucide-react";
-import { expenseCategories } from "@/data/settingsData";
+import { useExpenseCategories } from "@/hooks/queries/useExpenses";
 import { useGLMappings, useSaveGLMappings } from "@/hooks/queries/useGLMappings";
 import { Skeleton } from "@/components/ui/skeleton";
 
