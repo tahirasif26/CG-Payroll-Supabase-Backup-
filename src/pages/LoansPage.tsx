@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useApprovals } from "@/contexts/ApprovalContext";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useLoans, useLoanTransactions, useCreateLoan, useUpdateLoan, useAddLoanTransaction, type DbLoan } from "@/hooks/queries/useLoans";
 import { useEmployees } from "@/hooks/queries/useEmployees";
@@ -32,7 +33,7 @@ export default function LoansPage() {
   const { data: currentEmpRow } = useCurrentEmployee();
   const isEmployeeRole = appRole === "employee";
   const { toast } = useToast();
-  const { scope } = require("@/contexts/ViewScopeContext").useViewScope();
+  const { scope } = useViewScope();
 
   const scopeEmployeeId = scope === "me" ? currentEmpRow?.id : undefined;
   const { data: loanList = [], isLoading } = useLoans({ employee_id: scopeEmployeeId });
@@ -481,7 +482,12 @@ export default function LoansPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Employee Loans" description="Track and manage employee loan disbursements.">
+      <PageHeader
+        title={scope === "me" ? "My Loans" : "Employee Loans"}
+        description={scope === "me"
+          ? "View your active loans and repayment schedule."
+          : "Track and manage employee loan disbursements."}
+      >
         {hasFeature("loans.request") && (
           <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />New Loan
