@@ -1541,6 +1541,7 @@ export type Database = {
           probation_end_date: string | null
           religion: string | null
           reports_to: string | null
+          role_id: string | null
           separation_date: string | null
           status: string
           updated_at: string
@@ -1576,6 +1577,7 @@ export type Database = {
           probation_end_date?: string | null
           religion?: string | null
           reports_to?: string | null
+          role_id?: string | null
           separation_date?: string | null
           status?: string
           updated_at?: string
@@ -1611,6 +1613,7 @@ export type Database = {
           probation_end_date?: string | null
           religion?: string | null
           reports_to?: string | null
+          role_id?: string | null
           separation_date?: string | null
           status?: string
           updated_at?: string
@@ -1638,6 +1641,13 @@ export type Database = {
             columns: ["reports_to"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
         ]
@@ -3826,6 +3836,83 @@ export type Database = {
           },
         ]
       }
+      role_features: {
+        Row: {
+          created_at: string
+          feature_key: string
+          people_enabled: boolean
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_key: string
+          people_enabled?: boolean
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_key?: string
+          people_enabled?: boolean
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_features_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          client_id: string
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       separations: {
         Row: {
           approved_by: string | null
@@ -4183,6 +4270,14 @@ export type Database = {
         Returns: string
       }
       generate_next_emp_id: { Args: { _client_id: string }; Returns: string }
+      get_employee_role_id: { Args: { _user_id: string }; Returns: string }
+      get_role_features: {
+        Args: { _user_id: string }
+        Returns: {
+          feature_key: string
+          people_enabled: boolean
+        }[]
+      }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
       get_user_enabled_features: {
         Args: { _user_id: string }
