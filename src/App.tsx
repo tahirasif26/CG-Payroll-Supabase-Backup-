@@ -89,6 +89,10 @@ const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const MyProfilePage = lazy(() => import("@/pages/MyProfilePage"));
+const PayrollModuleSettingsPage = lazy(() => import("@/pages/PayrollModuleSettingsPage"));
+const HRModuleSettingsPage = lazy(() => import("@/pages/HRModuleSettingsPage"));
+const ExpenseModuleSettingsPage = lazy(() => import("@/pages/ExpenseModuleSettingsPage"));
+const VisualPreferencePage = lazy(() => import("@/pages/settings/VisualPreferencePage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
