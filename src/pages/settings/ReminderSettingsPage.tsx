@@ -56,6 +56,12 @@ interface ReminderRule {
 
 const CATEGORY_META: Record<Category, { label: string; icon: typeof Bell; color: string }> = {
   document_expiry: { label: "Document Expiry", icon: FileText, color: "text-blue-600" },
+  visa_expiry: { label: "Visa Expiry", icon: Globe, color: "text-red-600" },
+  iqama_expiry: { label: "Iqama / Residence Permit", icon: CreditCard, color: "text-red-700" },
+  contract_expiry: { label: "Contract End Date", icon: FileWarning, color: "text-orange-600" },
+  medical_insurance: { label: "Medical Insurance", icon: HeartPulse, color: "text-pink-600" },
+  loan_instalment: { label: "Loan Instalment Due", icon: PiggyBank, color: "text-emerald-600" },
+  leave_balance_lapse: { label: "Leave Balance Lapse", icon: Calendar, color: "text-amber-700" },
   asset_warranty: { label: "Asset Warranty", icon: Package, color: "text-purple-600" },
   asset_service: { label: "Asset Service", icon: Wrench, color: "text-orange-600" },
   advance_settlement: { label: "Advance Settlement", icon: DollarSign, color: "text-green-600" },
