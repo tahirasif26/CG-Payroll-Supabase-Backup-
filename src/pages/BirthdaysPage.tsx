@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { getUpcomingBirthdays } from "@/data/mockData";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import type { Employee } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Cake, Briefcase, Search, Filter, ArrowUpDown } from "lucide-react";
@@ -15,6 +15,28 @@ import { Badge } from "@/components/ui/badge";
 import { CardSettingsPanel } from "@/components/cards/CardSettingsPanel";
 import { HolidayCardSender } from "@/components/cards/HolidayCardSender";
 import { useCards } from "@/contexts/CardContext";
+
+/**
+ * Pure helper — derives next-birthday metadata from a list of live employees.
+ * (Previously imported from `@/data/mockData`; kept inline so the page makes
+ * it obvious it operates on real tenant data only.)
+ */
+function getUpcomingBirthdays(emps: Employee[]) {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  return emps
+    .filter((e) => !!e.dateOfBirth)
+    .map((e) => {
+      const dob = new Date(e.dateOfBirth!);
+      const birthMonth = dob.getMonth();
+      const birthDay = dob.getDate();
+      let next = new Date(currentYear, birthMonth, birthDay);
+      if (next < today) next = new Date(currentYear + 1, birthMonth, birthDay);
+      const daysUntil = Math.ceil((next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return { ...e, birthMonth, birthDay, daysUntil };
+    })
+    .sort((a, b) => a.daysUntil - b.daysUntil);
+}
 
 type SortField = "name" | "birthday" | "anniversary" | "birthdayDays" | "anniversaryDays";
 type SortDir = "asc" | "desc";
