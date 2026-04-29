@@ -223,9 +223,11 @@ export default function AssetStorePage() {
                   <List className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => openStoreDialog()}>
-                <Plus className="h-4 w-4 mr-2" />Add to Store
-              </Button>
+              {canManageStore && (
+                <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => openStoreDialog()}>
+                  <Plus className="h-4 w-4 mr-2" />Add to Store
+                </Button>
+              )}
             </>
           )}
         </div>
