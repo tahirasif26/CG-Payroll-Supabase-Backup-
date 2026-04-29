@@ -25,8 +25,33 @@ interface Props {
 
 export function ClientDetailsSheet({ client, open, onOpenChange }: Props) {
   const { data: users, isLoading: usersLoading } = useClientUsers(client?.id ?? null);
+  const { toast } = useToast();
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   if (!client) return null;
+
+  const handleResend = async (userId: string, displayName: string) => {
+    setResendingId(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-invite", {
+        body: { user_id: userId, client_id: client.id },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast({
+        title: "Invite resent",
+        description: `A fresh login link was sent to ${displayName}.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Could not resend invite",
+        description: err?.message ?? "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
