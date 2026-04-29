@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { routeApprovalRequest } from "@/lib/approvalRouting";
 
 function getCurrentFiscalYear(yearEndDate?: string): string {
   if (!yearEndDate) return `${new Date().getFullYear()}`;
