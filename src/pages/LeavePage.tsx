@@ -182,6 +182,31 @@ export default function LeavePage() {
       end_date: newEnd,
       days,
       reason: newReason || "No reason provided",
+    }, {
+      onSuccess: async (created: any) => {
+        const submitterName = [currentEmpRow?.first_name, currentEmpRow?.last_name].filter(Boolean).join(" ") || "An employee";
+        try {
+          const result = await routeApprovalRequest({
+            clientId,
+            category: "leave",
+            value: days,
+            notification: {
+              title: "New leave approval request",
+              body: `${submitterName} requested ${days} day(s) of leave`,
+              category: "leave",
+              severity: "warning",
+              entityType: "leave_request",
+              entityId: created?.id,
+              actionUrl: "/leave",
+            },
+          });
+          if (result.routedTo === "admins") {
+            toast({ title: "Routed to company admin for approval" });
+          }
+        } catch (err) {
+          console.warn("[leave] approval routing failed:", err);
+        }
+      },
     });
     setNewOpen(false);
     setNewEmployee(""); setNewType(""); setNewStart(""); setNewEnd(""); setNewReason("");
