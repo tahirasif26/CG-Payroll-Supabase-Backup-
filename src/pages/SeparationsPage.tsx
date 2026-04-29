@@ -49,6 +49,12 @@ function ActiveEmployeesTab() {
   const { employees } = useEmployees();
   const { separations, addSeparation } = useSeparations();
   const { toast } = useToast();
+  const { data: payrollRunsRaw = [] } = usePayrollRuns();
+  const { data: leaveRequestsRaw = [] } = useLeaveRequests();
+  const { data: loansRaw = [] } = useLoans();
+  const payrollRuns = useMemo(() => mapPayrollRuns(payrollRunsRaw), [payrollRunsRaw]);
+  const leaveRequests = useMemo(() => mapLeaves(leaveRequestsRaw), [leaveRequestsRaw]);
+  const loans = useMemo(() => mapLoans(loansRaw), [loansRaw]);
   const [search, setSearch] = useState("");
   const [separationOpen, setSeparationOpen] = useState(false);
   const [separationEmp, setSeparationEmp] = useState<any>(null);
@@ -275,6 +281,10 @@ function SeparatedEmployeesTab() {
   const { separations, updateSeparation, removeSeparation } = useSeparations();
   const { employees } = useEmployees();
   const { getAssetsForEmployee, reassignAsset } = useAssets();
+  const { data: payrollRunsRaw = [] } = usePayrollRuns();
+  const { data: expensesRaw = [] } = useExpenses();
+  const payrollRuns = useMemo(() => mapPayrollRuns(payrollRunsRaw), [payrollRunsRaw]);
+  const expenses = useMemo(() => mapExpenses(expensesRaw), [expensesRaw]);
   const { reportMap, setReportTo } = useReporting();
   const { revokeAllForEmployee, getActiveGrantCountForEmployee } = useBLEAccess();
   const [editOpen, setEditOpen] = useState(false);
