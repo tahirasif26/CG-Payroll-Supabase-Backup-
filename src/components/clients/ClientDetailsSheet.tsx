@@ -123,9 +123,25 @@ export function ClientDetailsSheet({ client, open, onOpenChange }: Props) {
                           {u.role.replace("_", " ")}
                         </Badge>
                       )}
-                      {!u.last_login_at && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Resend invite">
-                          <Send className="h-3.5 w-3.5" />
+                      {u.last_login_at ? (
+                        <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <CheckCircle2 className="h-3 w-3" /> Verified
+                        </Badge>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 gap-1 text-[11px]"
+                          title="Resend invite email"
+                          disabled={resendingId === u.id}
+                          onClick={() => handleResend(u.id, u.full_name ?? "user")}
+                        >
+                          {resendingId === u.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Send className="h-3 w-3" />
+                          )}
+                          Resend
                         </Button>
                       )}
                     </div>
