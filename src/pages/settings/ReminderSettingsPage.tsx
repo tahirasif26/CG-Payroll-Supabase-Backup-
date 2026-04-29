@@ -23,13 +23,16 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Bell, FileText, Package, Wrench, DollarSign, ShieldCheck, Cake,
   PartyPopper, FileCheck, ClipboardCheck, Calendar, Star, Pencil, Trash2, Play, Plus,
+  Globe, CreditCard, FileWarning, HeartPulse, PiggyBank,
 } from "lucide-react";
 
 // ---------- Types ----------
 type Category =
   | "document_expiry" | "asset_warranty" | "asset_service" | "advance_settlement"
   | "probation_end" | "birthday" | "work_anniversary" | "policy_ack"
-  | "approval_pending" | "payroll_due" | "performance_assessment";
+  | "approval_pending" | "payroll_due" | "performance_assessment"
+  | "visa_expiry" | "iqama_expiry" | "contract_expiry"
+  | "medical_insurance" | "loan_instalment" | "leave_balance_lapse";
 
 type Frequency = "once" | "daily" | "weekly" | "monthly";
 type Priority = "info" | "warning" | "urgent";
