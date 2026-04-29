@@ -118,6 +118,227 @@ export type Database = {
           },
         ]
       }
+      approval_delegations: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          from_employee_id: string
+          id: string
+          is_active: boolean
+          start_date: string
+          to_employee_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          from_employee_id: string
+          id?: string
+          is_active?: boolean
+          start_date: string
+          to_employee_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          from_employee_id?: string
+          id?: string
+          is_active?: boolean
+          start_date?: string
+          to_employee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_delegations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_delegations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_delegations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_delegations_from_employee_id_fkey"
+            columns: ["from_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_delegations_to_employee_id_fkey"
+            columns: ["to_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_group_members: {
+        Row: {
+          created_at: string
+          employee_id: string
+          group_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          group_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          group_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_group_members_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "approval_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_groups: {
+        Row: {
+          approval_type: string
+          client_id: string
+          created_at: string
+          escalate_after_days: number | null
+          escalate_to_group_id: string | null
+          id: string
+          max_limit_halalas: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          approval_type?: string
+          client_id: string
+          created_at?: string
+          escalate_after_days?: number | null
+          escalate_to_group_id?: string | null
+          id?: string
+          max_limit_halalas?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          approval_type?: string
+          client_id?: string
+          created_at?: string
+          escalate_after_days?: number | null
+          escalate_to_group_id?: string | null
+          id?: string
+          max_limit_halalas?: number | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_groups_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_groups_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_groups_escalate_to_group_id_fkey"
+            columns: ["escalate_to_group_id"]
+            isOneToOne: false
+            referencedRelation: "approval_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_policies: {
+        Row: {
+          approval_type_override: string | null
+          category: string
+          client_id: string
+          created_at: string
+          group_id: string | null
+          id: string
+          max_value: number | null
+          min_value: number
+          sort_order: number
+        }
+        Insert: {
+          approval_type_override?: string | null
+          category: string
+          client_id: string
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          max_value?: number | null
+          min_value?: number
+          sort_order?: number
+        }
+        Update: {
+          approval_type_override?: string | null
+          category?: string
+          client_id?: string
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          max_value?: number | null
+          min_value?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_policies_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_policies_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_policies_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "approval_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_roles: {
         Row: {
           can_approve_hr: boolean
@@ -4270,6 +4491,13 @@ export type Database = {
         Returns: string
       }
       generate_next_emp_id: { Args: { _client_id: string }; Returns: string }
+      get_active_approvers: {
+        Args: { _group_id: string }
+        Returns: {
+          employee_id: string
+          via_delegation: boolean
+        }[]
+      }
       get_employee_role_id: { Args: { _user_id: string }; Returns: string }
       get_role_features: {
         Args: { _user_id: string }
@@ -4334,6 +4562,10 @@ export type Database = {
           _title: string
         }
         Returns: number
+      }
+      resolve_approval_group: {
+        Args: { _category: string; _client_id: string; _value?: number }
+        Returns: string
       }
     }
     Enums: {
