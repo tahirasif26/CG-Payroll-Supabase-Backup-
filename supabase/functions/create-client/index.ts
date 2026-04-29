@@ -229,6 +229,25 @@ Deno.serve(async (req) => {
         status: "active",
         joining_date: new Date().toISOString().slice(0, 10),
       });
+
+      // Link the new admin employee to the seeded "Admin" role
+      try {
+        const { data: adminRole } = await adminClient
+          .from("roles")
+          .select("id")
+          .eq("client_id", clientId)
+          .eq("name", "Admin")
+          .maybeSingle();
+        if (adminRole?.id) {
+          await adminClient
+            .from("employees")
+            .update({ role_id: adminRole.id })
+            .eq("client_id", clientId)
+            .eq("user_id", adminUserId);
+        }
+      } catch (roleErr) {
+        console.error("[create-client] failed to assign Admin role to employee (non-fatal):", roleErr);
+      }
     } catch (empErr) {
       console.error("[create-client] failed to seed admin employee row (non-fatal):", empErr);
     }

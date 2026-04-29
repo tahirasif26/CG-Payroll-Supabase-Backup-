@@ -86,7 +86,8 @@ function useFeatureDefinitions() {
 
 export default function UserPermissionsPage() {
   const { clientId } = useRole();
-  const { data: roles = [], isLoading } = useRoles(clientId);
+  const { data: rolesData, isLoading, error: rolesError } = useRoles(clientId);
+  const roles = rolesData ?? [];
   const [openRoleId, setOpenRoleId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -94,6 +95,19 @@ export default function UserPermissionsPage() {
     () => roles.find((r) => r.id === openRoleId) ?? null,
     [roles, openRoleId],
   );
+
+  if (rolesError) {
+    return (
+      <div className="p-6 space-y-6">
+        <PageHeader title="User Permissions" description="Manage roles and permissions." />
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>Could not load roles. The roles table may not be set up yet.</p>
+          <p className="text-xs mt-2 font-mono">{(rolesError as Error).message}</p>
+          <Button className="mt-4" onClick={() => window.location.reload()}>Retry</Button>
+        </Card>
+      </div>
+    );
+  }
 
   if (openRole) {
     return (
