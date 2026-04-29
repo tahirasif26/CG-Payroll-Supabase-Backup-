@@ -2,8 +2,20 @@ import React, { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { loans, expenses, taxConfigs as initialTaxConfigs } from "@/data/mockData";
+import { useEffect } from "react";
+import { useLoans } from "@/hooks/queries/useLoans";
+import { useExpenses } from "@/hooks/queries/useExpenses";
 import { usePayrollRuns, type PayrollRunRow } from "@/hooks/queries/usePayroll";
+
+// Tax configs are now sourced from PayrollSetup.taxRules per run; the legacy
+// global TaxConfig[] path is unused so we default it to empty.
+const initialTaxConfigs: any[] = [];
+
+// Module-level refs hydrated by the PayrollPage component via React Query.
+// The breakdown helper functions read from these so we don't have to change
+// their signatures or thread the data through every call-site.
+let loans: any[] = [];
+let expenses: any[] = [];
 
 function adaptPayrollRun(r: PayrollRunRow): PayrollRun {
   return {
