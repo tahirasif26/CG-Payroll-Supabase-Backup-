@@ -4009,54 +4009,6 @@ export type Database = {
           },
         ]
       }
-      reminder_settings: {
-        Row: {
-          category: string
-          channels: string[]
-          client_id: string
-          created_at: string
-          days_before: number
-          id: string
-          is_enabled: boolean
-          updated_at: string
-        }
-        Insert: {
-          category: string
-          channels?: string[]
-          client_id: string
-          created_at?: string
-          days_before?: number
-          id?: string
-          is_enabled?: boolean
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          channels?: string[]
-          client_id?: string
-          created_at?: string
-          days_before?: number
-          id?: string
-          is_enabled?: boolean
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reminder_settings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "client_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reminder_settings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       role_features: {
         Row: {
           created_at: string
@@ -4584,6 +4536,12 @@ export type Database = {
         | "approval_pending"
         | "payroll_due"
         | "performance_assessment"
+        | "visa_expiry"
+        | "iqama_expiry"
+        | "contract_expiry"
+        | "medical_insurance"
+        | "loan_instalment"
+        | "leave_balance_lapse"
       reminder_frequency: "once" | "daily" | "weekly" | "monthly"
       reminder_priority: "info" | "warning" | "urgent"
       subscription_plan: "starter" | "pro" | "enterprise"
@@ -4729,6 +4687,12 @@ export const Constants = {
         "approval_pending",
         "payroll_due",
         "performance_assessment",
+        "visa_expiry",
+        "iqama_expiry",
+        "contract_expiry",
+        "medical_insurance",
+        "loan_instalment",
+        "leave_balance_lapse",
       ],
       reminder_frequency: ["once", "daily", "weekly", "monthly"],
       reminder_priority: ["info", "warning", "urgent"],
