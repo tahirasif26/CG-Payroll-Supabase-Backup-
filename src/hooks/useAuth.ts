@@ -26,6 +26,10 @@ export interface AuthState {
   enabledFeatures: string[] | null;
   /** Per-employee feature whitelist. Only applies when role === "employee". */
   employeeFeatures: string[] | null;
+  /** Features granted via assigned role (role_features table). */
+  roleFeatures: Set<string>;
+  /** Features for which the assigned role has people-level (others' data) access. */
+  peopleFeatures: Set<string>;
   loading: boolean;
 }
 
@@ -40,6 +44,8 @@ const initialState: AuthState = {
   enabledModules: null,
   enabledFeatures: null,
   employeeFeatures: null,
+  roleFeatures: new Set<string>(),
+  peopleFeatures: new Set<string>(),
   loading: true,
 };
 
