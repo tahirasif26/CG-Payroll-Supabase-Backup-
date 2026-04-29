@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Users, DollarSign, Receipt, Package, Shield, Star,
   FolderOpen, Clock, Settings, Building2, ToggleLeft, UserCog,
+  CalendarDays, UserCircle, FileText,
   type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@/hooks/useAuth";
