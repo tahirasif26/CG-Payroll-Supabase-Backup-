@@ -24,15 +24,23 @@ function isGroupActive(pathname: string, g: NavGroup): boolean {
 
 export function ModuleTabs() {
   const { appRole, hasFeature, enabledModules, isSuperAdmin } = useRole();
+  const { scope } = useViewScope();
   const location = useLocation();
   const navigate = useNavigate();
 
   const activeGroup = useMemo(() => {
     if (!appRole) return null;
-    const source = isSuperAdmin ? superAdminGroups : navigationGroups;
-    const groups = filterNavigation(source, appRole, hasFeature, enabledModules);
+    let groups: NavGroup[];
+    if (isSuperAdmin) {
+      groups = filterNavigation(superAdminGroups, appRole, hasFeature, enabledModules);
+    } else {
+      const useMeNav = appRole === "employee" || scope === "me";
+      groups = useMeNav
+        ? filterMeNavigation(hasFeature, enabledModules)
+        : filterNavigation(navigationGroups, appRole, hasFeature, enabledModules);
+    }
     return groups.find((g) => isGroupActive(location.pathname, g)) ?? null;
-  }, [appRole, hasFeature, enabledModules, isSuperAdmin, location.pathname]);
+  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, location.pathname]);
 
   if (!activeGroup || !activeGroup.children || activeGroup.children.length === 0) {
     return null;
