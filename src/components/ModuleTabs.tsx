@@ -2,10 +2,12 @@ import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import {
   navigationGroups,
   superAdminGroups,
   filterNavigation,
+  filterMeNavigation,
   resolveChildLabel,
   type NavGroup,
 } from "@/lib/navigation";
