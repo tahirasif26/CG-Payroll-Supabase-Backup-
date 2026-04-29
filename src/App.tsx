@@ -89,6 +89,10 @@ const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const MyProfilePage = lazy(() => import("@/pages/MyProfilePage"));
+const PayrollModuleSettingsPage = lazy(() => import("@/pages/PayrollModuleSettingsPage"));
+const HRModuleSettingsPage = lazy(() => import("@/pages/HRModuleSettingsPage"));
+const ExpenseModuleSettingsPage = lazy(() => import("@/pages/ExpenseModuleSettingsPage"));
+const VisualPreferencePage = lazy(() => import("@/pages/settings/VisualPreferencePage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -246,19 +250,18 @@ function AppRoutes() {
             <ProtectedRoute requiredRole={["admin", "hr"]}><CostAllocationPage /></ProtectedRoute>
           } />
 
-          {/* Settings (admin/hr) */}
-          <Route path="/settings/deductions" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
+          {/* New module-scoped settings (tabbed) */}
+          <Route path="/payroll/settings" element={
+            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollModuleSettingsPage /></ProtectedRoute>
           } />
-          <Route path="/settings/tax" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
+          <Route path="/employees/settings" element={
+            <ProtectedRoute requiredRole={["admin", "hr"]}><HRModuleSettingsPage /></ProtectedRoute>
           } />
-          <Route path="/settings/payroll" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
+          <Route path="/expenses/settings" element={
+            <ProtectedRoute requiredRole={["admin", "hr"]}><ExpenseModuleSettingsPage /></ProtectedRoute>
           } />
-          <Route path="/settings/compensation" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
-          } />
+
+          {/* Settings (admin/hr) — company-wide */}
           <Route path="/settings/company-structure" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyStructurePage /></ProtectedRoute>
           } />
@@ -270,9 +273,6 @@ function AppRoutes() {
           } />
           <Route path="/settings/divisions" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyStructurePage /></ProtectedRoute>
-          } />
-          <Route path="/settings/expense-categories" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><ExpenseCategoriesPage /></ProtectedRoute>
           } />
           {/* Admin only — user mgmt + approval matrix */}
           <Route path="/settings/users" element={
@@ -288,21 +288,23 @@ function AppRoutes() {
           <Route path="/settings/company" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyProfilePage /></ProtectedRoute>
           } />
-          <Route path="/settings/gl-codes" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyProfilePage /></ProtectedRoute>
-          } />
-          <Route path="/settings/reminders" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><ReminderSettingsPage /></ProtectedRoute>
+          <Route path="/settings/visual" element={
+            <ProtectedRoute requiredRole={["admin", "hr"]}><VisualPreferencePage /></ProtectedRoute>
           } />
           <Route path="/settings/company-policies" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyPoliciesSettingsPage /></ProtectedRoute>
           } />
-          <Route path="/settings/eos-benefits" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
-          } />
-          <Route path="/settings/leave-types" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSettingsPage /></ProtectedRoute>
-          } />
+
+          {/* Backward-compat redirects: old settings paths → new module-scoped tabs */}
+          <Route path="/settings/payroll" element={<Navigate to="/payroll/settings" replace />} />
+          <Route path="/settings/deductions" element={<Navigate to="/payroll/settings" replace />} />
+          <Route path="/settings/tax" element={<Navigate to="/payroll/settings" replace />} />
+          <Route path="/settings/gl-codes" element={<Navigate to="/payroll/settings" replace />} />
+          <Route path="/settings/compensation" element={<Navigate to="/payroll/settings" replace />} />
+          <Route path="/settings/eos-benefits" element={<Navigate to="/payroll/settings" replace />} />
+          <Route path="/settings/leave-types" element={<Navigate to="/employees/settings" replace />} />
+          <Route path="/settings/reminders" element={<Navigate to="/employees/settings" replace />} />
+          <Route path="/settings/expense-categories" element={<Navigate to="/expenses/settings" replace />} />
 
           {/* Assets */}
           <Route path="/assets/inventory" element={
