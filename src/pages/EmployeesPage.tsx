@@ -182,6 +182,55 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const { clientId } = useRole();
+
+  // Invite/verification status keyed by emp_id (matches profiles.employee_id)
+  const { data: inviteStatusList } = useQuery({
+    queryKey: ["employee-invite-status", clientId],
+    enabled: !!clientId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("employee_id, last_login_at")
+        .eq("client_id", clientId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const inviteStatusMap = useMemo(() => {
+    const m = new Map<string, string | null>();
+    (inviteStatusList ?? []).forEach((p: any) => {
+      if (p.employee_id) m.set(p.employee_id, p.last_login_at ?? null);
+    });
+    return m;
+  }, [inviteStatusList]);
+
+  const handleResendInvite = async (emp: Employee) => {
+    if (!clientId) return;
+    setResendingId(emp.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-invite", {
+        body: { email: emp.email, client_id: clientId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast({
+        title: "Invite resent",
+        description: `A fresh login link was sent to ${emp.email}.`,
+      });
+    } catch (e: any) {
+      toast({
+        title: "Could not resend invite",
+        description: e?.message ?? "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingId(null);
+    }
+  };
+
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
