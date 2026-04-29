@@ -234,7 +234,7 @@ export const meNavigationGroups: NavGroup[] = [
     label: "My Assets",
     icon: Package,
     children: [
-      { label: "Assigned to Me", path: "/assets/mine",  requiredFeature: "assets.view_my" },
+      { label: "Assigned to Me", path: "/assets/mine",  requiredFeature: "assets.view_my_assets" },
       { label: "Request Asset",  path: "/assets/store", requiredFeature: "assets.request_new" },
     ],
   },
@@ -254,7 +254,7 @@ export const meNavigationGroups: NavGroup[] = [
     icon: UserCircle,
     children: [
       { label: "My Profile", path: "/profile" },
-      { label: "My ID Card", path: "/id-cards", requiredFeature: "profile.view_id_card" },
+      { label: "My ID Card", path: "/id-cards" },
     ],
   },
   {
