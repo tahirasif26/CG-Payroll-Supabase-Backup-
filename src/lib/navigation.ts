@@ -190,3 +190,114 @@ export function resolveGroupLabel(g: NavGroup, role: AppRole): string {
 export function resolveChildLabel(c: NavChild, role: AppRole): string {
   return c.labelsByRole?.[role] ?? c.label;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// "Me" navigation — personal pages shown when scope === "me"
+// ─────────────────────────────────────────────────────────────────
+
+export const meNavigationGroups: NavGroup[] = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    basePath: "/",
+  },
+  {
+    key: "my-payroll",
+    label: "My Payroll",
+    icon: DollarSign,
+    children: [
+      { label: "My Payslips", path: "/payslips", requiredFeature: "payroll.view_own_payslip" },
+      { label: "My Loans",    path: "/loans",    requiredFeature: "loans.view_own" },
+    ],
+  },
+  {
+    key: "my-leave",
+    label: "My Leave",
+    icon: CalendarDays,
+    children: [
+      { label: "Leave Balance", path: "/leave",            requiredFeature: "leave.view_balance" },
+      { label: "Apply Leave",   path: "/leave?apply=true", requiredFeature: "leave.apply" },
+    ],
+  },
+  {
+    key: "my-expenses",
+    label: "My Expenses",
+    icon: Receipt,
+    children: [
+      { label: "My Claims",   path: "/expenses", requiredFeature: "expenses.view_own" },
+      { label: "My Advances", path: "/advances", requiredFeature: "advances.view_own" },
+    ],
+  },
+  {
+    key: "my-assets",
+    label: "My Assets",
+    icon: Package,
+    children: [
+      { label: "Assigned to Me", path: "/assets/mine",  requiredFeature: "assets.view_my" },
+      { label: "Request Asset",  path: "/assets/store", requiredFeature: "assets.request_new" },
+    ],
+  },
+  {
+    key: "my-performance",
+    label: "My Performance",
+    icon: Star,
+    children: [
+      { label: "Self Assessment", path: "/performance/self-assessment",     requiredFeature: "performance.self_assessment" },
+      { label: "Peer Assessment", path: "/performance/peer-assessment",     requiredFeature: "performance.peer_assessment" },
+      { label: "My Ratings",      path: "/performance/assessment-ratings",  requiredFeature: "performance.view_own_ratings" },
+    ],
+  },
+  {
+    key: "my-profile",
+    label: "My Profile",
+    icon: UserCircle,
+    children: [
+      { label: "My Profile", path: "/profile" },
+      { label: "My ID Card", path: "/id-cards", requiredFeature: "profile.view_id_card" },
+    ],
+  },
+  {
+    key: "policies",
+    label: "Policies",
+    icon: FileText,
+    children: [
+      { label: "Company Policies", path: "/company-policies", requiredFeature: "policies.view" },
+    ],
+  },
+];
+
+/** Map "Me" group keys → top-level enabled_modules keys for tenant gating. */
+const ME_MODULE_MAP: Record<string, string> = {
+  "my-payroll":     "payroll",
+  "my-leave":       "employees",
+  "my-expenses":    "expenses",
+  "my-assets":      "assets",
+  "my-performance": "performance",
+};
+
+/** Filter Me navigation by enabled modules + per-feature gating.
+ *  `dashboard`, `my-profile`, `policies` are always visible if the user has the role. */
+export function filterMeNavigation(
+  hasFeature: (key: string) => boolean,
+  enabledModules: string[] | null,
+): NavGroup[] {
+  return meNavigationGroups
+    .filter((g) => {
+      const moduleKey = ME_MODULE_MAP[g.key];
+      if (!moduleKey) return true;
+      if (enabledModules === null) return true;
+      return enabledModules.includes(moduleKey);
+    })
+    .map((g) => {
+      if (!g.children) return g;
+      const children = g.children.filter(
+        (c) => !c.requiredFeature || hasFeature(c.requiredFeature),
+      );
+      return { ...g, children };
+    })
+    .filter((g) => {
+      if (g.basePath) return true;
+      return !!g.children && g.children.length > 0;
+    });
+}
