@@ -1374,7 +1374,7 @@ function PayrollSetupSelect() {
   );
 }
 
-export default function EmployeesPage() {
+function EmployeesDirectory() {
   const { role, currentEmployeeId } = useRole();
   const { reportMap, getManagerName, getManagerId } = useReporting();
   const { employees: localEmployees, updateEmployee, addEmployee } = useEmployees();
