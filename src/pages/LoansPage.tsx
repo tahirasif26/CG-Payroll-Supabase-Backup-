@@ -32,8 +32,10 @@ export default function LoansPage() {
   const { data: currentEmpRow } = useCurrentEmployee();
   const isEmployeeRole = appRole === "employee";
   const { toast } = useToast();
+  const { scope } = require("@/contexts/ViewScopeContext").useViewScope();
 
-  const { data: loanList = [], isLoading } = useLoans();
+  const scopeEmployeeId = scope === "me" ? currentEmpRow?.id : undefined;
+  const { data: loanList = [], isLoading } = useLoans({ employee_id: scopeEmployeeId });
   const { data: employeesData = [] } = useEmployees();
   const { data: payrollRuns = [] } = usePayrollRuns();
   const createLoan = useCreateLoan();
