@@ -135,6 +135,8 @@ export function useAuth() {
         enabledModules,
         enabledFeatures,
         employeeFeatures,
+        roleFeatures,
+        peopleFeatures,
         loading: false,
       });
 
