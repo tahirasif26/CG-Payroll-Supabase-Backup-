@@ -45,6 +45,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
       { label: "Imp Dates", path: "/birthdays", requiredFeature: "employees.view_birthdays" },
       { label: "Leave Management", path: "/leave", requiredFeature: "leave.view_balance", labelsByRole: { employee: "My Leave" } },
+      { label: "⚙ HR Settings", path: "/employees/settings", requiredRoles: ["admin", "hr"] },
     ],
   },
   {
@@ -58,6 +59,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "End of Service", path: "/separations", requiredRoles: ["admin", "hr"] },
       { label: "Loans", path: "/loans", requiredFeature: "loans.view_own" },
       { label: "Analytics", path: "/analytics", requiredRoles: ["admin", "hr"] },
+      { label: "⚙ Payroll Settings", path: "/payroll/settings", requiredRoles: ["admin", "hr"] },
     ],
   },
   {
@@ -69,6 +71,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "Advances", path: "/advances", requiredFeature: "advances.view_own" },
       { label: "Outstanding Advances", path: "/outstanding-advances", requiredRoles: ["admin", "hr"] },
       { label: "Expense Analytics", path: "/expense-analytics", requiredRoles: ["admin", "hr"] },
+      { label: "⚙ Expense Settings", path: "/expenses/settings", requiredRoles: ["admin", "hr"] },
     ],
   },
   {
