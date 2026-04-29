@@ -107,9 +107,10 @@ export default function LoansPage() {
     if (!hrCheck()) return;
     const emp = employeesData.find((em) => em.id === newEmployee);
     if (!emp) return;
-    await createLoan.mutateAsync({
+    const principal = Number(newAmount);
+    const created = await createLoan.mutateAsync({
       employee_id: emp.id,
-      principal: Number(newAmount),
+      principal,
       monthly_deduction: Number(newMonthly),
       start_date: newStart,
       end_date: newEnd,
@@ -117,6 +118,30 @@ export default function LoansPage() {
     setNewOpen(false);
     setNewEmployee(""); setNewAmount(""); setNewMonthly(""); setNewStart(""); setNewEnd("");
     toast({ title: "Loan Created", description: "The loan has been successfully created." });
+
+    // Route approval request (Step 11)
+    try {
+      const submitterName = [currentEmpRow?.first_name, currentEmpRow?.last_name].filter(Boolean).join(" ") || "An employee";
+      const result = await routeApprovalRequest({
+        clientId: (created as any)?.client_id ?? null,
+        category: "loans",
+        value: Math.round(principal * 100), // halalas
+        notification: {
+          title: "New loan approval request",
+          body: `${submitterName} requested a loan of SAR ${principal.toLocaleString()}`,
+          category: "loan",
+          severity: "warning",
+          entityType: "loan",
+          entityId: (created as any)?.id,
+          actionUrl: "/loans",
+        },
+      });
+      if (result.routedTo === "admins") {
+        toast({ title: "Routed to company admin for approval" });
+      }
+    } catch (err) {
+      console.warn("[loan] approval routing failed:", err);
+    }
   };
 
   const openEdit = (loan: DbLoan) => {
