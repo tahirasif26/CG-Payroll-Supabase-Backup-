@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { routeApprovalRequest } from "@/lib/approvalRouting";
 
 function getCurrentFiscalYear(yearEndDate?: string): string {
   if (!yearEndDate) return `${new Date().getFullYear()}`;
@@ -96,7 +97,7 @@ export default function LeavePage() {
   const createReqMut = useMutation({
     mutationFn: async (payload: Omit<DBLeaveRequest, "id" | "status">) => {
       if (!clientId) throw new Error("No client");
-      const { error } = await supabase.from("leave_requests").insert({
+      const { data, error } = await supabase.from("leave_requests").insert({
         client_id: clientId,
         employee_id: payload.employee_id,
         leave_type_id: payload.leave_type_id,
@@ -105,8 +106,9 @@ export default function LeavePage() {
         days: payload.days,
         reason: payload.reason,
         status: "pending",
-      });
+      }).select().single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave_requests"] });
@@ -181,6 +183,31 @@ export default function LeavePage() {
       end_date: newEnd,
       days,
       reason: newReason || "No reason provided",
+    }, {
+      onSuccess: async (created: any) => {
+        const submitterName = [currentEmpRow?.first_name, currentEmpRow?.last_name].filter(Boolean).join(" ") || "An employee";
+        try {
+          const result = await routeApprovalRequest({
+            clientId,
+            category: "leave",
+            value: days,
+            notification: {
+              title: "New leave approval request",
+              body: `${submitterName} requested ${days} day(s) of leave`,
+              category: "leave",
+              severity: "warning",
+              entityType: "leave_request",
+              entityId: created?.id,
+              actionUrl: "/leave",
+            },
+          });
+          if (result.routedTo === "admins") {
+            toast({ title: "Routed to company admin for approval" });
+          }
+        } catch (err) {
+          console.warn("[leave] approval routing failed:", err);
+        }
+      },
     });
     setNewOpen(false);
     setNewEmployee(""); setNewType(""); setNewStart(""); setNewEnd(""); setNewReason("");

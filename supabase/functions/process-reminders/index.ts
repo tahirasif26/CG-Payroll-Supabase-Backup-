@@ -333,35 +333,146 @@ async function processPolicyAck(rule: ReminderRule) {
 }
 
 async function processApprovalPending(rule: ReminderRule) {
-  // Pending leave + expense + advance approvals to admins
+  // Per-row routing: for each pending request resolve the approval group via
+  // policy, then notify the active approvers (delegation-aware). If the
+  // configured escalate_after_days window has elapsed, also notify the
+  // escalation group.
   let count = 0;
-  const recipients = await resolveRecipients(rule, {});
+  const fallbackRecipients = await resolveRecipients(rule, {});
   const leadDay = rule.lead_days_before[0] ?? 0;
 
-  const sources = [
-    { table: "leave_requests", entity: "leave_request", url: "/leave" },
-    { table: "expenses", entity: "expense", url: "/expenses" },
-    { table: "advances", entity: "advance", url: "/advances" },
+  const sources: Array<{
+    table: string;
+    entity: string;
+    url: string;
+    valueField: "amount" | "days";
+    categoryFor: (row: any) => string;
+  }> = [
+    {
+      table: "leave_requests",
+      entity: "leave_request",
+      url: "/leave",
+      valueField: "days",
+      categoryFor: () => "leave",
+    },
+    {
+      table: "expenses",
+      entity: "expense",
+      url: "/expenses",
+      valueField: "amount",
+      categoryFor: (r) =>
+        r.expense_categories?.name
+          ? `expenses_${String(r.expense_categories.name).toLowerCase().replace(/\s+/g, "_")}`
+          : "expenses_other",
+    },
+    {
+      table: "advances",
+      entity: "advance",
+      url: "/advances",
+      valueField: "amount",
+      categoryFor: () => "advances",
+    },
   ];
 
   for (const src of sources) {
+    const select =
+      src.entity === "expense"
+        ? "id, created_at, amount, expense_categories(name)"
+        : src.valueField === "days"
+        ? "id, created_at, days"
+        : "id, created_at, amount";
+
     const { data: rows } = await supabase
       .from(src.table)
-      .select("id, created_at")
+      .select(select)
       .eq("client_id", rule.client_id)
       .eq("status", "pending");
-    const pendingCount = (rows ?? []).length;
-    if (pendingCount === 0) continue;
 
-    for (const uid of recipients) {
-      const sent = await dispatch({
-        rule, recipientUserId: uid, entityType: src.entity,
-        entityId: null, leadDay,
-        title: `${pendingCount} pending ${src.entity.replace("_"," ")} approval(s)`,
-        body: `You have ${pendingCount} pending request(s) waiting for review.`,
-        actionUrl: src.url,
+    for (const row of rows ?? []) {
+      const value =
+        src.valueField === "days"
+          ? Number((row as any).days ?? 0)
+          : Number((row as any).amount ?? 0);
+
+      // Resolve group from policy
+      const { data: groupId } = await supabase.rpc("resolve_approval_group", {
+        _client_id: rule.client_id,
+        _category: src.categoryFor(row),
+        _value: value,
       });
-      if (sent) count++;
+
+      let recipients: string[] = [];
+      let escalateGroupId: string | null = null;
+      let escalateAfter: number | null = null;
+
+      if (groupId) {
+        const { data: approvers } = await supabase.rpc("get_active_approvers", {
+          _group_id: groupId,
+        });
+        const empIds = (approvers ?? []).map((a: any) => a.employee_id).filter(Boolean);
+        if (empIds.length) {
+          const { data: empRows } = await supabase
+            .from("employees")
+            .select("user_id")
+            .in("id", empIds);
+          recipients = (empRows ?? [])
+            .map((e: any) => e.user_id)
+            .filter((u: string | null): u is string => !!u);
+        }
+        const { data: grp } = await supabase
+          .from("approval_groups")
+          .select("escalate_after_days, escalate_to_group_id")
+          .eq("id", groupId)
+          .maybeSingle();
+        escalateAfter = grp?.escalate_after_days ?? null;
+        escalateGroupId = grp?.escalate_to_group_id ?? null;
+      }
+
+      if (recipients.length === 0) recipients = fallbackRecipients;
+
+      const ageDays = Math.floor(
+        (today.getTime() - new Date((row as any).created_at).getTime()) / (1000 * 60 * 60 * 24),
+      );
+      const escalating = !!(escalateAfter && escalateGroupId && ageDays >= escalateAfter);
+
+      // Add escalation recipients on top
+      if (escalating && escalateGroupId) {
+        const { data: escApprovers } = await supabase.rpc("get_active_approvers", {
+          _group_id: escalateGroupId,
+        });
+        const escEmpIds = (escApprovers ?? []).map((a: any) => a.employee_id).filter(Boolean);
+        if (escEmpIds.length) {
+          const { data: escEmpRows } = await supabase
+            .from("employees")
+            .select("user_id")
+            .in("id", escEmpIds);
+          const escUids = (escEmpRows ?? [])
+            .map((e: any) => e.user_id)
+            .filter((u: string | null): u is string => !!u);
+          recipients = Array.from(new Set([...recipients, ...escUids]));
+        }
+      }
+
+      const title = escalating
+        ? `Escalated: pending ${src.entity.replace("_", " ")} approval`
+        : `Pending ${src.entity.replace("_", " ")} approval`;
+      const body = escalating
+        ? `A ${src.entity.replace("_", " ")} request has been pending for ${ageDays} day(s) and was escalated.`
+        : `A ${src.entity.replace("_", " ")} request is awaiting your review.`;
+
+      for (const uid of recipients) {
+        const sent = await dispatch({
+          rule,
+          recipientUserId: uid,
+          entityType: src.entity,
+          entityId: (row as any).id,
+          leadDay,
+          title,
+          body,
+          actionUrl: src.url,
+        });
+        if (sent) count++;
+      }
     }
   }
   return count;

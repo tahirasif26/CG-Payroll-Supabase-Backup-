@@ -43,6 +43,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { routeApprovalRequest } from "@/lib/approvalRouting";
 
 // ----- Helpers -----
 function getEmployeePayCurrency(employeeId: string, emps: Employee[]): string {
@@ -239,10 +240,36 @@ export default function ExpensesPage() {
     if (!payload) return;
     const { convertedAmount, ...dbPayload } = payload;
     createExpense.mutate(dbPayload, {
-      onSuccess: () => {
+      onSuccess: async (created: any) => {
         if (payload.advance_id) useAdvanceAmount(payload.advance_id, convertedAmount);
         setNewOpen(false);
         resetForm();
+
+        // Route approval request to configured approvers (Step 11)
+        try {
+          const cat = categories.find((c) => c.id === payload.category_id);
+          const catKey = `expenses_${(cat?.name ?? "other").toLowerCase().replace(/\s+/g, "_")}`;
+          const submitterName = [currentEmpRow?.first_name, currentEmpRow?.last_name].filter(Boolean).join(" ") || "An employee";
+          const result = await routeApprovalRequest({
+            clientId,
+            category: catKey,
+            value: payload.amount, // already in halalas
+            notification: {
+              title: "New expense approval request",
+              body: `${submitterName} submitted an expense of ${payload.currency} ${(payload.amount / 100).toLocaleString()}`,
+              category: "expense",
+              severity: "warning",
+              entityType: "expense",
+              entityId: created?.id,
+              actionUrl: "/expenses",
+            },
+          });
+          if (result.routedTo === "admins") {
+            toast({ title: "Routed to company admin for approval" });
+          }
+        } catch (err) {
+          console.warn("[expense] approval routing failed:", err);
+        }
       },
     });
   };
