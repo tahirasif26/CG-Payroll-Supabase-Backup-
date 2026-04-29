@@ -96,7 +96,7 @@ export default function LeavePage() {
   const createReqMut = useMutation({
     mutationFn: async (payload: Omit<DBLeaveRequest, "id" | "status">) => {
       if (!clientId) throw new Error("No client");
-      const { error } = await supabase.from("leave_requests").insert({
+      const { data, error } = await supabase.from("leave_requests").insert({
         client_id: clientId,
         employee_id: payload.employee_id,
         leave_type_id: payload.leave_type_id,
@@ -105,8 +105,9 @@ export default function LeavePage() {
         days: payload.days,
         reason: payload.reason,
         status: "pending",
-      });
+      }).select().single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave_requests"] });
