@@ -6,6 +6,7 @@ import { useEmployees } from "@/contexts/EmployeeContext";
 import { Employee } from "@/types/hcm";
 import { useApprovals } from "@/contexts/ApprovalContext";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useAdvances } from "@/contexts/AdvanceContext";
 import {
@@ -83,14 +84,17 @@ interface UiExpense {
 export default function ExpensesPage() {
   const { employees } = useEmployees();
   const { canUserApproveExpense } = useApprovals();
-  const { currentEmployeeId, clientId, hasFeature, appRole } = useRole();
+  const { currentEmployeeId, clientId, hasFeature, appRole, hasPeopleFeature } = useRole();
+  const { scope } = useViewScope();
   const { data: currentEmpRow } = useCurrentEmployee();
   const isEmployeeRole = appRole === "employee";
   const { getEmployeeAdvances, useAdvanceAmount } = useAdvances();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const { data: rawExpenses = [] } = useExpenses();
+  // Scope-based filtering: "me" → only current user's expenses; "people" → all
+  const scopeEmployeeId = scope === "me" ? currentEmpRow?.id : undefined;
+  const { data: rawExpenses = [] } = useExpenses({ employee_id: scopeEmployeeId });
   const { data: categories = [] } = useExpenseCategories();
   const { data: payrollRuns = [] } = usePayrollRuns();
   const createExpense = useCreateExpense();
@@ -383,7 +387,12 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Expense Reimbursement" description="Submit, review, and track expense claims." />
+      <PageHeader
+        title={scope === "me" ? "My Expenses" : "Team Expenses"}
+        description={scope === "me"
+          ? "Submit and track your expense claims."
+          : "Review, approve, and export company-wide expense claims."}
+      />
 
       <div className="flex items-center justify-between">
         <div />

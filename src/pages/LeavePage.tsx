@@ -7,6 +7,7 @@ import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useClient } from "@/contexts/ClientContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -48,6 +49,7 @@ export default function LeavePage() {
   const activeEmps = useActiveEmployees();
   const { clientId } = useAuth();
   const { hasFeature, appRole } = useRole();
+  const { scope } = useViewScope();
   const { data: currentEmpRow } = useCurrentEmployee();
   const isEmployeeRole = appRole === "employee";
   const { leaveTypes, initializeBalances, balances, recordLeaveUsage } = useLeaveTypes();
@@ -155,6 +157,8 @@ export default function LeavePage() {
   }, [leaveTypes]);
 
   const filteredLeaves = dbRequests.filter(l => {
+    // Scope filter: "me" → only show requests for the current employee
+    if (scope === "me" && currentEmpRow?.id && l.employee_id !== currentEmpRow.id) return false;
     const empName = empMap.get(l.employee_id) || "";
     const typeName = ltMap.get(l.leave_type_id) || "";
     const q = search.toLowerCase();
@@ -231,7 +235,12 @@ export default function LeavePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Leave Management" description="Track and approve employee leave requests.">
+      <PageHeader
+        title={scope === "me" ? "My Leave" : "Team Leave"}
+        description={scope === "me"
+          ? "Apply for leave and track your balance & requests."
+          : "Review, approve, and manage company-wide leave requests."}
+      >
         <div className="flex gap-2">
           {hasFeature("leave.apply") && (
             <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
