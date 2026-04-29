@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import {
   navigationGroups,
   superAdminGroups,
   filterNavigation,
+  filterMeNavigation,
   resolveGroupLabel,
   type NavGroup,
 } from "@/lib/navigation";
@@ -32,14 +34,22 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
   const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin } = useRole();
+  const { scope } = useViewScope();
   const location = useLocation();
   const navigate = useNavigate();
 
   const groups = useMemo(() => {
     if (!appRole) return [];
-    const source = isSuperAdmin ? superAdminGroups : navigationGroups;
-    return filterNavigation(source, appRole, hasFeature, enabledModules);
-  }, [appRole, hasFeature, enabledModules, isSuperAdmin]);
+    if (isSuperAdmin) {
+      return filterNavigation(superAdminGroups, appRole, hasFeature, enabledModules);
+    }
+    // Employees always see "Me" nav. Admin/HR follow the TopBar Me/People toggle.
+    const useMeNav = appRole === "employee" || scope === "me";
+    if (useMeNav) {
+      return filterMeNavigation(hasFeature, enabledModules);
+    }
+    return filterNavigation(navigationGroups, appRole, hasFeature, enabledModules);
+  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope]);
 
   const handleNav = (path: string) => {
     navigate(path);
