@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import type { PayrollSetup } from "@/types/payrollSetup";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import AddPayrollSetupWizard from "@/components/payrollSetup/AddPayrollSetupWizard";
 
 function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null; open: boolean; onClose: () => void }) {
   if (!setup) return null;
