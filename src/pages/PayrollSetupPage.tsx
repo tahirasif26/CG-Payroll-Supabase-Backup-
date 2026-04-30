@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import type { PayrollSetup } from "@/types/payrollSetup";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import AddPayrollSetupWizard from "@/components/payrollSetup/AddPayrollSetupWizard";
 
 function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null; open: boolean; onClose: () => void }) {
   if (!setup) return null;
@@ -218,6 +219,8 @@ export default function PayrollSetupPage() {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewSetup, setViewSetup] = useState<PayrollSetup | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [editSetup, setEditSetup] = useState<PayrollSetup | null>(null);
 
   const getAssignedCount = (setupId: string) => employees.filter(e => e.payrollSetupId === setupId).length;
 
@@ -235,7 +238,7 @@ export default function PayrollSetupPage() {
         title="Payroll Setup"
         description="Configure payroll rules and structures for different employee groups."
       >
-        <Button onClick={() => navigate("/payroll/setup/new")}>
+        <Button onClick={() => { setEditSetup(null); setWizardOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" />New Setup
         </Button>
       </PageHeader>
@@ -271,7 +274,7 @@ export default function PayrollSetupPage() {
                     <Button variant="ghost" size="sm" title="View Details" onClick={() => navigate(`/payroll/setup/${s.id}/view`)}>
                       <Eye className="h-3 w-3 text-primary" />
                     </Button>
-                    <Button variant="ghost" size="sm" title="Edit" onClick={() => navigate(`/payroll/setup/${s.id}`)}>
+                    <Button variant="ghost" size="sm" title="Edit" onClick={() => { setEditSetup(s); setWizardOpen(true); }}>
                       <Pencil className="h-3 w-3" />
                     </Button>
                     <Button variant="ghost" size="sm" title="Duplicate" onClick={() => { duplicateSetup(s.id); toast({ title: "Setup duplicated" }); }}>
@@ -306,6 +309,14 @@ export default function PayrollSetupPage() {
       </Dialog>
 
       <SetupViewDialog setup={viewSetup} open={!!viewSetup} onClose={() => setViewSetup(null)} />
+
+      <AddPayrollSetupWizard
+        key={editSetup?.id ?? "new"}
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        initial={editSetup ?? undefined}
+        editId={editSetup?.id}
+      />
     </div>
   );
 }
