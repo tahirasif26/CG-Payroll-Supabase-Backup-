@@ -16,14 +16,27 @@ const ViewScopeContext = createContext<ViewScopeContextType | undefined>(undefin
 export function ViewScopeProvider({ children }: { children: ReactNode }) {
   const { peopleFeatures, appRole, isSuperAdmin } = useRole();
   const hasPeopleAccess =
-    isSuperAdmin || appRole === "admin" || (peopleFeatures?.size ?? 0) > 0;
+    isSuperAdmin || appRole === "admin" || appRole === "hr" || (peopleFeatures?.size ?? 0) > 0;
 
-  const [scope, setScope] = useState<ViewScope>("me");
+  // Admin/HR default to "people" (company view); employees default to "me"
+  const defaultScope: ViewScope =
+    appRole === "admin" || appRole === "hr" || isSuperAdmin ? "people" : "me";
+
+  const [scope, setScope] = useState<ViewScope>(defaultScope);
 
   // If user loses people access, reset to "me"
   useEffect(() => {
     if (!hasPeopleAccess && scope !== "me") setScope("me");
   }, [hasPeopleAccess, scope]);
+
+  // When appRole loads (after async auth), set correct default
+  useEffect(() => {
+    if (appRole === "admin" || appRole === "hr" || isSuperAdmin) {
+      setScope("people");
+    } else if (appRole === "employee") {
+      setScope("me");
+    }
+  }, [appRole, isSuperAdmin]);
 
   return (
     <ViewScopeContext.Provider value={{ scope, setScope, hasPeopleAccess }}>
