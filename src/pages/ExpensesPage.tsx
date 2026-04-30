@@ -84,7 +84,7 @@ interface UiExpense {
 
 export default function ExpensesPage() {
   const { employees } = useEmployees();
-  const { canUserApproveExpense } = useApprovals();
+  const canApproveExpense = useCanApprove("expenses");
   const { currentEmployeeId, clientId, hasFeature, appRole, hasPeopleFeature } = useRole();
   const { scope } = useViewScope();
   const { data: currentEmpRow } = useCurrentEmployee();
