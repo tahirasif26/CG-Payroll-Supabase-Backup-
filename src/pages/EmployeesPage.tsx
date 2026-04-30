@@ -557,61 +557,153 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
 }
 
 function PersonalInfoTab({ emp }: { emp: Employee }) {
-  const ext = getExtData(emp.id);
+  const { data: profile, isLoading } = useEmployeeProfile(emp.id);
+  const updateProfile = useUpdateEmployeeProfile();
   const [editing, setEditing] = useState<string | null>(null);
   const { toast } = useToast();
   const { addLogs } = useAudit();
   const empName = `${emp.firstName} ${emp.lastName}`;
 
+  // Local edit buffers, hydrated from DB
   const [bio, setBio] = useState({
-    firstName: emp.firstName, lastName: emp.lastName, dateOfBirth: emp.dateOfBirth,
-    gender: ext.gender, maritalStatus: ext.maritalStatus, religion: ext.religion, nationality: ext.nationality,
+    firstName: "", lastName: "", dateOfBirth: "",
+    gender: "", maritalStatus: "", religion: "", nationality: "",
   });
-  const [prevBio, setPrevBio] = useState({ ...bio });
   const [bank, setBank] = useState({
-    bankName: ext.bankName, bankCountry: ext.bankCountry, swiftCode: ext.swiftCode,
-    bankAddress: ext.bankAddress, iban: ext.iban, bankCurrency: ext.bankCurrency, beneficiaryName: ext.beneficiaryName,
+    bankName: "", bankCountry: "", swiftCode: "",
+    bankAddress: "", iban: "", bankCurrency: "", beneficiaryName: "",
   });
-  const [prevBank, setPrevBank] = useState({ ...bank });
   const [address, setAddress] = useState({
-    addressLine1: ext.addressLine1, addressLine2: ext.addressLine2,
-    city: ext.city, state: ext.state, country: ext.country, postalCode: ext.postalCode,
+    addressLine1: "", addressLine2: "", city: "", state: "", country: "", postalCode: "",
   });
-  const [prevAddress, setPrevAddress] = useState({ ...address });
   const [contact, setContact] = useState({
-    personalPhone: ext.personalPhone, personalEmail: ext.personalEmail,
-    emergencyName: ext.emergencyName, emergencyRelation: ext.emergencyRelation,
-    emergencyPhone: ext.emergencyPhone, emergencyEmail: ext.emergencyEmail,
+    personalPhone: "", personalEmail: "",
+    emergencyName: "", emergencyRelation: "", emergencyPhone: "", emergencyEmail: "",
   });
-  const [prevContact, setPrevContact] = useState({ ...contact });
-  const [education, setEducation] = useState(ext.education);
-  const [dependants, setDependants] = useState(ext.dependants);
+  const [education, setEducation] = useState<{ id?: string; degree: string; institution: string; year: string; field: string }[]>([]);
+  const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
 
-  const diffAndLog = (section: string, prev: Record<string, any>, curr: Record<string, any>) => {
-    const changes: Omit<import("@/contexts/AuditContext").AuditLogEntry, "id" | "changedAt" | "changedBy">[] = [];
-    for (const key of Object.keys(curr)) {
-      if (String(prev[key] || "") !== String(curr[key] || "")) {
-        changes.push({ employeeId: emp.id, employeeName: empName, section: `Personal > ${section}`, field: key, oldValue: String(prev[key] || ""), newValue: String(curr[key] || "") });
-      }
+  // Hydrate local state from DB once loaded
+  useMemo(() => {
+    if (!profile) return;
+    const e = profile.employee;
+    if (e) {
+      setBio({
+        firstName: e.first_name ?? "", lastName: e.last_name ?? "",
+        dateOfBirth: e.date_of_birth ?? "",
+        gender: e.gender ?? "", maritalStatus: e.marital_status ?? "",
+        religion: e.religion ?? "", nationality: e.nationality ?? "",
+      });
+      setContact((c) => ({
+        ...c,
+        personalPhone: e.personal_phone ?? e.phone ?? "",
+        personalEmail: e.personal_email ?? "",
+      }));
     }
-    if (changes.length > 0) addLogs(changes);
+    if (profile.address) {
+      setAddress({
+        addressLine1: profile.address.address_line1 ?? "", addressLine2: profile.address.address_line2 ?? "",
+        city: profile.address.city ?? "", state: profile.address.state ?? "",
+        country: profile.address.country ?? "", postalCode: profile.address.postal_code ?? "",
+      });
+    }
+    if (profile.bank) {
+      setBank({
+        bankName: profile.bank.bank_name ?? "", bankCountry: profile.bank.bank_country ?? "",
+        swiftCode: profile.bank.swift_code ?? "", bankAddress: profile.bank.bank_address ?? "",
+        iban: profile.bank.iban ?? "", bankCurrency: profile.bank.bank_currency ?? "",
+        beneficiaryName: profile.bank.beneficiary_name ?? "",
+      });
+    }
+    if (profile.emergency) {
+      setContact((c) => ({
+        ...c,
+        emergencyName: profile.emergency!.name ?? "", emergencyRelation: profile.emergency!.relation ?? "",
+        emergencyPhone: profile.emergency!.phone ?? "", emergencyEmail: profile.emergency!.email ?? "",
+      }));
+    }
+    setEducation(
+      (profile.education ?? []).map((ed: any) => ({
+        id: ed.id,
+        degree: ed.degree ?? "",
+        institution: ed.institution ?? "",
+        year: ed.start_year ? String(ed.start_year) : "",
+        field: ed.field_of_study ?? "",
+      }))
+    );
+  }, [profile]);
+
+  const saveSection = async (section: string) => {
+    try {
+      if (section === "bio") {
+        await updateProfile.mutateAsync({
+          employeeId: emp.id,
+          bio: {
+            first_name: bio.firstName, last_name: bio.lastName,
+            date_of_birth: bio.dateOfBirth || null,
+            gender: bio.gender || null, marital_status: bio.maritalStatus || null,
+            religion: bio.religion || null, nationality: bio.nationality || null,
+          },
+        });
+        addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Basic Information", field: "bio", oldValue: "", newValue: "(updated)" }]);
+      } else if (section === "contact") {
+        await updateProfile.mutateAsync({
+          employeeId: emp.id,
+          contact: { personal_phone: contact.personalPhone, personal_email: contact.personalEmail },
+          emergency: {
+            name: contact.emergencyName, relation: contact.emergencyRelation,
+            phone: contact.emergencyPhone, email: contact.emergencyEmail,
+          },
+        });
+        addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Contact & Emergency", field: "contact", oldValue: "", newValue: "(updated)" }]);
+      } else if (section === "address") {
+        await updateProfile.mutateAsync({
+          employeeId: emp.id,
+          address: {
+            address_line1: address.addressLine1, address_line2: address.addressLine2,
+            city: address.city, state: address.state, country: address.country, postal_code: address.postalCode,
+          },
+        });
+        addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Residential Address", field: "address", oldValue: "", newValue: "(updated)" }]);
+      } else if (section === "bank") {
+        await updateProfile.mutateAsync({
+          employeeId: emp.id,
+          bank: {
+            bank_name: bank.bankName, bank_country: bank.bankCountry, swift_code: bank.swiftCode,
+            bank_address: bank.bankAddress, iban: bank.iban, bank_currency: bank.bankCurrency,
+            beneficiary_name: bank.beneficiaryName,
+          },
+        });
+        addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Bank Details", field: "bank", oldValue: "", newValue: "(updated)" }]);
+      } else if (section === "education") {
+        await updateProfile.mutateAsync({
+          employeeId: emp.id,
+          education: education.map((e) => ({
+            id: e.id,
+            institution: e.institution, degree: e.degree, field_of_study: e.field,
+            start_year: e.year ? Number(e.year) : null,
+          })),
+        });
+        addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Education", field: "education", oldValue: "", newValue: `${education.length} record(s)` }]);
+      } else if (section === "dependants") {
+        // Dependants table doesn't exist yet — keep local-only with a note.
+        toast({ title: "Saved locally", description: "Dependants tracking coming soon." });
+        addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Dependants", field: "dependants", oldValue: "", newValue: `${dependants.length} record(s)` }]);
+      }
+      setEditing(null);
+    } catch {
+      // toast already shown by hook
+    }
   };
 
-  const save = (section: string) => {
-    if (section === "Basic info") { diffAndLog("Basic Information", prevBio, bio); setPrevBio({ ...bio }); }
-    else if (section === "Bank details") { diffAndLog("Bank Details", prevBank, bank); setPrevBank({ ...bank }); }
-    else if (section === "Address") { diffAndLog("Residential Address", prevAddress, address); setPrevAddress({ ...address }); }
-    else if (section === "Contact") { diffAndLog("Contact & Emergency", prevContact, contact); setPrevContact({ ...contact }); }
-    else if (section === "Education") { addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Education", field: "education", oldValue: "(previous)", newValue: `${education.length} record(s)` }]); }
-    else if (section === "Dependants") { addLogs([{ employeeId: emp.id, employeeName: empName, section: "Personal > Dependants", field: "dependants", oldValue: "(previous)", newValue: `${dependants.length} record(s)` }]); }
-    setEditing(null);
-    toast({ title: "Saved", description: `${section} updated successfully.` });
-  };
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground p-8 text-center">Loading profile…</div>;
+  }
 
   return (
     <div className="space-y-4">
       {/* Bio */}
-      <SectionCard title="Basic Information" icon={User} editing={editing === "bio"} onEdit={() => setEditing("bio")} onSave={() => save("Basic info")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Basic Information" icon={User} editing={editing === "bio"} onEdit={() => setEditing("bio")} onSave={() => saveSection("bio")} onCancel={() => setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <EditableField label="First Name" value={bio.firstName} editing={editing === "bio"} onChange={v => setBio({ ...bio, firstName: v })} />
           <EditableField label="Last Name" value={bio.lastName} editing={editing === "bio"} onChange={v => setBio({ ...bio, lastName: v })} />
@@ -625,7 +717,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Contact & Emergency */}
-      <SectionCard title="Contact & Emergency" icon={Phone} editing={editing === "contact"} onEdit={() => setEditing("contact")} onSave={() => save("Contact")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Contact & Emergency" icon={Phone} editing={editing === "contact"} onEdit={() => setEditing("contact")} onSave={() => saveSection("contact")} onCancel={() => setEditing(null)}>
         <div className="space-y-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Personal Contact</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -645,7 +737,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Residential Address */}
-      <SectionCard title="Residential Address" icon={MapPin} editing={editing === "address"} onEdit={() => setEditing("address")} onSave={() => save("Address")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Residential Address" icon={MapPin} editing={editing === "address"} onEdit={() => setEditing("address")} onSave={() => saveSection("address")} onCancel={() => setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <EditableField label="Address Line 1" value={address.addressLine1} editing={editing === "address"} onChange={v => setAddress({ ...address, addressLine1: v })} />
           <EditableField label="Address Line 2" value={address.addressLine2} editing={editing === "address"} onChange={v => setAddress({ ...address, addressLine2: v })} />
@@ -657,7 +749,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Bank Details */}
-      <SectionCard title="Bank Account Details" icon={CreditCard} editing={editing === "bank"} onEdit={() => setEditing("bank")} onSave={() => save("Bank details")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Bank Account Details" icon={CreditCard} editing={editing === "bank"} onEdit={() => setEditing("bank")} onSave={() => saveSection("bank")} onCancel={() => setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <EditableField label="Bank Name" value={bank.bankName} editing={editing === "bank"} onChange={v => setBank({ ...bank, bankName: v })} />
           <EditableField label="Bank Country" value={bank.bankCountry} editing={editing === "bank"} onChange={v => setBank({ ...bank, bankCountry: v })} />
@@ -670,15 +762,24 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Education */}
-      <SectionCard title="Education" icon={GraduationCap} editing={editing === "education"} onEdit={() => setEditing("education")} onSave={() => save("Education")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Education" icon={GraduationCap} editing={editing === "education"} onEdit={() => setEditing("education")} onSave={() => saveSection("education")} onCancel={() => setEditing(null)}>
         {education.length > 0 ? (
           <div className="space-y-4">
             {education.map((edu, i) => (
-              <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-3 border-b last:border-0">
+              <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-3 border-b last:border-0 relative">
                 <EditableField label="Degree" value={edu.degree} editing={editing === "education"} onChange={v => { const u = [...education]; u[i] = { ...u[i], degree: v }; setEducation(u); }} />
                 <EditableField label="Field of Study" value={edu.field} editing={editing === "education"} onChange={v => { const u = [...education]; u[i] = { ...u[i], field: v }; setEducation(u); }} />
                 <EditableField label="Institution" value={edu.institution} editing={editing === "education"} onChange={v => { const u = [...education]; u[i] = { ...u[i], institution: v }; setEducation(u); }} />
-                <EditableField label="Year" value={edu.year} editing={editing === "education"} onChange={v => { const u = [...education]; u[i] = { ...u[i], year: v }; setEducation(u); }} />
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <EditableField label="Year" value={edu.year} editing={editing === "education"} onChange={v => { const u = [...education]; u[i] = { ...u[i], year: v }; setEducation(u); }} />
+                  </div>
+                  {editing === "education" && (
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => setEducation(education.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
             {editing === "education" && (
@@ -700,7 +801,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Dependants */}
-      <SectionCard title="Dependants" icon={Heart} editing={editing === "dependants"} onEdit={() => setEditing("dependants")} onSave={() => save("Dependants")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Dependants" icon={Heart} editing={editing === "dependants"} onEdit={() => setEditing("dependants")} onSave={() => saveSection("dependants")} onCancel={() => setEditing(null)}>
         {dependants.length > 0 ? (
           <div className="space-y-4">
             {dependants.map((dep, i) => (
