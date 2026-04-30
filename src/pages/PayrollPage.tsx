@@ -56,7 +56,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
-import { useApprovals } from "@/contexts/ApprovalContext";
+import { useCanApprove } from "@/hooks/useCanApprove";
 import { useRole } from "@/contexts/RoleContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
@@ -278,7 +278,7 @@ export default function PayrollPage() {
   const { employees } = useEmployees();
   const { activeTypes, getTypeName } = useEmployeeTypes();
   const { deductions } = useDeductions();
-  const { canUserApprovePayroll } = useApprovals();
+  const canApprovePayroll = useCanApprove("payroll");
   const { currentEmployeeId } = useRole();
   const { advances } = useAdvances();
   const { setups, getSetupById } = usePayrollSetups();
@@ -484,7 +484,7 @@ export default function PayrollPage() {
   };
 
   const handleComplete = (id: string) => {
-    if (!canUserApprovePayroll(currentEmployeeId)) {
+    if (!canApprovePayroll) {
       toast({ title: "Not Authorized", description: "Completing payroll requires Payroll approval permissions.", variant: "destructive" });
       return;
     }

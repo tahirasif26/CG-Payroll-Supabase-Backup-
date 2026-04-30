@@ -19,7 +19,7 @@ import { DeductionProvider } from "@/contexts/DeductionContext";
 import { AuditProvider } from "@/contexts/AuditContext";
 import { BLEAccessProvider } from "@/contexts/BLEAccessContext";
 import { LeaveTypeProvider } from "@/contexts/LeaveTypeContext";
-import { ApprovalProvider } from "@/contexts/ApprovalContext";
+
 import { CardProvider } from "@/contexts/CardContext";
 import { AdvanceProvider } from "@/contexts/AdvanceContext";
 import { ReminderSettingsProvider } from "@/contexts/ReminderSettingsContext";
@@ -410,7 +410,7 @@ const App = () => {
           <AuditProvider>
           <BLEAccessProvider>
           <LeaveTypeProvider>
-          <ApprovalProvider>
+          
           <CardProvider>
           <AdvanceProvider>
           <ReminderSettingsProvider>
@@ -426,7 +426,7 @@ const App = () => {
           </ReminderSettingsProvider>
           </AdvanceProvider>
           </CardProvider>
-          </ApprovalProvider>
+          
           </LeaveTypeProvider>
           </BLEAccessProvider>
           </AuditProvider>

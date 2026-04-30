@@ -4,7 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Employee } from "@/types/hcm";
-import { useApprovals } from "@/contexts/ApprovalContext";
+import { useCanApprove } from "@/hooks/useCanApprove";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
@@ -84,7 +84,7 @@ interface UiExpense {
 
 export default function ExpensesPage() {
   const { employees } = useEmployees();
-  const { canUserApproveExpense } = useApprovals();
+  const canApproveExpense = useCanApprove("expenses");
   const { currentEmployeeId, clientId, hasFeature, appRole, hasPeopleFeature } = useRole();
   const { scope } = useViewScope();
   const { data: currentEmpRow } = useCurrentEmployee();
@@ -293,13 +293,10 @@ export default function ExpensesPage() {
   };
 
   const handleApprove = (exp: UiExpense) => {
-    const { allowed, limit } = canUserApproveExpense(currentEmployeeId, exp.amount);
-    if (!allowed) {
+    if (!canApproveExpense) {
       toast({
-        title: limit === 0 ? "Not Authorized" : "Limit Exceeded",
-        description: limit === 0
-          ? "You do not have expense approval permissions."
-          : `Your approval limit is SAR ${limit.toLocaleString()}. This expense of SAR ${exp.amount.toLocaleString()} requires a higher authority.`,
+        title: "Not Authorized",
+        description: "You do not have expense approval permissions.",
         variant: "destructive",
       });
       return;

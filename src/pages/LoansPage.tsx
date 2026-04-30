@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useApprovals } from "@/contexts/ApprovalContext";
+import { useCanApprove } from "@/hooks/useCanApprove";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
@@ -29,7 +29,7 @@ const empName = (l: DbLoan) =>
   [l.employees?.first_name, l.employees?.last_name].filter(Boolean).join(" ") || "—";
 
 export default function LoansPage() {
-  const { canUserApproveHR } = useApprovals();
+  const canApproveLoans = useCanApprove("loans");
   const { currentEmployeeId, hasFeature, appRole } = useRole();
   const { data: currentEmpRow } = useCurrentEmployee();
   const isEmployeeRole = appRole === "employee";
@@ -59,7 +59,7 @@ export default function LoansPage() {
   const { data: transactions = [] } = useLoanTransactions(selectedLoanId ?? undefined);
 
   const hrCheck = (): boolean => {
-    if (!canUserApproveHR(currentEmployeeId)) {
+    if (!canApproveLoans) {
       toast({ title: "Not Authorized", description: "This action requires HR approval permissions.", variant: "destructive" });
       return false;
     }
