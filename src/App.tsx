@@ -426,7 +426,7 @@ const App = () => {
           </ReminderSettingsProvider>
           </AdvanceProvider>
           </CardProvider>
-          </ApprovalProvider>
+          
           </LeaveTypeProvider>
           </BLEAccessProvider>
           </AuditProvider>
