@@ -316,7 +316,7 @@ async function processPolicyAck(rule: ReminderRule) {
       .from("employees").select("id, user_id")
       .eq("client_id", p.client_id).eq("status", "active").not("user_id","is",null);
     const { data: acks } = await supabase
-      .from("policy_acknowledgments").select("employee_id").eq("policy_id", p.id);
+      .from("policy_acknowledgements").select("employee_id").eq("policy_id", p.id);
     const ackedSet = new Set((acks ?? []).map(a => a.employee_id));
 
     for (const e of emps ?? []) {
