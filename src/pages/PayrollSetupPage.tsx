@@ -309,6 +309,14 @@ export default function PayrollSetupPage() {
       </Dialog>
 
       <SetupViewDialog setup={viewSetup} open={!!viewSetup} onClose={() => setViewSetup(null)} />
+
+      <AddPayrollSetupWizard
+        key={editSetup?.id ?? "new"}
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        initial={editSetup ?? undefined}
+        editId={editSetup?.id}
+      />
     </div>
   );
 }
