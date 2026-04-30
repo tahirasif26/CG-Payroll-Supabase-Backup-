@@ -484,7 +484,7 @@ export default function PayrollPage() {
   };
 
   const handleComplete = (id: string) => {
-    if (!canUserApprovePayroll(currentEmployeeId)) {
+    if (!canApprovePayroll) {
       toast({ title: "Not Authorized", description: "Completing payroll requires Payroll approval permissions.", variant: "destructive" });
       return;
     }
