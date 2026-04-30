@@ -1548,9 +1548,10 @@ function EmployeesDirectory() {
   if (selectedEmployee) {
     const isEmployee = role === "employee";
     const isOwnProfile = selectedEmployee.id === currentEmployeeId;
+    const canSeeFullProfile = !isEmployee || isOwnProfile;
 
-    // Work tab only with mini org chart — for viewing others (both roles)
-    if (!isOwnProfile) {
+    // Work tab only with mini org chart — for non-admin viewing others
+    if (!canSeeFullProfile) {
       const ext = getExtData(selectedEmployee.id);
       const managerId = getManagerId(selectedEmployee.id);
       const managerEmp = managerId ? localEmployees.find(e => e.id === managerId) : null;
