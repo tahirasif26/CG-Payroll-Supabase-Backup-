@@ -33,7 +33,30 @@ const initialDepartments: SimpleDepartment[] = [
 
 export default function CompanyStructurePage() {
   const { toast } = useToast();
+  const { clientId } = useRole();
   const { employeeTypes, addEmployeeType, updateEmployeeType, deleteEmployeeType } = useEmployeeTypes();
+
+  const { data: dbDepartments = [] } = useQuery({
+    queryKey: ["departments", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments").select("id, name").eq("client_id", clientId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: dbDesignations = [] } = useQuery({
+    queryKey: ["designations", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("designations").select("id, name, level").eq("client_id", clientId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   // Employee Types state
   const [etDialogOpen, setEtDialogOpen] = useState(false);
