@@ -238,7 +238,7 @@ export default function PayrollSetupPage() {
         title="Payroll Setup"
         description="Configure payroll rules and structures for different employee groups."
       >
-        <Button onClick={() => navigate("/payroll/setup/new")}>
+        <Button onClick={() => { setEditSetup(null); setWizardOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" />New Setup
         </Button>
       </PageHeader>
