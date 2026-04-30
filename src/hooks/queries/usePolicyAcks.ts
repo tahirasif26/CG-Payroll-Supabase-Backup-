@@ -7,15 +7,15 @@ import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { toast } from "sonner";
 
 export function useMyPolicyAcks() {
-  const { user } = useAuth();
+  const { data: employee } = useCurrentEmployee();
   return useQuery({
-    queryKey: ["policy_acks", user?.id],
-    enabled: !!user?.id,
+    queryKey: ["policy_acks", employee?.id],
+    enabled: !!employee?.id,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("policy_acknowledgements")
         .select("policy_id")
-        .eq("employee_id", (await supabase.from("employees").select("id").eq("user_id", user!.id).maybeSingle()).data?.id);
+        .eq("employee_id", employee!.id);
       if (error) throw error;
       return new Set<string>((data ?? []).map((r: any) => r.policy_id));
     },
@@ -33,12 +33,11 @@ export function useAcknowledgePolicy() {
         throw new Error("Not signed in as an employee");
       }
       const { error } = await (supabase as any)
-        .from("policy_acknowledgments")
+        .from("policy_acknowledgements")
         .insert({
           client_id: clientId,
           policy_id: policyId,
           employee_id: employee.id,
-          user_id: user.id,
         });
       if (error && !String(error.message).includes("duplicate")) throw error;
     },
