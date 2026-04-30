@@ -278,7 +278,7 @@ export default function PayrollPage() {
   const { employees } = useEmployees();
   const { activeTypes, getTypeName } = useEmployeeTypes();
   const { deductions } = useDeductions();
-  const { canUserApprovePayroll } = useApprovals();
+  const canApprovePayroll = useCanApprove("payroll");
   const { currentEmployeeId } = useRole();
   const { advances } = useAdvances();
   const { setups, getSetupById } = usePayrollSetups();
