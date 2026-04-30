@@ -84,7 +84,7 @@ export function useUpdateEmployeeProfile() {
         ...(input.contact.personal_email !== undefined && { personal_email: input.contact.personal_email || null }),
       });
       if (Object.keys(empUpdates).length > 0) {
-        const { error } = await supabase.from("employees").update(empUpdates).eq("id", employeeId);
+        const { error } = await (supabase as any).from("employees").update(empUpdates).eq("id", employeeId);
         if (error) throw error;
       }
 
