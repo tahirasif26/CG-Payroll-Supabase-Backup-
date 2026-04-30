@@ -4,7 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Employee } from "@/types/hcm";
-import { useApprovals } from "@/contexts/ApprovalContext";
+import { useCanApprove } from "@/hooks/useCanApprove";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
