@@ -97,6 +97,17 @@ export default function CompanyStructurePage() {
 
   // Job Titles state
   const [jtItems, setJtItems] = useState<JobTitle[]>(jobTitles);
+  useEffect(() => {
+    if (dbDesignations.length > 0) {
+      setJtItems(
+        dbDesignations.map((d: any) => ({
+          id: d.id,
+          title: d.name,
+          level: d.level ? `Level ${d.level}` : "Entry",
+        })) as JobTitle[]
+      );
+    }
+  }, [dbDesignations]);
   const [jtDialogOpen, setJtDialogOpen] = useState(false);
   const [jtEdit, setJtEdit] = useState<JobTitle | null>(null);
   const [jtTitle, setJtTitle] = useState("");
