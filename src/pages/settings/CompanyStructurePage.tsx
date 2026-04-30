@@ -86,6 +86,11 @@ export default function CompanyStructurePage() {
 
   // Departments state
   const [deptItems, setDeptItems] = useState<SimpleDepartment[]>(initialDepartments);
+  useEffect(() => {
+    if (dbDepartments.length > 0) {
+      setDeptItems(dbDepartments.map((d: any) => ({ id: d.id, name: d.name, isActive: true })));
+    }
+  }, [dbDepartments]);
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
   const [deptEdit, setDeptEdit] = useState<SimpleDepartment | null>(null);
   const [deptName, setDeptName] = useState("");
