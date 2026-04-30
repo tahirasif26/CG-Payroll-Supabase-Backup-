@@ -43,6 +43,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { AddEmployeeWizard } from "@/components/employees/AddEmployeeWizard";
+import { useEmployeeProfile, useUpdateEmployeeProfile } from "@/hooks/queries/useEmployeeProfile";
 
 interface EmployeeDocVersion {
   name: string;
