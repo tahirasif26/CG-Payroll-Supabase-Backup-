@@ -29,7 +29,7 @@ const empName = (l: DbLoan) =>
   [l.employees?.first_name, l.employees?.last_name].filter(Boolean).join(" ") || "—";
 
 export default function LoansPage() {
-  const { canUserApproveHR } = useApprovals();
+  const canApproveLoans = useCanApprove("loans");
   const { currentEmployeeId, hasFeature, appRole } = useRole();
   const { data: currentEmpRow } = useCurrentEmployee();
   const isEmployeeRole = appRole === "employee";
