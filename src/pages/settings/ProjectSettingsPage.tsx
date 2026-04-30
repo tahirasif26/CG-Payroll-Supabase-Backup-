@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/contexts/RoleContext";
 import { PageHeader } from "@/components/PageHeader";
-import { projects } from "@/data/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -18,10 +20,35 @@ interface ProjectConfig {
   isActive: boolean;
 }
 
-const initialProjects: ProjectConfig[] = projects.map(p => ({ id: p.id, code: p.code, name: p.name, client: p.client, isActive: p.status !== "completed" }));
-
 export default function ProjectSettingsPage() {
-  const [items, setItems] = useState<ProjectConfig[]>(initialProjects);
+  const { clientId } = useRole();
+  const { data: dbProjects = [] } = useQuery({
+    queryKey: ["projects-settings", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, code, name, client_name, status")
+        .eq("client_id", clientId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const [items, setItems] = useState<ProjectConfig[]>([]);
+  useEffect(() => {
+    setItems(
+      dbProjects.map((p: any) => ({
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        client: p.client_name ?? "",
+        isActive: p.status !== "completed",
+      }))
+    );
+  }, [dbProjects]);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<ProjectConfig | null>(null);
   const [formCode, setFormCode] = useState("");

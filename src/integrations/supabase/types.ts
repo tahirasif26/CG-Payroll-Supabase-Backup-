@@ -3631,33 +3631,6 @@ export type Database = {
           },
         ]
       }
-      policy_acknowledgments: {
-        Row: {
-          acknowledged_at: string
-          client_id: string
-          employee_id: string
-          id: string
-          policy_id: string
-          user_id: string
-        }
-        Insert: {
-          acknowledged_at?: string
-          client_id: string
-          employee_id: string
-          id?: string
-          policy_id: string
-          user_id: string
-        }
-        Update: {
-          acknowledged_at?: string
-          client_id?: string
-          employee_id?: string
-          id?: string
-          policy_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null

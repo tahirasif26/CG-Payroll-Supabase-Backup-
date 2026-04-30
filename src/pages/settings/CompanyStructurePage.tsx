@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/contexts/RoleContext";
 import { PageHeader } from "@/components/PageHeader";
 import { divisions, Division, jobTitles, JobTitle } from "@/data/settingsData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,7 +33,30 @@ const initialDepartments: SimpleDepartment[] = [
 
 export default function CompanyStructurePage() {
   const { toast } = useToast();
+  const { clientId } = useRole();
   const { employeeTypes, addEmployeeType, updateEmployeeType, deleteEmployeeType } = useEmployeeTypes();
+
+  const { data: dbDepartments = [] } = useQuery({
+    queryKey: ["departments", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments").select("id, name").eq("client_id", clientId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: dbDesignations = [] } = useQuery({
+    queryKey: ["designations", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("designations").select("id, name, level").eq("client_id", clientId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   // Employee Types state
   const [etDialogOpen, setEtDialogOpen] = useState(false);
@@ -60,12 +86,28 @@ export default function CompanyStructurePage() {
 
   // Departments state
   const [deptItems, setDeptItems] = useState<SimpleDepartment[]>(initialDepartments);
+  useEffect(() => {
+    if (dbDepartments.length > 0) {
+      setDeptItems(dbDepartments.map((d: any) => ({ id: d.id, name: d.name, isActive: true })));
+    }
+  }, [dbDepartments]);
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
   const [deptEdit, setDeptEdit] = useState<SimpleDepartment | null>(null);
   const [deptName, setDeptName] = useState("");
 
   // Job Titles state
   const [jtItems, setJtItems] = useState<JobTitle[]>(jobTitles);
+  useEffect(() => {
+    if (dbDesignations.length > 0) {
+      setJtItems(
+        dbDesignations.map((d: any) => ({
+          id: d.id,
+          title: d.name,
+          level: d.level ? `Level ${d.level}` : "Entry",
+        })) as JobTitle[]
+      );
+    }
+  }, [dbDesignations]);
   const [jtDialogOpen, setJtDialogOpen] = useState(false);
   const [jtEdit, setJtEdit] = useState<JobTitle | null>(null);
   const [jtTitle, setJtTitle] = useState("");
