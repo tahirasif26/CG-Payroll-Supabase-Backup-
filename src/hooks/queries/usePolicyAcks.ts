@@ -13,9 +13,9 @@ export function useMyPolicyAcks() {
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("policy_acknowledgments")
+        .from("policy_acknowledgements")
         .select("policy_id")
-        .eq("user_id", user!.id);
+        .eq("employee_id", (await supabase.from("employees").select("id").eq("user_id", user!.id).maybeSingle()).data?.id);
       if (error) throw error;
       return new Set<string>((data ?? []).map((r: any) => r.policy_id));
     },
