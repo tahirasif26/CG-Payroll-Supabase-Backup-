@@ -1,4 +1,4 @@
-// Persists policy acknowledgments to the `policy_acknowledgments` table so the
+// Persists policy acknowledgements to the `policy_acknowledgements` table so the
 // scheduled `process-reminders` job can stop nudging employees who already acked.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
