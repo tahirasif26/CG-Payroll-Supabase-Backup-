@@ -59,7 +59,7 @@ export default function LoansPage() {
   const { data: transactions = [] } = useLoanTransactions(selectedLoanId ?? undefined);
 
   const hrCheck = (): boolean => {
-    if (!canUserApproveHR(currentEmployeeId)) {
+    if (!canApproveLoans) {
       toast({ title: "Not Authorized", description: "This action requires HR approval permissions.", variant: "destructive" });
       return false;
     }
