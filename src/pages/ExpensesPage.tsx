@@ -293,13 +293,10 @@ export default function ExpensesPage() {
   };
 
   const handleApprove = (exp: UiExpense) => {
-    const { allowed, limit } = canUserApproveExpense(currentEmployeeId, exp.amount);
-    if (!allowed) {
+    if (!canApproveExpense) {
       toast({
-        title: limit === 0 ? "Not Authorized" : "Limit Exceeded",
-        description: limit === 0
-          ? "You do not have expense approval permissions."
-          : `Your approval limit is SAR ${limit.toLocaleString()}. This expense of SAR ${exp.amount.toLocaleString()} requires a higher authority.`,
+        title: "Not Authorized",
+        description: "You do not have expense approval permissions.",
         variant: "destructive",
       });
       return;
