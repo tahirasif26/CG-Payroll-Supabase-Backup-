@@ -219,6 +219,8 @@ export default function PayrollSetupPage() {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewSetup, setViewSetup] = useState<PayrollSetup | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [editSetup, setEditSetup] = useState<PayrollSetup | null>(null);
 
   const getAssignedCount = (setupId: string) => employees.filter(e => e.payrollSetupId === setupId).length;
 
