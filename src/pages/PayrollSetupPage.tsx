@@ -274,7 +274,7 @@ export default function PayrollSetupPage() {
                     <Button variant="ghost" size="sm" title="View Details" onClick={() => navigate(`/payroll/setup/${s.id}/view`)}>
                       <Eye className="h-3 w-3 text-primary" />
                     </Button>
-                    <Button variant="ghost" size="sm" title="Edit" onClick={() => navigate(`/payroll/setup/${s.id}`)}>
+                    <Button variant="ghost" size="sm" title="Edit" onClick={() => { setEditSetup(s); setWizardOpen(true); }}>
                       <Pencil className="h-3 w-3" />
                     </Button>
                     <Button variant="ghost" size="sm" title="Duplicate" onClick={() => { duplicateSetup(s.id); toast({ title: "Setup duplicated" }); }}>
