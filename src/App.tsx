@@ -410,7 +410,7 @@ const App = () => {
           <AuditProvider>
           <BLEAccessProvider>
           <LeaveTypeProvider>
-          <ApprovalProvider>
+          
           <CardProvider>
           <AdvanceProvider>
           <ReminderSettingsProvider>
