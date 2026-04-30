@@ -7,7 +7,7 @@ import { useAudit } from "@/contexts/AuditContext";
 import { format, differenceInDays, isPast, parseISO } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { employees as importedEmployees, leaveRequests, loans, payrollRuns } from "@/data/mockData";
+import { leaveRequests, loans, payrollRuns } from "@/data/mockData";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
