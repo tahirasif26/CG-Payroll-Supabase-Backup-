@@ -45,7 +45,6 @@ const TENANT_TABLES = [
   "assessment_ratings",
   // policies
   "policy_acknowledgements",
-  "policy_acknowledgments",
   "company_policies",
   // employee details
   "employee_addresses",
