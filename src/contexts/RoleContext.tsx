@@ -23,6 +23,7 @@ interface RoleContextType {
   employeeFeatures: string[] | null;
   roleFeatures: Set<string>;
   peopleFeatures: Set<string>;
+  isOrphan: boolean;
   hasFeature: (key: string) => boolean;
   hasPeopleFeature: (key: string) => boolean;
 
