@@ -112,9 +112,9 @@ export default function FeatureAccessPage() {
           </div>
           <div className="max-h-[600px] overflow-y-auto divide-y">
             {isLoading ? (
-              <div className="p-4 text-sm text-muted-foreground">Loading...</div>
+              <div className="p-3"><LoadingState rows={5} variant="list" /></div>
             ) : filtered.length === 0 ? (
-              <div className="p-4 text-sm text-muted-foreground">No employees found.</div>
+              <EmptyState icon={Users} title="No employees" description="Try a different search term." size="compact" />
             ) : (
               filtered.map((emp) => (
                 <button
