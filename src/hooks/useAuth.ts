@@ -30,6 +30,8 @@ export interface AuthState {
   roleFeatures: Set<string>;
   /** Features for which the assigned role has people-level (others' data) access. */
   peopleFeatures: Set<string>;
+  /** True when user has a role (admin/hr/employee) but NO employees row in this client. */
+  isOrphan: boolean;
   loading: boolean;
 }
 
