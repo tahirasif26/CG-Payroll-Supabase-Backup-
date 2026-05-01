@@ -13,7 +13,7 @@ import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, Search, AlertTriangle } from "lucide-react";
+import { Download, Eye, FileText, Search, AlertTriangle, Loader2 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatCard } from "@/components/StatCard";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
+import { useDownloadPayslip } from "@/hooks/useDownloadPayslip";
 import type { Employee } from "@/types/hcm";
 import type { PayrollSetup } from "@/types/payrollSetup";
 
@@ -108,6 +109,7 @@ interface PayslipDetail {
   payCurrency: string;
   workLocationCountry: string;
   payrollSetupId?: string;
+  payrollRunId?: string;
 }
 
 export default function PayslipsPage() {
@@ -131,9 +133,10 @@ export default function PayslipsPage() {
   const [viewPayslip, setViewPayslip] = useState<PayslipDetail | null>(null);
   const [search, setSearch] = useState("");
   const { toast } = useToast();
+  const { download: downloadPayslip, loading: downloadingKey } = useDownloadPayslip();
 
-  const handleDownload = (name: string, period: string) => {
-    toast({ title: "Downloading Payslip", description: `Payslip for ${name} — ${period} will be downloaded.` });
+  const handleDownload = async (runId: string, employeeId: string) => {
+    await downloadPayslip({ payrollRunId: runId, employeeId });
   };
 
   if (role === "employee" && currentEmployee) {
@@ -195,9 +198,10 @@ export default function PayslipsPage() {
                         employeeId: currentEmployee.id, payCurrency,
                         workLocationCountry: currentEmployee.workLocationCountry,
                         payrollSetupId: currentEmployee.payrollSetupId,
+                        payrollRunId: run.id,
                       })}><Eye className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDownload(`${currentEmployee.firstName} ${currentEmployee.lastName}`, `${run.month} ${run.year}`)}>
-                        <Download className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" disabled={downloadingKey === `${run.id}:${currentEmployee.id}`} onClick={() => handleDownload(run.id, currentEmployee.id)}>
+                        {downloadingKey === `${run.id}:${currentEmployee.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       </Button>
                     </div>
                   </TableCell>
@@ -206,7 +210,7 @@ export default function PayslipsPage() {
             </TableBody>
           </Table>
         </div>
-        <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={handleDownload} />
+        <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={(p) => handleDownload(p.payrollRunId!, p.employeeId)} />
       </div>
     );
   }
@@ -285,9 +289,10 @@ export default function PayslipsPage() {
                       employeeId: emp.id, payCurrency,
                       workLocationCountry: emp.workLocationCountry,
                       payrollSetupId: emp.payrollSetupId,
+                      payrollRunId: run.id,
                     })}><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDownload(`${emp.firstName} ${emp.lastName}`, `${run.month} ${run.year}`)}>
-                      <Download className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" disabled={downloadingKey === `${run.id}:${emp.id}`} onClick={() => handleDownload(run.id, emp.id)}>
+                      {downloadingKey === `${run.id}:${emp.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     </Button>
                   </div>
                 </TableCell>
@@ -296,12 +301,12 @@ export default function PayslipsPage() {
           </TableBody>
         </Table>
       </div>
-      <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={handleDownload} />
+      <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={(p) => handleDownload(p.payrollRunId!, p.employeeId)} />
     </div>
   );
 }
 
-function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetail | null; onClose: () => void; onDownload: (name: string, period: string) => void }) {
+function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetail | null; onClose: () => void; onDownload: (p: PayslipDetail) => void }) {
   const { employees } = useEmployees();
   const { client } = useClient();
   const { separations } = useSeparations();
@@ -600,7 +605,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
         </ScrollArea>
         <div className="px-6 pb-5 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button onClick={() => { onDownload(payslip.employeeName, payslip.period); onClose(); }}>
+          <Button onClick={() => { onDownload(payslip); onClose(); }}>
             <Download className="h-4 w-4 mr-2" />Download PDF
           </Button>
         </div>

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRole } from "@/contexts/RoleContext";
 import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
+import { routeApprovalRequest } from "@/lib/approvalRouting";
 
 type ExpenseRow = any;
 
@@ -46,14 +47,19 @@ export function useCreateExpense() {
       toast.success("Expense submitted");
       if (data?.status && data.status !== "draft") {
         const amt = `${data.currency ?? ""} ${(Number(data.amount ?? 0) / 100).toLocaleString()}`;
-        await notifyClientAdmins(clientId, {
-          title: "New expense submitted",
-          body: `${profile?.full_name ?? "An employee"} submitted an expense — ${amt}`,
-          category: "expense",
-          severity: "info",
-          entityType: "expense",
-          entityId: data.id,
-          actionUrl: "/expenses",
+        await routeApprovalRequest({
+          clientId,
+          category: "expenses",
+          value: Number(data.amount ?? 0),
+          notification: {
+            title: "New expense submitted",
+            body: `${profile?.full_name ?? "An employee"} submitted an expense — ${amt}`,
+            category: "expense",
+            severity: "info",
+            entityType: "expense",
+            entityId: data.id,
+            actionUrl: "/expenses",
+          },
         });
       }
     },
@@ -75,14 +81,19 @@ export function useUpdateExpense() {
       qc.invalidateQueries({ queryKey: ["expense"] });
       if (patch.status === "submitted") {
         const amt = `${data.currency ?? ""} ${(Number(data.amount ?? 0) / 100).toLocaleString()}`;
-        await notifyClientAdmins(clientId, {
-          title: "New expense submitted",
-          body: `Expense submitted for review — ${amt}`,
-          category: "expense",
-          severity: "info",
-          entityType: "expense",
-          entityId: data.id,
-          actionUrl: "/expenses",
+        await routeApprovalRequest({
+          clientId,
+          category: "expenses",
+          value: Number(data.amount ?? 0),
+          notification: {
+            title: "New expense submitted",
+            body: `Expense submitted for review — ${amt}`,
+            category: "expense",
+            severity: "info",
+            entityType: "expense",
+            entityId: data.id,
+            actionUrl: "/expenses",
+          },
         });
       } else if (patch.status === "approved" || patch.status === "rejected") {
         const recipient = await getEmployeeUserId(data.employee_id);

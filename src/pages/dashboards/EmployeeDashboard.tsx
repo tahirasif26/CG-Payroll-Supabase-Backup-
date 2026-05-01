@@ -8,6 +8,8 @@ import { useMyDashboard } from "@/hooks/queries/useMyDashboard";
 import { MetricCard } from "@/components/dashboards/MetricCard";
 import { DashboardSection } from "@/components/dashboards/DashboardSection";
 import { QuickActionButton } from "@/components/dashboards/QuickActionButton";
+import { useDownloadPayslip } from "@/hooks/useDownloadPayslip";
+import { Loader2 } from "lucide-react";
 
 function fmtMoney(amount: number | null | undefined, currency = "SAR") {
   if (amount == null) return "—";
@@ -37,6 +39,7 @@ export default function EmployeeDashboard() {
     birthdays,
     profileCompletion,
   } = useMyDashboard();
+  const { download: downloadPayslip, loading: downloadingKey } = useDownloadPayslip();
 
   const firstName = employee?.first_name || profile?.full_name?.split(" ")[0] || "there";
   const greeting = (() => {
@@ -199,7 +202,15 @@ export default function EmployeeDashboard() {
                         </p>
                         <p className="text-[11px] text-muted-foreground">{fmtMoney(p.net_pay, p.pay_currency)}</p>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7"><Download className="h-3.5 w-3.5" /></Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={!employee || downloadingKey === `${p.payroll_run_id}:${employee.id}`}
+                        onClick={() => employee && downloadPayslip({ payrollRunId: p.payroll_run_id, employeeId: employee.id })}
+                      >
+                        {downloadingKey === `${p.payroll_run_id}:${employee?.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                      </Button>
                     </li>
                   ))}
                 </ul>

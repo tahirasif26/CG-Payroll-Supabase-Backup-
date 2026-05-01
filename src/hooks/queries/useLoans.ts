@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { notifyUser, getEmployeeUserId } from "@/lib/notify";
+import { notifyUser, notifyClientAdmins, getEmployeeUserId } from "@/lib/notify";
+import { routeApprovalRequest } from "@/lib/approvalRouting";
 
 export interface DbLoan {
   id: string;
