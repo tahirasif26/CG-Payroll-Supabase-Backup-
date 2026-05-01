@@ -57,6 +57,7 @@ const AssetRequestsPage = lazy(() => import("@/pages/assets/AssetRequestsPage"))
 const AssetAuditsPage = lazy(() => import("@/pages/assets/AssetAuditsPage"));
 const AssetDashboardPage = lazy(() => import("@/pages/assets/AssetDashboardPage"));
 const OrgChartPage = lazy(() => import("@/pages/OrgChartPage"));
+const PeopleDirectoryPage = lazy(() => import("@/pages/PeopleDirectoryPage"));
 const ProjectsPage = lazy(() => import("@/pages/ProjectsPage"));
 const TimesheetsPage = lazy(() => import("@/pages/TimesheetsPage"));
 const PayrollSettingsPage = lazy(() => import("@/pages/settings/PayrollSettingsPage"));
@@ -193,6 +194,7 @@ function AppRoutes() {
           <Route path="/expenses" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="expenses.view_own"><ExpensesPage /></ProtectedRoute>} />
           <Route path="/birthdays" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="employees.view_birthdays"><BirthdaysPage /></ProtectedRoute>} />
           <Route path="/org-chart" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="employees.view_org_chart"><OrgChartPage /></ProtectedRoute>} />
+          <Route path="/people" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="employees.view_directory"><PeopleDirectoryPage /></ProtectedRoute>} />
           <Route path="/company-policies" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="policies.view"><CompanyPoliciesPage /></ProtectedRoute>} />
           <Route path="/assets/store" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="assets.request_new"><AssetStorePage /></ProtectedRoute>} />
           <Route path="/timesheets" element={<ProtectedRoute requiredRole={["admin","hr","employee"]} requiredFeature="timesheets.submit"><TimesheetsPage /></ProtectedRoute>} />
