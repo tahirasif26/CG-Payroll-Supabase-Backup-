@@ -148,6 +148,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "Company Profile", path: "/settings/company" },
       { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"] },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
+      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"] },
       { label: "Visual Preferences", path: "/settings/visual" },
     ],
   },
