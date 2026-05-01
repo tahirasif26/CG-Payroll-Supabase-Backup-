@@ -179,7 +179,12 @@ export default function PayslipsPage() {
             </TableHeader>
             <TableBody>
               {myRuns.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No payslips available yet.</TableCell></TableRow>
+                <EmptyTableRow
+                  colSpan={7}
+                  icon={FileText}
+                  title="No payslips yet"
+                  description="Your payslips will appear here once payroll runs are processed."
+                />
               ) : myRuns.map(run => (
                 <TableRow key={run.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="font-medium">{run.month} {run.year}</TableCell>
