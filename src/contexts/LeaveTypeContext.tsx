@@ -143,7 +143,8 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
   // ---------------- Allocations ----------------
   const { data: rawAllocations = [] } = useQuery({
     queryKey: ["leave_allocations", clientId],
-    enabled: !!clientId,
+    enabled: qEnabled,
+    staleTime: STALE,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("leave_allocations")
