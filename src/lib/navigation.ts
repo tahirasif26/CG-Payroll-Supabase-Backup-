@@ -23,6 +23,8 @@ export interface NavGroup {
   children?: NavChild[];
   requiredRoles?: AppRole[];
   labelsByRole?: Partial<Record<AppRole, string>>;
+  /** Module key — if set, custom (hr) role must have at least one feature with this prefix */
+  moduleFeatureKey?: string;
 }
 
 /** Group keys exempt from `enabled_modules` enforcement (always visible if role allows). */
