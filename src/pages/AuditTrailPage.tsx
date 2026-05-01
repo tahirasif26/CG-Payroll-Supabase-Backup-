@@ -82,13 +82,12 @@ export default function AuditTrailPage() {
       <PageHeader
         title="Audit Trail"
         description="Track who changed what and when across the system."
-        actions={
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
-            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-        }
-      />
+      >
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
+          <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      </PageHeader>
 
       <Card>
         <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
