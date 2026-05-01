@@ -8,10 +8,10 @@ import { format, differenceInDays, isPast, parseISO } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 // Mock leave/loan/payroll arrays removed — live data now comes from DB queries.
-// Keeping local empty stubs so legacy references resolve until each call-site is migrated.
-const leaveRequests: Array<{ employeeId: string; status: string; days: number; type: string }> = [];
-const loans: Array<{ employeeId: string; status: string; remainingBalance: number }> = [];
-const payrollRuns: Array<{ id: string; month: string; year: number; status: string }> = [];
+// Local empty stubs preserve legacy filter() call-sites until each is migrated.
+const leaveRequests: any[] = [];
+const loans: any[] = [];
+const payrollRuns: any[] = [];
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
