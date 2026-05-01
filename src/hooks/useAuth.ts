@@ -53,6 +53,7 @@ export function useAuth() {
   const [state, setState] = useState<AuthState>(initialState);
 
   useEffect(() => {
+    let lastLoadAt = 0;
     const loadAuthData = async (session: Session) => {
       const userId = session.user.id;
 
@@ -142,6 +143,8 @@ export function useAuth() {
         loading: false,
       });
 
+      lastLoadAt = Date.now();
+
       // Update last_login_at (fire and forget)
       supabase
         .from("profiles")
@@ -165,9 +168,10 @@ export function useAuth() {
       }
     });
 
-    // Refresh features when the tab regains focus, so admin-side toggle changes
-    // take effect quickly for the affected employee.
+    // Refresh features when the tab regains focus, throttled to once per 2 min
+    // to avoid hammering the DB every time the user switches tabs.
     const onFocus = () => {
+      if (Date.now() - lastLoadAt < 2 * 60 * 1000) return;
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) loadAuthData(session);
       });

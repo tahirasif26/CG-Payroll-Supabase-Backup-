@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { Asset, AssetCategory, AssetStoreItem, AssetRequest, AssetConditionItem, AssetLocationItem } from "@/types/hcm";
 import { AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
 import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
@@ -106,22 +107,25 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   }, [employees]);
 
   // ============ QUERIES ============
-  const enabled = !!clientId;
+  // Only fetch when the tenant has the assets module enabled.
+  const assetsModuleEnabled = useModuleEnabled("assets");
+  const enabled = !!clientId && assetsModuleEnabled;
+  const STALE = 5 * 60 * 1000;
 
   const { data: catsRaw = [] } = useQuery({
-    queryKey: ["asset_categories", clientId], enabled,
+    queryKey: ["asset_categories", clientId], enabled, staleTime: STALE,
     queryFn: async () => { const { data, error } = await sb.from("asset_categories").select("*").eq("client_id", clientId).order("name"); if (error) throw error; return data || []; },
   });
   const { data: condsRaw = [] } = useQuery({
-    queryKey: ["asset_conditions", clientId], enabled,
+    queryKey: ["asset_conditions", clientId], enabled, staleTime: STALE,
     queryFn: async () => { const { data, error } = await sb.from("asset_conditions").select("*").eq("client_id", clientId).order("name"); if (error) throw error; return data || []; },
   });
   const { data: locsRaw = [] } = useQuery({
-    queryKey: ["asset_locations", clientId], enabled,
+    queryKey: ["asset_locations", clientId], enabled, staleTime: STALE,
     queryFn: async () => { const { data, error } = await sb.from("asset_locations").select("*").eq("client_id", clientId).order("name"); if (error) throw error; return data || []; },
   });
   const { data: assetsRaw = [] } = useQuery({
-    queryKey: ["assets", clientId], enabled,
+    queryKey: ["assets", clientId], enabled, staleTime: STALE,
     queryFn: async () => {
       const { data, error } = await sb.from("assets")
         .select("*, asset_categories(name), asset_conditions(name), asset_locations(name)")
@@ -131,15 +135,15 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     },
   });
   const { data: storeRaw = [] } = useQuery({
-    queryKey: ["asset_store_items", clientId], enabled,
+    queryKey: ["asset_store_items", clientId], enabled, staleTime: STALE,
     queryFn: async () => { const { data, error } = await sb.from("asset_store_items").select("*, asset_categories(name)").eq("client_id", clientId); if (error) throw error; return data || []; },
   });
   const { data: requestsRaw = [] } = useQuery({
-    queryKey: ["asset_requests", clientId], enabled,
+    queryKey: ["asset_requests", clientId], enabled, staleTime: STALE,
     queryFn: async () => { const { data, error } = await sb.from("asset_requests").select("*, asset_store_items(name, asset_categories(name)), employees(first_name, last_name)").eq("client_id", clientId).order("request_date", { ascending: false }); if (error) throw error; return data || []; },
   });
   const { data: auditsRaw = [] } = useQuery({
-    queryKey: ["asset_audits", clientId], enabled,
+    queryKey: ["asset_audits", clientId], enabled, staleTime: STALE,
     queryFn: async () => {
       const { data: a, error } = await sb.from("asset_audits").select("*").eq("client_id", clientId).order("start_date", { ascending: false });
       if (error) throw error;
@@ -151,7 +155,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     },
   });
   const { data: historyRaw = [] } = useQuery({
-    queryKey: ["asset_history", clientId], enabled,
+    queryKey: ["asset_history", clientId], enabled, staleTime: STALE,
     queryFn: async () => { const { data, error } = await sb.from("asset_history").select("*").eq("client_id", clientId).order("created_at", { ascending: false }); if (error) throw error; return data || []; },
   });
 

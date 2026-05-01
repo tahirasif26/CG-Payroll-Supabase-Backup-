@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
 import { routeApprovalRequest } from "@/lib/approvalRouting";
 
@@ -99,6 +100,7 @@ function mapRow(row: DbAdvance, employeeName: string): Advance {
 export function AdvanceProvider({ children }: { children: React.ReactNode }) {
   const { clientId, isSuperAdmin } = useRole();
   const { employees } = useEmployees();
+  const expensesEnabled = useModuleEnabled("expenses");
   const qc = useQueryClient();
   const [autoReminderInterval, setAutoReminderInterval] = useState<AutoReminderInterval>("off");
 
@@ -112,8 +114,8 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       return (data ?? []) as DbAdvance[];
     },
-    enabled: !!clientId || isSuperAdmin,
-    staleTime: 15_000,
+    enabled: (!!clientId || isSuperAdmin) && expensesEnabled,
+    staleTime: 5 * 60 * 1000,
   });
 
   const advances = useMemo<Advance[]>(() => {

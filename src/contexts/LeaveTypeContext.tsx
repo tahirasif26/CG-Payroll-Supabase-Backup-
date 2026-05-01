@@ -2,6 +2,7 @@ import React, { createContext, useContext, ReactNode, useCallback, useMemo } fro
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { PayrollSetup } from "@/types/payrollSetup";
 
 export interface LeaveType {
@@ -63,12 +64,16 @@ function yearToInt(year: string): number {
 
 export function LeaveTypeProvider({ children }: { children: ReactNode }) {
   const { clientId } = useAuth();
+  const employeesEnabled = useModuleEnabled("employees");
+  const qEnabled = !!clientId && employeesEnabled;
+  const STALE = 5 * 60 * 1000;
   const qc = useQueryClient();
 
   // ---------------- Leave Types ----------------
   const { data: rawTypes = [], isLoading: typesLoading } = useQuery({
     queryKey: ["leave_types", clientId],
-    enabled: !!clientId,
+    enabled: qEnabled,
+    staleTime: STALE,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leave_types")
@@ -138,7 +143,8 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
   // ---------------- Allocations ----------------
   const { data: rawAllocations = [] } = useQuery({
     queryKey: ["leave_allocations", clientId],
-    enabled: !!clientId,
+    enabled: qEnabled,
+    staleTime: STALE,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("leave_allocations")
@@ -179,7 +185,8 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
   // ---------------- Balances ----------------
   const { data: rawBalances = [] } = useQuery({
     queryKey: ["leave_balances", clientId],
-    enabled: !!clientId,
+    enabled: qEnabled,
+    staleTime: STALE,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leave_balances")

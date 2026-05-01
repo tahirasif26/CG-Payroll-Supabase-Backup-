@@ -2,6 +2,7 @@ import { createContext, useContext, useCallback, ReactNode, useMemo } from "reac
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 
 export interface BLEDoor {
   id: string;
@@ -38,10 +39,14 @@ const BLEAccessContext = createContext<BLEAccessContextType | undefined>(undefin
 export function BLEAccessProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const { clientId } = useAuth() as any;
+  const accessEnabled = useModuleEnabled("access");
+  const enabled = !!clientId && accessEnabled;
+  const STALE = 5 * 60 * 1000;
 
   const { data: doorsRaw = [] } = useQuery({
     queryKey: ["ble_doors", clientId],
-    enabled: !!clientId,
+    enabled,
+    staleTime: STALE,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ble_doors")
@@ -54,7 +59,8 @@ export function BLEAccessProvider({ children }: { children: ReactNode }) {
 
   const { data: grantsRaw = [] } = useQuery({
     queryKey: ["ble_access_grants", clientId],
-    enabled: !!clientId,
+    enabled,
+    staleTime: STALE,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ble_access_grants")

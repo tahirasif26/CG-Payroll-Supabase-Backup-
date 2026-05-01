@@ -2,6 +2,7 @@ import React, { createContext, useContext, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { PayrollSetup } from "@/types/payrollSetup";
 
 interface PayrollSetupContextType {
@@ -96,11 +97,13 @@ function setupToRow(setup: PayrollSetup, clientId: string) {
 
 export function PayrollSetupProvider({ children }: { children: React.ReactNode }) {
   const { clientId } = useAuth();
+  const payrollEnabled = useModuleEnabled("payroll");
   const qc = useQueryClient();
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["payroll_setups", clientId],
-    enabled: !!clientId,
+    enabled: !!clientId && payrollEnabled,
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payroll_setups")
