@@ -181,6 +181,7 @@ export function filterNavigation(
   return groups
     .filter((g) => {
       if (g.requiredRoles && !g.requiredRoles.includes(role)) return false;
+      if (g.requiredFeature && role !== "super_admin" && !hasFeature(g.requiredFeature)) return false;
       if (!moduleAllowedByEnabled(g.key, role, enabledModules)) return false;
       // Custom (hr) role: only show modules where role has at least one feature
       if (
