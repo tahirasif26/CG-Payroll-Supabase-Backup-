@@ -101,7 +101,7 @@ export default function SelfAssessmentPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>}
+              {isLoading && <TableSkeletonRows colSpan={6} />}
               {!isLoading && filtered.length === 0 && (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No self-assessments for this cycle.</TableCell></TableRow>
               )}

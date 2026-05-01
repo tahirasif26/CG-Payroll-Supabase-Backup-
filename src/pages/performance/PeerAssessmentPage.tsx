@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableSkeletonRows } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -111,7 +112,7 @@ export default function PeerAssessmentPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>}
+              {isLoading && <TableSkeletonRows colSpan={5} />}
               {!isLoading && filtered.length === 0 && (
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No peer reviews assigned.</TableCell></TableRow>
               )}
