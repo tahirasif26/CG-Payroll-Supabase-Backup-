@@ -7,6 +7,8 @@ import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { useAssets, AssetHistoryEntry } from "@/contexts/AssetContext";
 import { Asset, AssetStoreItem } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyTableRow } from "@/components/EmptyState";
+import { Package as PackageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Plus, Monitor, Laptop, Key, Edit2, Trash2, History, ArrowRightLeft, Search, Filter, Upload, Package, QrCode, Download, Eye, Tag, ScanLine } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
