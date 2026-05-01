@@ -95,6 +95,8 @@ const PayrollModuleSettingsPage = lazy(() => import("@/pages/PayrollModuleSettin
 const HRModuleSettingsPage = lazy(() => import("@/pages/HRModuleSettingsPage"));
 const ExpenseModuleSettingsPage = lazy(() => import("@/pages/ExpenseModuleSettingsPage"));
 const VisualPreferencePage = lazy(() => import("@/pages/settings/VisualPreferencePage"));
+const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
+const AuditTrailPage = lazy(() => import("@/pages/AuditTrailPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -341,6 +343,12 @@ function AppRoutes() {
           } />
           <Route path="/access-management" element={
             <ProtectedRoute requiredRole="admin"><AccessManagementPage /></ProtectedRoute>
+          } />
+          <Route path="/reports" element={
+            <ProtectedRoute requiredRole={["admin", "hr"]}><ReportsPage /></ProtectedRoute>
+          } />
+          <Route path="/audit-trail" element={
+            <ProtectedRoute requiredRole={["admin", "hr"]}><AuditTrailPage /></ProtectedRoute>
           } />
 
           {/* Performance */}

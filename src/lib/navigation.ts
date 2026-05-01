@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, DollarSign, Receipt, Package, Shield, Star,
   FolderOpen, Clock, Settings, Building2, ToggleLeft, UserCog,
-  CalendarDays, UserCircle, FileText,
+  CalendarDays, UserCircle, FileText, BarChart3, History,
   type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@/hooks/useAuth";
@@ -127,6 +127,13 @@ export const navigationGroups: NavGroup[] = [
     requiredRoles: ["admin", "hr"],
   },
   {
+    key: "reports",
+    label: "Reports",
+    icon: BarChart3,
+    basePath: "/reports",
+    requiredRoles: ["admin", "hr"],
+  },
+  {
     key: "upcoming",
     label: "Upcoming Features",
     icon: Clock,
@@ -141,6 +148,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "Company Profile", path: "/settings/company" },
       { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"] },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
+      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"] },
       { label: "Visual Preferences", path: "/settings/visual" },
     ],
   },
