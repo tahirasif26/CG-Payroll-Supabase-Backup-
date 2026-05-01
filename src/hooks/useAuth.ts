@@ -130,6 +130,15 @@ export function useAuth() {
       // NULL = no override (inherit all client features). Empty array = explicit deny all.
       const employeeFeatures = Array.isArray(rawEmployeeFeatures) ? rawEmployeeFeatures : null;
 
+      // Orphan = user has a client-scoped role (admin/hr/employee) but no
+      // employees row. Such users can authenticate but most modules will not
+      // resolve their identity (no avatar, no approver lists, no payroll, etc.).
+      const isOrphan =
+        role !== null &&
+        role !== "super_admin" &&
+        !employeeRow &&
+        !!resolvedClientId;
+
       setState({
         session,
         user: session.user,
@@ -143,6 +152,7 @@ export function useAuth() {
         employeeFeatures,
         roleFeatures,
         peopleFeatures,
+        isOrphan,
         loading: false,
       });
 
