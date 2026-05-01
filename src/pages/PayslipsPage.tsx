@@ -198,6 +198,7 @@ export default function PayslipsPage() {
                         employeeId: currentEmployee.id, payCurrency,
                         workLocationCountry: currentEmployee.workLocationCountry,
                         payrollSetupId: currentEmployee.payrollSetupId,
+                        payrollRunId: run.id,
                       })}><Eye className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="sm" disabled={downloadingKey === `${run.id}:${currentEmployee.id}`} onClick={() => handleDownload(run.id, currentEmployee.id)}>
                         {downloadingKey === `${run.id}:${currentEmployee.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
@@ -288,6 +289,7 @@ export default function PayslipsPage() {
                       employeeId: emp.id, payCurrency,
                       workLocationCountry: emp.workLocationCountry,
                       payrollSetupId: emp.payrollSetupId,
+                      payrollRunId: run.id,
                     })}><Eye className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="sm" disabled={downloadingKey === `${run.id}:${emp.id}`} onClick={() => handleDownload(run.id, emp.id)}>
                       {downloadingKey === `${run.id}:${emp.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
