@@ -64,7 +64,7 @@ export default function AdminOverviewPanel() {
           ? supabase.from("asset_requests").select("id", { count: "exact", head: true }).eq("client_id", cid).eq("status", "pending")
           : noop,
         showAdvances
-          ? supabase.from("advance_requests").select("id", { count: "exact", head: true }).eq("client_id", cid).eq("status", "pending")
+          ? (supabase as any).from("advances").select("id", { count: "exact", head: true }).eq("client_id", cid).eq("status", "pending")
           : noop,
         showLoans
           ? supabase.from("loans").select("id", { count: "exact", head: true }).eq("client_id", cid).eq("status", "pending")
