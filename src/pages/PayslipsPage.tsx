@@ -303,7 +303,7 @@ export default function PayslipsPage() {
   );
 }
 
-function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetail | null; onClose: () => void; onDownload: (name: string, period: string) => void }) {
+function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetail | null; onClose: () => void; onDownload: (p: PayslipDetail) => void }) {
   const { employees } = useEmployees();
   const { client } = useClient();
   const { separations } = useSeparations();
@@ -602,7 +602,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
         </ScrollArea>
         <div className="px-6 pb-5 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button onClick={() => { onDownload(payslip.employeeName, payslip.period); onClose(); }}>
+          <Button onClick={() => { onDownload(payslip); onClose(); }}>
             <Download className="h-4 w-4 mr-2" />Download PDF
           </Button>
         </div>
