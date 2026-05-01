@@ -2,6 +2,7 @@ import React, { createContext, useContext, ReactNode, useCallback, useMemo } fro
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { PayrollSetup } from "@/types/payrollSetup";
 
 export interface LeaveType {
