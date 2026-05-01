@@ -138,7 +138,9 @@ export default function IDCardsPage() {
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="col-span-full text-center py-12 text-muted-foreground">No employees found.</div>
+          <div className="col-span-full">
+            <EmptyState icon={Users} title="No employees match" description="Adjust the search to find employees and print their ID cards." />
+          </div>
         )}
       </div>
 
