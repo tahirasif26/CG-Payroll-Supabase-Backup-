@@ -344,6 +344,12 @@ function AppRoutes() {
           <Route path="/access-management" element={
             <ProtectedRoute requiredRole="admin"><AccessManagementPage /></ProtectedRoute>
           } />
+          <Route path="/reports" element={
+            <ProtectedRoute requiredRole={["admin", "hr"]}><ReportsPage /></ProtectedRoute>
+          } />
+          <Route path="/audit-trail" element={
+            <ProtectedRoute requiredRole={["admin", "hr"]}><AuditTrailPage /></ProtectedRoute>
+          } />
 
           {/* Performance */}
           <Route path="/performance/ratings" element={
