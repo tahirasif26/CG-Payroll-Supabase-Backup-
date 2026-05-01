@@ -22,6 +22,7 @@ export interface NavGroup {
   basePath?: string;
   children?: NavChild[];
   requiredRoles?: AppRole[];
+  requiredFeature?: string;
   labelsByRole?: Partial<Record<AppRole, string>>;
   /** Module key — if set, custom (hr) role must have at least one feature with this prefix */
   moduleFeatureKey?: string;
@@ -132,6 +133,7 @@ export const navigationGroups: NavGroup[] = [
     icon: BarChart3,
     basePath: "/reports",
     requiredRoles: ["admin", "hr"],
+    requiredFeature: "reports.view",
   },
   {
     key: "upcoming",
@@ -148,7 +150,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "Company Profile", path: "/settings/company" },
       { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"] },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
-      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"] },
+      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"], requiredFeature: "audit.view" },
       { label: "Visual Preferences", path: "/settings/visual" },
     ],
   },
@@ -179,6 +181,7 @@ export function filterNavigation(
   return groups
     .filter((g) => {
       if (g.requiredRoles && !g.requiredRoles.includes(role)) return false;
+      if (g.requiredFeature && role !== "super_admin" && !hasFeature(g.requiredFeature)) return false;
       if (!moduleAllowedByEnabled(g.key, role, enabledModules)) return false;
       // Custom (hr) role: only show modules where role has at least one feature
       if (

@@ -101,6 +101,20 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
       { key: "timesheets.approve", label: "Approve Timesheets" },
     ],
   },
+  {
+    key: "reports",
+    label: "Reports & Exports",
+    features: [
+      { key: "reports.view", label: "View Reports", description: "Export payroll, leave, headcount" },
+    ],
+  },
+  {
+    key: "audit",
+    label: "Audit & Compliance",
+    features: [
+      { key: "audit.view", label: "View Audit Trail", description: "See who changed what and when" },
+    ],
+  },
 ];
 
 export function allFeaturesForModules(moduleKeys: string[]): string[] {
