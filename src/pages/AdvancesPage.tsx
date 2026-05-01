@@ -26,9 +26,12 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { availableCurrencies } from "@/data/settingsData";
 
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
+
 export default function AdvancesPage() {
   const { employees } = useEmployees();
   const { role, hasFeature } = useRole();
+  const { data: currentEmpData } = useCurrentEmployee();
   const { toast } = useToast();
   const { advances, addAdvance, approveAdvance, rejectAdvance } = useAdvances();
   const { data: payrollRuns = [] } = usePayrollRuns();
@@ -52,7 +55,19 @@ export default function AdvancesPage() {
   const [formNotes, setFormNotes] = useState("");
   const [formAttachments, setFormAttachments] = useState<string[]>([]);
 
-  const currentEmployee = employees[0]; // Simulated logged-in employee
+  // Resolve logged-in employee row; fall back to first employee if not yet loaded
+  const currentEmployee = useMemo(() => {
+    if (currentEmpData) {
+      const match = employees.find((e) => e.id === currentEmpData.id);
+      if (match) return match;
+      return {
+        id: currentEmpData.id,
+        firstName: currentEmpData.first_name ?? "",
+        lastName: currentEmpData.last_name ?? "",
+      } as any;
+    }
+    return employees[0];
+  }, [currentEmpData, employees]);
 
   const resetForm = () => {
     setFormAmount(""); setFormCurrency("SAR"); setFormPurpose("");
@@ -61,6 +76,10 @@ export default function AdvancesPage() {
   };
 
   const handleSubmit = () => {
+    if (!currentEmployee) {
+      toast({ title: "Loading", description: "Please wait while we load your profile.", variant: "destructive" });
+      return;
+    }
     if (!formName || !formAmount || !formPurpose || !formExpectedDate) {
       toast({ title: "Missing Fields", description: "Please fill all required fields.", variant: "destructive" });
       return;
@@ -369,7 +388,7 @@ export default function AdvancesPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs">Employee Name</Label>
-                    <Input value={`${currentEmployee.firstName} ${currentEmployee.lastName}`} disabled className="mt-1 h-8 text-xs bg-muted/50" />
+                    <Input value={currentEmployee ? `${currentEmployee.firstName ?? ""} ${currentEmployee.lastName ?? ""}`.trim() : "Loading..."} disabled className="mt-1 h-8 text-xs bg-muted/50" />
                   </div>
                   <div>
                     <Label className="text-xs">Request Date</Label>
