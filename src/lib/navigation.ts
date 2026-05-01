@@ -132,6 +132,7 @@ export const navigationGroups: NavGroup[] = [
     icon: BarChart3,
     basePath: "/reports",
     requiredRoles: ["admin", "hr"],
+    requiredFeature: "reports.view",
   },
   {
     key: "upcoming",
@@ -148,7 +149,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "Company Profile", path: "/settings/company" },
       { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"] },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
-      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"] },
+      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"], requiredFeature: "audit.view" },
       { label: "Visual Preferences", path: "/settings/visual" },
     ],
   },
