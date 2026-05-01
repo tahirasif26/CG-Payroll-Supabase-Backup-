@@ -189,13 +189,13 @@ export default function ExpensesPage() {
     setFormAdvanceId("");
   };
 
-  // Auto-fill employee for non-admin/HR users when the new-expense dialog opens
+  // Auto-fill employee in "me" scope or for employee role
   useEffect(() => {
-    if (newOpen && isEmployeeRole && currentEmpRow?.id && !formEmployee) {
+    if ((scope === "me" || isEmployeeRole) && currentEmpRow?.id && formEmployee !== currentEmpRow.id) {
       handleEmployeeChange(currentEmpRow.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newOpen, isEmployeeRole, currentEmpRow?.id]);
+  }, [scope, isEmployeeRole, currentEmpRow?.id]);
 
   const handleCurrencyChange = (currency: string) => {
     setFormCurrency(currency);
@@ -582,7 +582,7 @@ export default function ExpensesPage() {
               <form onSubmit={cfg.onSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Employee</Label>
-                  {isEmployeeRole ? (
+                  {(scope === "me" || isEmployeeRole) ? (
                     <Input
                       value={
                         currentEmpRow

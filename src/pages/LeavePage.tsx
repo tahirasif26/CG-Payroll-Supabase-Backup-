@@ -135,12 +135,12 @@ export default function LeavePage() {
   const [newEnd, setNewEnd] = useState("");
   const [newReason, setNewReason] = useState("");
 
-  // Auto-fill employee for non-admin/HR users when opening the new request dialog
+  // Auto-fill employee in "me" scope or for employee role
   useEffect(() => {
-    if (newOpen && isEmployeeRole && currentEmpRow?.id && !newEmployee) {
+    if ((scope === "me" || isEmployeeRole) && currentEmpRow?.id) {
       setNewEmployee(currentEmpRow.id);
     }
-  }, [newOpen, isEmployeeRole, currentEmpRow?.id, newEmployee]);
+  }, [scope, isEmployeeRole, currentEmpRow?.id]);
 
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -409,7 +409,7 @@ export default function LeavePage() {
           <form onSubmit={handleSubmitRequest} className="space-y-4">
             <div className="space-y-2">
               <Label>Employee</Label>
-              {isEmployeeRole ? (
+              {(scope === "me" || isEmployeeRole) ? (
                 <Input
                   value={
                     currentEmpRow

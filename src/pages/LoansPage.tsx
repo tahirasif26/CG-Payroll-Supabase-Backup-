@@ -88,12 +88,12 @@ export default function LoansPage() {
   const [newStart, setNewStart] = useState("");
   const [newEnd, setNewEnd] = useState("");
 
-  // Auto-fill employee for non-admin/HR users when opening the new loan dialog
+  // Auto-fill employee in "me" scope or for employee role
   useEffect(() => {
-    if (newOpen && isEmployeeRole && currentEmpRow?.id && !newEmployee) {
+    if ((scope === "me" || isEmployeeRole) && currentEmpRow?.id) {
       setNewEmployee(currentEmpRow.id);
     }
-  }, [newOpen, isEmployeeRole, currentEmpRow?.id, newEmployee]);
+  }, [scope, isEmployeeRole, currentEmpRow?.id]);
 
   const activeLoans = loanList.filter((l) => l.status === "active");
   const totalOutstanding = activeLoans.reduce((s, l) => s + (l.remaining_balance || 0), 0);
@@ -603,7 +603,7 @@ export default function LoansPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Employee</Label>
-              {isEmployeeRole ? (
+              {(scope === "me" || isEmployeeRole) ? (
                 <Input
                   value={
                     currentEmpRow
