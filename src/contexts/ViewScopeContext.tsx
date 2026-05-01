@@ -14,9 +14,10 @@ interface ViewScopeContextType {
 const ViewScopeContext = createContext<ViewScopeContextType | undefined>(undefined);
 
 export function ViewScopeProvider({ children }: { children: ReactNode }) {
-  const { peopleFeatures, appRole, isSuperAdmin } = useRole();
+  const { peopleFeatures, appRole, isSuperAdmin, roleFeatures } = useRole();
   const hasPeopleAccess =
-    isSuperAdmin || appRole === "admin" || appRole === "hr" || (peopleFeatures?.size ?? 0) > 0;
+    isSuperAdmin || appRole === "admin" || appRole === "hr" ||
+    (peopleFeatures?.size ?? 0) > 0 || (roleFeatures?.size ?? 0) > 0;
 
   // Admin/HR default to "people" (company view); employees default to "me"
   const defaultScope: ViewScope =

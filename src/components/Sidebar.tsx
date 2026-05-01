@@ -33,7 +33,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
-  const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin } = useRole();
+  const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin, roleFeatures } = useRole();
   const { scope } = useViewScope();
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,13 +43,18 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
     if (isSuperAdmin) {
       return filterNavigation(superAdminGroups, appRole, hasFeature, enabledModules);
     }
-    // Employees always see "Me" nav. Admin/HR follow the TopBar Me/People toggle.
-    const useMeNav = appRole === "employee" || scope === "me";
+    // If an "employee" role-row user is assigned a custom role with role_features,
+    // treat them as "hr" for navigation purposes.
+    const hasCustomRoleFeatures = roleFeatures.size > 0;
+    const effectiveRole =
+      appRole === "employee" && hasCustomRoleFeatures ? ("hr" as typeof appRole) : appRole;
+
+    const useMeNav = effectiveRole === "employee" || scope === "me";
     if (useMeNav) {
       return filterMeNavigation(hasFeature, enabledModules);
     }
-    return filterNavigation(navigationGroups, appRole, hasFeature, enabledModules);
-  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope]);
+    return filterNavigation(navigationGroups, effectiveRole, hasFeature, enabledModules);
+  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, roleFeatures]);
 
   const handleNav = (path: string) => {
     navigate(path);

@@ -21,6 +21,7 @@ export interface RoleFeature {
 
 export interface RoleMember {
   id: string;
+  user_id: string | null;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
@@ -46,7 +47,7 @@ export function useRoles(clientId: string | null) {
         .from("roles")
         .select(`
           id, client_id, name, is_system, description, color, created_at, updated_at,
-          employees:employees!role_id ( id, first_name, last_name, avatar_url, department, designation, emp_id ),
+          employees:employees!role_id ( id, user_id, first_name, last_name, avatar_url, department, designation, emp_id ),
           role_features ( role_id, feature_key, people_enabled )
         `)
         .eq("client_id", clientId!)
@@ -190,16 +191,46 @@ export function useSetRoleFeatures() {
 export function useAssignEmployeeRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { employee_id: string; role_id: string | null; client_id: string }) => {
-      const { error } = await supabase
+    mutationFn: async (input: {
+      employee_id: string;
+      role_id: string | null;
+      client_id: string;
+      role_name: string; // "Admin", "Employee", or any custom name (HR, Manager, …)
+      user_id: string | null; // employee's auth user_id
+    }) => {
+      // Step 1: Update employees.role_id
+      const { error: empError } = await supabase
         .from("employees")
         .update({ role_id: input.role_id })
         .eq("id", input.employee_id);
-      if (error) throw error;
+      if (empError) throw empError;
+
+      // Step 2: Sync user_roles.role so get_user_role() returns the right system role.
+      // Skip super_admin rows; only manage admin/hr/employee scoped to this client.
+      if (input.user_id) {
+        const lower = input.role_name.toLowerCase();
+        const systemRole: "admin" | "employee" | "hr" =
+          lower === "admin" ? "admin" : lower === "employee" ? "employee" : "hr";
+
+        // Remove existing non-super_admin role rows for this user in this client.
+        const { error: delErr } = await (supabase as any)
+          .from("user_roles")
+          .delete()
+          .eq("user_id", input.user_id)
+          .eq("client_id", input.client_id)
+          .in("role", ["admin", "hr", "employee"]);
+        if (delErr) throw delErr;
+
+        const { error: insErr } = await (supabase as any)
+          .from("user_roles")
+          .insert({ user_id: input.user_id, role: systemRole, client_id: input.client_id });
+        if (insErr) throw insErr;
+      }
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["roles", vars.client_id] });
       qc.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Role updated. Employee must re-login to see changes.");
     },
     onError: (err: Error) => toast.error(err.message),
   });
