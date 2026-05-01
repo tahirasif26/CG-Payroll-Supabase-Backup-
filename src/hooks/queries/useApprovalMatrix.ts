@@ -95,9 +95,8 @@ export function useApprovers(clientId: string | null) {
       if (roleIds.length > 0) {
         const { data: rfs, error: e2 } = await (supabase as any)
           .from("role_features")
-          .select("role_id, feature_key, enabled")
+          .select("role_id, feature_key")
           .in("role_id", roleIds)
-          .eq("enabled", true)
           .in("feature_key", APPROVE_FEATURE_KEYS);
         if (e2) throw e2;
         (rfs ?? []).forEach((r: any) => {
