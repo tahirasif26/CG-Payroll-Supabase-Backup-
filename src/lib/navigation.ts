@@ -127,6 +127,13 @@ export const navigationGroups: NavGroup[] = [
     requiredRoles: ["admin", "hr"],
   },
   {
+    key: "reports",
+    label: "Reports",
+    icon: BarChart3,
+    basePath: "/reports",
+    requiredRoles: ["admin", "hr"],
+  },
+  {
     key: "upcoming",
     label: "Upcoming Features",
     icon: Clock,
