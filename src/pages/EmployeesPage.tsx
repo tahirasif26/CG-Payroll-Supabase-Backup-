@@ -1089,7 +1089,33 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
 }
 
 function TimeOffTab({ emp }: { emp: Employee }) {
-  const empLeaves = leaveRequests.filter(l => l.employeeId === emp.id);
+  const { data: empLeavesDb = [] } = useQuery({
+    queryKey: ["employee-leave-requests", emp.id],
+    enabled: !!emp.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leave_requests")
+        .select("id, start_date, end_date, days, status, leave_types(name)")
+        .eq("employee_id", emp.id)
+        .order("start_date", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  // Normalize DB rows to the shape the existing UI expects
+  const empLeaves = useMemo(
+    () =>
+      empLeavesDb.map((l: any) => ({
+        id: l.id,
+        startDate: l.start_date,
+        endDate: l.end_date,
+        days: l.days,
+        status: l.status,
+        type: l.leave_types?.name ?? "—",
+      })),
+    [empLeavesDb]
+  );
   const { leaveTypes, getAllocationsForEmployee, setAllocation } = useLeaveTypes();
   const allocations = getAllocationsForEmployee(emp.id);
   const [editing, setEditing] = useState(false);
