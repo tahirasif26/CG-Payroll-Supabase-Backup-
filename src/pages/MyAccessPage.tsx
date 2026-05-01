@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useFeatureDefinitions, useMyFeatures } from "@/hooks/queries/useFeatureAccess";
 import type { FeatureDefinition } from "@/hooks/queries/useFeatureAccess";
+import { LoadingState } from "@/components/LoadingState";
 
 export default function MyAccessPage() {
   const { data: defs = [], isLoading: defsLoading } = useFeatureDefinitions();
