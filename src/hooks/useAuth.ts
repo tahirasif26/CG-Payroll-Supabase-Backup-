@@ -53,6 +53,7 @@ export function useAuth() {
   const [state, setState] = useState<AuthState>(initialState);
 
   useEffect(() => {
+    let lastLoadAt = 0;
     const loadAuthData = async (session: Session) => {
       const userId = session.user.id;
 
