@@ -56,9 +56,10 @@ export function useAuth() {
     const loadAuthData = async (session: Session) => {
       const userId = session.user.id;
 
-      const [profileRes, roleRes, featuresRes, enabledModulesRes, enabledFeaturesRes, roleFeaturesRes] = await Promise.all([
+      const [profileRes, roleRes, clientIdRes, featuresRes, enabledModulesRes, enabledFeaturesRes, roleFeaturesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.rpc("get_user_role", { _user_id: userId }),
+        supabase.rpc("get_user_client_id", { _user_id: userId }),
         supabase.rpc("get_user_features", { _user_id: userId }),
         (supabase as any).rpc("get_user_enabled_modules", { _user_id: userId }),
         (supabase as any).rpc("get_user_enabled_features", { _user_id: userId }),
@@ -67,6 +68,7 @@ export function useAuth() {
 
       const profile = (profileRes.data as Profile | null) ?? null;
       const role = (roleRes.data as AppRole | null) ?? null;
+      const resolvedClientId = (clientIdRes.data as string | null) ?? profile?.client_id ?? null;
       const featureRows = (featuresRes.data as Array<{ feature_key: string; enabled: boolean }> | null) ?? [];
       const baseFeatures = new Set(featureRows.filter((r) => r.enabled).map((r) => r.feature_key));
 
@@ -94,8 +96,8 @@ export function useAuth() {
           .select("id, user_id, enabled_features")
           .eq(column, value);
 
-        if (profile?.client_id) {
-          query = query.eq("client_id", profile.client_id);
+        if (resolvedClientId) {
+          query = query.eq("client_id", resolvedClientId);
         }
 
         const { data } = await query.maybeSingle();
@@ -129,7 +131,7 @@ export function useAuth() {
         user: session.user,
         profile,
         role,
-        clientId: profile?.client_id ?? null,
+        clientId: resolvedClientId,
         isSuperAdmin: role === "super_admin",
         features,
         enabledModules,
