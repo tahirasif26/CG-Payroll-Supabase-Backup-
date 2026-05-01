@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useFeatureDefinitions, useMyFeatures } from "@/hooks/queries/useFeatureAccess";
 import type { FeatureDefinition } from "@/hooks/queries/useFeatureAccess";
+import { LoadingState } from "@/components/LoadingState";
 
 export default function MyAccessPage() {
   const { data: defs = [], isLoading: defsLoading } = useFeatureDefinitions();
@@ -44,7 +45,7 @@ export default function MyAccessPage() {
       </Card>
 
       {(defsLoading || feLoading) && (
-        <div className="text-center text-muted-foreground py-12">Loading...</div>
+        <LoadingState rows={6} variant="cards" />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

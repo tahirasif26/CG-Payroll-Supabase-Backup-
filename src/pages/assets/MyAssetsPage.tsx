@@ -2,10 +2,12 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Package, Loader2 } from "lucide-react";
+import { Package } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
+import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function MyAssetsPage() {
   const { data: employee } = useCurrentEmployee();
@@ -41,13 +43,9 @@ export default function MyAssetsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="py-12 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading assets...
-            </div>
+            <LoadingState rows={4} variant="table" />
           ) : myAssets.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              You don't have any assets assigned right now.
-            </div>
+            <EmptyState icon={Package} title="No assets assigned" description="Assets your manager assigns to you will show up here." />
           ) : (
             <Table>
               <TableHeader>

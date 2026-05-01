@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 interface LoadingStateProps {
@@ -62,5 +63,30 @@ export function LoadingState({ rows = 5, variant = "list", className }: LoadingS
         <Skeleton key={i} className="h-12 w-full" />
       ))}
     </div>
+  );
+}
+
+interface TableSkeletonRowsProps {
+  /** Total columns spanned by the skeleton row. */
+  colSpan: number;
+  /** Number of skeleton rows to render (default 4). */
+  rows?: number;
+}
+
+/**
+ * Drop-in skeleton rows for use inside a `<TableBody>`. Use instead of an
+ * inline "Loading…" `<TableRow>` so the loading shape matches the data shape.
+ */
+export function TableSkeletonRows({ colSpan, rows = 4 }: TableSkeletonRowsProps) {
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, i) => (
+        <TableRow key={i} className="hover:bg-transparent">
+          <TableCell colSpan={colSpan} className="py-2">
+            <Skeleton className="h-7 w-full" />
+          </TableCell>
+        </TableRow>
+      ))}
+    </>
   );
 }

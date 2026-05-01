@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableSkeletonRows } from "@/components/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,7 +170,7 @@ export default function RatingCalibrationPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>}
+              {isLoading && <TableSkeletonRows colSpan={6} />}
               {!isLoading && filtered.length === 0 && (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No manager ratings to calibrate.</TableCell></TableRow>
               )}

@@ -17,6 +17,7 @@ import {
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { LoadingState } from "@/components/LoadingState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -541,7 +542,7 @@ function FeaturesTab({ role, readOnly }: { role: RoleWithRelations; readOnly: bo
   };
 
   if (defsLoading || rfLoading) {
-    return <Card className="p-8 text-center text-muted-foreground">Loading…</Card>;
+    return <Card className="p-4"><LoadingState rows={6} variant="page" /></Card>;
   }
 
   return (

@@ -4,7 +4,8 @@ import { useAssets } from "@/contexts/AssetContext";
 import { AssetAudit, AssetAuditEntry } from "@/types/asset";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, ClipboardCheck, CheckCircle, AlertTriangle, XCircle, Eye, ScanLine } from "lucide-react";
+import { Plus, ClipboardCheck, CheckCircle, AlertTriangle, XCircle, Eye, ScanLine, FileSearch } from "lucide-react";
+import { EmptyTableRow } from "@/components/EmptyState";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -167,7 +168,7 @@ export default function AssetAuditsPage() {
                 </TableCell>
               </TableRow>
             )) : (
-              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No audits found. Start a new audit.</TableCell></TableRow>
+              <EmptyTableRow colSpan={9} icon={FileSearch} title="No audits yet" description="Start a new audit to verify your asset inventory." />
             )}
           </TableBody>
         </Table>

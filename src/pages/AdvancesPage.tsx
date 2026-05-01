@@ -7,7 +7,8 @@ import { useAdvances } from "@/contexts/AdvanceContext";
 import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, X, FilterX } from "lucide-react";
+import { Plus, Search, Eye, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, X, FilterX, Wallet } from "lucide-react";
+import { EmptyTableRow } from "@/components/EmptyState";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -309,7 +310,7 @@ export default function AdvancesPage() {
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No advances found</TableCell></TableRow>
+                <EmptyTableRow colSpan={8} icon={Wallet} title="No advances yet" description="Request a cash advance or adjust filters." />
               ) : filtered.map(adv => {
                 const remaining = adv.amount - adv.amountUsed;
                 const isPending = adv.status === "pending";

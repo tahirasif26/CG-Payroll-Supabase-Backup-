@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableSkeletonRows } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,7 @@ export default function AssessmentRatingsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>}
+            {isLoading && <TableSkeletonRows colSpan={5} />}
             {!isLoading && sorted.map(r => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium">{r.name}</TableCell>

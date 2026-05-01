@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableSkeletonRows } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -110,7 +111,7 @@ export default function ExpenseCategoriesPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
+                  <TableSkeletonRows colSpan={3} />
                 ) : items.length === 0 ? (
                   <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">No categories yet. Add one to get started.</TableCell></TableRow>
                 ) : items.map(item => (

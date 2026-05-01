@@ -4,7 +4,8 @@ import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import type { Employee } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Cake, Briefcase, Search, Filter, ArrowUpDown } from "lucide-react";
+import { Cake, Briefcase, Search, Filter, ArrowUpDown, SearchX } from "lucide-react";
+import { EmptyTableRow } from "@/components/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -279,7 +280,7 @@ export default function BirthdaysPage() {
                         </TableRow>
                       );
                     }) : (
-                      <TableRow><TableCell colSpan={settings.globalEnabled ? 8 : 7} className="text-center py-8 text-muted-foreground">No results match your filters.</TableCell></TableRow>
+                      <EmptyTableRow colSpan={settings.globalEnabled ? 8 : 7} icon={SearchX} title="No matches" description="Try clearing filters or search terms." />
                     )}
                   </TableBody>
                 </Table>

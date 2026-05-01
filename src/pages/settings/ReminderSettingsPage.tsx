@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -196,7 +197,7 @@ export default function ReminderSettingsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <LoadingState rows={4} variant="list" />
           ) : rules.length === 0 ? (
             <p className="text-sm text-muted-foreground">No rules yet. Click "New rule" to create one.</p>
           ) : (

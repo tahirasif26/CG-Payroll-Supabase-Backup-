@@ -8,7 +8,8 @@ import { useAssets } from "@/contexts/AssetContext";
 import { AssetStoreItem } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit2, Trash2, Search, ShoppingBag, ImageIcon, LayoutGrid, List, X, Tag, Box, Cpu, Shield, Info } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, ShoppingBag, ImageIcon, LayoutGrid, List, X, Tag, Box, Cpu, Shield, Info, PackageOpen } from "lucide-react";
+import { EmptyTableRow } from "@/components/EmptyState";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -302,7 +303,7 @@ export default function AssetStorePage() {
                   </TableCell>
                 </TableRow>
               )) : (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No store items found.</TableCell></TableRow>
+                <EmptyTableRow colSpan={7} icon={PackageOpen} title="No store items" description="Add items to the store so employees can request them." />
               )}
             </TableBody>
           </Table>

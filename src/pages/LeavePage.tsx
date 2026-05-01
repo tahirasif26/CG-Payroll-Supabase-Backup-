@@ -13,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Check, X, Search, Filter } from "lucide-react";
+import { Plus, Check, X, Search, Filter, CalendarOff, Scale } from "lucide-react";
+import { EmptyTableRow } from "@/components/EmptyState";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -326,7 +327,7 @@ export default function LeavePage() {
                 </TableHeader>
                 <TableBody>
                   {filteredLeaves.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No leave requests found.</TableCell></TableRow>
+                    <EmptyTableRow colSpan={8} icon={CalendarOff} title="No leave requests" description="Apply for leave or adjust filters to see results." />
                   ) : filteredLeaves.map((leave) => (
                     <TableRow key={leave.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="font-medium">{empMap.get(leave.employee_id) || "—"}</TableCell>
@@ -375,7 +376,7 @@ export default function LeavePage() {
                 </TableHeader>
                 <TableBody>
                   {balanceRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No balance data yet.</TableCell></TableRow>
+                    <EmptyTableRow colSpan={6} icon={Scale} title="No balance data yet" description="Allocate leave to employees to populate balances." />
                   ) : (
                     balanceRows.map((row, i) => (
                       <TableRow key={`${row.empId}-${row.leaveType}-${i}`} className="hover:bg-muted/30">

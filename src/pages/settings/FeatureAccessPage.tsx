@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
-import { Search, Shield, Save, X } from "lucide-react";
+import { Search, Shield, Save, X, Users } from "lucide-react";
+import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 
 interface EmployeeRow {
   id: string;
@@ -110,9 +112,9 @@ export default function FeatureAccessPage() {
           </div>
           <div className="max-h-[600px] overflow-y-auto divide-y">
             {isLoading ? (
-              <div className="p-4 text-sm text-muted-foreground">Loading...</div>
+              <div className="p-3"><LoadingState rows={5} variant="list" /></div>
             ) : filtered.length === 0 ? (
-              <div className="p-4 text-sm text-muted-foreground">No employees found.</div>
+              <EmptyState icon={Users} title="No employees" description="Try a different search term." size="compact" />
             ) : (
               filtered.map((emp) => (
                 <button
