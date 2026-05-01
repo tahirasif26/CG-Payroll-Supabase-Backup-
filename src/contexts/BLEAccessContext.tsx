@@ -2,6 +2,7 @@ import { createContext, useContext, useCallback, ReactNode, useMemo } from "reac
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 
 export interface BLEDoor {
   id: string;
