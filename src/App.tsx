@@ -224,9 +224,7 @@ function AppRoutes() {
           <Route path="/payroll" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollPage /></ProtectedRoute>
           } />
-          <Route path="/compensation" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><CompensationPage /></ProtectedRoute>
-          } />
+          <Route path="/compensation" element={<Navigate to="/payroll/settings" replace />} />
           <Route path="/deductions" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><DeductionsPage /></ProtectedRoute>
           } />
