@@ -58,50 +58,102 @@ export interface ApproverRow {
   capabilities: string[]; // feature_keys with people_enabled = true
 }
 
+// Any feature_key that grants approval rights → makes the holder an approver.
+const APPROVE_FEATURE_KEYS = [
+  "expenses.approve",
+  "loans.approve",
+  "leave.approve",
+  "advances.approve",
+  "assets.approve_requests",
+  "payroll.approve_run",
+  "performance.calibration",
+  "timesheets.approve",
+];
+
 export function useApprovers(clientId: string | null) {
   return useQuery({
     enabled: !!clientId,
     queryKey: ["approvers", clientId],
     queryFn: async (): Promise<ApproverRow[]> => {
-      // 1) employees with a role
+      // 1) All active employees in the client (we filter later).
       const { data: emps, error: e1 } = await (supabase as any)
         .from("employees")
-        .select("id, first_name, last_name, department, avatar_url, role_id, roles(name)")
+        .select(
+          "id, first_name, last_name, department, avatar_url, role_id, user_id, enabled_features, roles(name)"
+        )
         .eq("client_id", clientId)
-        .eq("status", "active")
-        .not("role_id", "is", null);
+        .eq("status", "active");
       if (e1) throw e1;
 
-      const roleIds = Array.from(new Set((emps ?? []).map((e: any) => e.role_id).filter(Boolean)));
-      if (roleIds.length === 0) return [];
+      // 2) Role-based capabilities — collect ALL approve features for any role
+      // present in this client, regardless of `people_enabled` flag (that flag
+      // is for menu visibility, not approval authority).
+      const roleIds = Array.from(
+        new Set((emps ?? []).map((e: any) => e.role_id).filter(Boolean))
+      );
+      const roleCapMap = new Map<string, string[]>();
+      if (roleIds.length > 0) {
+        const { data: rfs, error: e2 } = await (supabase as any)
+          .from("role_features")
+          .select("role_id, feature_key")
+          .in("role_id", roleIds)
+          .in("feature_key", APPROVE_FEATURE_KEYS);
+        if (e2) throw e2;
+        (rfs ?? []).forEach((r: any) => {
+          const arr = roleCapMap.get(r.role_id) ?? [];
+          arr.push(r.feature_key);
+          roleCapMap.set(r.role_id, arr);
+        });
+      }
 
-      // 2) people-enabled features for those roles
-      const { data: rfs, error: e2 } = await (supabase as any)
-        .from("role_features")
-        .select("role_id, feature_key, people_enabled")
-        .in("role_id", roleIds)
-        .eq("people_enabled", true);
-      if (e2) throw e2;
+      // 3) Admins (and HR) — auto-approvers with full approval capability.
+      const userIds = Array.from(
+        new Set((emps ?? []).map((e: any) => e.user_id).filter(Boolean))
+      );
+      const adminUsers = new Set<string>();
+      if (userIds.length > 0) {
+        const { data: urs } = await (supabase as any)
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", userIds)
+          .in("role", ["admin", "hr"]);
+        (urs ?? []).forEach((r: any) => adminUsers.add(r.user_id));
+      }
 
-      const capMap = new Map<string, string[]>();
-      (rfs ?? []).forEach((r: any) => {
-        const arr = capMap.get(r.role_id) ?? [];
-        arr.push(r.feature_key);
-        capMap.set(r.role_id, arr);
-      });
+      const result: ApproverRow[] = [];
+      for (const e of emps ?? []) {
+        const caps = new Set<string>();
 
-      return (emps ?? [])
-        .filter((e: any) => capMap.has(e.role_id))
-        .map((e: any) => ({
+        // Role capabilities
+        (roleCapMap.get(e.role_id) ?? []).forEach((k) => caps.add(k));
+
+        // Per-employee feature overrides (only count approve-keys)
+        (Array.isArray(e.enabled_features) ? e.enabled_features : []).forEach(
+          (k: string) => {
+            if (APPROVE_FEATURE_KEYS.includes(k)) caps.add(k);
+          }
+        );
+
+        // Admin / HR → all approve capabilities by default
+        const isAdmin = e.user_id && adminUsers.has(e.user_id);
+        if (isAdmin) {
+          APPROVE_FEATURE_KEYS.forEach((k) => caps.add(k));
+        }
+
+        if (caps.size === 0) continue;
+
+        result.push({
           id: e.id,
           first_name: e.first_name,
           last_name: e.last_name,
           department: e.department,
           avatar_url: e.avatar_url,
           role_id: e.role_id,
-          role_name: e.roles?.name ?? null,
-          capabilities: capMap.get(e.role_id) ?? [],
-        }));
+          role_name: isAdmin ? (e.roles?.name ?? "Admin") : (e.roles?.name ?? null),
+          capabilities: Array.from(caps),
+        });
+      }
+      return result;
     },
   });
 }
