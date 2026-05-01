@@ -43,6 +43,7 @@ export const navigationGroups: NavGroup[] = [
     key: "employees",
     label: "Employees",
     icon: Users,
+    moduleFeatureKey: "employees",
     children: [
       { label: "Directory", path: "/employees", requiredRoles: ["admin", "hr"] },
       { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
@@ -55,6 +56,7 @@ export const navigationGroups: NavGroup[] = [
     key: "payroll",
     label: "Payroll",
     icon: DollarSign,
+    moduleFeatureKey: "payroll",
     children: [
       { label: "Payroll Setup", path: "/payroll/setup", requiredRoles: ["admin", "hr"] },
       { label: "Payroll Runs", path: "/payroll", requiredRoles: ["admin", "hr"] },
@@ -69,6 +71,7 @@ export const navigationGroups: NavGroup[] = [
     key: "expenses",
     label: "Expense Tracking",
     icon: Receipt,
+    moduleFeatureKey: "expenses",
     children: [
       { label: "Expenses", path: "/expenses", requiredFeature: "expenses.view_own", labelsByRole: { employee: "My Expenses" } },
       { label: "Advances", path: "/advances", requiredFeature: "advances.view_own" },
@@ -81,6 +84,7 @@ export const navigationGroups: NavGroup[] = [
     key: "assets",
     label: "Asset Tracking",
     icon: Package,
+    moduleFeatureKey: "assets",
     children: [
       { label: "Dashboard", path: "/assets/dashboard", requiredRoles: ["admin", "hr"] },
       { label: "Asset Inventory", path: "/assets/inventory", requiredFeature: "assets.view_inventory" },
@@ -104,6 +108,7 @@ export const navigationGroups: NavGroup[] = [
     key: "performance",
     label: "Performance",
     icon: Star,
+    moduleFeatureKey: "performance",
     children: [
       { label: "Ratings Overview", path: "/performance/ratings", requiredRoles: ["admin", "hr"] },
       { label: "Rating Calibration", path: "/performance/calibration", requiredRoles: ["admin"] },
