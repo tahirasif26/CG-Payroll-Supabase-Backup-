@@ -167,11 +167,23 @@ export function filterNavigation(
   role: AppRole,
   hasFeature: (key: string) => boolean,
   enabledModules: string[] | null,
+  roleFeatures?: Set<string>,
 ): NavGroup[] {
   return groups
     .filter((g) => {
       if (g.requiredRoles && !g.requiredRoles.includes(role)) return false;
       if (!moduleAllowedByEnabled(g.key, role, enabledModules)) return false;
+      // Custom (hr) role: only show modules where role has at least one feature
+      if (
+        role === "hr" &&
+        g.moduleFeatureKey &&
+        roleFeatures &&
+        roleFeatures.size > 0
+      ) {
+        const prefix = g.moduleFeatureKey + ".";
+        const hasModuleFeature = [...roleFeatures].some((fk) => fk.startsWith(prefix));
+        if (!hasModuleFeature) return false;
+      }
       return true;
     })
     .map((g) => {
