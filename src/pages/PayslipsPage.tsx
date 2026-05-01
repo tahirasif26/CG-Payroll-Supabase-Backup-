@@ -26,6 +26,7 @@ import { useSeparations } from "@/contexts/SeparationContext";
 import { useDownloadPayslip } from "@/hooks/useDownloadPayslip";
 import type { Employee } from "@/types/hcm";
 import type { PayrollSetup } from "@/types/payrollSetup";
+import { EmptyTableRow } from "@/components/EmptyState";
 
 const REPORTING_CURRENCY = "SAR";
 
