@@ -198,8 +198,8 @@ export default function PayslipsPage() {
                         workLocationCountry: currentEmployee.workLocationCountry,
                         payrollSetupId: currentEmployee.payrollSetupId,
                       })}><Eye className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDownload(`${currentEmployee.firstName} ${currentEmployee.lastName}`, `${run.month} ${run.year}`)}>
-                        <Download className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" disabled={downloadingKey === `${run.id}:${currentEmployee.id}`} onClick={() => handleDownload(run.id, currentEmployee.id)}>
+                        {downloadingKey === `${run.id}:${currentEmployee.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       </Button>
                     </div>
                   </TableCell>
@@ -208,7 +208,7 @@ export default function PayslipsPage() {
             </TableBody>
           </Table>
         </div>
-        <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={handleDownload} />
+        <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={(p) => handleDownload(p.payrollRunId!, p.employeeId)} />
       </div>
     );
   }
@@ -288,8 +288,8 @@ export default function PayslipsPage() {
                       workLocationCountry: emp.workLocationCountry,
                       payrollSetupId: emp.payrollSetupId,
                     })}><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDownload(`${emp.firstName} ${emp.lastName}`, `${run.month} ${run.year}`)}>
-                      <Download className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" disabled={downloadingKey === `${run.id}:${emp.id}`} onClick={() => handleDownload(run.id, emp.id)}>
+                      {downloadingKey === `${run.id}:${emp.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     </Button>
                   </div>
                 </TableCell>
@@ -298,7 +298,7 @@ export default function PayslipsPage() {
           </TableBody>
         </Table>
       </div>
-      <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={handleDownload} />
+      <PayslipDialog payslip={viewPayslip} onClose={() => setViewPayslip(null)} onDownload={(p) => handleDownload(p.payrollRunId!, p.employeeId)} />
     </div>
   );
 }
