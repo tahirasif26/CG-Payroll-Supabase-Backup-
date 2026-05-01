@@ -561,7 +561,7 @@ export default function LoansPage() {
             {isLoading ? (
               <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No loans found</TableCell></TableRow>
+              <EmptyTableRow colSpan={8} icon={Banknote} title="No loans yet" description="Approved employee loans will appear here." />
             ) : filtered.map((loan) => (
               <TableRow key={loan.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedLoanId(loan.id)}>
                 <TableCell className="font-medium">{empName(loan)}</TableCell>
