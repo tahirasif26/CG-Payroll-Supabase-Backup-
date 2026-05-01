@@ -70,7 +70,7 @@ export default function BirthdaysPage() {
   const [sortField, setSortField] = useState<SortField>("birthdayDays");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  const departments = [...new Set(activeEmployees.map(e => e.department))].sort();
+  const departments = [...new Set(activeEmployees.map(e => e.department).filter(Boolean))].sort();
 
   const data = useMemo(() => {
     return allBirthdays.map(emp => ({

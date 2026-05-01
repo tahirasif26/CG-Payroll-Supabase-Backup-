@@ -34,7 +34,7 @@ export default function AssetAuditsPage() {
   const [viewAudit, setViewAudit] = useState<AssetAudit | null>(null);
   const [qrScanOpen, setQrScanOpen] = useState(false);
 
-  const departments = [...new Set(assets.map(a => a.category))];
+  const departments = [...new Set(assets.map(a => a.category).filter(Boolean))];
   const locations = [...new Set(assets.map(a => a.location).filter(Boolean))];
 
   const handleStartAudit = (e: React.FormEvent) => {
