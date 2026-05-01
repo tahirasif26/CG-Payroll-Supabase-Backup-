@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAssets } from "@/contexts/AssetContext";
 import { AssetCategory, AssetConditionItem, AssetLocationItem } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyTableRow } from "@/components/EmptyState";
+import { Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit2, Trash2, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
