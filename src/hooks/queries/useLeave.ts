@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRole } from "@/contexts/RoleContext";
 import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
+import { routeApprovalRequest } from "@/lib/approvalRouting";
 
 export function useLeaveTypes() {
   return useQuery({
@@ -71,27 +72,73 @@ export function useLeaveRequests(filters?: { status?: string; employee_id?: stri
 
 export function useCreateLeaveRequest() {
   const qc = useQueryClient();
+  const { clientId, profile } = useRole();
   return useMutation({
     mutationFn: async (payload: any) => {
-      const { data, error } = await (supabase as any).from("leave_requests").insert(payload).select().single();
+      const { data, error } = await (supabase as any).from("leave_requests").insert(payload).select("*, leave_types(name)").single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data: any) => {
       qc.invalidateQueries({ queryKey: ["leave_requests"] });
       toast.success("Leave request submitted");
+      // Route to approvers via Approval Matrix; falls back to admins.
+      await routeApprovalRequest({
+        clientId,
+        category: "leave",
+        value: Number(data?.days ?? 0),
+        notification: {
+          title: "Leave request pending",
+          body: `${profile?.full_name ?? "An employee"} requested ${data?.days ?? "?"} day(s) of ${data?.leave_types?.name ?? "leave"}.`,
+          category: "leave",
+          severity: "info",
+          entityType: "leave_request",
+          entityId: data?.id,
+          actionUrl: "/leave",
+        },
+      });
     },
+    onError: (e: any) => toast.error(e.message ?? "Failed to submit leave"),
   });
 }
 
 export function useUpdateLeaveRequest() {
   const qc = useQueryClient();
+  const { clientId } = useRole();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Record<string, any>) => {
-      const { error } = await (supabase as any).from("leave_requests").update(patch).eq("id", id);
+      const { data, error } = await (supabase as any)
+        .from("leave_requests")
+        .update(patch)
+        .eq("id", id)
+        .select("*, leave_types(name)")
+        .single();
       if (error) throw error;
+      return { data, patch };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave_requests"] }),
+    onSuccess: async ({ data, patch }: any) => {
+      qc.invalidateQueries({ queryKey: ["leave_requests"] });
+      if (patch.status === "approved" || patch.status === "rejected") {
+        const recipient = await getEmployeeUserId(data.employee_id);
+        if (recipient) {
+          await notifyUser(recipient, {
+            title: patch.status === "approved" ? "Leave approved" : "Leave rejected",
+            body:
+              patch.status === "approved"
+                ? `Your ${data?.leave_types?.name ?? "leave"} request for ${data?.days ?? "?"} day(s) has been approved.`
+                : `Your ${data?.leave_types?.name ?? "leave"} request was rejected${
+                    patch.rejection_reason ? `: ${patch.rejection_reason}` : "."
+                  }`,
+            category: "leave",
+            severity: patch.status === "approved" ? "success" : "warning",
+            entityType: "leave_request",
+            entityId: data.id,
+            actionUrl: "/leave",
+            clientId,
+          });
+        }
+      }
+    },
   });
 }
 
