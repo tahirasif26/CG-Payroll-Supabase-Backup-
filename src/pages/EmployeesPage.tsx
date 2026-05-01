@@ -7,10 +7,9 @@ import { useAudit } from "@/contexts/AuditContext";
 import { format, differenceInDays, isPast, parseISO } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-// Mock leave/loan/payroll arrays removed — live data now comes from DB queries.
+// Mock leave/payroll arrays removed — live data now comes from DB queries.
 // Local empty stubs preserve legacy filter() call-sites until each is migrated.
 const leaveRequests: any[] = [];
-const loans: any[] = [];
 const payrollRuns: any[] = [];
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAssets } from "@/contexts/AssetContext";
