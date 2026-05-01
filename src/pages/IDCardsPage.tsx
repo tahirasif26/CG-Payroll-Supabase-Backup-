@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
-import { Search, Printer, DoorOpen } from "lucide-react";
+import { Search, Printer, DoorOpen, Users } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
