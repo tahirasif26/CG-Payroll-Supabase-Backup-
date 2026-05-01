@@ -169,6 +169,9 @@ export default function GPSTrackingPage() {
 
   return (
     <div className="min-h-[80vh] flex flex-col">
+      <div className="mb-3 px-3 py-2 rounded-md border border-primary/20 bg-primary/5 text-xs text-muted-foreground">
+        GPS tracking uses your device location. Mileage rates and policies are configured in <span className="font-medium text-foreground">Expense Settings</span>.
+      </div>
       {/* READY PHASE — only a Start button */}
       {phase === "ready" && (
         <div className="flex-1 flex flex-col items-center justify-center gap-8">
