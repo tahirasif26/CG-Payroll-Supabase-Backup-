@@ -27,7 +27,11 @@ export default function CostAllocationPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((ca: any) => (
+            {isLoading ? (
+              <TableSkeletonRows colSpan={5} />
+            ) : filtered.length === 0 ? (
+              <EmptyTableRow colSpan={5} icon={PieChart} title="No cost allocations" description="Allocations will appear once employees log time against projects." />
+            ) : filtered.map((ca: any) => (
               <TableRow key={ca.id}>
                 <TableCell className="font-medium">{ca.employees?.first_name} {ca.employees?.last_name}</TableCell>
                 <TableCell className="font-mono text-sm">{ca.projects?.code || "—"}</TableCell>
@@ -41,13 +45,6 @@ export default function CostAllocationPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  {isLoading ? "Loading…" : "No cost allocations recorded yet."}
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>
