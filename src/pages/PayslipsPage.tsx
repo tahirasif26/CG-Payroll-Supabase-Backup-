@@ -132,9 +132,10 @@ export default function PayslipsPage() {
   const [viewPayslip, setViewPayslip] = useState<PayslipDetail | null>(null);
   const [search, setSearch] = useState("");
   const { toast } = useToast();
+  const { download: downloadPayslip, loading: downloadingKey } = useDownloadPayslip();
 
-  const handleDownload = (name: string, period: string) => {
-    toast({ title: "Downloading Payslip", description: `Payslip for ${name} — ${period} will be downloaded.` });
+  const handleDownload = async (runId: string, employeeId: string) => {
+    await downloadPayslip({ payrollRunId: runId, employeeId });
   };
 
   if (role === "employee" && currentEmployee) {
