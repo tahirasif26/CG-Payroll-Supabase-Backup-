@@ -143,6 +143,8 @@ export function useAuth() {
         loading: false,
       });
 
+      lastLoadAt = Date.now();
+
       // Update last_login_at (fire and forget)
       supabase
         .from("profiles")
