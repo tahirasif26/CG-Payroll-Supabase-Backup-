@@ -376,7 +376,7 @@ export default function LeavePage() {
                 </TableHeader>
                 <TableBody>
                   {balanceRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No balance data yet.</TableCell></TableRow>
+                    <EmptyTableRow colSpan={6} icon={Scale} title="No balance data yet" description="Allocate leave to employees to populate balances." />
                   ) : (
                     balanceRows.map((row, i) => (
                       <TableRow key={`${row.empId}-${row.leaveType}-${i}`} className="hover:bg-muted/30">
