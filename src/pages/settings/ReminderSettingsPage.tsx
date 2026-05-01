@@ -197,7 +197,7 @@ export default function ReminderSettingsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <LoadingState rows={4} variant="list" />
           ) : rules.length === 0 ? (
             <p className="text-sm text-muted-foreground">No rules yet. Click "New rule" to create one.</p>
           ) : (
