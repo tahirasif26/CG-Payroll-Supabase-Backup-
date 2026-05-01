@@ -109,6 +109,7 @@ interface PayslipDetail {
   payCurrency: string;
   workLocationCountry: string;
   payrollSetupId?: string;
+  payrollRunId?: string;
 }
 
 export default function PayslipsPage() {
