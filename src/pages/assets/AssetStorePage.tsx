@@ -303,7 +303,7 @@ export default function AssetStorePage() {
                   </TableCell>
                 </TableRow>
               )) : (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No store items found.</TableCell></TableRow>
+                <EmptyTableRow colSpan={7} icon={PackageOpen} title="No store items" description="Add items to the store so employees can request them." />
               )}
             </TableBody>
           </Table>
