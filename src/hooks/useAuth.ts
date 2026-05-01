@@ -194,10 +194,18 @@ export function useAuth() {
     if (state.enabledFeatures !== null && !state.enabledFeatures.includes(key)) return false;
     // Admin sees all client features
     if (state.role === "admin") return state.features.has(key);
-    // Custom role (hr) — only role_features
+    // Custom role (hr): role_features take priority. If user also has a per-employee
+    // override, intersect with it (override can further restrict). If no role_features
+    // are assigned at all, fall back to client default features so the user isn't locked out.
     if (state.role === "hr") {
-      if (state.roleFeatures.size > 0) return state.roleFeatures.has(key);
-      return false;
+      if (state.roleFeatures.size > 0) {
+        if (!state.roleFeatures.has(key)) return false;
+        if (state.employeeFeatures !== null && !state.employeeFeatures.includes(key)) return false;
+        return true;
+      }
+      // No custom role assigned — behave like a standard staff member
+      if (state.employeeFeatures !== null && !state.employeeFeatures.includes(key)) return false;
+      return state.features.has(key);
     }
     // Employee — per-employee feature list
     if (state.role === "employee" && state.employeeFeatures !== null && !state.employeeFeatures.includes(key)) {
