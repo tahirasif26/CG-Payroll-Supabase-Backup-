@@ -16,7 +16,7 @@ import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useCreateEmployee } from "@/hooks/queries/useEmployees";
 import { useToast } from "@/hooks/use-toast";
-import { useRole } from "@/contexts/RoleContext";
+
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,7 +90,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const { addEmployee, employees: allEmployees } = useEmployees();
   const createEmployee = useCreateEmployee();
   const { toast } = useToast();
-  const { enabledModules, enabledFeatures } = useRole();
+  
   const { clientId } = useAuth();
   const { data: clientInfo } = useQuery({
     queryKey: ["client-name", clientId],
