@@ -280,7 +280,7 @@ export default function BirthdaysPage() {
                         </TableRow>
                       );
                     }) : (
-                      <TableRow><TableCell colSpan={settings.globalEnabled ? 8 : 7} className="text-center py-8 text-muted-foreground">No results match your filters.</TableCell></TableRow>
+                      <EmptyTableRow colSpan={settings.globalEnabled ? 8 : 7} icon={SearchX} title="No matches" description="Try clearing filters or search terms." />
                     )}
                   </TableBody>
                 </Table>
