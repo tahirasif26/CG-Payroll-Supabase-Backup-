@@ -1056,6 +1056,83 @@ export type Database = {
           },
         ]
       }
+      ble_access_grants: {
+        Row: {
+          client_id: string
+          created_at: string
+          door_id: string
+          employee_id: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          revoked_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          door_id: string
+          employee_id: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          door_id?: string
+          employee_id?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ble_access_grants_door_id_fkey"
+            columns: ["door_id"]
+            isOneToOne: false
+            referencedRelation: "ble_doors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ble_doors: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          location: string | null
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          location?: string | null
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          location?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           base_currency: string
