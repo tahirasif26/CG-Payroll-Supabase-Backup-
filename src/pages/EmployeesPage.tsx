@@ -1460,9 +1460,19 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
   // Notice period
   const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
 
-  // Outstanding loans
-  const empLoans = loans.filter(l => l.employeeId === emp.id && l.status === "active");
-  const totalLoanBalance = empLoans.reduce((s, l) => s + l.remainingBalance, 0);
+  // Outstanding loans (live from DB)
+  const { data: empLoans = [] } = useQuery({
+    queryKey: ["employee-active-loans", emp.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("loans")
+        .select("id, remaining_balance, status")
+        .eq("employee_id", emp.id)
+        .eq("status", "active");
+      return data ?? [];
+    },
+  });
+  const totalLoanBalance = empLoans.reduce((s: number, l: any) => s + (l.remaining_balance ?? 0), 0);
 
   const totalSettlement = unpaidSalary + totalEOS + Math.round(leaveEncashment) + noticePeriodPay - totalLoanBalance;
 
