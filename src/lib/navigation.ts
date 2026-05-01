@@ -140,7 +140,6 @@ export const navigationGroups: NavGroup[] = [
     children: [
       { label: "Company Profile", path: "/settings/company" },
       { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"] },
-      { label: "Feature Access", path: "/settings/feature-access", requiredRoles: ["admin"] },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
       { label: "Visual Preferences", path: "/settings/visual" },
     ],
