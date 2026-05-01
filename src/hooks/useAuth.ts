@@ -48,6 +48,7 @@ const initialState: AuthState = {
   employeeFeatures: null,
   roleFeatures: new Set<string>(),
   peopleFeatures: new Set<string>(),
+  isOrphan: false,
   loading: true,
 };
 
