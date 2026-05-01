@@ -101,7 +101,23 @@ export function NotificationBell() {
 
   const handleClick = (n: NotificationRow) => {
     if (!n.read_at) markRead.mutate(n.id);
-    if (n.link) navigate(n.link);
+    if (n.link) {
+      navigate(n.link);
+      return;
+    }
+    // Fallback: route by entity type
+    switch (n.entity_type) {
+      case "expense": navigate("/expenses"); break;
+      case "leave": navigate("/leave"); break;
+      case "loan": navigate("/loans"); break;
+      case "advance": navigate("/advances"); break;
+      case "asset_request": navigate("/assets/requests"); break;
+      case "asset": navigate("/assets/inventory"); break;
+      case "payroll": navigate("/payroll"); break;
+      case "separation": navigate("/separations"); break;
+      case "policy": navigate("/policies"); break;
+      default: navigate("/notifications");
+    }
   };
 
   return (
