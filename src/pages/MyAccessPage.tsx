@@ -45,7 +45,7 @@ export default function MyAccessPage() {
       </Card>
 
       {(defsLoading || feLoading) && (
-        <div className="text-center text-muted-foreground py-12">Loading...</div>
+        <LoadingState rows={6} variant="cards" />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
