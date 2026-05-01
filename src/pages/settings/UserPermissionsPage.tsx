@@ -679,16 +679,22 @@ function MembersTab({
       .slice(0, 20);
   }, [employees, members, search]);
 
-  const handleAdd = (emp: { id: string; first_name: string | null; last_name: string | null }) => {
+  const handleAdd = (emp: { id: string; user_id: string | null; first_name: string | null; last_name: string | null }) => {
     const existing = empToRole[emp.id];
     if (existing && existing.id !== role.id) {
       setPendingMove({
-        employee: { id: emp.id, name: fullName(emp.first_name, emp.last_name) },
+        employee: { id: emp.id, name: fullName(emp.first_name, emp.last_name), user_id: emp.user_id ?? null },
         fromRole: existing,
       });
       return;
     }
-    assign.mutate({ employee_id: emp.id, role_id: role.id, client_id: role.client_id });
+    assign.mutate({
+      employee_id: emp.id,
+      role_id: role.id,
+      client_id: role.client_id,
+      role_name: role.name,
+      user_id: emp.user_id ?? null,
+    });
   };
 
   const confirmMove = () => {
@@ -697,16 +703,21 @@ function MembersTab({
       employee_id: pendingMove.employee.id,
       role_id: role.id,
       client_id: role.client_id,
+      role_name: role.name,
+      user_id: pendingMove.employee.user_id ?? null,
     });
     setPendingMove(null);
   };
 
   const handleRemove = (employeeId: string) => {
     // Move to Employee role if available, else null.
+    const member = members.find((m) => m.id === employeeId);
     assign.mutate({
       employee_id: employeeId,
       role_id: employeeRole?.id ?? null,
       client_id: role.client_id,
+      role_name: "Employee",
+      user_id: member?.user_id ?? null,
     });
   };
 
