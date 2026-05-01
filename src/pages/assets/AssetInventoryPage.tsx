@@ -43,6 +43,7 @@ function generateAssetTag() {
 
 export default function AssetInventoryPage() {
   const { role, currentEmployeeId } = useRole();
+  const navigate = useNavigate();
   const activeEmps = useActiveEmployees();
   const {
     assets, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory,
