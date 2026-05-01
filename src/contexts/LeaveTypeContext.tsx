@@ -185,7 +185,8 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
   // ---------------- Balances ----------------
   const { data: rawBalances = [] } = useQuery({
     queryKey: ["leave_balances", clientId],
-    enabled: !!clientId,
+    enabled: qEnabled,
+    staleTime: STALE,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leave_balances")
