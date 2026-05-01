@@ -548,7 +548,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
           notification: {
             title: "New asset request",
             body: req.reason || "An employee has requested an asset.",
-            category: "approval",
+            category: "asset",
             severity: "info",
             entityType: "asset_request",
             entityId: inserted?.id,
