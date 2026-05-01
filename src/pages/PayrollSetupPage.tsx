@@ -293,7 +293,12 @@ export default function PayrollSetupPage() {
               </TableRow>
             ))}
             {setups.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-12">No payroll setups configured yet.</TableCell></TableRow>
+              <EmptyTableRow
+                colSpan={7}
+                icon={SettingsIcon}
+                title="No payroll setups configured"
+                description="Create a payroll setup to start running payroll for your employees."
+              />
             )}
           </TableBody>
         </Table>
