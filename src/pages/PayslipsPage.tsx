@@ -13,7 +13,7 @@ import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, Search, AlertTriangle } from "lucide-react";
+import { Download, Eye, FileText, Search, AlertTriangle, Loader2 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatCard } from "@/components/StatCard";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
+import { useDownloadPayslip } from "@/hooks/useDownloadPayslip";
 import type { Employee } from "@/types/hcm";
 import type { PayrollSetup } from "@/types/payrollSetup";
 
