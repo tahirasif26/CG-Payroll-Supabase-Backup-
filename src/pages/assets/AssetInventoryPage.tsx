@@ -500,7 +500,7 @@ export default function AssetInventoryPage() {
                 )}
               </TableRow>
             )) : (
-              <TableRow><TableCell colSpan={role === "employer" ? 9 : 8} className="text-center py-8 text-muted-foreground">No assets found.</TableCell></TableRow>
+              <EmptyTableRow colSpan={role === "employer" ? 9 : 8} icon={PackageIcon} title="No assets yet" description="Add assets to your inventory to track them." />
             )}
           </TableBody>
         </Table>
