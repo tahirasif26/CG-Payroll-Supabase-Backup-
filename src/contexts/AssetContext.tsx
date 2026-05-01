@@ -526,7 +526,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   // ============ REQUESTS ============
   const addAssetRequest = async (req: AssetRequest) => {
     if (!clientId) return;
-    await sb.from("asset_requests").insert({
+    const { data: inserted } = await sb.from("asset_requests").insert({
       client_id: clientId,
       employee_id: req.employeeId,
       store_item_id: req.storeItemId || null,
@@ -534,8 +534,31 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       reason: req.reason || null,
       priority: req.priority,
       status: req.status,
-    });
+    }).select().single();
     qc.invalidateQueries({ queryKey: ["asset_requests"] });
+
+    // Route through approval matrix (assets category)
+    if (req.status === "pending") {
+      try {
+        const { routeApprovalRequest } = await import("@/lib/approvalRouting");
+        await routeApprovalRequest({
+          clientId,
+          category: "assets",
+          value: 0,
+          notification: {
+            title: "New asset request",
+            body: req.reason || "An employee has requested an asset.",
+            category: "approval",
+            severity: "info",
+            entityType: "asset_request",
+            entityId: inserted?.id,
+            actionUrl: "/assets/requests",
+          },
+        });
+      } catch (e) {
+        console.warn("[asset request] approval routing failed", e);
+      }
+    }
   };
   const approveRequest = async (id: string) => {
     await sb.from("asset_requests").update({ status: "approved" }).eq("id", id);
