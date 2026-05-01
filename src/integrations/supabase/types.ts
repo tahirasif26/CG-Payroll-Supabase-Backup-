@@ -4474,6 +4474,10 @@ export type Database = {
         Args: { _client_id: string; _user_id: string }
         Returns: boolean
       }
+      is_client_staff: {
+        Args: { _client_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       notify_client_admins: {
         Args: {
