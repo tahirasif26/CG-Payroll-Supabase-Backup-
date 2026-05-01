@@ -327,7 +327,7 @@ export default function LeavePage() {
                 </TableHeader>
                 <TableBody>
                   {filteredLeaves.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No leave requests found.</TableCell></TableRow>
+                    <EmptyTableRow colSpan={8} icon={CalendarOff} title="No leave requests" description="Apply for leave or adjust filters to see results." />
                   ) : filteredLeaves.map((leave) => (
                     <TableRow key={leave.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="font-medium">{empMap.get(leave.employee_id) || "—"}</TableCell>
