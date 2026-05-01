@@ -61,6 +61,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         employeeFeatures: auth.employeeFeatures,
         roleFeatures: auth.roleFeatures,
         peopleFeatures: auth.peopleFeatures,
+        isOrphan: auth.isOrphan,
         hasFeature: auth.hasFeature,
         hasPeopleFeature: auth.hasPeopleFeature,
         user: auth.user,
