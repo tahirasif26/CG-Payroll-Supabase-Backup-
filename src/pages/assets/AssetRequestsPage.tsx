@@ -78,7 +78,7 @@ export default function AssetRequestsPage() {
                 )}
               </TableRow>
             )) : (
-              <TableRow><TableCell colSpan={role === "employer" ? 8 : 6} className="text-center py-8 text-muted-foreground">No requests found.</TableCell></TableRow>
+              <EmptyTableRow colSpan={role === "employer" ? 8 : 6} icon={ClipboardList} title="No requests yet" description="Asset requests will appear here." />
             )}
           </TableBody>
         </Table>
