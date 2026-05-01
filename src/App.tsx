@@ -95,6 +95,8 @@ const PayrollModuleSettingsPage = lazy(() => import("@/pages/PayrollModuleSettin
 const HRModuleSettingsPage = lazy(() => import("@/pages/HRModuleSettingsPage"));
 const ExpenseModuleSettingsPage = lazy(() => import("@/pages/ExpenseModuleSettingsPage"));
 const VisualPreferencePage = lazy(() => import("@/pages/settings/VisualPreferencePage"));
+const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
+const AuditTrailPage = lazy(() => import("@/pages/AuditTrailPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
