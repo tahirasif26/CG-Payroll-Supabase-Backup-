@@ -198,7 +198,7 @@ function ApproversTab({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No approvers configured. Grant "People" access to a role in User Permissions to add approvers.
+                  No approvers found. Admins are auto-included; otherwise grant a role any "*.approve" feature in User Permissions.
                 </TableCell>
               </TableRow>
             ) : (
