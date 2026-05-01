@@ -12,6 +12,8 @@ import {
   useDeleteNotification,
 } from "@/hooks/queries/useNotifications";
 import { cn } from "@/lib/utils";
+import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 
 const CATEGORY_LABEL: Record<string, string> = {
   leave: "Leave",
