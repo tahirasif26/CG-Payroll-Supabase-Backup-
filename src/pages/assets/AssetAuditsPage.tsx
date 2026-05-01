@@ -168,7 +168,7 @@ export default function AssetAuditsPage() {
                 </TableCell>
               </TableRow>
             )) : (
-              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No audits found. Start a new audit.</TableCell></TableRow>
+              <EmptyTableRow colSpan={9} icon={FileSearch} title="No audits yet" description="Start a new audit to verify your asset inventory." />
             )}
           </TableBody>
         </Table>
