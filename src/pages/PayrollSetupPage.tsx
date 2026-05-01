@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyTableRow } from "@/components/EmptyState";
+import { Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Copy, Trash2, ToggleLeft, ToggleRight, Eye } from "lucide-react";
@@ -291,7 +293,12 @@ export default function PayrollSetupPage() {
               </TableRow>
             ))}
             {setups.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-12">No payroll setups configured yet.</TableCell></TableRow>
+              <EmptyTableRow
+                colSpan={7}
+                icon={SettingsIcon}
+                title="No payroll setups configured"
+                description="Create a payroll setup to start running payroll for your employees."
+              />
             )}
           </TableBody>
         </Table>

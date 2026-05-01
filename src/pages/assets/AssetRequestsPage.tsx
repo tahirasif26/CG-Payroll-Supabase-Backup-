@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyTableRow } from "@/components/EmptyState";
+import { ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -76,7 +78,7 @@ export default function AssetRequestsPage() {
                 )}
               </TableRow>
             )) : (
-              <TableRow><TableCell colSpan={role === "employer" ? 8 : 6} className="text-center py-8 text-muted-foreground">No requests found.</TableCell></TableRow>
+              <EmptyTableRow colSpan={role === "employer" ? 8 : 6} icon={ClipboardList} title="No requests yet" description="Asset requests will appear here." />
             )}
           </TableBody>
         </Table>

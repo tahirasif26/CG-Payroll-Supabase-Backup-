@@ -26,6 +26,7 @@ import { useSeparations } from "@/contexts/SeparationContext";
 import { useDownloadPayslip } from "@/hooks/useDownloadPayslip";
 import type { Employee } from "@/types/hcm";
 import type { PayrollSetup } from "@/types/payrollSetup";
+import { EmptyTableRow } from "@/components/EmptyState";
 
 const REPORTING_CURRENCY = "SAR";
 
@@ -178,7 +179,12 @@ export default function PayslipsPage() {
             </TableHeader>
             <TableBody>
               {myRuns.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No payslips available yet.</TableCell></TableRow>
+                <EmptyTableRow
+                  colSpan={7}
+                  icon={FileText}
+                  title="No payslips yet"
+                  description="Your payslips will appear here once payroll runs are processed."
+                />
               ) : myRuns.map(run => (
                 <TableRow key={run.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="font-medium">{run.month} {run.year}</TableCell>
@@ -261,7 +267,12 @@ export default function PayslipsPage() {
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No payslips found.</TableCell></TableRow>
+              <EmptyTableRow
+                colSpan={8}
+                icon={FileText}
+                title={search ? "No payslips match your search" : "No payslips yet"}
+                description={search ? "Try a different name, ID, or period." : "Process a payroll run to generate payslips."}
+              />
             ) : filtered.map(({ run, emp, deductions, net, payCurrency, setup }) => (
               <TableRow key={`${run.id}-${emp.id}`} className="hover:bg-muted/30 transition-colors">
                 <TableCell>
