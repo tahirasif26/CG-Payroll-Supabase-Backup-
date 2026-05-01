@@ -43,13 +43,9 @@ export default function MyAssetsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="py-12 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading assets...
-            </div>
+            <LoadingState rows={4} variant="table" />
           ) : myAssets.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              You don't have any assets assigned right now.
-            </div>
+            <EmptyState icon={Package} title="No assets assigned" description="Assets your manager assigns to you will show up here." />
           ) : (
             <Table>
               <TableHeader>
