@@ -1604,6 +1604,7 @@ function EmployeesDirectory() {
   const { getTypeName } = useEmployeeTypes();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
   const [separationOpen, setSeparationOpen] = useState(false);
   const [separationEmp, setSeparationEmp] = useState<Employee | null>(null);
