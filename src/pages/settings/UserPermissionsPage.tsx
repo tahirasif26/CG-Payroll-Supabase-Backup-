@@ -653,7 +653,7 @@ function MembersTab({
 
   const [search, setSearch] = useState("");
   const [pendingMove, setPendingMove] = useState<null | {
-    employee: { id: string; name: string };
+    employee: { id: string; name: string; user_id: string | null };
     fromRole: RoleWithRelations;
   }>(null);
 
