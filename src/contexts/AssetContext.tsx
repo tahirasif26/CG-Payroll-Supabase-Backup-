@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { Asset, AssetCategory, AssetStoreItem, AssetRequest, AssetConditionItem, AssetLocationItem } from "@/types/hcm";
 import { AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
 import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
