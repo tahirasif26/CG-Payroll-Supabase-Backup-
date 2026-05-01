@@ -19,7 +19,7 @@ export function ProtectedRoute({
   fallback = "denied",
   redirectTo = "/",
 }: ProtectedRouteProps) {
-  const { appRole, isSuperAdmin, hasFeature, session, loading } = useRole();
+  const { appRole, isSuperAdmin, isOrphan, hasFeature, session, loading } = useRole();
 
   if (loading) {
     return (
@@ -33,6 +33,11 @@ export function ProtectedRoute({
 
   if (!session) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Orphan = role assigned but no employee row. Block all routes with a clear message.
+  if (isOrphan) {
+    return <AccessDenied />;
   }
 
   // Super admin scoping: only allowed on routes with no role requirement

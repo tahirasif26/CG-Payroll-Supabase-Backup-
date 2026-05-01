@@ -5,7 +5,7 @@ import { useRole } from "@/contexts/RoleContext";
 
 export function AccessDenied() {
   const navigate = useNavigate();
-  const { signOut, isSuperAdmin } = useRole();
+  const { signOut, isSuperAdmin, isOrphan } = useRole();
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
@@ -14,8 +14,19 @@ export function AccessDenied() {
           <ShieldAlert className="h-8 w-8 text-destructive" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Access Denied</h1>
-          {isSuperAdmin ? (
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {isOrphan ? "Account Not Linked" : "Access Denied"}
+          </h1>
+          {isOrphan ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Your login is active but no employee profile is linked to it yet.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Please ask your administrator to add you under <strong>Employees → Directory</strong> using the same email address.
+              </p>
+            </>
+          ) : isSuperAdmin ? (
             <p className="text-sm text-muted-foreground">
               This is a client-specific area. Super admin accounts manage clients globally, not individual company data.
             </p>
@@ -27,7 +38,7 @@ export function AccessDenied() {
           )}
         </div>
         <div className="flex items-center justify-center gap-3">
-          <Button onClick={() => navigate("/")}>Go to Dashboard</Button>
+          {!isOrphan && <Button onClick={() => navigate("/")}>Go to Dashboard</Button>}
           <Button variant="outline" onClick={signOut}>Sign Out</Button>
         </div>
       </div>

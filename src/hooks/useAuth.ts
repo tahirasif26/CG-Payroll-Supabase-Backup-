@@ -30,6 +30,8 @@ export interface AuthState {
   roleFeatures: Set<string>;
   /** Features for which the assigned role has people-level (others' data) access. */
   peopleFeatures: Set<string>;
+  /** True when user has a role (admin/hr/employee) but NO employees row in this client. */
+  isOrphan: boolean;
   loading: boolean;
 }
 
@@ -46,6 +48,7 @@ const initialState: AuthState = {
   employeeFeatures: null,
   roleFeatures: new Set<string>(),
   peopleFeatures: new Set<string>(),
+  isOrphan: false,
   loading: true,
 };
 
@@ -127,6 +130,15 @@ export function useAuth() {
       // NULL = no override (inherit all client features). Empty array = explicit deny all.
       const employeeFeatures = Array.isArray(rawEmployeeFeatures) ? rawEmployeeFeatures : null;
 
+      // Orphan = user has a client-scoped role (admin/hr/employee) but no
+      // employees row. Such users can authenticate but most modules will not
+      // resolve their identity (no avatar, no approver lists, no payroll, etc.).
+      const isOrphan =
+        role !== null &&
+        role !== "super_admin" &&
+        !employeeRow &&
+        !!resolvedClientId;
+
       setState({
         session,
         user: session.user,
@@ -140,6 +152,7 @@ export function useAuth() {
         employeeFeatures,
         roleFeatures,
         peopleFeatures,
+        isOrphan,
         loading: false,
       });
 
