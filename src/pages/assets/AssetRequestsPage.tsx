@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyTableRow } from "@/components/EmptyState";
+import { ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
