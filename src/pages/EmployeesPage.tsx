@@ -7,7 +7,11 @@ import { useAudit } from "@/contexts/AuditContext";
 import { format, differenceInDays, isPast, parseISO } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { leaveRequests, loans, payrollRuns } from "@/data/mockData";
+// Mock leave/loan/payroll arrays removed — live data now comes from DB queries.
+// Keeping local empty stubs so legacy references resolve until each call-site is migrated.
+const leaveRequests: Array<{ employeeId: string; status: string; days: number; type: string }> = [];
+const loans: Array<{ employeeId: string; status: string; remainingBalance: number }> = [];
+const payrollRuns: Array<{ id: string; month: string; year: number; status: string }> = [];
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
