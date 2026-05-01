@@ -160,7 +160,7 @@ export default function AssetMasterDataPage() {
               </TableRow>
             ))}
             {items.length === 0 && (
-              <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No records found.</TableCell></TableRow>
+              <EmptyTableRow colSpan={4} icon={Database} title="No records yet" description="Add your first record to get started." />
             )}
           </TableBody>
         </Table>
