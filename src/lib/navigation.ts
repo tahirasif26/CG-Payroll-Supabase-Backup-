@@ -23,6 +23,8 @@ export interface NavGroup {
   children?: NavChild[];
   requiredRoles?: AppRole[];
   labelsByRole?: Partial<Record<AppRole, string>>;
+  /** Module key — if set, custom (hr) role must have at least one feature with this prefix */
+  moduleFeatureKey?: string;
 }
 
 /** Group keys exempt from `enabled_modules` enforcement (always visible if role allows). */
@@ -41,6 +43,7 @@ export const navigationGroups: NavGroup[] = [
     key: "employees",
     label: "Employees",
     icon: Users,
+    moduleFeatureKey: "employees",
     children: [
       { label: "Directory", path: "/employees", requiredRoles: ["admin", "hr"] },
       { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
@@ -53,6 +56,7 @@ export const navigationGroups: NavGroup[] = [
     key: "payroll",
     label: "Payroll",
     icon: DollarSign,
+    moduleFeatureKey: "payroll",
     children: [
       { label: "Payroll Setup", path: "/payroll/setup", requiredRoles: ["admin", "hr"] },
       { label: "Payroll Runs", path: "/payroll", requiredRoles: ["admin", "hr"] },
@@ -67,6 +71,7 @@ export const navigationGroups: NavGroup[] = [
     key: "expenses",
     label: "Expense Tracking",
     icon: Receipt,
+    moduleFeatureKey: "expenses",
     children: [
       { label: "Expenses", path: "/expenses", requiredFeature: "expenses.view_own", labelsByRole: { employee: "My Expenses" } },
       { label: "Advances", path: "/advances", requiredFeature: "advances.view_own" },
@@ -79,6 +84,7 @@ export const navigationGroups: NavGroup[] = [
     key: "assets",
     label: "Asset Tracking",
     icon: Package,
+    moduleFeatureKey: "assets",
     children: [
       { label: "Dashboard", path: "/assets/dashboard", requiredRoles: ["admin", "hr"] },
       { label: "Asset Inventory", path: "/assets/inventory", requiredFeature: "assets.view_inventory" },
@@ -102,6 +108,7 @@ export const navigationGroups: NavGroup[] = [
     key: "performance",
     label: "Performance",
     icon: Star,
+    moduleFeatureKey: "performance",
     children: [
       { label: "Ratings Overview", path: "/performance/ratings", requiredRoles: ["admin", "hr"] },
       { label: "Rating Calibration", path: "/performance/calibration", requiredRoles: ["admin"] },
@@ -160,11 +167,23 @@ export function filterNavigation(
   role: AppRole,
   hasFeature: (key: string) => boolean,
   enabledModules: string[] | null,
+  roleFeatures?: Set<string>,
 ): NavGroup[] {
   return groups
     .filter((g) => {
       if (g.requiredRoles && !g.requiredRoles.includes(role)) return false;
       if (!moduleAllowedByEnabled(g.key, role, enabledModules)) return false;
+      // Custom (hr) role: only show modules where role has at least one feature
+      if (
+        role === "hr" &&
+        g.moduleFeatureKey &&
+        roleFeatures &&
+        roleFeatures.size > 0
+      ) {
+        const prefix = g.moduleFeatureKey + ".";
+        const hasModuleFeature = [...roleFeatures].some((fk) => fk.startsWith(prefix));
+        if (!hasModuleFeature) return false;
+      }
       return true;
     })
     .map((g) => {

@@ -184,9 +184,16 @@ export function useAuth() {
 
   const hasFeature = (key: string): boolean => {
     if (state.isSuperAdmin) return true;
-    // Client-level gate (set by super admin when creating client)
+    // Client-level gate
     if (state.enabledFeatures !== null && !state.enabledFeatures.includes(key)) return false;
-    // Per-employee gate (set by admin); admins/HR are not filtered further
+    // Admin sees all client features
+    if (state.role === "admin") return state.features.has(key);
+    // Custom role (hr) — only role_features
+    if (state.role === "hr") {
+      if (state.roleFeatures.size > 0) return state.roleFeatures.has(key);
+      return false;
+    }
+    // Employee — per-employee feature list
     if (state.role === "employee" && state.employeeFeatures !== null && !state.employeeFeatures.includes(key)) {
       return false;
     }

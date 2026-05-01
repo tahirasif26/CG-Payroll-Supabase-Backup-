@@ -53,7 +53,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
     if (useMeNav) {
       return filterMeNavigation(hasFeature, enabledModules);
     }
-    return filterNavigation(navigationGroups, effectiveRole, hasFeature, enabledModules);
+    return filterNavigation(navigationGroups, effectiveRole, hasFeature, enabledModules, roleFeatures);
   }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, roleFeatures]);
 
   const handleNav = (path: string) => {
