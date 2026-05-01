@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/PageHeader";
+import { useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function AssetRequestsPage() {
   const { role, currentEmployeeId } = useRole();
+  const navigate = useNavigate();
   const { assetRequests, approveRequest, rejectRequest, getEmployeeRequests } = useAssets();
   const { toast } = useToast();
 
@@ -39,7 +41,21 @@ export default function AssetRequestsPage() {
           <TableBody>
             {displayRequests.length > 0 ? displayRequests.map(req => (
               <TableRow key={req.id} className="hover:bg-muted/30 transition-colors">
-                {role === "employer" && <TableCell className="font-medium">{req.employeeName}</TableCell>}
+                {role === "employer" && (
+                  <TableCell className="font-medium">
+                    {req.employeeId ? (
+                      <button
+                        type="button"
+                        className="text-primary hover:underline text-left"
+                        onClick={() => navigate(`/employees?highlight=${req.employeeId}`)}
+                      >
+                        {req.employeeName}
+                      </button>
+                    ) : (
+                      req.employeeName
+                    )}
+                  </TableCell>
+                )}
                 <TableCell>{req.storeItemName}</TableCell>
                 <TableCell>{req.category}</TableCell>
                 <TableCell>{new Date(req.requestDate).toLocaleDateString()}</TableCell>
