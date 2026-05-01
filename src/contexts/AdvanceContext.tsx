@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
+import { routeApprovalRequest } from "@/lib/approvalRouting";
 
 export interface ReminderEntry {
   sentAt: string;
@@ -150,14 +151,19 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
     },
     onSuccess: async ({ row, adv }) => {
       invalidate();
-      await notifyClientAdmins(clientId, {
-        title: "New advance request",
-        body: `${adv.employeeName} requested ${adv.currency} ${adv.amount.toLocaleString()}${adv.purpose ? ` — ${adv.purpose}` : ""}`,
-        category: "advance",
-        severity: "info",
-        entityType: "advance",
-        entityId: row?.id,
-        actionUrl: "/advances",
+      await routeApprovalRequest({
+        clientId,
+        category: "advances",
+        value: Number(adv.amount ?? 0),
+        notification: {
+          title: "New advance request",
+          body: `${adv.employeeName} requested ${adv.currency} ${adv.amount.toLocaleString()}${adv.purpose ? ` — ${adv.purpose}` : ""}`,
+          category: "advance",
+          severity: "info",
+          entityType: "advance",
+          entityId: row?.id,
+          actionUrl: "/advances",
+        },
       });
     },
   });
