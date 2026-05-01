@@ -491,7 +491,7 @@ function GroupDialog({
             <Label>Members</Label>
             {approvers.length === 0 ? (
               <p className="text-xs text-muted-foreground py-2">
-                No approvers available. Grant a role "People" access in User Permissions first.
+                No approvers available. Admins are auto-included; otherwise grant a role any "*.approve" feature in User Permissions.
               </p>
             ) : (
               <ScrollArea className="h-48 border rounded-md p-2">
