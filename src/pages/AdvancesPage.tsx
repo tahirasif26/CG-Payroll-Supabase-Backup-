@@ -7,7 +7,8 @@ import { useAdvances } from "@/contexts/AdvanceContext";
 import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, X, FilterX } from "lucide-react";
+import { Plus, Search, Eye, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, X, FilterX, Wallet } from "lucide-react";
+import { EmptyTableRow } from "@/components/EmptyState";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
