@@ -70,15 +70,16 @@ export default function NotificationsPage() {
 
       <div className="rounded-xl border bg-card overflow-hidden">
         {isLoading ? (
-          <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>
-        ) : notifications.length === 0 ? (
-          <div className="py-16 text-center">
-            <Bell className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm font-medium">No notifications</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {filter === "unread" ? "You're all caught up." : "Activity will show up here."}
-            </p>
+          <div className="p-4">
+            <LoadingState rows={6} variant="list" />
           </div>
+        ) : notifications.length === 0 ? (
+          <EmptyState
+            icon={Bell}
+            title="No notifications"
+            description={filter === "unread" ? "You're all caught up." : "Activity will show up here as it happens."}
+            size="spacious"
+          />
         ) : (
           <ul className="divide-y">
             {notifications.map((n) => {
