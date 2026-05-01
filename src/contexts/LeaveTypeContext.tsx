@@ -64,12 +64,16 @@ function yearToInt(year: string): number {
 
 export function LeaveTypeProvider({ children }: { children: ReactNode }) {
   const { clientId } = useAuth();
+  const employeesEnabled = useModuleEnabled("employees");
+  const qEnabled = !!clientId && employeesEnabled;
+  const STALE = 5 * 60 * 1000;
   const qc = useQueryClient();
 
   // ---------------- Leave Types ----------------
   const { data: rawTypes = [], isLoading: typesLoading } = useQuery({
     queryKey: ["leave_types", clientId],
-    enabled: !!clientId,
+    enabled: qEnabled,
+    staleTime: STALE,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leave_types")
