@@ -2,6 +2,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { useCostAllocations } from "@/hooks/queries/useProjects";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { TableSkeletonRows } from "@/components/LoadingState";
+import { EmptyTableRow } from "@/components/EmptyState";
+import { PieChart } from "lucide-react";
 
 export default function CostAllocationPage() {
   const { data: allocations = [], isLoading } = useCostAllocations();
