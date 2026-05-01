@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
-import { Search, Shield, Save, X } from "lucide-react";
+import { Search, Shield, Save, X, Users } from "lucide-react";
+import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 
 interface EmployeeRow {
   id: string;
