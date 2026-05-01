@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { ImageUpload } from "@/components/ImageUpload";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
@@ -42,6 +43,7 @@ function generateAssetTag() {
 
 export default function AssetInventoryPage() {
   const { role, currentEmployeeId } = useRole();
+  const navigate = useNavigate();
   const activeEmps = useActiveEmployees();
   const {
     assets, addAsset, updateAsset, deleteAsset, reassignAsset, getAssetHistory,
@@ -468,7 +470,19 @@ export default function AssetInventoryPage() {
                 <TableCell className="font-mono text-sm">{asset.serialNumber}</TableCell>
                 <TableCell><Badge variant={conditionBadgeVariant(asset.condition)} className="text-[10px]">{asset.condition.replace("-", " ")}</Badge></TableCell>
                 <TableCell className="text-sm">{asset.location || "—"}</TableCell>
-                <TableCell>{asset.employeeName || "—"}</TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  {asset.employeeName && asset.employeeId ? (
+                    <button
+                      type="button"
+                      className="text-primary hover:underline font-medium text-left"
+                      onClick={() => navigate(`/employees?highlight=${asset.employeeId}`)}
+                    >
+                      {asset.employeeName}
+                    </button>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
                 <TableCell><StatusBadge status={asset.status} /></TableCell>
                 {role === "employer" && (
                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>

@@ -224,9 +224,7 @@ function AppRoutes() {
           <Route path="/payroll" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollPage /></ProtectedRoute>
           } />
-          <Route path="/compensation" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><CompensationPage /></ProtectedRoute>
-          } />
+          <Route path="/compensation" element={<Navigate to="/payroll/settings" replace />} />
           <Route path="/deductions" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><DeductionsPage /></ProtectedRoute>
           } />
@@ -342,7 +340,12 @@ function AppRoutes() {
             <ProtectedRoute requiredRole={["admin", "hr"]}><IDCardsPage /></ProtectedRoute>
           } />
           <Route path="/access-management" element={
-            <ProtectedRoute requiredRole="admin"><AccessManagementPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole="admin">
+              <ComingSoonPage
+                title="Access Management"
+                description="Manage door locks and physical access — coming soon."
+              />
+            </ProtectedRoute>
           } />
 
           {/* Performance */}
