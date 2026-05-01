@@ -7,10 +7,9 @@ import { useAudit } from "@/contexts/AuditContext";
 import { format, differenceInDays, isPast, parseISO } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-// Mock leave/loan/payroll arrays removed — live data now comes from DB queries.
+// Mock leave/payroll arrays removed — live data now comes from DB queries.
 // Local empty stubs preserve legacy filter() call-sites until each is migrated.
 const leaveRequests: any[] = [];
-const loans: any[] = [];
 const payrollRuns: any[] = [];
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAssets } from "@/contexts/AssetContext";
@@ -1461,9 +1460,19 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
   // Notice period
   const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
 
-  // Outstanding loans
-  const empLoans = loans.filter(l => l.employeeId === emp.id && l.status === "active");
-  const totalLoanBalance = empLoans.reduce((s, l) => s + l.remainingBalance, 0);
+  // Outstanding loans (live from DB)
+  const { data: empLoans = [] } = useQuery({
+    queryKey: ["employee-active-loans", emp.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("loans")
+        .select("id, remaining_balance, status")
+        .eq("employee_id", emp.id)
+        .eq("status", "active");
+      return data ?? [];
+    },
+  });
+  const totalLoanBalance = empLoans.reduce((s: number, l: any) => s + (l.remaining_balance ?? 0), 0);
 
   const totalSettlement = unpaidSalary + totalEOS + Math.round(leaveEncashment) + noticePeriodPay - totalLoanBalance;
 
@@ -1945,7 +1954,7 @@ function EmployeesDirectory() {
           emp={separationEmp}
           separationData={separationData}
           setSeparationData={setSeparationData}
-          onConfirm={() => {
+          onConfirm={async () => {
             if (separationEmp) {
               // Calculate settlement for the context record
               const yearsOfService = separationEmp.joiningDate
@@ -1965,8 +1974,13 @@ function EmployeesDirectory() {
               const lastDate = separationData.lastDate ? new Date(separationData.lastDate) : new Date();
               const unpaidSalary = Math.round(dailySalary * lastDate.getDate());
               const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
-              const empLoans = loans.filter(l => l.employeeId === separationEmp.id && l.status === "active");
-              const loanDeduction = empLoans.reduce((s, l) => s + l.remainingBalance, 0);
+              // Outstanding loans (live from DB)
+              const { data: empLoansData } = await supabase
+                .from("loans")
+                .select("remaining_balance")
+                .eq("employee_id", separationEmp.id)
+                .eq("status", "active");
+              const loanDeduction = (empLoansData ?? []).reduce((s: number, l: any) => s + (l.remaining_balance ?? 0), 0);
               const totalSettlement = unpaidSalary + totalEOS + leaveEncashment + noticePeriodPay - loanDeduction;
 
               const now = new Date();
