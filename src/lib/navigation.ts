@@ -232,6 +232,15 @@ export const meNavigationGroups: NavGroup[] = [
     basePath: "/",
   },
   {
+    key: "people",
+    label: "People",
+    icon: Users,
+    children: [
+      { label: "Directory", path: "/people",    requiredFeature: "employees.view_directory" },
+      { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
+    ],
+  },
+  {
     key: "my-payroll",
     label: "My Payroll",
     icon: DollarSign,
@@ -298,6 +307,7 @@ export const meNavigationGroups: NavGroup[] = [
 
 /** Map "Me" group keys → top-level enabled_modules keys for tenant gating. */
 const ME_MODULE_MAP: Record<string, string> = {
+  "people":         "employees",
   "my-payroll":     "payroll",
   "my-leave":       "employees",
   "my-expenses":    "expenses",
