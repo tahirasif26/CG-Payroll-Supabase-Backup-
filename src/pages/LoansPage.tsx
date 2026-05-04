@@ -105,9 +105,11 @@ export default function LoansPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hrCheck()) return;
-    const emp = employeesData.find((em) => em.id === newEmployee);
-    if (!emp) return;
+    const emp = currentEmpRow;
+    if (!emp) {
+      toast({ title: "Profile not found", description: "Your employee profile could not be loaded.", variant: "destructive" });
+      return;
+    }
     const principal = Number(newAmount);
     const created = await createLoan.mutateAsync({
       employee_id: emp.id,
