@@ -603,26 +603,16 @@ export default function LoansPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Employee</Label>
-              {(scope === "me" || isEmployeeRole) ? (
-                <Input
-                  value={
-                    currentEmpRow
-                      ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
-                      : ""
-                  }
-                  disabled
-                  readOnly
-                />
-              ) : (
-                <Select value={newEmployee} onValueChange={setNewEmployee} required>
-                  <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
-                  <SelectContent>
-                    {employeesData.filter(e => e.status === "active" || e.status === "on-leave").map(emp => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Input
+                value={
+                  currentEmpRow
+                    ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
+                    : ""
+                }
+                disabled
+                readOnly
+              />
+              <p className="text-xs text-muted-foreground">Loan requests are always submitted under your own account.</p>
             </div>
             <div className="space-y-2">
               <Label>Loan Amount (SAR)</Label>
