@@ -138,10 +138,10 @@ export default function LeavePage() {
 
   // Auto-fill employee in "me" scope or for employee role
   useEffect(() => {
-    if ((scope === "me" || isEmployeeRole) && currentEmpRow?.id) {
+    if (currentEmpRow?.id) {
       setNewEmployee(currentEmpRow.id);
     }
-  }, [scope, isEmployeeRole, currentEmpRow?.id]);
+  }, [currentEmpRow?.id]);
 
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
