@@ -582,26 +582,16 @@ export default function ExpensesPage() {
               <form onSubmit={cfg.onSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Employee</Label>
-                  {(scope === "me" || isEmployeeRole) ? (
-                    <Input
-                      value={
-                        currentEmpRow
-                          ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
-                          : ""
-                      }
-                      disabled
-                      readOnly
-                    />
-                  ) : (
-                    <Select value={formEmployee} onValueChange={handleEmployeeChange} required>
-                      <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
-                      <SelectContent>
-                        {employees.filter((e) => e.status === "active" || e.status === "on-leave").map((e) => (
-                          <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <Input
+                    value={
+                      currentEmpRow
+                        ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
+                        : ""
+                    }
+                    disabled
+                    readOnly
+                  />
+                  <p className="text-xs text-muted-foreground">Submissions are always recorded under your own account.</p>
                 </div>
                 {formEmployee && getEmployeeAdvances(formEmployee).length > 0 && (
                   <div className="space-y-2">
