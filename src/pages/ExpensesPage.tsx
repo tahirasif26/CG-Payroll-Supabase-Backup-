@@ -191,11 +191,11 @@ export default function ExpensesPage() {
 
   // Auto-fill employee in "me" scope or for employee role
   useEffect(() => {
-    if ((scope === "me" || isEmployeeRole) && currentEmpRow?.id && formEmployee !== currentEmpRow.id) {
+    if (currentEmpRow?.id && formEmployee !== currentEmpRow.id) {
       handleEmployeeChange(currentEmpRow.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, isEmployeeRole, currentEmpRow?.id]);
+  }, [currentEmpRow?.id]);
 
   const handleCurrencyChange = (currency: string) => {
     setFormCurrency(currency);
