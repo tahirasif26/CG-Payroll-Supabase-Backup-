@@ -90,12 +90,10 @@ export default function LoansPage() {
   const [newStart, setNewStart] = useState("");
   const [newEnd, setNewEnd] = useState("");
 
-  // Auto-fill employee in "me" scope or for employee role
+  // Always auto-fill loan request to the current user (self-service only)
   useEffect(() => {
-    if ((scope === "me" || isEmployeeRole) && currentEmpRow?.id) {
-      setNewEmployee(currentEmpRow.id);
-    }
-  }, [scope, isEmployeeRole, currentEmpRow?.id]);
+    if (currentEmpRow?.id) setNewEmployee(currentEmpRow.id);
+  }, [currentEmpRow?.id]);
 
   const activeLoans = loanList.filter((l) => l.status === "active");
   const totalOutstanding = activeLoans.reduce((s, l) => s + (l.remaining_balance || 0), 0);
