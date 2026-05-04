@@ -90,12 +90,10 @@ export default function LoansPage() {
   const [newStart, setNewStart] = useState("");
   const [newEnd, setNewEnd] = useState("");
 
-  // Auto-fill employee in "me" scope or for employee role
+  // Always auto-fill loan request to the current user (self-service only)
   useEffect(() => {
-    if ((scope === "me" || isEmployeeRole) && currentEmpRow?.id) {
-      setNewEmployee(currentEmpRow.id);
-    }
-  }, [scope, isEmployeeRole, currentEmpRow?.id]);
+    if (currentEmpRow?.id) setNewEmployee(currentEmpRow.id);
+  }, [currentEmpRow?.id]);
 
   const activeLoans = loanList.filter((l) => l.status === "active");
   const totalOutstanding = activeLoans.reduce((s, l) => s + (l.remaining_balance || 0), 0);
@@ -107,9 +105,11 @@ export default function LoansPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hrCheck()) return;
-    const emp = employeesData.find((em) => em.id === newEmployee);
-    if (!emp) return;
+    const emp = currentEmpRow;
+    if (!emp) {
+      toast({ title: "Profile not found", description: "Your employee profile could not be loaded.", variant: "destructive" });
+      return;
+    }
     const principal = Number(newAmount);
     const created = await createLoan.mutateAsync({
       employee_id: emp.id,
@@ -605,26 +605,16 @@ export default function LoansPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Employee</Label>
-              {(scope === "me" || isEmployeeRole) ? (
-                <Input
-                  value={
-                    currentEmpRow
-                      ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
-                      : ""
-                  }
-                  disabled
-                  readOnly
-                />
-              ) : (
-                <Select value={newEmployee} onValueChange={setNewEmployee} required>
-                  <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
-                  <SelectContent>
-                    {employeesData.filter(e => e.status === "active" || e.status === "on-leave").map(emp => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Input
+                value={
+                  currentEmpRow
+                    ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
+                    : ""
+                }
+                disabled
+                readOnly
+              />
+              <p className="text-xs text-muted-foreground">Loan requests are always submitted under your own account.</p>
             </div>
             <div className="space-y-2">
               <Label>Loan Amount (SAR)</Label>
