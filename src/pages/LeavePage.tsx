@@ -410,26 +410,16 @@ export default function LeavePage() {
           <form onSubmit={handleSubmitRequest} className="space-y-4">
             <div className="space-y-2">
               <Label>Employee</Label>
-              {(scope === "me" || isEmployeeRole) ? (
-                <Input
-                  value={
-                    currentEmpRow
-                      ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
-                      : ""
-                  }
-                  disabled
-                  readOnly
-                />
-              ) : (
-                <Select value={newEmployee} onValueChange={setNewEmployee} required>
-                  <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
-                  <SelectContent>
-                    {activeEmps.map(emp => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.empId})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Input
+                value={
+                  currentEmpRow
+                    ? `${currentEmpRow.first_name ?? ""} ${currentEmpRow.last_name ?? ""}`.trim()
+                    : ""
+                }
+                disabled
+                readOnly
+              />
+              <p className="text-xs text-muted-foreground">Leave requests are always submitted under your own account.</p>
             </div>
             <div className="space-y-2">
               <Label>Leave Type</Label>
