@@ -39,10 +39,12 @@ export default function CompanyPoliciesPage() {
   const ackMutation = useAcknowledgePolicy();
   const { scope } = useViewScope();
   const { appRole } = useRole();
-  const canAcknowledge = scope === "people" && (appRole === "admin" || appRole === "hr");
+  const { data: currentEmpRow } = useCurrentEmployee();
+  const currentEmpId = currentEmpRow?.id ?? null;
+  const canAcknowledge = !!currentEmpId;
 
   const isAcked = (policyId: string, fallback: boolean) =>
-    ackedSet?.has(policyId) ?? fallback;
+    ackedSet?.has(policyId) ?? (currentEmpId ? fallback : fallback);
 
   const activePolicies = policies.filter((p) => p.status === "active");
 
@@ -53,11 +55,15 @@ export default function CompanyPoliciesPage() {
   });
 
   const pendingCount = activePolicies.filter(
-    (p) => p.requiresAck && !isAcked(p.id, p.acknowledgments.includes(CURRENT_EMPLOYEE_ID))
+    (p) => p.requiresAck && !isAcked(p.id, currentEmpId ? p.acknowledgments.includes(currentEmpId) : false)
   ).length;
 
   const handleAcknowledge = (policyId: string) => {
-    acknowledgePolicy(policyId, CURRENT_EMPLOYEE_ID);
+    if (!currentEmpId) {
+      toast.error("Could not identify your employee profile. Please try again.");
+      return;
+    }
+    acknowledgePolicy(policyId, currentEmpId);
     ackMutation.mutate(policyId);
   };
 
