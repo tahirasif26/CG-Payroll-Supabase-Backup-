@@ -396,8 +396,8 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
 
   const displayName = form.firstName || form.lastName
     ? `${form.firstName} ${form.lastName}`.trim()
-    : "New Employee";
-  const displaySub = [form.designation, form.department].filter(Boolean).join(" · ") || "Complete the form below to onboard";
+    : (isEditMode ? "Edit Employee" : "New Employee");
+  const displaySub = [form.designation, form.department].filter(Boolean).join(" · ") || (isEditMode ? "Update employee details" : "Complete the form below to onboard");
 
   return (
     <div className="space-y-6">
@@ -422,12 +422,17 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 mr-4">
-            <Switch id="send-invite" checked={sendInvite} onCheckedChange={setSendInvite} />
-            <Label htmlFor="send-invite" className="text-sm text-muted-foreground cursor-pointer">Send login invite</Label>
-          </div>
+          {!isEditMode && (
+            <div className="flex items-center gap-2 mr-4">
+              <Switch id="send-invite" checked={sendInvite} onCheckedChange={setSendInvite} />
+              <Label htmlFor="send-invite" className="text-sm text-muted-foreground cursor-pointer">Send login invite</Label>
+            </div>
+          )}
           <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Check className="h-4 w-4 mr-1" />{inviting ? "Sending Invite..." : "Submit & Onboard"}
+            <Check className="h-4 w-4 mr-1" />
+            {inviting
+              ? (isEditMode ? "Saving..." : "Sending Invite...")
+              : (isEditMode ? "Save Changes" : "Submit & Onboard")}
           </Button>
         </div>
       </div>
