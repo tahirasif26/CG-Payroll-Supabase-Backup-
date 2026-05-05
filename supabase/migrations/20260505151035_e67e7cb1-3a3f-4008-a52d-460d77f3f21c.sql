@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS year_end_date text NOT NULL DEFAULT '12-31';

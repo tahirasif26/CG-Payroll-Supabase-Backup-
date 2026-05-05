@@ -1153,6 +1153,7 @@ export type Database = {
           subscription_plan: Database["public"]["Enums"]["subscription_plan"]
           timezone: string
           updated_at: string
+          year_end_date: string
         }
         Insert: {
           base_currency?: string
@@ -1173,6 +1174,7 @@ export type Database = {
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           timezone?: string
           updated_at?: string
+          year_end_date?: string
         }
         Update: {
           base_currency?: string
@@ -1193,6 +1195,7 @@ export type Database = {
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           timezone?: string
           updated_at?: string
+          year_end_date?: string
         }
         Relationships: []
       }
