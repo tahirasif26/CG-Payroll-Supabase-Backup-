@@ -288,6 +288,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             work_location_country: form.workLocationCountry || null,
             work_location_city: form.workLocationCity || null,
             reports_to: reportsToId ?? null,
+            payroll_setup_id: form.payrollSetupId || null,
           } as any,
         });
         await updateProfile.mutateAsync({
