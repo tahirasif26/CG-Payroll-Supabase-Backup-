@@ -1373,7 +1373,7 @@ export default function PayrollPage() {
                       );
                     }) : (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                           {tab === "completed" ? "No completed payroll runs yet." : "No processing payroll runs."}
                         </TableCell>
                       </TableRow>
