@@ -15,20 +15,26 @@ export function useEmployeeProfile(employeeId: string | undefined) {
     enabled: !!employeeId,
     queryFn: async () => {
       const empId = employeeId!;
-      const [empRes, addrRes, bankRes, emergRes, eduRes] = await Promise.all([
+      const [empRes, addrRes, bankRes, emergRes, eduRes, compRes] = await Promise.all([
         supabase.from("employees").select("*").eq("id", empId).maybeSingle(),
         supabase.from("employee_addresses").select("*").eq("employee_id", empId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("employee_bank_details").select("*").eq("employee_id", empId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("employee_emergency_contacts").select("*").eq("employee_id", empId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("employee_education").select("*").eq("employee_id", empId).order("created_at", { ascending: true }),
+        (supabase as any).from("employee_compensation").select("*").eq("employee_id", empId).is("effective_to", null),
       ]);
       if (empRes.error) throw empRes.error;
+      const compRows: any[] = compRes.data ?? [];
+      const baseRow = compRows.find((c) => c.component_type === "base");
+      const baseSalary = baseRow ? Number(baseRow.amount) : compRows.reduce((s, c) => s + (Number(c.amount) || 0), 0);
       return {
         employee: empRes.data,
         address: addrRes.data ?? null,
         bank: bankRes.data ?? null,
         emergency: emergRes.data ?? null,
         education: eduRes.data ?? [],
+        compensation: compRows,
+        baseSalary,
       };
     },
     staleTime: 15_000,
