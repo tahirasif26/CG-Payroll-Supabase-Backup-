@@ -60,7 +60,58 @@ import { useCanApprove } from "@/hooks/useCanApprove";
 import { useRole } from "@/contexts/RoleContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+
 const REPORTING_CURRENCY = "SAR";
+
+function getDaysUntil(dateStr: string | null | undefined): number {
+  if (!dateStr) return 0;
+  const target = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function LivePayrollCard({
+  run,
+  setupName,
+  currency,
+  onProcess,
+}: {
+  run: PayrollRunRow;
+  setupName: string;
+  currency: string;
+  onProcess: (run: PayrollRunRow) => void;
+}) {
+  const daysLeft = getDaysUntil(run.run_date);
+  const isUrgent = daysLeft <= 3;
+  return (
+    <Card className={`border-2 ${isUrgent ? "border-destructive/50 bg-destructive/5" : "border-primary/30 bg-primary/5"}`}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-sm font-semibold">{setupName}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">{currency} · {run.month} {run.year}</p>
+          </div>
+          <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">● Live</Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-3">
+          <p className={`text-3xl font-bold ${isUrgent ? "text-destructive" : "text-primary"}`}>{daysLeft}</p>
+          <p className="text-xs text-muted-foreground">
+            days until pay date ({run.run_date ? new Date(run.run_date).toLocaleDateString() : "—"})
+          </p>
+        </div>
+        <Button size="sm" className="w-full" variant={isUrgent ? "destructive" : "default"} onClick={() => onProcess(run)}>
+          Process Payroll
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -279,7 +330,8 @@ export default function PayrollPage() {
   const { activeTypes, getTypeName } = useEmployeeTypes();
   const { deductions } = useDeductions();
   const canApprovePayroll = useCanApprove("payroll");
-  const { currentEmployeeId } = useRole();
+  const { currentEmployeeId, clientId } = useRole();
+  const queryClient = useQueryClient();
   const { advances } = useAdvances();
   const { setups, getSetupById } = usePayrollSetups();
   const activeSetups = setups.filter(s => s.status === "active");
@@ -528,6 +580,39 @@ export default function PayrollPage() {
     const setupName = run.payrollSetupId ? (getSetupById(run.payrollSetupId)?.name || "Unknown") : (run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "all");
     toast({ title: "Payroll Completed", description: `${run.month} ${run.year} payroll for ${setupName} is locked.` });
     setSelectedRun(null);
+
+    // Auto-create the next month's draft run for this setup so the live cards
+    // pipeline keeps rolling forward.
+    void (async () => {
+      try {
+        if (!run.payrollSetupId || !clientId) return;
+        const setup = getSetupById(run.payrollSetupId);
+        if (!setup) return;
+        const monthNames = [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December",
+        ];
+        const curIdx = monthNames.indexOf(run.month);
+        const baseIdx = curIdx >= 0 ? curIdx : new Date().getMonth();
+        const nextIdx = (baseIdx + 1) % 12;
+        const nextYear = baseIdx === 11 ? run.year + 1 : run.year;
+        const payDate = parseInt(setup.paySchedule?.payDate ?? "25", 10) || 25;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) return;
+        await supabase.from("payroll_runs").insert({
+          client_id: clientId,
+          payroll_setup_id: setup.id,
+          month: monthNames[nextIdx],
+          year: nextYear,
+          run_date: `${nextYear}-${String(nextIdx + 1).padStart(2, "0")}-${String(payDate).padStart(2, "0")}`,
+          status: "draft",
+          created_by: user.id,
+        });
+        queryClient.invalidateQueries({ queryKey: ["payroll_runs"] });
+      } catch {
+        // Non-fatal: next run can be added manually if this fails.
+      }
+    })();
   };
 
   const handleDeleteRun = (id: string) => {
@@ -1093,11 +1178,7 @@ export default function PayrollPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payroll Runs" description="Process and manage monthly payroll.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={allSetupsHaveOpenRun}>
-          <Play className="h-4 w-4 mr-2" />New Payroll Run
-        </Button>
-      </PageHeader>
+      <PageHeader title="Payroll Runs" description="Process and manage monthly payroll." />
 
       {(() => {
         const unassignedEmps = activeEmps.filter(e => !e.payrollSetupId);
@@ -1110,11 +1191,36 @@ export default function PayrollPage() {
         return null;
       })()}
 
-      {allSetupsHaveOpenRun && (
-        <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
-          All payroll setups have open runs. Complete or delete them before creating new ones.
-        </div>
-      )}
+      {/* Live Payrolls — auto-created, in-progress runs */}
+      {(() => {
+        const liveRuns = dbRuns.filter(r => r.status !== "completed" && r.status !== "failed");
+        if (liveRuns.length === 0) return null;
+        return (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Live Payrolls</span>
+              <Badge variant="secondary">{liveRuns.length}</Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {liveRuns.map(r => {
+                const setup = getSetupById(r.payroll_setup_id ?? "");
+                return (
+                  <LivePayrollCard
+                    key={r.id}
+                    run={r}
+                    setupName={setup?.name ?? "Payroll"}
+                    currency={setup?.currency ?? REPORTING_CURRENCY}
+                    onProcess={(row) => {
+                      const localRun = runs.find(x => x.id === row.id);
+                      if (localRun) setSelectedRun(localRun);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <Tabs defaultValue="processing" className="space-y-4">
         <TabsList>
