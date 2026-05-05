@@ -1,9 +1,8 @@
-// ⚠️ DEPRECATED (Step 10): localStorage-backed approval roles. The DB-backed
-// replacement lives at @/hooks/queries/useApprovals (useApprovalRoles,
-// useApprovalAssignments, buildPermissionChecker). New code should use those.
-// This context is kept temporarily so existing pages (LoansPage, ExpensesPage,
-// PayrollPage, ApprovalMatrixPage) keep working with their numeric mock employee
-// IDs until they're migrated to real auth user UUIDs.
+// ⚠️ FULLY DEPRECATED — DO NOT USE
+// Replaced by useCanApprove hook + approval_groups DB tables
+// (see @/hooks/queries/useApprovals and @/hooks/useCanApprove).
+// This file is kept for reference only and is no longer wired into App.tsx.
+
 import { createContext, useContext, useState, ReactNode } from "react";
 
 export interface ApprovalRole {
