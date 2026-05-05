@@ -187,37 +187,51 @@ export default function CompanyStructurePage() {
   };
   const handleDivDelete = (id: string) => { setDivItems(prev => prev.filter(i => i.id !== id)); toast({ title: "Deleted" }); };
 
-  // Department handlers
+  // Department handlers (DB-backed)
   const openAddDept = () => { setDeptEdit(null); setDeptName(""); setDeptDialogOpen(true); };
   const openEditDept = (item: SimpleDepartment) => { setDeptEdit(item); setDeptName(item.name); setDeptDialogOpen(true); };
-  const handleDeptSubmit = (e: React.FormEvent) => {
+  const handleDeptSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (deptEdit) {
-      setDeptItems(prev => prev.map(i => i.id === deptEdit.id ? { ...i, name: deptName } : i));
-      toast({ title: "Updated" });
-    } else {
-      setDeptItems(prev => [...prev, { id: String(Date.now()), name: deptName, isActive: true }]);
-      toast({ title: "Added", description: `${deptName} department added.` });
-    }
-    setDeptDialogOpen(false);
+    try {
+      if (deptEdit) {
+        await updateDeptMut.mutateAsync({ id: deptEdit.id, name: deptName });
+        toast({ title: "Updated" });
+      } else {
+        await addDeptMut.mutateAsync(deptName);
+        toast({ title: "Added", description: `${deptName} department added.` });
+      }
+      setDeptDialogOpen(false);
+    } catch { /* toast shown by mutation */ }
   };
-  const handleDeptDelete = (id: string) => { setDeptItems(prev => prev.filter(i => i.id !== id)); toast({ title: "Deleted" }); };
+  const handleDeptDelete = async (id: string) => {
+    try {
+      await deleteDeptMut.mutateAsync(id);
+      toast({ title: "Deleted" });
+    } catch { /* toast shown by mutation */ }
+  };
 
-  // Job Title handlers
+  // Job Title handlers (DB-backed)
   const openAddJt = () => { setJtEdit(null); setJtTitle(""); setJtLevel("Entry"); setJtDialogOpen(true); };
   const openEditJt = (item: JobTitle) => { setJtEdit(item); setJtTitle(item.title); setJtLevel(item.level); setJtDialogOpen(true); };
-  const handleJtSubmit = (e: React.FormEvent) => {
+  const handleJtSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (jtEdit) {
-      setJtItems(prev => prev.map(i => i.id === jtEdit.id ? { ...i, title: jtTitle, level: jtLevel } : i));
-      toast({ title: "Updated", description: `${jtTitle} updated.` });
-    } else {
-      setJtItems(prev => [...prev, { id: String(Date.now()), title: jtTitle, level: jtLevel, isActive: true }]);
-      toast({ title: "Added", description: `${jtTitle} added.` });
-    }
-    setJtDialogOpen(false);
+    try {
+      if (jtEdit) {
+        await updateDesigMut.mutateAsync({ id: jtEdit.id, name: jtTitle, level: jtLevel });
+        toast({ title: "Updated", description: `${jtTitle} updated.` });
+      } else {
+        await addDesigMut.mutateAsync({ name: jtTitle, level: jtLevel });
+        toast({ title: "Added", description: `${jtTitle} added.` });
+      }
+      setJtDialogOpen(false);
+    } catch { /* toast shown by mutation */ }
   };
-  const handleJtDelete = (id: string) => { setJtItems(prev => prev.filter(i => i.id !== id)); toast({ title: "Deleted" }); };
+  const handleJtDelete = async (id: string) => {
+    try {
+      await deleteDesigMut.mutateAsync(id);
+      toast({ title: "Deleted" });
+    } catch { /* toast shown by mutation */ }
+  };
 
   return (
     <div className="space-y-6">
