@@ -21,7 +21,6 @@ import SalaryRulesTab from "@/components/payrollSetup/SalaryRulesTab";
 import OvertimeTab from "@/components/payrollSetup/OvertimeTab";
 import AutoDeductionsTab from "@/components/payrollSetup/AutoDeductionsTab";
 import LoanAdvanceTab from "@/components/payrollSetup/LoanAdvanceTab";
-import LeaveEncashmentTab from "@/components/payrollSetup/LeaveEncashmentTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
 import RetirementPoliciesTab from "@/components/payrollSetup/RetirementPoliciesTab";
 import ApprovalWorkflowTab from "@/components/payrollSetup/ApprovalWorkflowTab";
@@ -41,8 +40,7 @@ const defaultSetup: PayrollSetup = {
   overtime: { enabled: false, rateMultiplier: 1.5, maxOvertimeHours: 40 },
   autoDeductions: { latePenaltyEnabled: false, latePenaltyAmount: 0, absenceDeductionEnabled: false, absenceDeductionPerDay: 0, customRules: [] },
   loanAdvance: { enableAdvanceDeduction: false, maxDeductionPercentage: 0, autoDeductRemaining: false },
-  leaveEncashment: { enabled: false, formula: "", leaveAllocations: [] },
-  finalSettlement: { includeLeaveEncashment: false, includePendingSalary: true, includeDeductions: true, noticePeriodRecoveryDays: 30 },
+  finalSettlement: { includePendingSalary: true, includeDeductions: true, noticePeriodRecoveryDays: 30 },
   retirement: { enablePF: false, employeeContributionPct: 0, employerContributionPct: 0, enableVPS: false, vpsContributionRules: "" },
   approvalWorkflow: { enabled: false, levels: [] },
 };
@@ -136,7 +134,6 @@ export default function PayrollSetupEditorPage() {
             <TabsTrigger value="overtime">Overtime</TabsTrigger>
             <TabsTrigger value="auto-deductions">Auto Deductions</TabsTrigger>
             <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
-            <TabsTrigger value="leave">Leave & Encash</TabsTrigger>
             <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
             <TabsTrigger value="retirement">Retirement</TabsTrigger>
             <TabsTrigger value="approval">Approval</TabsTrigger>
@@ -152,7 +149,6 @@ export default function PayrollSetupEditorPage() {
           <TabsContent value="overtime"><OvertimeTab data={setup.overtime} onChange={d => setSetup(s => ({ ...s, overtime: d }))} /></TabsContent>
           <TabsContent value="auto-deductions"><AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} /></TabsContent>
           <TabsContent value="loan"><LoanAdvanceTab data={setup.loanAdvance} onChange={d => setSetup(s => ({ ...s, loanAdvance: d }))} /></TabsContent>
-          <TabsContent value="leave"><LeaveEncashmentTab data={setup.leaveEncashment} onChange={d => setSetup(s => ({ ...s, leaveEncashment: d }))} /></TabsContent>
           <TabsContent value="settlement"><FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /></TabsContent>
           <TabsContent value="retirement"><RetirementPoliciesTab data={setup.retirement} onChange={d => setSetup(s => ({ ...s, retirement: d }))} /></TabsContent>
           <TabsContent value="approval"><ApprovalWorkflowTab data={setup.approvalWorkflow} onChange={d => setSetup(s => ({ ...s, approvalWorkflow: d }))} /></TabsContent>

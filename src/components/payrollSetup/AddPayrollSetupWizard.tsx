@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   Calendar, Settings, Layers, Receipt, Wallet, Clock, MinusCircle,
-  Banknote, Plane, FileCheck, PiggyBank, Workflow, Check, ArrowLeft, ArrowRight, Save,
+  Banknote, FileCheck, PiggyBank, Workflow, Check, ArrowLeft, ArrowRight, Save,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
@@ -23,7 +23,6 @@ import SalaryRulesTab from "./SalaryRulesTab";
 import OvertimeTab from "./OvertimeTab";
 import AutoDeductionsTab from "./AutoDeductionsTab";
 import LoanAdvanceTab from "./LoanAdvanceTab";
-import LeaveEncashmentTab from "./LeaveEncashmentTab";
 import FinalSettlementTab from "./FinalSettlementTab";
 import RetirementPoliciesTab from "./RetirementPoliciesTab";
 import ApprovalWorkflowTab from "./ApprovalWorkflowTab";
@@ -54,8 +53,7 @@ const defaultSetup = (): PayrollSetup => ({
   overtime: { enabled: false, rateMultiplier: 1.5, maxOvertimeHours: 40 },
   autoDeductions: { latePenaltyEnabled: false, latePenaltyAmount: 0, absenceDeductionEnabled: false, absenceDeductionPerDay: 0, customRules: [] },
   loanAdvance: { enableAdvanceDeduction: false, maxDeductionPercentage: 0, autoDeductRemaining: false },
-  leaveEncashment: { enabled: false, formula: "", leaveAllocations: [] },
-  finalSettlement: { includeLeaveEncashment: false, includePendingSalary: true, includeDeductions: true, noticePeriodRecoveryDays: 30 },
+  finalSettlement: { includePendingSalary: true, includeDeductions: true, noticePeriodRecoveryDays: 30 },
   retirement: { enablePF: false, employeeContributionPct: 0, employerContributionPct: 0, enableVPS: false, vpsContributionRules: "" },
   approvalWorkflow: { enabled: false, levels: [] },
 });
@@ -107,7 +105,6 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
     { id: "overtime", label: "Overtime", icon: Clock, content: <OvertimeTab data={setup.overtime} onChange={d => setSetup(s => ({ ...s, overtime: d }))} /> },
     { id: "auto-deductions", label: "Auto Deductions", icon: MinusCircle, content: <AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} /> },
     { id: "loan", label: "Loan & Advance", icon: Banknote, content: <LoanAdvanceTab data={setup.loanAdvance} onChange={d => setSetup(s => ({ ...s, loanAdvance: d }))} /> },
-    { id: "leave", label: "Leave Encashment", icon: Plane, content: <LeaveEncashmentTab data={setup.leaveEncashment} onChange={d => setSetup(s => ({ ...s, leaveEncashment: d }))} /> },
     { id: "settlement", label: "Final Settlement", icon: FileCheck, content: <FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /> },
     { id: "retirement", label: "Retirement", icon: PiggyBank, content: <RetirementPoliciesTab data={setup.retirement} onChange={d => setSetup(s => ({ ...s, retirement: d }))} /> },
     { id: "approval", label: "Approval", icon: Workflow, content: <ApprovalWorkflowTab data={setup.approvalWorkflow} onChange={d => setSetup(s => ({ ...s, approvalWorkflow: d }))} /> },
