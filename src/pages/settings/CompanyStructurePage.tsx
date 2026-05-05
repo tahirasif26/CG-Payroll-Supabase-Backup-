@@ -34,6 +34,7 @@ const initialDepartments: SimpleDepartment[] = [
 export default function CompanyStructurePage() {
   const { toast } = useToast();
   const { clientId } = useRole();
+  const qc = useQueryClient();
   const { employeeTypes, addEmployeeType, updateEmployeeType, deleteEmployeeType } = useEmployeeTypes();
 
   const { data: dbDepartments = [] } = useQuery({
@@ -41,7 +42,7 @@ export default function CompanyStructurePage() {
     enabled: !!clientId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("departments").select("id, name").eq("client_id", clientId!);
+        .from("departments").select("id, name").eq("client_id", clientId!).order("name");
       if (error) throw error;
       return data ?? [];
     },
@@ -52,11 +53,77 @@ export default function CompanyStructurePage() {
     enabled: !!clientId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("designations").select("id, name, level").eq("client_id", clientId!);
+        .from("designations").select("id, name, level").eq("client_id", clientId!).order("name");
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  const addDeptMut = useMutation({
+    mutationFn: async (name: string) => {
+      if (!clientId) throw new Error("No client context");
+      const { error } = await supabase.from("departments").insert({ client_id: clientId, name });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["departments", clientId] }),
+    onError: (e: Error) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+  });
+
+  const updateDeptMut = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from("departments").update({ name }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["departments", clientId] }),
+    onError: (e: Error) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteDeptMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("departments").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["departments", clientId] }),
+    onError: (e: Error) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
+  });
+
+  const levelToInt = (l: string): number | null => {
+    const map: Record<string, number> = { Leadership: 4, Management: 3, Professional: 2, Entry: 1 };
+    return map[l] ?? null;
+  };
+  const intToLevel = (n: number | null | undefined): string => {
+    const map: Record<number, string> = { 4: "Leadership", 3: "Management", 2: "Professional", 1: "Entry" };
+    return n != null ? (map[n] ?? "Entry") : "Entry";
+  };
+
+  const addDesigMut = useMutation({
+    mutationFn: async ({ name, level }: { name: string; level: string }) => {
+      if (!clientId) throw new Error("No client context");
+      const { error } = await supabase.from("designations").insert({ client_id: clientId, name, level: levelToInt(level) });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["designations", clientId] }),
+    onError: (e: Error) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+  });
+
+  const updateDesigMut = useMutation({
+    mutationFn: async ({ id, name, level }: { id: string; name: string; level: string }) => {
+      const { error } = await supabase.from("designations").update({ name, level: levelToInt(level) }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["designations", clientId] }),
+    onError: (e: Error) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteDesigMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("designations").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["designations", clientId] }),
+    onError: (e: Error) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
+  });
+
 
   // Employee Types state
   const [etDialogOpen, setEtDialogOpen] = useState(false);
