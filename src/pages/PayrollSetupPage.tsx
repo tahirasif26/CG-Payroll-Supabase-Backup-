@@ -153,19 +153,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
               </CardContent></Card>
             </TabsContent>
 
-            <TabsContent value="retirement">
-              <Card><CardHeader><CardTitle className="text-sm">Retirement Policies</CardTitle></CardHeader><CardContent>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><Label className="text-muted-foreground text-xs">Provident Fund</Label><p>{setup.retirement.enablePF ? "Enabled" : "Disabled"}</p></div>
-                  {setup.retirement.enablePF && <>
-                    <div><Label className="text-muted-foreground text-xs">Employee Contribution</Label><p>{setup.retirement.employeeContributionPct}%</p></div>
-                    <div><Label className="text-muted-foreground text-xs">Employer Contribution</Label><p>{setup.retirement.employerContributionPct}%</p></div>
-                  </>}
-                  <div><Label className="text-muted-foreground text-xs">VPS</Label><p>{setup.retirement.enableVPS ? "Enabled" : "Disabled"}</p></div>
-                  {setup.retirement.enableVPS && <div className="col-span-2"><Label className="text-muted-foreground text-xs">VPS Rules</Label><p>{setup.retirement.vpsContributionRules}</p></div>}
-                </div>
-              </CardContent></Card>
-            </TabsContent>
 
             <TabsContent value="approval">
               <Card><CardHeader><CardTitle className="text-sm">Approval Workflow</CardTitle></CardHeader><CardContent>
