@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { useCreateEmployee } from "@/hooks/queries/useEmployees";
+import { useCreateEmployee, useUpdateEmployee } from "@/hooks/queries/useEmployees";
+import { useEmployeeProfile, useUpdateEmployeeProfile } from "@/hooks/queries/useEmployeeProfile";
 import { useToast } from "@/hooks/use-toast";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -39,6 +40,8 @@ interface AddEmployeeWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   employeeCount: number;
+  /** When provided, the wizard runs in EDIT mode and updates the existing employee. */
+  editEmployeeId?: string;
 }
 
 interface FormData {
@@ -83,11 +86,15 @@ const TABS = [
 
 const DEPARTMENTS = ["Assurance", "Tax", "Advisory", "Strategy", "Technology"];
 
-export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmployeeWizardProps) {
+export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmployeeId }: AddEmployeeWizardProps) {
+  const isEditMode = !!editEmployeeId;
   const { activeTypes } = useEmployeeTypes();
   const { setups } = usePayrollSetups();
   const { addEmployee, employees: allEmployees } = useEmployees();
   const createEmployee = useCreateEmployee();
+  const updateEmployeeMut = useUpdateEmployee();
+  const updateProfile = useUpdateEmployeeProfile();
+  const { data: editProfile } = useEmployeeProfile(editEmployeeId);
   const { toast } = useToast();
   
   const { clientId } = useAuth();
