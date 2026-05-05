@@ -217,19 +217,11 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
   );
 
   const getEntitledDays = useCallback(
-    (employeeId: string, leaveTypeId: string, setup?: PayrollSetup) => {
-      // 1. Setup-level allocation
-      if (setup?.leaveEncashment?.leaveAllocations?.length) {
-        const setupAlloc = setup.leaveEncashment.leaveAllocations.find(
-          (a) => a.leaveTypeId === leaveTypeId && a.isActive
-        );
-        if (setupAlloc) return setupAlloc.daysEntitled;
-        return 0;
-      }
-      // 2. Employee override
+    (employeeId: string, leaveTypeId: string, _setup?: PayrollSetup) => {
+      // 1. Employee override
       const alloc = allocations.find((a) => a.employeeId === employeeId && a.leaveTypeId === leaveTypeId);
       if (alloc) return alloc.allocatedDays;
-      // 3. Global default
+      // 2. Global default
       const lt = leaveTypes.find((l) => l.id === leaveTypeId);
       return lt?.defaultDays ?? 0;
     },
@@ -251,13 +243,7 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
       const rows: any[] = [];
       for (const empId of employeeIds) {
         const setup = getSetupForEmployee?.(empId);
-        const applicable = setup?.leaveEncashment?.leaveAllocations?.length
-          ? leaveTypes.filter(
-              (lt) =>
-                lt.isActive &&
-                setup.leaveEncashment.leaveAllocations.some((a) => a.leaveTypeId === lt.id && a.isActive)
-            )
-          : leaveTypes.filter((l) => l.isActive);
+        const applicable = leaveTypes.filter((l) => l.isActive);
         for (const lt of applicable) {
           const exists = balances.find(
             (b) => b.employeeId === empId && b.leaveTypeId === lt.id && b.year === String(yearInt)
