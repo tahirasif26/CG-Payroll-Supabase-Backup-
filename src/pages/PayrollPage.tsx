@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useLoans } from "@/hooks/queries/useLoans";
 import { useExpenses } from "@/hooks/queries/useExpenses";
 import { usePayrollRuns, type PayrollRunRow } from "@/hooks/queries/usePayroll";
+import { useGLMappings } from "@/hooks/queries/useGLMappings";
 
 // Tax configs are now sourced from PayrollSetup.taxRules per run; the legacy
 // global TaxConfig[] path is unused so we default it to empty.
