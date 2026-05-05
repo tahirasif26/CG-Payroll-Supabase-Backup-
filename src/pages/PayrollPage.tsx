@@ -1020,10 +1020,15 @@ export default function PayrollPage() {
           </ScrollArea>
         </div>
 
-        {selectedRun.status === "processing" && (
+        {(selectedRun.status === "draft" || selectedRun.status === "processing") && (
           <div className="flex gap-2">
+            {selectedRun.status === "draft" && (
+              <Button variant="outline" onClick={() => handleProcess(selectedRun.id)}>
+                Start Processing
+              </Button>
+            )}
             <Button className="gradient-ey text-primary-foreground font-semibold" onClick={() => { setConfirmAction({ id: selectedRun.id, action: "approve" }); setConfirmOpen(true); }}>
-              <CheckCircle2 className="h-4 w-4 mr-2" />Complete & Lock Payroll
+              <CheckCircle2 className="h-4 w-4 mr-2" />Run & Complete Payroll
             </Button>
             <Button variant="destructive" onClick={() => { setConfirmAction({ id: selectedRun.id, action: "reject" }); setConfirmOpen(true); }}>
               <XCircle className="h-4 w-4 mr-2" />Reject
