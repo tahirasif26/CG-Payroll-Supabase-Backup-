@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useMyPolicyAcks, useAcknowledgePolicy } from "@/hooks/queries/usePolicyAcks";
 import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useRole } from "@/contexts/RoleContext";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 
 const categoryLabels: Record<PolicyCategory, string> = {
   hr: "HR",
