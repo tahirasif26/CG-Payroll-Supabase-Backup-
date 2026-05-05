@@ -375,6 +375,51 @@ export default function PayrollPage() {
     });
   }, [dbRuns]);
 
+  // Ensure every ACTIVE payroll setup has at least one open (non-completed)
+  // payroll run. If a setup has no open run, auto-create a draft for the
+  // current month so it shows up in the Processing tab + Live cards.
+  const autoCreateAttemptedRef = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    if (!clientId || activeSetups.length === 0) return;
+    const openSetupIds = new Set(
+      dbRuns
+        .filter(r => r.status !== "completed" && r.status !== "failed" && r.payroll_setup_id)
+        .map(r => r.payroll_setup_id as string)
+    );
+    const missing = activeSetups.filter(s => !openSetupIds.has(s.id) && !autoCreateAttemptedRef.current.has(s.id));
+    if (missing.length === 0) return;
+    void (async () => {
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+      ];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) return;
+      const now = new Date();
+      for (const setup of missing) {
+        autoCreateAttemptedRef.current.add(setup.id);
+        try {
+          const payDate = parseInt(setup.paySchedule?.payDate ?? "25", 10) || 25;
+          const advance = now.getDate() > payDate;
+          const targetIdx = advance ? (now.getMonth() + 1) % 12 : now.getMonth();
+          const targetYear = advance && now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+          await supabase.from("payroll_runs").insert({
+            client_id: clientId,
+            payroll_setup_id: setup.id,
+            month: monthNames[targetIdx],
+            year: targetYear,
+            run_date: `${targetYear}-${String(targetIdx + 1).padStart(2, "0")}-${String(payDate).padStart(2, "0")}`,
+            status: "draft",
+            created_by: user.id,
+          });
+        } catch {
+          // Non-fatal — user can still create runs manually.
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["payroll_runs"] });
+    })();
+  }, [activeSetups, dbRuns, clientId, queryClient]);
+
   const syncRuns = (updater: (prev: PayrollRun[]) => PayrollRun[]) => {
     setRuns(updater);
   };
