@@ -1685,6 +1685,18 @@ function EmployeesDirectory() {
     setUploadDocOpen(false);
   };
 
+  // Edit Employee — full-page wizard reuse (must be checked BEFORE selectedEmployee block).
+  if (editEmpId) {
+    return (
+      <AddEmployeeWizard
+        open={true}
+        onOpenChange={(v) => { if (!v) setEditEmpId(null); }}
+        employeeCount={localEmployees.length}
+        editEmployeeId={editEmpId}
+      />
+    );
+  }
+
   if (selectedEmployee) {
     const isEmployee = role === "employee";
     const isOwnProfile = selectedEmployee.id === currentEmployeeId;
