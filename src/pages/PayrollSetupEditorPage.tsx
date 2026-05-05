@@ -40,7 +40,7 @@ const defaultSetup: PayrollSetup = {
   overtime: { enabled: false, rateMultiplier: 1.5, maxOvertimeHours: 40 },
   autoDeductions: { latePenaltyEnabled: false, latePenaltyAmount: 0, absenceDeductionEnabled: false, absenceDeductionPerDay: 0, customRules: [] },
   loanAdvance: { enableAdvanceDeduction: false, maxDeductionPercentage: 0, autoDeductRemaining: false },
-  finalSettlement: { includePendingSalary: true, includeDeductions: true, noticePeriodRecoveryDays: 30 },
+  finalSettlement: { noticePeriodRecoveryDays: 30 },
   retirement: { enablePF: false, employeeContributionPct: 0, employerContributionPct: 0, enableVPS: false, vpsContributionRules: "" },
   approvalWorkflow: { enabled: false, levels: [] },
 };

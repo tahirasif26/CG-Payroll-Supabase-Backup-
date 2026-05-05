@@ -232,17 +232,6 @@ export default function PayrollSetupViewPage() {
           <TabsContent value="settlement">
             <h3 className="text-lg font-semibold mb-4">Final Settlement</h3>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {([
-                  { key: "includePendingSalary", label: "Include Pending Salary" },
-                  { key: "includeDeductions", label: "Include Deductions" },
-                ] as const).map(t => (
-                  <div key={t.key} className="flex items-center justify-between rounded-lg border p-4">
-                    <Label className="text-sm">{t.label}</Label>
-                    <Switch checked={setup.finalSettlement[t.key]} disabled />
-                  </div>
-                ))}
-              </div>
               <Field label="Notice Period Recovery Days" value={setup.finalSettlement.noticePeriodRecoveryDays} />
             </div>
           </TabsContent>
