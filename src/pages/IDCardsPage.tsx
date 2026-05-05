@@ -11,21 +11,27 @@ import { useClient } from "@/contexts/ClientContext";
 import { useBLEAccess } from "@/contexts/BLEAccessContext";
 import { generateBLEUUID } from "@/lib/bleAccess";
 import { generateQRCodeSVG } from "@/lib/qrcode";
+import { useViewScope } from "@/contexts/ViewScopeContext";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 
 export default function IDCardsPage() {
   const activeEmployees = useActiveEmployees();
   const { client } = useClient();
   const { getAccessForEmployee, doors } = useBLEAccess();
+  const { scope } = useViewScope();
+  const { data: currentEmp } = useCurrentEmployee();
   const [search, setSearch] = useState("");
   const [selectedEmp, setSelectedEmp] = useState<typeof activeEmployees[0] | null>(null);
 
-  const filtered = activeEmployees.filter(emp => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q)
-      || emp.empId.toLowerCase().includes(q)
-      || emp.department.toLowerCase().includes(q);
-  });
+  const filtered = scope === "me"
+    ? activeEmployees.filter(emp => emp.id === currentEmp?.id)
+    : activeEmployees.filter(emp => {
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q)
+          || emp.empId.toLowerCase().includes(q)
+          || emp.department.toLowerCase().includes(q);
+      });
 
   const getDoorName = (doorId: string) => doors.find(d => d.id === doorId)?.name || doorId;
 
@@ -124,12 +130,17 @@ export default function IDCardsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Employee ID Cards" description="Digital ID cards with BLE access credentials and QR codes." />
+      <PageHeader
+        title={scope === "me" ? "My ID Card" : "Employee ID Cards"}
+        description={scope === "me" ? "Your employee ID card with BLE access credentials and QR code." : "Digital ID cards with BLE access credentials and QR codes."}
+      />
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search by name, ID, department..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-      </div>
+      {scope === "people" && (
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name, ID, department..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(emp => (
