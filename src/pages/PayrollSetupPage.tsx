@@ -162,8 +162,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
             <TabsContent value="settlement">
               <Card><CardHeader><CardTitle className="text-sm">Final Settlement</CardTitle></CardHeader><CardContent>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="flex justify-between col-span-2"><span>Include Pending Salary</span><Switch checked={setup.finalSettlement.includePendingSalary} disabled /></div>
-                  <div className="flex justify-between col-span-2"><span>Include Deductions</span><Switch checked={setup.finalSettlement.includeDeductions} disabled /></div>
                   <div><Label className="text-muted-foreground text-xs">Notice Period Recovery Days</Label><p>{setup.finalSettlement.noticePeriodRecoveryDays}</p></div>
                 </div>
               </CardContent></Card>

@@ -66,8 +66,6 @@ export interface LeaveAllocation {
 }
 
 export interface FinalSettlement {
-  includePendingSalary: boolean;
-  includeDeductions: boolean;
   noticePeriodRecoveryDays: number;
 }
 

@@ -64,8 +64,6 @@ function rowToSetup(row: any): PayrollSetup {
       autoDeductRemaining: false,
     },
     finalSettlement: opts.finalSettlement ?? {
-      includePendingSalary: true,
-      includeDeductions: true,
       noticePeriodRecoveryDays: 30,
     },
     retirement: opts.retirement ?? {
