@@ -152,29 +152,20 @@ export default function CompanyStructurePage() {
   const [divName, setDivName] = useState("");
 
   // Departments state
-  const [deptItems, setDeptItems] = useState<SimpleDepartment[]>(initialDepartments);
-  useEffect(() => {
-    if (dbDepartments.length > 0) {
-      setDeptItems(dbDepartments.map((d: any) => ({ id: d.id, name: d.name, isActive: true })));
-    }
-  }, [dbDepartments]);
+  const deptItems: SimpleDepartment[] = dbDepartments.map((d: any) => ({
+    id: d.id, name: d.name, isActive: true,
+  }));
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
   const [deptEdit, setDeptEdit] = useState<SimpleDepartment | null>(null);
   const [deptName, setDeptName] = useState("");
 
-  // Job Titles state
-  const [jtItems, setJtItems] = useState<JobTitle[]>(jobTitles);
-  useEffect(() => {
-    if (dbDesignations.length > 0) {
-      setJtItems(
-        dbDesignations.map((d: any) => ({
-          id: d.id,
-          title: d.name,
-          level: d.level ? `Level ${d.level}` : "Entry",
-        })) as JobTitle[]
-      );
-    }
-  }, [dbDesignations]);
+  // Job Titles derived from DB
+  const jtItems: JobTitle[] = dbDesignations.map((d: any) => ({
+    id: d.id,
+    title: d.name,
+    level: intToLevel(d.level),
+    isActive: true,
+  })) as JobTitle[];
   const [jtDialogOpen, setJtDialogOpen] = useState(false);
   const [jtEdit, setJtEdit] = useState<JobTitle | null>(null);
   const [jtTitle, setJtTitle] = useState("");
