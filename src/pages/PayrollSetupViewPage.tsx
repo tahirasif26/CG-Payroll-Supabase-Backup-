@@ -66,7 +66,6 @@ export default function PayrollSetupViewPage() {
         <ScrollArea className="w-full">
           <TabsList className="inline-flex w-auto">
             <TabsTrigger value="schedule">Pay Schedule</TabsTrigger>
-            <TabsTrigger value="options">Options</TabsTrigger>
             <TabsTrigger value="components">Components</TabsTrigger>
             <TabsTrigger value="tax">Tax Rules</TabsTrigger>
             <TabsTrigger value="salary">Salary Rules</TabsTrigger>
@@ -74,7 +73,6 @@ export default function PayrollSetupViewPage() {
             <TabsTrigger value="auto-deductions">Auto Deductions</TabsTrigger>
             <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
             <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
-            <TabsTrigger value="retirement">Retirement</TabsTrigger>
             <TabsTrigger value="approval">Approval</TabsTrigger>
           </TabsList>
         </ScrollArea>
@@ -89,24 +87,6 @@ export default function PayrollSetupViewPage() {
               <Field label="Cycle End Date" value={setup.paySchedule.cycleEndDate} />
               <Field label="Pay Date" value={setup.paySchedule.payDate} />
               <Field label="Cutoff Date" value={setup.paySchedule.cutoffDate} />
-            </div>
-          </TabsContent>
-
-          {/* Options */}
-          <TabsContent value="options">
-            <h3 className="text-lg font-semibold mb-4">Payroll Options</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {([
-                { key: "includeOvertime", label: "Include Overtime" },
-                { key: "includeUnpaidLeave", label: "Include Unpaid Leave" },
-                { key: "enableTaxCalculation", label: "Enable Tax Calculation" },
-                { key: "allowNegativeSalary", label: "Allow Negative Salary" },
-              ] as const).map(t => (
-                <div key={t.key} className="flex items-center justify-between rounded-lg border p-4">
-                  <Label className="text-sm font-medium">{t.label}</Label>
-                  <Switch checked={setup.options[t.key]} disabled />
-                </div>
-              ))}
             </div>
           </TabsContent>
 
