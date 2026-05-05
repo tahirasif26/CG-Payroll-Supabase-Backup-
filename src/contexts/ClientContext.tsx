@@ -5,9 +5,14 @@ import { useRole } from "@/contexts/RoleContext";
 
 export interface ClientConfig {
   companyName: string;
-  companyLogo?: string; // base64 data URL — not yet in DB schema, kept in localStorage
-  yearEndDate?: string; // MM-DD — not yet in DB schema, kept in localStorage
-  yearEndLocked?: boolean;
+  companyLogo?: string;    // localStorage only (base64 — not in DB yet)
+  yearEndDate?: string;    // DB: clients.year_end_date (MM-DD format e.g. "12-31")
+  yearEndLocked?: boolean; // localStorage only for now
+  currency?: string;       // DB: clients.base_currency
+  country?: string;        // DB: clients.country
+  timezone?: string;       // DB: clients.timezone
+  email?: string;          // DB: clients.company_email
+  phone?: string;          // DB: clients.company_phone
 }
 
 interface ClientContextType {
@@ -21,7 +26,6 @@ const LOCAL_KEY = "cg_client_local_extras";
 
 interface LocalExtras {
   companyLogo?: string;
-  yearEndDate?: string;
   yearEndLocked?: boolean;
 }
 
@@ -53,7 +57,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, company_name")
+        .select("id, company_name, year_end_date, base_currency, country, timezone, company_email, company_phone")
         .eq("id", clientId!)
         .maybeSingle();
       if (error) throw error;
@@ -62,12 +66,19 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (companyName: string) => {
+    mutationFn: async (next: ClientConfig) => {
       if (!clientId) return;
-      const { error } = await supabase
-        .from("clients")
-        .update({ company_name: companyName })
-        .eq("id", clientId);
+      const patch: Record<string, any> = {
+        company_name: next.companyName,
+      };
+      if (next.yearEndDate !== undefined) patch.year_end_date = next.yearEndDate;
+      if (next.currency !== undefined) patch.base_currency = next.currency;
+      if (next.country !== undefined) patch.country = next.country;
+      if (next.timezone !== undefined) patch.timezone = next.timezone;
+      if (next.email !== undefined) patch.company_email = next.email;
+      if (next.phone !== undefined) patch.company_phone = next.phone;
+
+      const { error } = await supabase.from("clients").update(patch).eq("id", clientId);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["client", clientId] }),
@@ -75,29 +86,40 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
   const client = useMemo<ClientConfig>(() => {
     const extras = readLocalExtras();
+    const db: any = dbClient ?? {};
     return {
-      companyName: dbClient?.company_name ?? "",
+      companyName: db.company_name ?? "",
       companyLogo: extras.companyLogo,
-      yearEndDate: extras.yearEndDate,
+      yearEndDate: db.year_end_date ?? "12-31",
       yearEndLocked: extras.yearEndLocked,
+      currency: db.base_currency ?? "SAR",
+      country: db.country ?? "Saudi Arabia",
+      timezone: db.timezone ?? "Asia/Riyadh",
+      email: db.company_email ?? "",
+      phone: db.company_phone ?? "",
     };
   }, [dbClient]);
 
   const setClient = (next: ClientConfig) => {
-    // Persist company name to DB
-    if (next.companyName !== client.companyName) {
-      updateMutation.mutate(next.companyName);
-    }
-    // Persist non-DB fields to localStorage until columns are added
+    // Persist to DB (company name + all other DB-backed fields)
+    updateMutation.mutate(next);
+
+    // Persist ONLY non-DB fields to localStorage
     writeLocalExtras({
       companyLogo: next.companyLogo,
-      yearEndDate: next.yearEndDate,
       yearEndLocked: next.yearEndLocked,
     });
-    // Optimistic update for the local extras
+
+    // Optimistic update
     qc.setQueryData(["client", clientId], (old: any) => ({
       ...(old ?? {}),
       company_name: next.companyName,
+      year_end_date: next.yearEndDate,
+      base_currency: next.currency,
+      country: next.country,
+      timezone: next.timezone,
+      company_email: next.email,
+      company_phone: next.phone,
     }));
   };
 
