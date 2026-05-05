@@ -1145,11 +1145,7 @@ export default function PayrollPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payroll Runs" description="Process and manage monthly payroll.">
-        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewRunOpen(true)} disabled={allSetupsHaveOpenRun}>
-          <Play className="h-4 w-4 mr-2" />New Payroll Run
-        </Button>
-      </PageHeader>
+      <PageHeader title="Payroll Runs" description="Process and manage monthly payroll." />
 
       {(() => {
         const unassignedEmps = activeEmps.filter(e => !e.payrollSetupId);
@@ -1162,11 +1158,36 @@ export default function PayrollPage() {
         return null;
       })()}
 
-      {allSetupsHaveOpenRun && (
-        <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
-          All payroll setups have open runs. Complete or delete them before creating new ones.
-        </div>
-      )}
+      {/* Live Payrolls — auto-created, in-progress runs */}
+      {(() => {
+        const liveRuns = dbRuns.filter(r => r.status !== "completed" && r.status !== "failed");
+        if (liveRuns.length === 0) return null;
+        return (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Live Payrolls</span>
+              <Badge variant="secondary">{liveRuns.length}</Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {liveRuns.map(r => {
+                const setup = getSetupById(r.payroll_setup_id ?? "");
+                return (
+                  <LivePayrollCard
+                    key={r.id}
+                    run={r}
+                    setupName={setup?.name ?? "Payroll"}
+                    currency={setup?.currency ?? REPORTING_CURRENCY}
+                    onProcess={(row) => {
+                      const localRun = runs.find(x => x.id === row.id);
+                      if (localRun) setSelectedRun(localRun);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <Tabs defaultValue="processing" className="space-y-4">
         <TabsList>
