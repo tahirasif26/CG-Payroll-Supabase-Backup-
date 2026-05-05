@@ -73,6 +73,23 @@ function rowToSetup(row: any): PayrollSetup {
       enableVPS: false,
       vpsContributionRules: "",
     },
+    leaves: opts.leaves ?? {
+      includeUnpaidLeave: false,
+      leaveTypes: {
+        annual: { enabled: true, days: 21 },
+        sick: { enabled: true, days: 10 },
+        emergency: { enabled: true, days: 3 },
+        maternity: { enabled: true, days: 60 },
+        paternity: { enabled: true, days: 3 },
+        hajj: { enabled: true, days: 14 },
+        unpaid: { enabled: true, days: 0 },
+      },
+      allowCarryForward: false,
+      maxCarryForwardDays: 10,
+    },
+    bonus: opts.bonus ?? { enabled: false, method: "percentage", value: 0, frequency: "annual", includeInPayslip: true },
+    gratuity: opts.gratuity ?? { enabled: true, method: "saudi", slab1Days: 15, slab2Days: 30, maxMonths: 24, basis: "basic" },
+    providentFund: opts.providentFund ?? { enabled: false, scheme: "gosi_saudi", employeeRate: 9.75, employerRate: 9.75, basis: "basic", autoDeduct: true },
     approvalWorkflow: opts.approvalWorkflow ?? { enabled: false, levels: [] },
   };
 }

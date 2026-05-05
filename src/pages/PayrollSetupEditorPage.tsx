@@ -14,18 +14,20 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import PayScheduleTab from "@/components/payrollSetup/PayScheduleTab";
-import PayrollOptionsTab from "@/components/payrollSetup/PayrollOptionsTab";
 import PayslipComponentsTab from "@/components/payrollSetup/PayslipComponentsTab";
 import TaxRulesTab from "@/components/payrollSetup/TaxRulesTab";
 import SalaryRulesTab from "@/components/payrollSetup/SalaryRulesTab";
 import OvertimeTab from "@/components/payrollSetup/OvertimeTab";
 import AutoDeductionsTab from "@/components/payrollSetup/AutoDeductionsTab";
 import LoanAdvanceTab from "@/components/payrollSetup/LoanAdvanceTab";
+import LeavesTab from "@/components/payrollSetup/LeavesTab";
+import BonusTab from "@/components/payrollSetup/BonusTab";
+import GratuityTab from "@/components/payrollSetup/GratuityTab";
+import ProvidentFundTab from "@/components/payrollSetup/ProvidentFundTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
-import RetirementPoliciesTab from "@/components/payrollSetup/RetirementPoliciesTab";
 import ApprovalWorkflowTab from "@/components/payrollSetup/ApprovalWorkflowTab";
 
-const defaultSetup: PayrollSetup = {
+export const DEFAULT_PAYROLL_SETUP: PayrollSetup = {
   id: "",
   name: "",
   country: "Saudi Arabia",
@@ -42,6 +44,23 @@ const defaultSetup: PayrollSetup = {
   loanAdvance: { enableAdvanceDeduction: false, maxDeductionPercentage: 0, autoDeductRemaining: false },
   finalSettlement: { noticePeriodRecoveryDays: 30 },
   retirement: { enablePF: false, employeeContributionPct: 0, employerContributionPct: 0, enableVPS: false, vpsContributionRules: "" },
+  leaves: {
+    includeUnpaidLeave: false,
+    leaveTypes: {
+      annual: { enabled: true, days: 21 },
+      sick: { enabled: true, days: 10 },
+      emergency: { enabled: true, days: 3 },
+      maternity: { enabled: true, days: 60 },
+      paternity: { enabled: true, days: 3 },
+      hajj: { enabled: true, days: 14 },
+      unpaid: { enabled: true, days: 0 },
+    },
+    allowCarryForward: false,
+    maxCarryForwardDays: 10,
+  },
+  bonus: { enabled: false, method: "percentage", value: 0, frequency: "annual", includeInPayslip: true },
+  gratuity: { enabled: true, method: "saudi", slab1Days: 15, slab2Days: 30, maxMonths: 24, basis: "basic" },
+  providentFund: { enabled: false, scheme: "gosi_saudi", employeeRate: 9.75, employerRate: 9.75, basis: "basic", autoDeduct: true },
   approvalWorkflow: { enabled: false, levels: [] },
 };
 
@@ -52,7 +71,7 @@ export default function PayrollSetupEditorPage() {
   const { getSetupById, addSetup, updateSetup } = usePayrollSetups();
   const isNew = !id || id === "new";
 
-  const [setup, setSetup] = useState<PayrollSetup>({ ...defaultSetup, id: `ps-${Date.now()}` });
+  const [setup, setSetup] = useState<PayrollSetup>({ ...DEFAULT_PAYROLL_SETUP, id: `ps-${Date.now()}` });
 
   useEffect(() => {
     if (!isNew && id) {
@@ -78,6 +97,10 @@ export default function PayrollSetupEditorPage() {
 
   const countries = ["Saudi Arabia", "UAE", "Qatar", "Bahrain", "Kuwait", "Oman"];
   const currencies = ["SAR", "AED", "QAR", "BHD", "KWD", "OMR", "USD"];
+
+  // Helpers for the inline option toggles surfaced in tax / salary / overtime tabs.
+  const setOption = (key: keyof PayrollSetup["options"], v: boolean) =>
+    setSetup(s => ({ ...s, options: { ...s.options, [key]: v } }));
 
   return (
     <div className="space-y-6">
@@ -127,30 +150,98 @@ export default function PayrollSetupEditorPage() {
         <ScrollArea className="w-full">
           <TabsList className="inline-flex w-auto">
             <TabsTrigger value="schedule">Pay Schedule</TabsTrigger>
-            <TabsTrigger value="options">Options</TabsTrigger>
             <TabsTrigger value="components">Components</TabsTrigger>
             <TabsTrigger value="tax">Tax Rules</TabsTrigger>
             <TabsTrigger value="salary">Salary Rules</TabsTrigger>
             <TabsTrigger value="overtime">Overtime</TabsTrigger>
             <TabsTrigger value="auto-deductions">Auto Deductions</TabsTrigger>
             <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
+            <TabsTrigger value="leaves">Leaves</TabsTrigger>
+            <TabsTrigger value="bonus">Bonus</TabsTrigger>
+            <TabsTrigger value="gratuity">Gratuity</TabsTrigger>
+            <TabsTrigger value="provident">Provident Fund</TabsTrigger>
             <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
-            <TabsTrigger value="retirement">Retirement</TabsTrigger>
             <TabsTrigger value="approval">Approval</TabsTrigger>
           </TabsList>
         </ScrollArea>
 
         <div className="rounded-lg border p-6">
           <TabsContent value="schedule"><PayScheduleTab data={setup.paySchedule} onChange={d => setSetup(s => ({ ...s, paySchedule: d }))} /></TabsContent>
-          <TabsContent value="options"><PayrollOptionsTab data={setup.options} onChange={d => setSetup(s => ({ ...s, options: d }))} /></TabsContent>
           <TabsContent value="components"><PayslipComponentsTab data={setup.payslipComponents} onChange={d => setSetup(s => ({ ...s, payslipComponents: d }))} /></TabsContent>
-          <TabsContent value="tax"><TaxRulesTab data={setup.taxRules} onChange={d => setSetup(s => ({ ...s, taxRules: d }))} /></TabsContent>
-          <TabsContent value="salary"><SalaryRulesTab data={setup.salaryRules} onChange={d => setSetup(s => ({ ...s, salaryRules: d }))} /></TabsContent>
-          <TabsContent value="overtime"><OvertimeTab data={setup.overtime} onChange={d => setSetup(s => ({ ...s, overtime: d }))} /></TabsContent>
+
+          <TabsContent value="tax">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <Label>Enable tax calculation</Label>
+                  <p className="text-xs text-muted-foreground">Apply configured tax slabs to payroll runs</p>
+                </div>
+                <Switch checked={setup.options.enableTaxCalculation} onCheckedChange={v => setOption("enableTaxCalculation", v)} />
+              </div>
+              <TaxRulesTab data={setup.taxRules} onChange={d => setSetup(s => ({ ...s, taxRules: d }))} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="salary">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <Label>Allow negative salary</Label>
+                  <p className="text-xs text-muted-foreground">Permit net pay below zero after deductions</p>
+                </div>
+                <Switch checked={setup.options.allowNegativeSalary} onCheckedChange={v => setOption("allowNegativeSalary", v)} />
+              </div>
+              <SalaryRulesTab data={setup.salaryRules} onChange={d => setSetup(s => ({ ...s, salaryRules: d }))} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="overtime">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <Label>Include overtime in payroll</Label>
+                  <p className="text-xs text-muted-foreground">Add overtime earnings to payslips</p>
+                </div>
+                <Switch checked={setup.options.includeOvertime} onCheckedChange={v => setOption("includeOvertime", v)} />
+              </div>
+              <OvertimeTab data={setup.overtime} onChange={d => setSetup(s => ({ ...s, overtime: d }))} />
+            </div>
+          </TabsContent>
+
           <TabsContent value="auto-deductions"><AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} /></TabsContent>
           <TabsContent value="loan"><LoanAdvanceTab data={setup.loanAdvance} onChange={d => setSetup(s => ({ ...s, loanAdvance: d }))} /></TabsContent>
+
+          <TabsContent value="leaves">
+            <LeavesTab
+              data={setup.leaves}
+              onChange={d => setSetup(s => ({
+                ...s,
+                leaves: d,
+                // mirror unpaid-leave master toggle into legacy options for downstream calc
+                options: { ...s.options, includeUnpaidLeave: d.includeUnpaidLeave },
+              }))}
+            />
+          </TabsContent>
+          <TabsContent value="bonus"><BonusTab data={setup.bonus} onChange={d => setSetup(s => ({ ...s, bonus: d }))} /></TabsContent>
+          <TabsContent value="gratuity"><GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d }))} /></TabsContent>
+          <TabsContent value="provident">
+            <ProvidentFundTab
+              data={setup.providentFund}
+              onChange={d => setSetup(s => ({
+                ...s,
+                providentFund: d,
+                // Mirror to legacy retirement object so existing summary/calc paths keep working.
+                retirement: {
+                  ...s.retirement,
+                  enablePF: d.enabled,
+                  employeeContributionPct: d.employeeRate,
+                  employerContributionPct: d.employerRate,
+                },
+              }))}
+            />
+          </TabsContent>
+
           <TabsContent value="settlement"><FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /></TabsContent>
-          <TabsContent value="retirement"><RetirementPoliciesTab data={setup.retirement} onChange={d => setSetup(s => ({ ...s, retirement: d }))} /></TabsContent>
           <TabsContent value="approval"><ApprovalWorkflowTab data={setup.approvalWorkflow} onChange={d => setSetup(s => ({ ...s, approvalWorkflow: d }))} /></TabsContent>
         </div>
       </Tabs>
