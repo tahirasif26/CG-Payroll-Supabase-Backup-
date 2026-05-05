@@ -46,7 +46,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { AddEmployeeWizard } from "@/components/employees/AddEmployeeWizard";
-import { BulkEmployeeImportDialog } from "@/components/employees/BulkEmployeeImportDialog";
+
 import { useEmployeeProfile, useUpdateEmployeeProfile } from "@/hooks/queries/useEmployeeProfile";
 
 interface EmployeeDocVersion {
@@ -1600,7 +1600,7 @@ function EmployeesDirectory() {
   const { getTypeName } = useEmployeeTypes();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
-  const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
   const [separationOpen, setSeparationOpen] = useState(false);
   const [separationEmp, setSeparationEmp] = useState<Employee | null>(null);
@@ -2056,9 +2056,6 @@ function EmployeesDirectory() {
                   <SelectItem value="all">All Filters</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" className="h-9" onClick={() => setBulkImportOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />Bulk Import
-              </Button>
               <Button variant="outline" size="sm" className="h-9"><Download className="h-4 w-4 mr-2" />Export</Button>
               <Button size="sm" className="gradient-ey text-primary-foreground font-semibold h-9" onClick={() => setAddEmpOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />Add Employee
@@ -2068,7 +2065,7 @@ function EmployeesDirectory() {
         </div>
       </div>
 
-      <BulkEmployeeImportDialog open={bulkImportOpen} onOpenChange={setBulkImportOpen} />
+      
       <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
     </div>
   );
