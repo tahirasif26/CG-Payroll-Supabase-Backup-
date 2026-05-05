@@ -11,21 +11,27 @@ import { useClient } from "@/contexts/ClientContext";
 import { useBLEAccess } from "@/contexts/BLEAccessContext";
 import { generateBLEUUID } from "@/lib/bleAccess";
 import { generateQRCodeSVG } from "@/lib/qrcode";
+import { useViewScope } from "@/contexts/ViewScopeContext";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 
 export default function IDCardsPage() {
   const activeEmployees = useActiveEmployees();
   const { client } = useClient();
   const { getAccessForEmployee, doors } = useBLEAccess();
+  const { scope } = useViewScope();
+  const { data: currentEmp } = useCurrentEmployee();
   const [search, setSearch] = useState("");
   const [selectedEmp, setSelectedEmp] = useState<typeof activeEmployees[0] | null>(null);
 
-  const filtered = activeEmployees.filter(emp => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q)
-      || emp.empId.toLowerCase().includes(q)
-      || emp.department.toLowerCase().includes(q);
-  });
+  const filtered = scope === "me"
+    ? activeEmployees.filter(emp => emp.id === currentEmp?.id)
+    : activeEmployees.filter(emp => {
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q)
+          || emp.empId.toLowerCase().includes(q)
+          || emp.department.toLowerCase().includes(q);
+      });
 
   const getDoorName = (doorId: string) => doors.find(d => d.id === doorId)?.name || doorId;
 
