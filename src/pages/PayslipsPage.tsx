@@ -239,7 +239,11 @@ export default function PayslipsPage() {
     });
   });
 
-  const filtered = allPayslips.filter(({ emp, run }) => {
+  const scopeFiltered = scope === "me"
+    ? allPayslips.filter(({ emp }) => emp.id === currentEmployeeId)
+    : allPayslips;
+
+  const filtered = scopeFiltered.filter(({ emp, run }) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q) ||
@@ -250,7 +254,7 @@ export default function PayslipsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payslips" description="View and manage employee payslips for completed payroll runs." />
+      <PageHeader title={scope === "me" ? "My Payslips" : "Payslips"} description={scope === "me" ? "Your personal payslips for completed payroll runs." : "View and manage employee payslips for completed payroll runs."} />
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Search by name, ID, period..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
