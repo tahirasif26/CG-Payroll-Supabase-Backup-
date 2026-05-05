@@ -1451,7 +1451,7 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
   const totalUsedLeave = empLeaves.reduce((s, l) => s + l.days, 0);
   const annualEntitlement = 21;
   const remainingLeave = annualEntitlement - totalUsedLeave;
-  const leaveEncashment = Math.max(0, remainingLeave) * dailySalary;
+  const leaveEncashment = 0;
 
   // Unpaid salary (assume current month partial)
   const lastDate = separationData.lastDate ? new Date(separationData.lastDate) : new Date();
@@ -1475,7 +1475,7 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
   });
   const totalLoanBalance = empLoans.reduce((s: number, l: any) => s + (l.remaining_balance ?? 0), 0);
 
-  const totalSettlement = unpaidSalary + totalEOS + Math.round(leaveEncashment) + noticePeriodPay - totalLoanBalance;
+  const totalSettlement = unpaidSalary + totalEOS + noticePeriodPay - totalLoanBalance;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1538,10 +1538,6 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
                   <span className="font-medium">SAR {eos.amount.toLocaleString()}</span>
                 </div>
               ))}
-              <div className="flex justify-between px-3 py-2 border-b border-border/50">
-                <span>Leave Encashment ({Math.max(0, remainingLeave)} days)</span>
-                <span className="font-medium">SAR {Math.round(leaveEncashment).toLocaleString()}</span>
-              </div>
               {noticePeriodPay > 0 && (
                 <div className="flex justify-between px-3 py-2 border-b border-border/50">
                   <span>Notice Period Payment ({separationData.noticePeriodDays} days)</span>
@@ -1972,7 +1968,7 @@ function EmployeesDirectory() {
               const totalEOS = eosBreakdown.reduce((s, e) => s + e.amount, 0);
               const empLeaves = leaveRequests.filter(l => l.employeeId === separationEmp.id && l.status === "approved");
               const remainingLeave = 21 - empLeaves.reduce((s, l) => s + l.days, 0);
-              const leaveEncashment = Math.round(Math.max(0, remainingLeave) * dailySalary);
+              const leaveEncashment = 0;
               const lastDate = separationData.lastDate ? new Date(separationData.lastDate) : new Date();
               const unpaidSalary = Math.round(dailySalary * lastDate.getDate());
               const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);

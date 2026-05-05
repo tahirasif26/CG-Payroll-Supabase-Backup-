@@ -63,9 +63,7 @@ function rowToSetup(row: any): PayrollSetup {
       maxDeductionPercentage: 0,
       autoDeductRemaining: false,
     },
-    leaveEncashment: opts.leaveEncashment ?? { enabled: false, formula: "", leaveAllocations: [] },
     finalSettlement: opts.finalSettlement ?? {
-      includeLeaveEncashment: false,
       includePendingSalary: true,
       includeDeductions: true,
       noticePeriodRecoveryDays: 30,

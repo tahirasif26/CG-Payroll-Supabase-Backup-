@@ -508,10 +508,6 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
                       <span className="font-medium">{payCurrency} {eos.amount.toLocaleString()}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between px-3 py-2 border-b border-border/50">
-                    <span>Leave Encashment</span>
-                    <span className="font-medium">{payCurrency} {sepRecord.leaveEncashment.toLocaleString()}</span>
-                  </div>
                   {sepRecord.noticePeriodPay > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50">
                       <span>Notice Period Pay</span>

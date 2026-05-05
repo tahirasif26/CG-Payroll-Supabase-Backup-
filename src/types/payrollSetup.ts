@@ -65,14 +65,7 @@ export interface LeaveAllocation {
   isActive: boolean;
 }
 
-export interface LeaveEncashment {
-  enabled: boolean;
-  formula: string;
-  leaveAllocations: LeaveAllocation[];
-}
-
 export interface FinalSettlement {
-  includeLeaveEncashment: boolean;
   includePendingSalary: boolean;
   includeDeductions: boolean;
   noticePeriodRecoveryDays: number;
@@ -106,7 +99,7 @@ export interface PayrollSetup {
   overtime: OvertimeConfig;
   autoDeductions: AutoDeductions;
   loanAdvance: LoanAdvanceConfig;
-  leaveEncashment: LeaveEncashment;
+  
   finalSettlement: FinalSettlement;
   retirement: RetirementPolicies;
   approvalWorkflow: ApprovalWorkflow;

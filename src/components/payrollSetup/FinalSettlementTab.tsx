@@ -10,7 +10,6 @@ interface Props {
 
 export default function FinalSettlementTab({ data, onChange }: Props) {
   const toggles: { key: keyof Omit<FinalSettlement, "noticePeriodRecoveryDays">; label: string }[] = [
-    { key: "includeLeaveEncashment", label: "Include Leave Encashment" },
     { key: "includePendingSalary", label: "Include Pending Salary" },
     { key: "includeDeductions", label: "Include Deductions" },
   ];
