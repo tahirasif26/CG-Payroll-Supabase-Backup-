@@ -9,6 +9,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, CheckCircle2, Clock, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useMyPolicyAcks, useAcknowledgePolicy } from "@/hooks/queries/usePolicyAcks";
+import { useViewScope } from "@/contexts/ViewScopeContext";
+import { useRole } from "@/contexts/RoleContext";
 
 const categoryLabels: Record<PolicyCategory, string> = {
   hr: "HR",
@@ -34,6 +36,9 @@ export default function CompanyPoliciesPage() {
   const [activeTab, setActiveTab] = useState("all");
   const { data: ackedSet } = useMyPolicyAcks();
   const ackMutation = useAcknowledgePolicy();
+  const { scope } = useViewScope();
+  const { appRole } = useRole();
+  const canAcknowledge = scope === "people" && (appRole === "admin" || appRole === "hr");
 
   const isAcked = (policyId: string, fallback: boolean) =>
     ackedSet?.has(policyId) ?? fallback;
@@ -141,7 +146,7 @@ export default function CompanyPoliciesPage() {
                       <Button variant="outline" size="sm" className="gap-1.5 text-xs">
                         <Download className="h-3.5 w-3.5" /> Download
                       </Button>
-                      {needsAck && (
+                      {needsAck && canAcknowledge && (
                         <Button size="sm" className="gap-1.5 text-xs" onClick={() => handleAcknowledge(policy.id)}>
                           <CheckCircle2 className="h-3.5 w-3.5" /> Acknowledge
                         </Button>
