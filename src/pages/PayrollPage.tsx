@@ -330,7 +330,8 @@ export default function PayrollPage() {
   const { activeTypes, getTypeName } = useEmployeeTypes();
   const { deductions } = useDeductions();
   const canApprovePayroll = useCanApprove("payroll");
-  const { currentEmployeeId } = useRole();
+  const { currentEmployeeId, clientId } = useRole();
+  const queryClient = useQueryClient();
   const { advances } = useAdvances();
   const { setups, getSetupById } = usePayrollSetups();
   const activeSetups = setups.filter(s => s.status === "active");
