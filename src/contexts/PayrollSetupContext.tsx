@@ -7,11 +7,11 @@ import { PayrollSetup } from "@/types/payrollSetup";
 
 interface PayrollSetupContextType {
   setups: PayrollSetup[];
-  addSetup: (setup: PayrollSetup) => void;
-  updateSetup: (setup: PayrollSetup) => void;
-  deleteSetup: (id: string) => void;
-  duplicateSetup: (id: string) => void;
-  toggleStatus: (id: string) => void;
+  addSetup: (setup: PayrollSetup) => Promise<void>;
+  updateSetup: (setup: PayrollSetup) => Promise<void>;
+  deleteSetup: (id: string) => Promise<void>;
+  duplicateSetup: (id: string) => Promise<void>;
+  toggleStatus: (id: string) => Promise<void>;
   getSetupById: (id: string) => PayrollSetup | undefined;
   isLoading: boolean;
 }
