@@ -78,7 +78,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       if (next.email !== undefined) patch.company_email = next.email;
       if (next.phone !== undefined) patch.company_phone = next.phone;
 
-      const { error } = await supabase.from("clients").update(patch).eq("id", clientId);
+      const { error } = await supabase.from("clients").update(patch as any).eq("id", clientId);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["client", clientId] }),
