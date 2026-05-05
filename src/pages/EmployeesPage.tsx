@@ -1870,11 +1870,20 @@ function EmployeesDirectory() {
               <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
             </div>
           </div>
-        {!isOwnProfile && selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
-            <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
-              <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
-            </Button>
-          )}
+        {!isOwnProfile && (
+          <div className="flex items-center gap-2">
+            {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
+              <Button variant="outline" size="sm" onClick={() => setEditEmpId(selectedEmployee.id)}>
+                <Edit2 className="h-4 w-4 mr-2" />Edit Employee
+              </Button>
+            )}
+            {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
+              <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
+                <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
+              </Button>
+            )}
+          </div>
+        )}
         </div>
 
         <Tabs defaultValue="personal">
