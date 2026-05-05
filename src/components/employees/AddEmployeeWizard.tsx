@@ -42,6 +42,8 @@ interface AddEmployeeWizardProps {
   employeeCount: number;
   /** When provided, the wizard runs in EDIT mode and updates the existing employee. */
   editEmployeeId?: string;
+  /** Optional: show "Initiate Separation" in header (edit mode only). */
+  onInitiateSeparation?: () => void;
 }
 
 interface FormData {
@@ -86,7 +88,7 @@ const TABS = [
 
 const DEPARTMENTS = ["Assurance", "Tax", "Advisory", "Strategy", "Technology"];
 
-export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmployeeId }: AddEmployeeWizardProps) {
+export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmployeeId, onInitiateSeparation }: AddEmployeeWizardProps) {
   const isEditMode = !!editEmployeeId;
   const { activeTypes } = useEmployeeTypes();
   const { setups } = usePayrollSetups();
@@ -427,6 +429,11 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
               <Switch id="send-invite" checked={sendInvite} onCheckedChange={setSendInvite} />
               <Label htmlFor="send-invite" className="text-sm text-muted-foreground cursor-pointer">Send login invite</Label>
             </div>
+          )}
+          {isEditMode && onInitiateSeparation && (
+            <Button size="sm" variant="destructive" onClick={onInitiateSeparation}>
+              Initiate Separation
+            </Button>
           )}
           <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             <Check className="h-4 w-4 mr-1" />
