@@ -119,6 +119,65 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const [sendInvite, setSendInvite] = useState(true);
   const [inviting, setInviting] = useState(false);
 
+  // Prefill form when editing an existing employee.
+  useEffect(() => {
+    if (!isEditMode || !editProfile?.employee) return;
+    const e: any = editProfile.employee;
+    const a: any = editProfile.address ?? {};
+    const b: any = editProfile.bank ?? {};
+    const em: any = editProfile.emergency ?? {};
+    setForm({
+      firstName: e.first_name ?? "",
+      lastName: e.last_name ?? "",
+      email: e.email ?? "",
+      dateOfBirth: e.date_of_birth ?? "",
+      gender: e.gender ?? "",
+      maritalStatus: e.marital_status ?? "",
+      religion: e.religion ?? "",
+      nationality: e.nationality ?? "",
+      personalPhone: e.personal_phone ?? e.phone ?? "",
+      personalEmail: e.personal_email ?? "",
+      emergencyName: em.name ?? "",
+      emergencyRelation: em.relation ?? "",
+      emergencyPhone: em.phone ?? "",
+      emergencyEmail: em.email ?? "",
+      addressLine1: a.address_line1 ?? "",
+      addressLine2: a.address_line2 ?? "",
+      city: a.city ?? "",
+      state: a.state ?? "",
+      country: a.country ?? "",
+      postalCode: a.postal_code ?? "",
+      bankName: b.bank_name ?? "",
+      bankCountry: b.bank_country ?? "",
+      swiftCode: b.swift_code ?? "",
+      bankAddress: b.bank_address ?? "",
+      iban: b.iban ?? "",
+      bankCurrency: b.bank_currency ?? "",
+      beneficiaryName: b.beneficiary_name ?? "",
+      department: e.department ?? "",
+      designation: e.designation ?? "",
+      category: e.category ?? "",
+      division: e.division ?? "",
+      workEmail: e.work_email ?? e.email ?? "",
+      workLocationCity: e.work_location_city ?? "",
+      workLocationCountry: e.work_location_country ?? "",
+      joiningDate: e.joining_date ?? "",
+      reportsTo: e.reports_to ?? "",
+      salary: e.salary != null ? String(e.salary) : "",
+      payrollSetupId: e.payroll_setup_id ?? "",
+      bonus: "",
+      allowances: "",
+    });
+    setEducation(
+      (editProfile.education ?? []).map((ed: any) => ({
+        degree: ed.degree ?? "",
+        institution: ed.institution ?? "",
+        year: ed.start_year != null ? String(ed.start_year) : "",
+        field: ed.field_of_study ?? "",
+      }))
+    );
+  }, [isEditMode, editProfile]);
+
   const selectedSetup = useMemo(() => activeSetups.find(s => s.id === form.payrollSetupId), [form.payrollSetupId, activeSetups]);
 
   // Real-time salary calculation
