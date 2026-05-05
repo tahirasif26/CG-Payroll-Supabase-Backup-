@@ -47,7 +47,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
               <TabsTrigger value="deductions">Auto Deductions</TabsTrigger>
               <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
               <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
-              <TabsTrigger value="approval">Approval</TabsTrigger>
             </TabsList>
 
             <TabsContent value="schedule">

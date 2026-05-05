@@ -73,7 +73,6 @@ export default function PayrollSetupViewPage() {
             <TabsTrigger value="auto-deductions">Auto Deductions</TabsTrigger>
             <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
             <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
-            <TabsTrigger value="approval">Approval</TabsTrigger>
           </TabsList>
         </ScrollArea>
 
