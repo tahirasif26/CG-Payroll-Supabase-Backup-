@@ -1313,9 +1313,10 @@ export default function PayrollPage() {
                       <TableHead className="font-semibold">Period</TableHead>
                       <TableHead className="font-semibold">Payroll Setup</TableHead>
                       <TableHead className="font-semibold">Employees</TableHead>
-                      <TableHead className="font-semibold text-right">Gross ({REPORTING_CURRENCY})</TableHead>
-                      <TableHead className="font-semibold text-right">Deductions ({REPORTING_CURRENCY})</TableHead>
-                      <TableHead className="font-semibold text-right">Net ({REPORTING_CURRENCY})</TableHead>
+                      <TableHead className="font-semibold">Currency</TableHead>
+                      <TableHead className="font-semibold text-right">Gross</TableHead>
+                      <TableHead className="font-semibold text-right">Deductions</TableHead>
+                      <TableHead className="font-semibold text-right">Net</TableHead>
                       <TableHead className="font-semibold">Run Date</TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
                       <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -1325,24 +1326,26 @@ export default function PayrollPage() {
                     {filtered.length > 0 ? filtered.map((run) => {
                       const runEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
                       const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
+                      const runCurrency = runSetup?.currency || runEmps[0]?.payCurrency || REPORTING_CURRENCY;
                       const liveBreakdown = run.status !== "completed"
                         ? (runSetup ? buildBreakdownFromSetup(runEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances))
                         : null;
                       const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
                       const dispGross = liveBreakdown
-                        ? Math.round(liveBreakdown.reduce((s, l) => s + l.gross * getToReportingRate(l.payCurrency), 0))
+                        ? Math.round(liveBreakdown.reduce((s, l) => s + l.gross, 0))
                         : run.totalGross;
                       const dispDed = liveBreakdown
-                        ? Math.round(liveBreakdown.reduce((s, l) => s + l.totalDeductions * getToReportingRate(l.payCurrency), 0))
+                        ? Math.round(liveBreakdown.reduce((s, l) => s + l.totalDeductions, 0))
                         : run.totalDeductions;
                       const dispNet = liveBreakdown
-                        ? Math.round(liveBreakdown.reduce((s, l) => s + l.net * getToReportingRate(l.payCurrency), 0))
+                        ? Math.round(liveBreakdown.reduce((s, l) => s + l.net, 0))
                         : run.totalNet;
                       return (
                         <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
                           <TableCell className="font-medium">{run.month} {run.year}</TableCell>
                           <TableCell className="text-xs">{run.payrollSetupId ? (getSetupById(run.payrollSetupId)?.name || "—") : (run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "All")}</TableCell>
                           <TableCell>{dispCount}</TableCell>
+                          <TableCell className="font-medium text-xs">{runCurrency}</TableCell>
                           <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
                           <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
                           <TableCell className="text-right font-semibold">{dispNet.toLocaleString()}</TableCell>
