@@ -216,22 +216,6 @@ export default function PayrollSetupViewPage() {
             </div>
           </TabsContent>
 
-          {/* Retirement */}
-          <TabsContent value="retirement">
-            <h3 className="text-lg font-semibold mb-4">Retirement Policies</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Field label="Provident Fund" value={setup.retirement.enablePF ? "Enabled" : "Disabled"} />
-              {setup.retirement.enablePF && (
-                <>
-                  <Field label="Employee Contribution" value={`${setup.retirement.employeeContributionPct}%`} />
-                  <Field label="Employer Contribution" value={`${setup.retirement.employerContributionPct}%`} />
-                </>
-              )}
-              <Field label="VPS" value={setup.retirement.enableVPS ? "Enabled" : "Disabled"} />
-              {setup.retirement.enableVPS && <Field label="VPS Rules" value={setup.retirement.vpsContributionRules || "—"} />}
-            </div>
-          </TabsContent>
-
           {/* Approval */}
           <TabsContent value="approval">
             <h3 className="text-lg font-semibold mb-4">Approval Workflow</h3>
