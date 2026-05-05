@@ -28,7 +28,7 @@ import BonusTab from "./BonusTab";
 import GratuityTab from "./GratuityTab";
 import ProvidentFundTab from "./ProvidentFundTab";
 import FinalSettlementTab from "./FinalSettlementTab";
-import ApprovalWorkflowTab from "./ApprovalWorkflowTab";
+
 
 interface Props {
   open: boolean;
@@ -129,7 +129,6 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
     { id: "gratuity", label: "Gratuity", icon: Award, content: <GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d }))} /> },
     { id: "provident", label: "Provident Fund", icon: PiggyBank, content: <ProvidentFundTab data={setup.providentFund} onChange={d => setSetup(s => ({ ...s, providentFund: d, retirement: { ...s.retirement, enablePF: d.enabled, employeeContributionPct: d.employeeRate, employerContributionPct: d.employerRate } }))} /> },
     { id: "settlement", label: "Final Settlement", icon: FileCheck, content: <FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /> },
-    { id: "approval", label: "Approval", icon: Workflow, content: <ApprovalWorkflowTab data={setup.approvalWorkflow} onChange={d => setSetup(s => ({ ...s, approvalWorkflow: d }))} /> },
   ]), [setup]);
 
   const isLast = step === STEPS.length - 1;

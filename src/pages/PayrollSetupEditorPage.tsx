@@ -25,7 +25,7 @@ import BonusTab from "@/components/payrollSetup/BonusTab";
 import GratuityTab from "@/components/payrollSetup/GratuityTab";
 import ProvidentFundTab from "@/components/payrollSetup/ProvidentFundTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
-import ApprovalWorkflowTab from "@/components/payrollSetup/ApprovalWorkflowTab";
+
 
 export const DEFAULT_PAYROLL_SETUP: PayrollSetup = {
   id: "",
@@ -161,7 +161,6 @@ export default function PayrollSetupEditorPage() {
             <TabsTrigger value="gratuity">Gratuity</TabsTrigger>
             <TabsTrigger value="provident">Provident Fund</TabsTrigger>
             <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
-            <TabsTrigger value="approval">Approval</TabsTrigger>
           </TabsList>
         </ScrollArea>
 
@@ -242,7 +241,6 @@ export default function PayrollSetupEditorPage() {
           </TabsContent>
 
           <TabsContent value="settlement"><FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /></TabsContent>
-          <TabsContent value="approval"><ApprovalWorkflowTab data={setup.approvalWorkflow} onChange={d => setSetup(s => ({ ...s, approvalWorkflow: d }))} /></TabsContent>
         </div>
       </Tabs>
     </div>
