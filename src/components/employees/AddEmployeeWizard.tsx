@@ -992,8 +992,8 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                 </>
               )}
               {currentTabIdx === TABS.length - 1 && (
-                <Button size="sm" onClick={validateAndSubmit} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                  <Check className="h-4 w-4 mr-1" />Submit & Onboard
+                <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Check className="h-4 w-4 mr-1" />{isEditMode ? "Save Changes" : "Submit & Onboard"}
                 </Button>
               )}
             </div>
