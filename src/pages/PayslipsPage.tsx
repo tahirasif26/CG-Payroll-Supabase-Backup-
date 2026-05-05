@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useClient } from "@/contexts/ClientContext";
 // Note: loans and expenses are intentionally not surfaced on the payslip view —
 // payslip deductions/reimbursements are derived from the payroll run line items.
@@ -116,6 +117,7 @@ interface PayslipDetail {
 export default function PayslipsPage() {
   const { employees } = useEmployees();
   const { role, currentEmployeeId } = useRole();
+  const { scope, hasPeopleAccess } = useViewScope();
   const { setups, getSetupById } = usePayrollSetups();
   const currentEmployee = employees.find(e => e.id === currentEmployeeId);
   const { data: dbRuns = [] } = usePayrollRuns({ status: "completed" });
@@ -140,7 +142,9 @@ export default function PayslipsPage() {
     await downloadPayslip({ payrollRunId: runId, employeeId });
   };
 
-  if (role === "employee" && currentEmployee) {
+  // Show "my payslips" view when scope is "me" or user has no people access
+  const showMyView = (scope === "me" || !hasPeopleAccess) && currentEmployee;
+  if (showMyView) {
     const setup = getSetupById(currentEmployee.payrollSetupId || "");
     const { earnings, deductions: dedItems, totalDeductions } = buildPayslipFromSetup(currentEmployee, setup);
     const monthlySalary = currentEmployee.salary;
