@@ -287,15 +287,14 @@ function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup |
   });
 }
 
-function generateAccountingCSV(run: PayrollRun, lines: EmployeePayrollLine[]): string {
-  const glRaw = localStorage.getItem("gl_mappings");
+function generateAccountingCSV(
+  run: PayrollRun,
+  lines: EmployeePayrollLine[],
+  glMappings: Array<{ entry_name: string; gl_code: string }> = []
+): string {
   const glMap: Record<string, string> = {};
-  if (glRaw) {
-    try {
-      const parsed = JSON.parse(glRaw) as { entry: string; glCode: string }[];
-      parsed.forEach(m => { glMap[m.entry] = m.glCode; });
-    } catch {}
-  }
+  glMappings.forEach((m) => { glMap[m.entry_name] = m.gl_code; });
+
 
   const rows: string[] = ["Date,GL Code,Account,Currency,Debit,Credit,Reporting Currency Amount,Employee,Description"];
   const date = run.runDate || new Date().toISOString().split("T")[0];
