@@ -580,6 +580,39 @@ export default function PayrollPage() {
     const setupName = run.payrollSetupId ? (getSetupById(run.payrollSetupId)?.name || "Unknown") : (run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "all");
     toast({ title: "Payroll Completed", description: `${run.month} ${run.year} payroll for ${setupName} is locked.` });
     setSelectedRun(null);
+
+    // Auto-create the next month's draft run for this setup so the live cards
+    // pipeline keeps rolling forward.
+    void (async () => {
+      try {
+        if (!run.payrollSetupId || !clientId) return;
+        const setup = getSetupById(run.payrollSetupId);
+        if (!setup) return;
+        const monthNames = [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December",
+        ];
+        const curIdx = monthNames.indexOf(run.month);
+        const baseIdx = curIdx >= 0 ? curIdx : new Date().getMonth();
+        const nextIdx = (baseIdx + 1) % 12;
+        const nextYear = baseIdx === 11 ? run.year + 1 : run.year;
+        const payDate = parseInt(setup.paySchedule?.payDate ?? "25", 10) || 25;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) return;
+        await supabase.from("payroll_runs").insert({
+          client_id: clientId,
+          payroll_setup_id: setup.id,
+          month: monthNames[nextIdx],
+          year: nextYear,
+          run_date: `${nextYear}-${String(nextIdx + 1).padStart(2, "0")}-${String(payDate).padStart(2, "0")}`,
+          status: "draft",
+          created_by: user.id,
+        });
+        queryClient.invalidateQueries({ queryKey: ["payroll_runs"] });
+      } catch {
+        // Non-fatal: next run can be added manually if this fails.
+      }
+    })();
   };
 
   const handleDeleteRun = (id: string) => {
