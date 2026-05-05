@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/contexts/RoleContext";
 import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { PayrollSetup } from "@/types/payrollSetup";
 
@@ -109,7 +109,7 @@ function setupToRow(setup: PayrollSetup, clientId: string) {
 }
 
 export function PayrollSetupProvider({ children }: { children: React.ReactNode }) {
-  const { clientId } = useAuth();
+  const { clientId } = useRole();
   const payrollEnabled = useModuleEnabled("payroll");
   const qc = useQueryClient();
 
@@ -130,7 +130,10 @@ export function PayrollSetupProvider({ children }: { children: React.ReactNode }
 
   const setups: PayrollSetup[] = useMemo(() => rows.map(rowToSetup), [rows]);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["payroll_setups"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["payroll_setups"] });
+    qc.refetchQueries({ queryKey: ["payroll_setups"], type: "active" });
+  };
 
   const addMut = useMutation({
     mutationFn: async (setup: PayrollSetup) => {
