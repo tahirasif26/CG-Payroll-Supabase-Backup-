@@ -232,11 +232,11 @@ export function PayrollSetupProvider({ children }: { children: React.ReactNode }
     <PayrollSetupContext.Provider
       value={{
         setups,
-        addSetup: (s) => addMut.mutate(s),
-        updateSetup: (s) => updateMut.mutate(s),
-        deleteSetup: (id) => deleteMut.mutate(id),
-        duplicateSetup: (id) => duplicateMut.mutate(id),
-        toggleStatus: (id) => toggleMut.mutate(id),
+        addSetup: (s) => addMut.mutateAsync(s),
+        updateSetup: (s) => updateMut.mutateAsync(s),
+        deleteSetup: (id) => deleteMut.mutateAsync(id),
+        duplicateSetup: (id) => duplicateMut.mutateAsync(id),
+        toggleStatus: (id) => toggleMut.mutateAsync(id),
         getSetupById,
         isLoading,
       }}
