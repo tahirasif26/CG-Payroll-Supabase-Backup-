@@ -29,7 +29,7 @@ function computeEmpPrefix(name?: string | null): string {
   return cleaned.slice(0, 2).toUpperCase();
 }
 import {
-  Check, AlertCircle, User, Briefcase, DollarSign, Calendar, FileText, Monitor,
+  Check, AlertCircle, User, Briefcase, DollarSign, FileText, Monitor,
   ChevronLeft, Calculator, Settings, Phone, MapPin, CreditCard, GraduationCap, Heart,
   Plus, Trash2, Upload, ArrowRight, ArrowLeft, SkipForward
 } from "lucide-react";
@@ -77,7 +77,6 @@ const TABS = [
   { id: "personal", label: "Personal", icon: User },
   { id: "work", label: "Work", icon: Briefcase },
   { id: "compensation", label: "Compensation", icon: DollarSign },
-  { id: "timeoff", label: "Time Off", icon: Calendar },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "assets", label: "Assets", icon: Monitor },
 ];
@@ -812,21 +811,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
           )}
         </TabsContent>
 
-        {/* ========== TIME OFF TAB ========== */}
-        <TabsContent value="timeoff" className="mt-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" />Time Off & Vacation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Calendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Leave allocations will be configured after the employee is onboarded.</p>
-                <p className="text-xs text-muted-foreground mt-1">Default leave balances from company policy will be applied automatically.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* ========== DOCUMENTS TAB ========== */}
         <TabsContent value="documents" className="mt-4">
