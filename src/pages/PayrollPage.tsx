@@ -362,13 +362,18 @@ export default function PayrollPage() {
     }));
   }, [dbExpenses]);
   const [runs, setRuns] = useState<PayrollRun[]>([]);
-  const [seededFromDb, setSeededFromDb] = useState(false);
+  // Keep local `runs` state continuously in sync with the DB so newly-created
+  // draft runs (one per payroll setup) appear immediately in the Processing tab.
   React.useEffect(() => {
-    if (!seededFromDb && dbRuns.length > 0) {
-      setRuns(dbRuns.map(adaptPayrollRun));
-      setSeededFromDb(true);
-    }
-  }, [dbRuns, seededFromDb]);
+    setRuns(prev => {
+      const dbAdapted = dbRuns.map(adaptPayrollRun);
+      const dbIds = new Set(dbAdapted.map(r => r.id));
+      // Preserve any local-only runs (e.g. just-created in-memory) that haven't
+      // been persisted yet, then layer DB runs on top as the source of truth.
+      const localOnly = prev.filter(r => !dbIds.has(r.id));
+      return [...dbAdapted, ...localOnly];
+    });
+  }, [dbRuns]);
 
   const syncRuns = (updater: (prev: PayrollRun[]) => PayrollRun[]) => {
     setRuns(updater);
