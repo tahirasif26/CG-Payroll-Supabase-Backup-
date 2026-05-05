@@ -47,7 +47,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
               <TabsTrigger value="overtime">Overtime</TabsTrigger>
               <TabsTrigger value="deductions">Auto Deductions</TabsTrigger>
               <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
-              <TabsTrigger value="leave">Leave & Encashment</TabsTrigger>
               <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
               <TabsTrigger value="retirement">Retirement</TabsTrigger>
               <TabsTrigger value="approval">Approval</TabsTrigger>
@@ -160,19 +159,9 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
               </CardContent></Card>
             </TabsContent>
 
-            <TabsContent value="leave">
-              <Card><CardHeader><CardTitle className="text-sm">Leave & Encashment</CardTitle></CardHeader><CardContent>
-                <div className="space-y-2 text-sm">
-                  <div><Label className="text-muted-foreground text-xs">Enabled</Label><p>{setup.leaveEncashment.enabled ? "Yes" : "No"}</p></div>
-                  {setup.leaveEncashment.enabled && <div><Label className="text-muted-foreground text-xs">Formula</Label><p>{setup.leaveEncashment.formula}</p></div>}
-                </div>
-              </CardContent></Card>
-            </TabsContent>
-
             <TabsContent value="settlement">
               <Card><CardHeader><CardTitle className="text-sm">Final Settlement</CardTitle></CardHeader><CardContent>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="flex justify-between col-span-2"><span>Include Leave Encashment</span><Switch checked={setup.finalSettlement.includeLeaveEncashment} disabled /></div>
                   <div className="flex justify-between col-span-2"><span>Include Pending Salary</span><Switch checked={setup.finalSettlement.includePendingSalary} disabled /></div>
                   <div className="flex justify-between col-span-2"><span>Include Deductions</span><Switch checked={setup.finalSettlement.includeDeductions} disabled /></div>
                   <div><Label className="text-muted-foreground text-xs">Notice Period Recovery Days</Label><p>{setup.finalSettlement.noticePeriodRecoveryDays}</p></div>
