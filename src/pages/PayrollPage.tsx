@@ -337,6 +337,7 @@ export default function PayrollPage() {
   const activeSetups = setups.filter(s => s.status === "active");
   const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
   const { data: dbRuns = [] } = usePayrollRuns();
+  const { data: glMappings = [] } = useGLMappings();
 
   // Hydrate module-level loans/expenses caches from real DB queries so the
   // breakdown helpers (which run outside React) see live data.
