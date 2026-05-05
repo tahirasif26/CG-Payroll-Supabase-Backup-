@@ -23,13 +23,6 @@ interface SimpleDepartment {
   isActive: boolean;
 }
 
-const initialDepartments: SimpleDepartment[] = [
-  { id: "1", name: "Assurance", isActive: true },
-  { id: "2", name: "Tax", isActive: true },
-  { id: "3", name: "Advisory", isActive: true },
-  { id: "4", name: "Strategy", isActive: true },
-  { id: "5", name: "Technology", isActive: true },
-];
 
 export default function CompanyStructurePage() {
   const { toast } = useToast();
