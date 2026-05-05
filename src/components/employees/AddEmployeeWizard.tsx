@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { useCreateEmployee } from "@/hooks/queries/useEmployees";
+import { useCreateEmployee, useUpdateEmployee } from "@/hooks/queries/useEmployees";
+import { useEmployeeProfile, useUpdateEmployeeProfile } from "@/hooks/queries/useEmployeeProfile";
 import { useToast } from "@/hooks/use-toast";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -39,6 +40,8 @@ interface AddEmployeeWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   employeeCount: number;
+  /** When provided, the wizard runs in EDIT mode and updates the existing employee. */
+  editEmployeeId?: string;
 }
 
 interface FormData {
@@ -83,11 +86,15 @@ const TABS = [
 
 const DEPARTMENTS = ["Assurance", "Tax", "Advisory", "Strategy", "Technology"];
 
-export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmployeeWizardProps) {
+export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmployeeId }: AddEmployeeWizardProps) {
+  const isEditMode = !!editEmployeeId;
   const { activeTypes } = useEmployeeTypes();
   const { setups } = usePayrollSetups();
   const { addEmployee, employees: allEmployees } = useEmployees();
   const createEmployee = useCreateEmployee();
+  const updateEmployeeMut = useUpdateEmployee();
+  const updateProfile = useUpdateEmployeeProfile();
+  const { data: editProfile } = useEmployeeProfile(editEmployeeId);
   const { toast } = useToast();
   
   const { clientId } = useAuth();
@@ -111,6 +118,65 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
   const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
   const [sendInvite, setSendInvite] = useState(true);
   const [inviting, setInviting] = useState(false);
+
+  // Prefill form when editing an existing employee.
+  useEffect(() => {
+    if (!isEditMode || !editProfile?.employee) return;
+    const e: any = editProfile.employee;
+    const a: any = editProfile.address ?? {};
+    const b: any = editProfile.bank ?? {};
+    const em: any = editProfile.emergency ?? {};
+    setForm({
+      firstName: e.first_name ?? "",
+      lastName: e.last_name ?? "",
+      email: e.email ?? "",
+      dateOfBirth: e.date_of_birth ?? "",
+      gender: e.gender ?? "",
+      maritalStatus: e.marital_status ?? "",
+      religion: e.religion ?? "",
+      nationality: e.nationality ?? "",
+      personalPhone: e.personal_phone ?? e.phone ?? "",
+      personalEmail: e.personal_email ?? "",
+      emergencyName: em.name ?? "",
+      emergencyRelation: em.relation ?? "",
+      emergencyPhone: em.phone ?? "",
+      emergencyEmail: em.email ?? "",
+      addressLine1: a.address_line1 ?? "",
+      addressLine2: a.address_line2 ?? "",
+      city: a.city ?? "",
+      state: a.state ?? "",
+      country: a.country ?? "",
+      postalCode: a.postal_code ?? "",
+      bankName: b.bank_name ?? "",
+      bankCountry: b.bank_country ?? "",
+      swiftCode: b.swift_code ?? "",
+      bankAddress: b.bank_address ?? "",
+      iban: b.iban ?? "",
+      bankCurrency: b.bank_currency ?? "",
+      beneficiaryName: b.beneficiary_name ?? "",
+      department: e.department ?? "",
+      designation: e.designation ?? "",
+      category: e.category ?? "",
+      division: e.division ?? "",
+      workEmail: e.work_email ?? e.email ?? "",
+      workLocationCity: e.work_location_city ?? "",
+      workLocationCountry: e.work_location_country ?? "",
+      joiningDate: e.joining_date ?? "",
+      reportsTo: e.reports_to ?? "",
+      salary: e.salary != null ? String(e.salary) : "",
+      payrollSetupId: e.payroll_setup_id ?? "",
+      bonus: "",
+      allowances: "",
+    });
+    setEducation(
+      (editProfile.education ?? []).map((ed: any) => ({
+        degree: ed.degree ?? "",
+        institution: ed.institution ?? "",
+        year: ed.start_year != null ? String(ed.start_year) : "",
+        field: ed.field_of_study ?? "",
+      }))
+    );
+  }, [isEditMode, editProfile]);
 
   const selectedSetup = useMemo(() => activeSetups.find(s => s.id === form.payrollSetupId), [form.payrollSetupId, activeSetups]);
 
@@ -158,13 +224,13 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
     const allErrors: Partial<Record<keyof FormData, string>> = {};
     if (!form.firstName.trim()) allErrors.firstName = "Required";
     if (!form.lastName.trim()) allErrors.lastName = "Required";
-    if (!form.email.trim()) allErrors.email = "Required";
+    if (!form.email.trim()) { if (!isEditMode) allErrors.email = "Required"; }
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) allErrors.email = "Invalid email";
     if (!form.department) allErrors.department = "Required";
     if (!form.designation.trim()) allErrors.designation = "Required";
-    if (!form.category) allErrors.category = "Required";
-    if (!form.salary || Number(form.salary) <= 0) allErrors.salary = "Required";
-    if (!form.payrollSetupId) allErrors.payrollSetupId = "Required";
+    if (!isEditMode && !form.category) allErrors.category = "Required";
+    if (!isEditMode && (!form.salary || Number(form.salary) <= 0)) allErrors.salary = "Required";
+    if (!isEditMode && !form.payrollSetupId) allErrors.payrollSetupId = "Required";
 
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
@@ -204,52 +270,103 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
       const reportsToId =
         form.reportsTo && form.reportsTo !== "__none__" ? form.reportsTo : undefined;
 
-      await createEmployee.mutateAsync({
-        // emp_id is auto-generated by the DB trigger
-        first_name: newEmp.firstName,
-        last_name: newEmp.lastName,
-        email: inviteEmail,
-        phone: form.personalPhone || undefined,
-        department: form.department || undefined,
-        designation: form.designation || undefined,
-        category: form.category || undefined,
-        division: form.division || undefined,
-        joining_date: newEmp.joiningDate,
-        date_of_birth: form.dateOfBirth || undefined,
-        gender: form.gender || undefined,
-        marital_status: form.maritalStatus || undefined,
-        nationality: form.nationality || undefined,
-        religion: form.religion || undefined,
-        work_location_country: form.workLocationCountry || undefined,
-        work_location_city: form.workLocationCity || undefined,
-        // payroll_setup_id is a local mock id (e.g. "ps-2") not a DB UUID — skip persisting until setups live in DB.
-        payroll_setup_id: undefined,
-        reports_to: reportsToId,
-        address: {
-          address_line1: form.addressLine1, address_line2: form.addressLine2,
-          city: form.city, state: form.state, country: form.country, postal_code: form.postalCode,
-        },
-        bank: {
-          bank_name: form.bankName, bank_country: form.bankCountry, swift_code: form.swiftCode,
-          iban: form.iban, bank_currency: form.bankCurrency, beneficiary_name: form.beneficiaryName,
-          bank_address: form.bankAddress,
-        },
-        emergency_contact: {
-          name: form.emergencyName, relation: form.emergencyRelation,
-          phone: form.emergencyPhone, email: form.emergencyEmail,
-        },
-        education: education.map(e => ({
-          institution: e.institution, degree: e.degree, field_of_study: e.field,
-          start_year: e.year ? Number(e.year) : undefined,
-        })),
-        send_invite: sendInvite,
-      });
-
-      // Success — mirror into legacy in-memory context and close the wizard.
-      // The invite email is sent inside the mutation only after the DB insert
-      // succeeds, so it stays tied to a real employee row.
-      addEmployee(newEmp);
-      resetAndClose();
+      if (isEditMode && editEmployeeId) {
+        // EDIT — update employees row + sub-records via profile mutation.
+        await updateEmployeeMut.mutateAsync({
+          id: editEmployeeId,
+          updates: {
+            first_name: newEmp.firstName,
+            last_name: newEmp.lastName,
+            phone: form.personalPhone || null,
+            department: form.department || null,
+            designation: form.designation || null,
+            category: form.category || null,
+            division: form.division || null,
+            joining_date: newEmp.joiningDate,
+            work_location_country: form.workLocationCountry || null,
+            work_location_city: form.workLocationCity || null,
+            reports_to: reportsToId ?? null,
+            salary: Number(form.salary),
+          } as any,
+        });
+        await updateProfile.mutateAsync({
+          employeeId: editEmployeeId,
+          bio: {
+            first_name: newEmp.firstName,
+            last_name: newEmp.lastName,
+            date_of_birth: form.dateOfBirth || null,
+            gender: form.gender || null,
+            marital_status: form.maritalStatus || null,
+            religion: form.religion || null,
+            nationality: form.nationality || null,
+          },
+          contact: {
+            personal_phone: form.personalPhone || null,
+            personal_email: form.personalEmail || null,
+          },
+          address: {
+            address_line1: form.addressLine1, address_line2: form.addressLine2,
+            city: form.city, state: form.state, country: form.country, postal_code: form.postalCode,
+          },
+          bank: {
+            bank_name: form.bankName, bank_country: form.bankCountry, swift_code: form.swiftCode,
+            iban: form.iban, bank_currency: form.bankCurrency, beneficiary_name: form.beneficiaryName,
+            bank_address: form.bankAddress,
+          },
+          emergency: {
+            name: form.emergencyName, relation: form.emergencyRelation,
+            phone: form.emergencyPhone, email: form.emergencyEmail,
+          },
+          education: education.map(e => ({
+            institution: e.institution, degree: e.degree, field_of_study: e.field,
+            start_year: e.year ? Number(e.year) : null,
+          })),
+        });
+        toast({ title: "Employee updated", description: "Changes saved successfully." });
+        resetAndClose();
+      } else {
+        await createEmployee.mutateAsync({
+          // emp_id is auto-generated by the DB trigger
+          first_name: newEmp.firstName,
+          last_name: newEmp.lastName,
+          email: inviteEmail,
+          phone: form.personalPhone || undefined,
+          department: form.department || undefined,
+          designation: form.designation || undefined,
+          category: form.category || undefined,
+          division: form.division || undefined,
+          joining_date: newEmp.joiningDate,
+          date_of_birth: form.dateOfBirth || undefined,
+          gender: form.gender || undefined,
+          marital_status: form.maritalStatus || undefined,
+          nationality: form.nationality || undefined,
+          religion: form.religion || undefined,
+          work_location_country: form.workLocationCountry || undefined,
+          work_location_city: form.workLocationCity || undefined,
+          payroll_setup_id: undefined,
+          reports_to: reportsToId,
+          address: {
+            address_line1: form.addressLine1, address_line2: form.addressLine2,
+            city: form.city, state: form.state, country: form.country, postal_code: form.postalCode,
+          },
+          bank: {
+            bank_name: form.bankName, bank_country: form.bankCountry, swift_code: form.swiftCode,
+            iban: form.iban, bank_currency: form.bankCurrency, beneficiary_name: form.beneficiaryName,
+            bank_address: form.bankAddress,
+          },
+          emergency_contact: {
+            name: form.emergencyName, relation: form.emergencyRelation,
+            phone: form.emergencyPhone, email: form.emergencyEmail,
+          },
+          education: education.map(e => ({
+            institution: e.institution, degree: e.degree, field_of_study: e.field,
+            start_year: e.year ? Number(e.year) : undefined,
+          })),
+          send_invite: sendInvite,
+        });
+        addEmployee(newEmp);
+        resetAndClose();
+      }
     } catch (err) {
       // Toast already raised by the mutation's onError. Keep wizard open so user can fix & retry.
     } finally {
@@ -279,8 +396,8 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
 
   const displayName = form.firstName || form.lastName
     ? `${form.firstName} ${form.lastName}`.trim()
-    : "New Employee";
-  const displaySub = [form.designation, form.department].filter(Boolean).join(" · ") || "Complete the form below to onboard";
+    : (isEditMode ? "Edit Employee" : "New Employee");
+  const displaySub = [form.designation, form.department].filter(Boolean).join(" · ") || (isEditMode ? "Update employee details" : "Complete the form below to onboard");
 
   return (
     <div className="space-y-6">
@@ -305,12 +422,17 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 mr-4">
-            <Switch id="send-invite" checked={sendInvite} onCheckedChange={setSendInvite} />
-            <Label htmlFor="send-invite" className="text-sm text-muted-foreground cursor-pointer">Send login invite</Label>
-          </div>
+          {!isEditMode && (
+            <div className="flex items-center gap-2 mr-4">
+              <Switch id="send-invite" checked={sendInvite} onCheckedChange={setSendInvite} />
+              <Label htmlFor="send-invite" className="text-sm text-muted-foreground cursor-pointer">Send login invite</Label>
+            </div>
+          )}
           <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Check className="h-4 w-4 mr-1" />{inviting ? "Sending Invite..." : "Submit & Onboard"}
+            <Check className="h-4 w-4 mr-1" />
+            {inviting
+              ? (isEditMode ? "Saving..." : "Sending Invite...")
+              : (isEditMode ? "Save Changes" : "Submit & Onboard")}
           </Button>
         </div>
       </div>
@@ -870,8 +992,8 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount }: AddEmpl
                 </>
               )}
               {currentTabIdx === TABS.length - 1 && (
-                <Button size="sm" onClick={validateAndSubmit} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                  <Check className="h-4 w-4 mr-1" />Submit & Onboard
+                <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Check className="h-4 w-4 mr-1" />{isEditMode ? "Save Changes" : "Submit & Onboard"}
                 </Button>
               )}
             </div>

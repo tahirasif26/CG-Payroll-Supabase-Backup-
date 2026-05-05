@@ -1600,6 +1600,7 @@ function EmployeesDirectory() {
   const { getTypeName } = useEmployeeTypes();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
+  const [editEmpId, setEditEmpId] = useState<string | null>(null);
   
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
   const [separationOpen, setSeparationOpen] = useState(false);
@@ -1683,6 +1684,18 @@ function EmployeesDirectory() {
     }
     setUploadDocOpen(false);
   };
+
+  // Edit Employee — full-page wizard reuse (must be checked BEFORE selectedEmployee block).
+  if (editEmpId) {
+    return (
+      <AddEmployeeWizard
+        open={true}
+        onOpenChange={(v) => { if (!v) setEditEmpId(null); }}
+        employeeCount={localEmployees.length}
+        editEmployeeId={editEmpId}
+      />
+    );
+  }
 
   if (selectedEmployee) {
     const isEmployee = role === "employee";
@@ -1857,11 +1870,20 @@ function EmployeesDirectory() {
               <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
             </div>
           </div>
-        {!isOwnProfile && selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
-            <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
-              <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
-            </Button>
-          )}
+        {!isOwnProfile && (
+          <div className="flex items-center gap-2">
+            {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
+              <Button variant="outline" size="sm" onClick={() => setEditEmpId(selectedEmployee.id)}>
+                <Edit2 className="h-4 w-4 mr-2" />Edit Employee
+              </Button>
+            )}
+            {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
+              <Button variant="destructive" size="sm" onClick={() => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }}>
+                <UserMinus className="h-4 w-4 mr-2" />Initiate Separation
+              </Button>
+            )}
+          </div>
+        )}
         </div>
 
         <Tabs defaultValue="personal">
