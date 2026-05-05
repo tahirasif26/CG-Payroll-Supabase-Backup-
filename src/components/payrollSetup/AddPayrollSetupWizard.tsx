@@ -10,21 +10,24 @@ import { cn } from "@/lib/utils";
 import {
   Calendar, Settings, Layers, Receipt, Wallet, Clock, MinusCircle,
   Banknote, FileCheck, PiggyBank, Workflow, Check, ArrowLeft, ArrowRight, Save,
+  Plane, Gift, Award,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import type { PayrollSetup } from "@/types/payrollSetup";
 
 import PayScheduleTab from "./PayScheduleTab";
-import PayrollOptionsTab from "./PayrollOptionsTab";
 import PayslipComponentsTab from "./PayslipComponentsTab";
 import TaxRulesTab from "./TaxRulesTab";
 import SalaryRulesTab from "./SalaryRulesTab";
 import OvertimeTab from "./OvertimeTab";
 import AutoDeductionsTab from "./AutoDeductionsTab";
 import LoanAdvanceTab from "./LoanAdvanceTab";
+import LeavesTab from "./LeavesTab";
+import BonusTab from "./BonusTab";
+import GratuityTab from "./GratuityTab";
+import ProvidentFundTab from "./ProvidentFundTab";
 import FinalSettlementTab from "./FinalSettlementTab";
-import RetirementPoliciesTab from "./RetirementPoliciesTab";
 import ApprovalWorkflowTab from "./ApprovalWorkflowTab";
 
 interface Props {
@@ -55,6 +58,23 @@ const defaultSetup = (): PayrollSetup => ({
   loanAdvance: { enableAdvanceDeduction: false, maxDeductionPercentage: 0, autoDeductRemaining: false },
   finalSettlement: { noticePeriodRecoveryDays: 30 },
   retirement: { enablePF: false, employeeContributionPct: 0, employerContributionPct: 0, enableVPS: false, vpsContributionRules: "" },
+  leaves: {
+    includeUnpaidLeave: false,
+    leaveTypes: {
+      annual: { enabled: true, days: 21 },
+      sick: { enabled: true, days: 10 },
+      emergency: { enabled: true, days: 3 },
+      maternity: { enabled: true, days: 60 },
+      paternity: { enabled: true, days: 3 },
+      hajj: { enabled: true, days: 14 },
+      unpaid: { enabled: true, days: 0 },
+    },
+    allowCarryForward: false,
+    maxCarryForwardDays: 10,
+  },
+  bonus: { enabled: false, method: "percentage", value: 0, frequency: "annual", includeInPayslip: true },
+  gratuity: { enabled: true, method: "saudi", slab1Days: 15, slab2Days: 30, maxMonths: 24, basis: "basic" },
+  providentFund: { enabled: false, scheme: "gosi_saudi", employeeRate: 9.75, employerRate: 9.75, basis: "basic", autoDeduct: true },
   approvalWorkflow: { enabled: false, levels: [] },
 });
 
@@ -98,15 +118,17 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
       ),
     },
     { id: "schedule", label: "Pay Schedule", icon: Calendar, content: <PayScheduleTab data={setup.paySchedule} onChange={d => setSetup(s => ({ ...s, paySchedule: d }))} /> },
-    { id: "options", label: "Options", icon: Settings, content: <PayrollOptionsTab data={setup.options} onChange={d => setSetup(s => ({ ...s, options: d }))} /> },
     { id: "components", label: "Components", icon: Layers, content: <PayslipComponentsTab data={setup.payslipComponents} onChange={d => setSetup(s => ({ ...s, payslipComponents: d }))} /> },
     { id: "tax", label: "Tax Rules", icon: Receipt, content: <TaxRulesTab data={setup.taxRules} onChange={d => setSetup(s => ({ ...s, taxRules: d }))} /> },
     { id: "salary", label: "Salary Rules", icon: Wallet, content: <SalaryRulesTab data={setup.salaryRules} onChange={d => setSetup(s => ({ ...s, salaryRules: d }))} /> },
     { id: "overtime", label: "Overtime", icon: Clock, content: <OvertimeTab data={setup.overtime} onChange={d => setSetup(s => ({ ...s, overtime: d }))} /> },
     { id: "auto-deductions", label: "Auto Deductions", icon: MinusCircle, content: <AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} /> },
     { id: "loan", label: "Loan & Advance", icon: Banknote, content: <LoanAdvanceTab data={setup.loanAdvance} onChange={d => setSetup(s => ({ ...s, loanAdvance: d }))} /> },
+    { id: "leaves", label: "Leaves", icon: Plane, content: <LeavesTab data={setup.leaves} onChange={d => setSetup(s => ({ ...s, leaves: d, options: { ...s.options, includeUnpaidLeave: d.includeUnpaidLeave } }))} /> },
+    { id: "bonus", label: "Bonus", icon: Gift, content: <BonusTab data={setup.bonus} onChange={d => setSetup(s => ({ ...s, bonus: d }))} /> },
+    { id: "gratuity", label: "Gratuity", icon: Award, content: <GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d }))} /> },
+    { id: "provident", label: "Provident Fund", icon: PiggyBank, content: <ProvidentFundTab data={setup.providentFund} onChange={d => setSetup(s => ({ ...s, providentFund: d, retirement: { ...s.retirement, enablePF: d.enabled, employeeContributionPct: d.employeeRate, employerContributionPct: d.employerRate } }))} /> },
     { id: "settlement", label: "Final Settlement", icon: FileCheck, content: <FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /> },
-    { id: "retirement", label: "Retirement", icon: PiggyBank, content: <RetirementPoliciesTab data={setup.retirement} onChange={d => setSetup(s => ({ ...s, retirement: d }))} /> },
     { id: "approval", label: "Approval", icon: Workflow, content: <ApprovalWorkflowTab data={setup.approvalWorkflow} onChange={d => setSetup(s => ({ ...s, approvalWorkflow: d }))} /> },
   ]), [setup]);
 
