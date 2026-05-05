@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useLoans } from "@/hooks/queries/useLoans";
 import { useExpenses } from "@/hooks/queries/useExpenses";
 import { usePayrollRuns, type PayrollRunRow } from "@/hooks/queries/usePayroll";
+import { useGLMappings } from "@/hooks/queries/useGLMappings";
 
 // Tax configs are now sourced from PayrollSetup.taxRules per run; the legacy
 // global TaxConfig[] path is unused so we default it to empty.
@@ -286,15 +287,14 @@ function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup |
   });
 }
 
-function generateAccountingCSV(run: PayrollRun, lines: EmployeePayrollLine[]): string {
-  const glRaw = localStorage.getItem("gl_mappings");
+function generateAccountingCSV(
+  run: PayrollRun,
+  lines: EmployeePayrollLine[],
+  glMappings: Array<{ entry_name: string; gl_code: string }> = []
+): string {
   const glMap: Record<string, string> = {};
-  if (glRaw) {
-    try {
-      const parsed = JSON.parse(glRaw) as { entry: string; glCode: string }[];
-      parsed.forEach(m => { glMap[m.entry] = m.glCode; });
-    } catch {}
-  }
+  glMappings.forEach((m) => { glMap[m.entry_name] = m.gl_code; });
+
 
   const rows: string[] = ["Date,GL Code,Account,Currency,Debit,Credit,Reporting Currency Amount,Employee,Description"];
   const date = run.runDate || new Date().toISOString().split("T")[0];
@@ -337,6 +337,7 @@ export default function PayrollPage() {
   const activeSetups = setups.filter(s => s.status === "active");
   const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
   const { data: dbRuns = [] } = usePayrollRuns();
+  const { data: glMappings = [] } = useGLMappings();
 
   // Hydrate module-level loans/expenses caches from real DB queries so the
   // breakdown helpers (which run outside React) see live data.
@@ -785,7 +786,7 @@ export default function PayrollPage() {
     const runFilteredEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
     const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
     const breakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances);
-    const csv = generateAccountingCSV(run, breakdown);
+    const csv = generateAccountingCSV(run, breakdown, glMappings);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
   };
