@@ -270,7 +270,7 @@ export default function LeavePage() {
           : "Review, approve, and manage company-wide leave requests."}
       >
         <div className="flex gap-2">
-          {hasFeature("leave.apply") && (
+          {scope === "me" && hasFeature("leave.apply") && (
             <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />New Request
             </Button>

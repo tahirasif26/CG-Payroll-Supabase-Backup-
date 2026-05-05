@@ -516,7 +516,7 @@ export default function LoansPage() {
           ? "View your active loans and repayment schedule."
           : "Track and manage employee loan disbursements."}
       >
-        {hasFeature("loans.request") && (
+        {scope === "me" && hasFeature("loans.request") && (
           <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />New Loan
           </Button>
