@@ -119,7 +119,7 @@ function ActiveEmployeesTab() {
     const empLeaves = leaveRequests.filter(l => l.employeeId === emp.id && l.status === "approved");
     const totalUsedLeave = empLeaves.reduce((s: number, l: any) => s + l.days, 0);
     const remainingLeave = 21 - totalUsedLeave;
-    const leaveEncashment = Math.max(0, remainingLeave) * dailySalary;
+    const leaveEncashment = 0;
 
     const lastDate = new Date(separationData.lastDate);
     const daysWorkedInMonth = lastDate.getDate();
@@ -127,7 +127,7 @@ function ActiveEmployeesTab() {
     const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
     const empLoans = loans.filter(l => l.employeeId === emp.id && l.status === "active");
     const totalLoanBalance = empLoans.reduce((s: number, l: any) => s + l.remainingBalance, 0);
-    const totalSettlement = unpaidSalary + totalEOS + Math.round(leaveEncashment) + noticePeriodPay - totalLoanBalance;
+    const totalSettlement = unpaidSalary + totalEOS + noticePeriodPay - totalLoanBalance;
 
     const run = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
 
@@ -548,10 +548,6 @@ function SeparatedEmployeesTab() {
                           <span className="font-semibold">SAR {eos.amount.toLocaleString()}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
-                        <span className="font-medium">Leave Encashment</span>
-                        <span className="font-semibold">SAR {detailItem.leaveEncashment.toLocaleString()}</span>
-                      </div>
                       {detailItem.noticePeriodPay > 0 && (
                         <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
                           <span className="font-medium">Notice Period Payment</span>
@@ -624,10 +620,6 @@ function SeparatedEmployeesTab() {
                       <span className="font-medium">SAR {eos.amount.toLocaleString()}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between px-3 py-2 border-b border-border/50">
-                    <span>Leave Encashment</span>
-                    <span className="font-medium">SAR {editItem.leaveEncashment.toLocaleString()}</span>
-                  </div>
                   {editItem.noticePeriodPay > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50">
                       <span>Notice Period Pay</span>
