@@ -324,6 +324,33 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             start_year: e.year ? Number(e.year) : null,
           })),
         });
+
+        // Upsert base salary into employee_compensation
+        if (form.salary && Number(form.salary) > 0 && clientId) {
+          const baseAmount = Number(form.salary);
+          const { data: existingComp } = await (supabase as any)
+            .from("employee_compensation")
+            .select("id")
+            .eq("employee_id", editEmployeeId)
+            .eq("component_type", "base")
+            .is("effective_to", null)
+            .maybeSingle();
+          if (existingComp?.id) {
+            await (supabase as any).from("employee_compensation")
+              .update({ amount: baseAmount })
+              .eq("id", existingComp.id);
+          } else {
+            await (supabase as any).from("employee_compensation").insert({
+              employee_id: editEmployeeId,
+              client_id: clientId,
+              component_name: "Base Salary",
+              component_type: "base",
+              amount: baseAmount,
+              effective_from: new Date().toISOString().split("T")[0],
+            });
+          }
+        }
+
         toast({ title: "Employee updated", description: "Changes saved successfully." });
         resetAndClose();
       } else {
