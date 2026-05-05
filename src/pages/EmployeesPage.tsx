@@ -1968,7 +1968,7 @@ function EmployeesDirectory() {
               const totalEOS = eosBreakdown.reduce((s, e) => s + e.amount, 0);
               const empLeaves = leaveRequests.filter(l => l.employeeId === separationEmp.id && l.status === "approved");
               const remainingLeave = 21 - empLeaves.reduce((s, l) => s + l.days, 0);
-              const leaveEncashment = Math.round(Math.max(0, remainingLeave) * dailySalary);
+              const leaveEncashment = 0;
               const lastDate = separationData.lastDate ? new Date(separationData.lastDate) : new Date();
               const unpaidSalary = Math.round(dailySalary * lastDate.getDate());
               const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
