@@ -1687,12 +1687,32 @@ function EmployeesDirectory() {
 
   // Edit Employee — full-page wizard reuse (must be checked BEFORE selectedEmployee block).
   if (editEmpId) {
+    const emp = localEmployees.find(e => e.id === editEmpId);
     return (
       <AddEmployeeWizard
         open={true}
         onOpenChange={(v) => { if (!v) setEditEmpId(null); }}
         employeeCount={localEmployees.length}
         editEmployeeId={editEmpId}
+        onInitiateSeparation={emp && emp.status !== "separated" && emp.status !== "inactive"
+          ? () => { setSeparationEmp(emp); setSeparationOpen(true); }
+          : undefined}
+      />
+    );
+  }
+
+  // Admin/HR viewing another employee's profile → use the wizard layout (same as Add Employee).
+  // Self-profile and employee-viewing-others keep the legacy compact view.
+  if (selectedEmployee && role !== "employee" && selectedEmployee.id !== currentEmployeeId) {
+    return (
+      <AddEmployeeWizard
+        open={true}
+        onOpenChange={(v) => { if (!v) setSelectedEmployee(null); }}
+        employeeCount={localEmployees.length}
+        editEmployeeId={selectedEmployee.id}
+        onInitiateSeparation={selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive"
+          ? () => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }
+          : undefined}
       />
     );
   }
