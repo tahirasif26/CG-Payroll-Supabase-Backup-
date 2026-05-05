@@ -77,6 +77,39 @@ export interface RetirementPolicies {
   vpsContributionRules: string;
 }
 
+export interface LeaveSettings {
+  includeUnpaidLeave: boolean;
+  leaveTypes: Record<string, { enabled: boolean; days: number }>;
+  allowCarryForward: boolean;
+  maxCarryForwardDays: number;
+}
+
+export interface BonusSettings {
+  enabled: boolean;
+  method: "fixed" | "percentage" | "percentage_total";
+  value: number;
+  frequency: "annual" | "semi_annual" | "quarterly" | "monthly";
+  includeInPayslip: boolean;
+}
+
+export interface GratuitySettings {
+  enabled: boolean;
+  method: "saudi" | "uae" | "custom";
+  slab1Days: number;
+  slab2Days: number;
+  maxMonths: number;
+  basis: "basic" | "total";
+}
+
+export interface ProvidentFundSettings {
+  enabled: boolean;
+  scheme: "gosi_saudi" | "gpssa_uae" | "custom";
+  employeeRate: number;
+  employerRate: number;
+  basis: "basic" | "total";
+  autoDeduct: boolean;
+}
+
 export interface ApprovalWorkflow {
   enabled: boolean;
   levels: string[];
@@ -97,8 +130,12 @@ export interface PayrollSetup {
   overtime: OvertimeConfig;
   autoDeductions: AutoDeductions;
   loanAdvance: LoanAdvanceConfig;
-  
+
   finalSettlement: FinalSettlement;
   retirement: RetirementPolicies;
+  leaves: LeaveSettings;
+  bonus: BonusSettings;
+  gratuity: GratuitySettings;
+  providentFund: ProvidentFundSettings;
   approvalWorkflow: ApprovalWorkflow;
 }
