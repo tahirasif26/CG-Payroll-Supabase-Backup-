@@ -153,19 +153,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
             </TabsContent>
 
 
-            <TabsContent value="approval">
-              <Card><CardHeader><CardTitle className="text-sm">Approval Workflow</CardTitle></CardHeader><CardContent>
-                <div className="space-y-2 text-sm">
-                  <div><Label className="text-muted-foreground text-xs">Enabled</Label><p>{setup.approvalWorkflow.enabled ? "Yes" : "No"}</p></div>
-                  {setup.approvalWorkflow.enabled && setup.approvalWorkflow.levels.length > 0 && (
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Levels</Label>
-                      <div className="flex gap-2 mt-1 flex-wrap">{setup.approvalWorkflow.levels.map((l, i) => <Badge key={i} variant="outline">{i + 1}. {l}</Badge>)}</div>
-                    </div>
-                  )}
-                </div>
-              </CardContent></Card>
-            </TabsContent>
           </Tabs>
         </ScrollArea>
       </DialogContent>

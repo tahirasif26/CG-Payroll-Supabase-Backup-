@@ -215,23 +215,6 @@ export default function PayrollSetupViewPage() {
             </div>
           </TabsContent>
 
-          {/* Approval */}
-          <TabsContent value="approval">
-            <h3 className="text-lg font-semibold mb-4">Approval Workflow</h3>
-            <div className="space-y-4">
-              <Field label="Enabled" value={setup.approvalWorkflow.enabled ? "Yes" : "No"} />
-              {setup.approvalWorkflow.enabled && setup.approvalWorkflow.levels.length > 0 && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Approval Levels</Label>
-                  <div className="flex gap-2 mt-2 flex-wrap">
-                    {setup.approvalWorkflow.levels.map((l, i) => (
-                      <Badge key={i} variant="outline" className="text-sm">{i + 1}. {l}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </TabsContent>
         </div>
       </Tabs>
     </div>
