@@ -601,10 +601,29 @@ export default function PayrollPage() {
     const runGross = currentBreakdown.reduce((s, l) => s + l.gross, 0);
     const runDed = currentBreakdown.reduce((s, l) => s + l.totalDeductions, 0);
 
+    const completedDate = new Date().toISOString().split("T")[0];
     syncRuns(prev => prev.map(r => r.id === id ? {
-      ...r, status: "completed" as const, runDate: new Date().toISOString().split("T")[0],
+      ...r, status: "completed" as const, runDate: completedDate,
       employeeCount: runEmployeeCount, totalGross: runGross, totalDeductions: runDed, totalNet: runGross - runDed,
     } : r));
+
+    // Persist completion to DB so it survives reloads and frees the setup for the next run.
+    void (async () => {
+      try {
+        await supabase.from("payroll_runs").update({
+          status: "completed",
+          run_date: completedDate,
+          completed_at: new Date().toISOString(),
+          employee_count: runEmployeeCount,
+          total_gross: runGross,
+          total_deductions: runDed,
+          total_net: runGross - runDed,
+        }).eq("id", id);
+        queryClient.invalidateQueries({ queryKey: ["payroll_runs"] });
+      } catch {
+        // Non-fatal — UI already reflects completion locally.
+      }
+    })();
 
     const paidDate = new Date().toISOString().split("T")[0];
     expenses.forEach(exp => {
