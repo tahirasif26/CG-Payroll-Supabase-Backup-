@@ -135,8 +135,42 @@ export function PayrollSetupProvider({ children }: { children: React.ReactNode }
   const addMut = useMutation({
     mutationFn: async (setup: PayrollSetup) => {
       if (!clientId) throw new Error("No client");
-      const { error } = await supabase.from("payroll_setups").insert(setupToRow(setup, clientId));
+      const { data: inserted, error } = await supabase
+        .from("payroll_setups")
+        .insert(setupToRow(setup, clientId))
+        .select("id")
+        .single();
       if (error) throw error;
+
+      // Auto-create the first open payroll run for this setup so it shows up
+      // immediately on the Payroll page Live cards.
+      try {
+        const now = new Date();
+        const payDate = parseInt(setup.paySchedule?.payDate ?? "25", 10) || 25;
+        const monthIdx = now.getMonth(); // 0-11
+        const advance = now.getDate() > payDate;
+        const targetIdx = advance ? (monthIdx + 1) % 12 : monthIdx;
+        const targetYear = advance && monthIdx === 11 ? now.getFullYear() + 1 : now.getFullYear();
+        const monthNames = [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December",
+        ];
+        const { data: { user } } = await supabase.auth.getUser();
+        if (inserted?.id && user?.id) {
+          await supabase.from("payroll_runs").insert({
+            client_id: clientId,
+            payroll_setup_id: inserted.id,
+            month: monthNames[targetIdx],
+            year: targetYear,
+            run_date: `${targetYear}-${String(targetIdx + 1).padStart(2, "0")}-${String(payDate).padStart(2, "0")}`,
+            status: "draft",
+            created_by: user.id,
+          });
+          qc.invalidateQueries({ queryKey: ["payroll_runs"] });
+        }
+      } catch {
+        // Non-fatal: setup was created, run can be added manually if this fails.
+      }
     },
     onSuccess: invalidate,
   });
