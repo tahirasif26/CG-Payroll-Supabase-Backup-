@@ -1261,8 +1261,8 @@ export default function PayrollPage() {
                     setupName={setup?.name ?? "Payroll"}
                     currency={setup?.currency ?? REPORTING_CURRENCY}
                     onProcess={(row) => {
-                      const localRun = runs.find(x => x.id === row.id);
-                      if (localRun) setSelectedRun(localRun);
+                      const localRun = runs.find(x => x.id === row.id) ?? adaptPayrollRun(row);
+                      setSelectedRun(localRun);
                     }}
                   />
                 );
