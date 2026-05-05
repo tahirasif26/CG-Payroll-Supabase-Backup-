@@ -80,19 +80,23 @@ export default function PayrollSetupEditorPage() {
     }
   }, [id, isNew, getSetupById]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!setup.name.trim()) {
       toast({ title: "Setup name is required", variant: "destructive" });
       return;
     }
-    if (isNew) {
-      addSetup(setup);
-      toast({ title: "Payroll setup created" });
-    } else {
-      updateSetup(setup);
-      toast({ title: "Payroll setup updated" });
+    try {
+      if (isNew) {
+        await addSetup(setup);
+        toast({ title: "Payroll setup created" });
+      } else {
+        await updateSetup(setup);
+        toast({ title: "Payroll setup updated" });
+      }
+      navigate("/payroll/setup");
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e?.message ?? String(e), variant: "destructive" });
     }
-    navigate("/payroll/setup");
   };
 
   const countries = ["Saudi Arabia", "UAE", "Qatar", "Bahrain", "Kuwait", "Oman"];
