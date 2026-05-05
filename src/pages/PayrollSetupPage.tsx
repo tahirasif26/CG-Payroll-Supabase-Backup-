@@ -40,7 +40,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
           <Tabs defaultValue="schedule" className="space-y-4">
             <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="schedule">Pay Schedule</TabsTrigger>
-              <TabsTrigger value="options">Options</TabsTrigger>
               <TabsTrigger value="components">Components</TabsTrigger>
               <TabsTrigger value="tax">Tax Rules</TabsTrigger>
               <TabsTrigger value="salary">Salary Rules</TabsTrigger>
@@ -48,7 +47,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
               <TabsTrigger value="deductions">Auto Deductions</TabsTrigger>
               <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
               <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
-              <TabsTrigger value="retirement">Retirement</TabsTrigger>
               <TabsTrigger value="approval">Approval</TabsTrigger>
             </TabsList>
 
@@ -63,18 +61,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
               </CardContent></Card>
             </TabsContent>
 
-            <TabsContent value="options">
-              <Card><CardHeader><CardTitle className="text-sm">Payroll Options</CardTitle></CardHeader><CardContent>
-                <div className="space-y-3">
-                  {Object.entries(setup.options).map(([key, val]) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <Label className="text-sm capitalize">{key.replace(/([A-Z])/g, " $1")}</Label>
-                      <Switch checked={val} disabled />
-                    </div>
-                  ))}
-                </div>
-              </CardContent></Card>
-            </TabsContent>
 
             <TabsContent value="components">
               <Card><CardHeader><CardTitle className="text-sm">Payslip Components</CardTitle></CardHeader><CardContent className="space-y-4">
