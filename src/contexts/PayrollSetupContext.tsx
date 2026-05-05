@@ -7,11 +7,11 @@ import { PayrollSetup } from "@/types/payrollSetup";
 
 interface PayrollSetupContextType {
   setups: PayrollSetup[];
-  addSetup: (setup: PayrollSetup) => void;
-  updateSetup: (setup: PayrollSetup) => void;
-  deleteSetup: (id: string) => void;
-  duplicateSetup: (id: string) => void;
-  toggleStatus: (id: string) => void;
+  addSetup: (setup: PayrollSetup) => Promise<void>;
+  updateSetup: (setup: PayrollSetup) => Promise<void>;
+  deleteSetup: (id: string) => Promise<void>;
+  duplicateSetup: (id: string) => Promise<void>;
+  toggleStatus: (id: string) => Promise<void>;
   getSetupById: (id: string) => PayrollSetup | undefined;
   isLoading: boolean;
 }
@@ -232,11 +232,11 @@ export function PayrollSetupProvider({ children }: { children: React.ReactNode }
     <PayrollSetupContext.Provider
       value={{
         setups,
-        addSetup: (s) => addMut.mutate(s),
-        updateSetup: (s) => updateMut.mutate(s),
-        deleteSetup: (id) => deleteMut.mutate(id),
-        duplicateSetup: (id) => duplicateMut.mutate(id),
-        toggleStatus: (id) => toggleMut.mutate(id),
+        addSetup: (s) => addMut.mutateAsync(s),
+        updateSetup: (s) => updateMut.mutateAsync(s),
+        deleteSetup: (id) => deleteMut.mutateAsync(id),
+        duplicateSetup: (id) => duplicateMut.mutateAsync(id),
+        toggleStatus: (id) => toggleMut.mutateAsync(id),
         getSetupById,
         isLoading,
       }}
