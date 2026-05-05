@@ -224,13 +224,13 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     const allErrors: Partial<Record<keyof FormData, string>> = {};
     if (!form.firstName.trim()) allErrors.firstName = "Required";
     if (!form.lastName.trim()) allErrors.lastName = "Required";
-    if (!form.email.trim()) allErrors.email = "Required";
+    if (!form.email.trim()) { if (!isEditMode) allErrors.email = "Required"; }
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) allErrors.email = "Invalid email";
     if (!form.department) allErrors.department = "Required";
     if (!form.designation.trim()) allErrors.designation = "Required";
-    if (!form.category) allErrors.category = "Required";
-    if (!form.salary || Number(form.salary) <= 0) allErrors.salary = "Required";
-    if (!form.payrollSetupId) allErrors.payrollSetupId = "Required";
+    if (!isEditMode && !form.category) allErrors.category = "Required";
+    if (!isEditMode && (!form.salary || Number(form.salary) <= 0)) allErrors.salary = "Required";
+    if (!isEditMode && !form.payrollSetupId) allErrors.payrollSetupId = "Required";
 
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
