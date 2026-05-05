@@ -14,6 +14,29 @@ interface Props {
   onChange: (data: PayslipComponent[]) => void;
 }
 
+const EARNING_NAMES = [
+  "Basic Salary",
+  "Housing Allowance (HRA)",
+  "Transport Allowance",
+  "Food Allowance",
+  "Communication Allowance",
+  "Medical Allowance",
+  "Overtime Pay",
+  "Performance Bonus",
+  "Other Earning",
+];
+
+const DEDUCTION_NAMES = [
+  "GOSI (Employee 9.75%)",
+  "Income Tax",
+  "Loan Deduction",
+  "Advance Recovery",
+  "Absence Deduction",
+  "Late Penalty",
+  "Health Insurance",
+  "Other Deduction",
+];
+
 const empty: PayslipComponent = { id: "", name: "", type: "earning", calculationType: "fixed", value: 0, status: "active" };
 
 export default function PayslipComponentsTab({ data, onChange }: Props) {
@@ -71,11 +94,10 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing.id ? "Edit" : "Add"} Component</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Name</Label><Input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={editing.type} onValueChange={v => setEditing({ ...editing, type: v as any })}>
+                <Select value={editing.type} onValueChange={v => setEditing({ ...editing, type: v as any, name: "" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="earning">Earning</SelectItem><SelectItem value="deduction">Deduction</SelectItem></SelectContent>
                 </Select>
@@ -87,6 +109,17 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
                   <SelectContent><SelectItem value="fixed">Fixed</SelectItem><SelectItem value="percentage">Percentage</SelectItem><SelectItem value="formula">Formula</SelectItem></SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Component Name</Label>
+              <Select value={editing.name} onValueChange={v => setEditing({ ...editing, name: v })}>
+                <SelectTrigger><SelectValue placeholder="Select a name" /></SelectTrigger>
+                <SelectContent>
+                  {(editing.type === "earning" ? EARNING_NAMES : DEDUCTION_NAMES).map(name => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2"><Label>Value {editing.calculationType === "percentage" ? "(%)" : ""}</Label><Input type="number" value={editing.value} onChange={e => setEditing({ ...editing, value: Number(e.target.value) })} /></div>
             <div className="space-y-2">
