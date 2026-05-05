@@ -29,7 +29,7 @@ const categoryColors: Record<PolicyCategory, string> = {
   general: "bg-muted text-muted-foreground",
 };
 
-const CURRENT_EMPLOYEE_ID = "emp-current";
+
 
 export default function CompanyPoliciesPage() {
   const { policies, acknowledgePolicy } = usePolicy();
