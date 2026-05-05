@@ -60,7 +60,58 @@ import { useCanApprove } from "@/hooks/useCanApprove";
 import { useRole } from "@/contexts/RoleContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+
 const REPORTING_CURRENCY = "SAR";
+
+function getDaysUntil(dateStr: string | null | undefined): number {
+  if (!dateStr) return 0;
+  const target = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function LivePayrollCard({
+  run,
+  setupName,
+  currency,
+  onProcess,
+}: {
+  run: PayrollRunRow;
+  setupName: string;
+  currency: string;
+  onProcess: (run: PayrollRunRow) => void;
+}) {
+  const daysLeft = getDaysUntil(run.run_date);
+  const isUrgent = daysLeft <= 3;
+  return (
+    <Card className={`border-2 ${isUrgent ? "border-destructive/50 bg-destructive/5" : "border-primary/30 bg-primary/5"}`}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-sm font-semibold">{setupName}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">{currency} · {run.month} {run.year}</p>
+          </div>
+          <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">● Live</Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-3">
+          <p className={`text-3xl font-bold ${isUrgent ? "text-destructive" : "text-primary"}`}>{daysLeft}</p>
+          <p className="text-xs text-muted-foreground">
+            days until pay date ({run.run_date ? new Date(run.run_date).toLocaleDateString() : "—"})
+          </p>
+        </div>
+        <Button size="sm" className="w-full" variant={isUrgent ? "destructive" : "default"} onClick={() => onProcess(run)}>
+          Process Payroll
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
