@@ -65,7 +65,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "End of Service", path: "/separations", requiredRoles: ["admin", "hr"] },
       { label: "Loans", path: "/loans", requiredFeature: "loans.view_own" },
       { label: "Analytics", path: "/analytics", requiredRoles: ["admin", "hr"] },
-      { label: "⚙ Payroll Settings", path: "/payroll/settings", requiredRoles: ["admin", "hr"] },
+      
     ],
   },
   {
