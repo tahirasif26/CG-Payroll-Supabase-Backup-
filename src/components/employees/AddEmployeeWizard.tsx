@@ -186,13 +186,16 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const salaryBreakdown = useMemo(() => {
     if (!selectedSetup || !form.salary || Number(form.salary) <= 0) return null;
     const baseSalary = Number(form.salary);
-    const earnings = selectedSetup.payslipComponents
-      .filter(c => c.type === "earning" && c.status === "active")
+    const isBasic = (c: any) => c.id === "comp-basic-salary" || c.name === "Basic Salary";
+    const calcAmount = (comp: any) =>
+      comp.calculationType === "percentage" ? Math.round(baseSalary * comp.value / 100) : comp.value;
+    const additions = selectedSetup.payslipComponents
+      .filter(c => c.type === "earning" && c.status === "active" && !isBasic(c))
       .map(comp => ({
         name: comp.name,
         calculationType: comp.calculationType,
         percentage: comp.calculationType === "percentage" ? comp.value : undefined,
-        amount: comp.calculationType === "percentage" ? Math.round(baseSalary * comp.value / 100) : comp.value,
+        amount: calcAmount(comp),
       }));
     const deductions = selectedSetup.payslipComponents
       .filter(c => c.type === "deduction" && c.status === "active")
@@ -200,13 +203,14 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
         name: comp.name,
         calculationType: comp.calculationType,
         percentage: comp.calculationType === "percentage" ? comp.value : undefined,
-        amount: comp.calculationType === "percentage" ? Math.round(baseSalary * comp.value / 100) : comp.value,
+        amount: calcAmount(comp),
       }));
-    const totalEarnings = earnings.reduce((s, c) => s + c.amount, 0);
+    const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
     let taxAmount = 0;
+    const grossBeforeTax = baseSalary + totalAdditions;
     if (selectedSetup.options.enableTaxCalculation && selectedSetup.taxRules.length > 0) {
-      const annualGross = totalEarnings * 12;
+      const annualGross = grossBeforeTax * 12;
       selectedSetup.taxRules.forEach(slab => {
         if (annualGross > slab.incomeFrom) {
           const taxable = Math.min(annualGross, slab.incomeTo) - slab.incomeFrom;
@@ -214,7 +218,16 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
         }
       });
     }
-    return { earnings, deductions, totalEarnings, totalDeductions, taxAmount, netSalary: totalEarnings - totalDeductions - taxAmount };
+    return {
+      baseSalary,
+      additions,
+      deductions,
+      totalAdditions,
+      totalDeductions,
+      taxAmount,
+      grossTotal: grossBeforeTax,
+      netSalary: grossBeforeTax - totalDeductions - taxAmount,
+    };
   }, [selectedSetup, form.salary]);
 
   const updateField = useCallback((field: keyof FormData, value: string) => {
@@ -904,25 +917,34 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
               <CardContent>
                 {salaryBreakdown ? (
                   <div className="space-y-4">
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Earnings</p>
-                      <div className="bg-muted/30 rounded-lg overflow-hidden">
-                        {salaryBreakdown.earnings.map((item, i) => (
-                          <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-border/50 last:border-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">{item.name}</span>
-                              {item.calculationType === "percentage" && <Badge variant="secondary" className="text-[10px] h-5">{item.percentage}%</Badge>}
-                              {item.calculationType === "fixed" && <Badge variant="outline" className="text-[10px] h-5">Fixed</Badge>}
+                    <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">Basic Salary</span>
+                        <Badge variant="outline" className="text-[10px] h-5">Base</Badge>
+                      </div>
+                      <span className="text-sm font-semibold">{salaryBreakdown.baseSalary.toLocaleString()} {selectedSetup.currency}</span>
+                    </div>
+                    {salaryBreakdown.additions.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Additions</p>
+                        <div className="bg-muted/30 rounded-lg overflow-hidden">
+                          {salaryBreakdown.additions.map((item, i) => (
+                            <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-border/50 last:border-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{item.name}</span>
+                                {item.calculationType === "percentage" && <Badge variant="secondary" className="text-[10px] h-5">{item.percentage}%</Badge>}
+                                {item.calculationType === "fixed" && <Badge variant="outline" className="text-[10px] h-5">Fixed</Badge>}
+                              </div>
+                              <span className="text-sm font-semibold text-emerald-600">+{item.amount.toLocaleString()} {selectedSetup.currency}</span>
                             </div>
-                            <span className="text-sm font-semibold">{item.amount.toLocaleString()} {selectedSetup.currency}</span>
+                          ))}
+                          <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-500/10 font-semibold">
+                            <span className="text-sm">Total Additions</span>
+                            <span className="text-sm text-emerald-600">+{salaryBreakdown.totalAdditions.toLocaleString()} {selectedSetup.currency}</span>
                           </div>
-                        ))}
-                        <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-500/10 font-semibold">
-                          <span className="text-sm">Total Earnings</span>
-                          <span className="text-sm text-emerald-600">{salaryBreakdown.totalEarnings.toLocaleString()} {selectedSetup.currency}</span>
                         </div>
                       </div>
-                    </div>
+                    )}
                     {salaryBreakdown.deductions.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Deductions</p>
@@ -952,7 +974,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                       </div>
                     )}
                     <div className="flex items-center justify-between bg-primary/10 rounded-lg px-4 py-3.5 font-bold">
-                      <span className="text-base">Net Salary</span>
+                      <span className="text-base">Gross Total</span>
                       <span className="text-base text-primary">{salaryBreakdown.netSalary.toLocaleString()} {selectedSetup.currency}</span>
                     </div>
                   </div>
