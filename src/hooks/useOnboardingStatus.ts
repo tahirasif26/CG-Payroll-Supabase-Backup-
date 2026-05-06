@@ -44,13 +44,6 @@ const STEP_DEFS: Omit<OnboardingStep, "done" | "detected">[] = [
     appRoute: "/settings/company-structure",
   },
   {
-    key: "leave_holidays",
-    title: "Leave & Holidays",
-    description: "Leave types and holiday calendar",
-    route: "leave-holidays",
-    appRoute: "/settings/leave-types",
-  },
-  {
     key: "payroll_setup",
     title: "Payroll Setup",
     description: "Pay schedule, salary rules & tax",
