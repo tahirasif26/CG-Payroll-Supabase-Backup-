@@ -165,8 +165,8 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
                 <Select value={editing.type} onValueChange={v => setEditing({ ...editing, type: v as any, name: "" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="earning">Addition (added to Basic)</SelectItem>
-                    <SelectItem value="deduction">Deduction (subtracted from Basic)</SelectItem>
+                    <SelectItem value="earning">Additional</SelectItem>
+                    <SelectItem value="deduction">Division</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
