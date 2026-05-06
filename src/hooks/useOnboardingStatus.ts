@@ -5,7 +5,6 @@ import { useRole } from "@/contexts/RoleContext";
 export type OnboardingStepKey =
   | "company_profile"
   | "org_structure"
-  | "leave_holidays"
   | "payroll_setup"
   | "expense_setup";
 
