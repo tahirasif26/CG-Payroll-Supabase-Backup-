@@ -846,14 +846,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                   </Select>
                   {renderError("payrollSetupId")}
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Bonus</p>
-                  <Input type="number" value={form.bonus} onChange={e => updateField("bonus", e.target.value)} placeholder="Optional" className="h-8 text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Allowances</p>
-                  <Input type="number" value={form.allowances} onChange={e => updateField("allowances", e.target.value)} placeholder="Optional" className="h-8 text-sm" />
-                </div>
               </div>
             </CardContent>
           </Card>
