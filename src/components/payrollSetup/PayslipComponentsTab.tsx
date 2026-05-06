@@ -106,7 +106,7 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
                 <Label>Calculation Type</Label>
                 <Select value={editing.calculationType} onValueChange={v => setEditing({ ...editing, calculationType: v as any })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="fixed">Fixed</SelectItem><SelectItem value="percentage">Percentage</SelectItem><SelectItem value="formula">Formula</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="fixed">Fixed</SelectItem><SelectItem value="percentage">Percentage</SelectItem></SelectContent>
                 </Select>
               </div>
             </div>
