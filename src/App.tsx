@@ -60,7 +60,7 @@ const OrgChartPage = lazy(() => import("@/pages/OrgChartPage"));
 const PeopleDirectoryPage = lazy(() => import("@/pages/PeopleDirectoryPage"));
 const ProjectsPage = lazy(() => import("@/pages/ProjectsPage"));
 const TimesheetsPage = lazy(() => import("@/pages/TimesheetsPage"));
-const PayrollSettingsPage = lazy(() => import("@/pages/settings/PayrollSettingsPage"));
+
 const CompanyStructurePage = lazy(() => import("@/pages/settings/CompanyStructurePage"));
 const ExpenseCategoriesPage = lazy(() => import("@/pages/settings/ExpenseCategoriesPage"));
 const ApprovalMatrixPage = lazy(() => import("@/pages/settings/ApprovalMatrixPage"));
@@ -92,7 +92,7 @@ const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const MyProfilePage = lazy(() => import("@/pages/MyProfilePage"));
-const PayrollModuleSettingsPage = lazy(() => import("@/pages/PayrollModuleSettingsPage"));
+
 const HRModuleSettingsPage = lazy(() => import("@/pages/HRModuleSettingsPage"));
 const ExpenseModuleSettingsPage = lazy(() => import("@/pages/ExpenseModuleSettingsPage"));
 const VisualPreferencePage = lazy(() => import("@/pages/settings/VisualPreferencePage"));
@@ -229,7 +229,7 @@ function AppRoutes() {
           <Route path="/payroll" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollPage /></ProtectedRoute>
           } />
-          <Route path="/compensation" element={<Navigate to="/payroll/settings" replace />} />
+          <Route path="/compensation" element={<Navigate to="/payroll/setup" replace />} />
           <Route path="/deductions" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><DeductionsPage /></ProtectedRoute>
           } />
@@ -253,9 +253,7 @@ function AppRoutes() {
           } />
 
           {/* New module-scoped settings (tabbed) */}
-          <Route path="/payroll/settings" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollModuleSettingsPage /></ProtectedRoute>
-          } />
+          <Route path="/payroll/settings" element={<Navigate to="/payroll/setup" replace />} />
           <Route path="/employees/settings" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><HRModuleSettingsPage /></ProtectedRoute>
           } />
@@ -298,12 +296,12 @@ function AppRoutes() {
           } />
 
           {/* Backward-compat redirects: old settings paths → new module-scoped tabs */}
-          <Route path="/settings/payroll" element={<Navigate to="/payroll/settings" replace />} />
-          <Route path="/settings/deductions" element={<Navigate to="/payroll/settings" replace />} />
-          <Route path="/settings/tax" element={<Navigate to="/payroll/settings" replace />} />
-          <Route path="/settings/gl-codes" element={<Navigate to="/payroll/settings" replace />} />
-          <Route path="/settings/compensation" element={<Navigate to="/payroll/settings" replace />} />
-          <Route path="/settings/eos-benefits" element={<Navigate to="/payroll/settings" replace />} />
+          <Route path="/settings/payroll" element={<Navigate to="/payroll/setup" replace />} />
+          <Route path="/settings/deductions" element={<Navigate to="/payroll/setup" replace />} />
+          <Route path="/settings/tax" element={<Navigate to="/payroll/setup" replace />} />
+          <Route path="/settings/gl-codes" element={<Navigate to="/payroll/setup" replace />} />
+          <Route path="/settings/compensation" element={<Navigate to="/payroll/setup" replace />} />
+          <Route path="/settings/eos-benefits" element={<Navigate to="/payroll/setup" replace />} />
           <Route path="/settings/leave-types" element={<Navigate to="/employees/settings" replace />} />
           <Route path="/settings/reminders" element={<Navigate to="/employees/settings" replace />} />
           <Route path="/settings/expense-categories" element={<Navigate to="/expenses/settings" replace />} />
