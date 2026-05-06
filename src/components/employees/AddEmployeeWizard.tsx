@@ -186,13 +186,16 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const salaryBreakdown = useMemo(() => {
     if (!selectedSetup || !form.salary || Number(form.salary) <= 0) return null;
     const baseSalary = Number(form.salary);
-    const earnings = selectedSetup.payslipComponents
-      .filter(c => c.type === "earning" && c.status === "active")
+    const isBasic = (c: any) => c.id === "comp-basic-salary" || c.name === "Basic Salary";
+    const calcAmount = (comp: any) =>
+      comp.calculationType === "percentage" ? Math.round(baseSalary * comp.value / 100) : comp.value;
+    const additions = selectedSetup.payslipComponents
+      .filter(c => c.type === "earning" && c.status === "active" && !isBasic(c))
       .map(comp => ({
         name: comp.name,
         calculationType: comp.calculationType,
         percentage: comp.calculationType === "percentage" ? comp.value : undefined,
-        amount: comp.calculationType === "percentage" ? Math.round(baseSalary * comp.value / 100) : comp.value,
+        amount: calcAmount(comp),
       }));
     const deductions = selectedSetup.payslipComponents
       .filter(c => c.type === "deduction" && c.status === "active")
@@ -200,13 +203,14 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
         name: comp.name,
         calculationType: comp.calculationType,
         percentage: comp.calculationType === "percentage" ? comp.value : undefined,
-        amount: comp.calculationType === "percentage" ? Math.round(baseSalary * comp.value / 100) : comp.value,
+        amount: calcAmount(comp),
       }));
-    const totalEarnings = earnings.reduce((s, c) => s + c.amount, 0);
+    const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
     let taxAmount = 0;
+    const grossBeforeTax = baseSalary + totalAdditions;
     if (selectedSetup.options.enableTaxCalculation && selectedSetup.taxRules.length > 0) {
-      const annualGross = totalEarnings * 12;
+      const annualGross = grossBeforeTax * 12;
       selectedSetup.taxRules.forEach(slab => {
         if (annualGross > slab.incomeFrom) {
           const taxable = Math.min(annualGross, slab.incomeTo) - slab.incomeFrom;
@@ -214,7 +218,16 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
         }
       });
     }
-    return { earnings, deductions, totalEarnings, totalDeductions, taxAmount, netSalary: totalEarnings - totalDeductions - taxAmount };
+    return {
+      baseSalary,
+      additions,
+      deductions,
+      totalAdditions,
+      totalDeductions,
+      taxAmount,
+      grossTotal: grossBeforeTax,
+      netSalary: grossBeforeTax - totalDeductions - taxAmount,
+    };
   }, [selectedSetup, form.salary]);
 
   const updateField = useCallback((field: keyof FormData, value: string) => {
