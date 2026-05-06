@@ -50,7 +50,9 @@ const defaultSetup = (): PayrollSetup => ({
   lastUpdated: new Date().toISOString().split("T")[0],
   paySchedule: { payFrequency: "monthly", cycleStartDate: "1", cycleEndDate: "30", payDate: "28", cutoffDate: "25" },
   options: { includeOvertime: false, includeUnpaidLeave: false, enableTaxCalculation: false, allowNegativeSalary: false },
-  payslipComponents: [],
+  payslipComponents: [
+    { id: "comp-basic-salary", name: "Basic Salary", type: "earning", calculationType: "percentage", value: 100, status: "active" },
+  ],
   taxRules: [],
   salaryRules: { salaryType: "fixed", prorationRule: "calendar-days", workingDaysPerMonth: 30 },
   overtime: { enabled: false, rateMultiplier: 1.5, maxOvertimeHours: 40 },
