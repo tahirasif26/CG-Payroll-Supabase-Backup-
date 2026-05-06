@@ -5,7 +5,6 @@ import { useRole } from "@/contexts/RoleContext";
 export type OnboardingStepKey =
   | "company_profile"
   | "org_structure"
-  | "leave_holidays"
   | "payroll_setup"
   | "expense_setup";
 
@@ -43,13 +42,6 @@ const STEP_DEFS: Omit<OnboardingStep, "done" | "detected">[] = [
     description: "Departments, designations & categories",
     route: "org-structure",
     appRoute: "/settings/company-structure",
-  },
-  {
-    key: "leave_holidays",
-    title: "Leave & Holidays",
-    description: "Leave types and holiday calendar",
-    route: "leave-holidays",
-    appRoute: "/settings/leave-types",
   },
   {
     key: "payroll_setup",
@@ -93,8 +85,6 @@ export function useOnboardingStatus() {
         clientRes,
         deptRes,
         designationRes,
-        leaveTypesRes,
-        holidaysRes,
         payrollSetupRes,
         expenseCatsRes,
       ] = await Promise.all([
@@ -105,8 +95,6 @@ export function useOnboardingStatus() {
           .maybeSingle(),
         supabase.from("departments").select("id", { count: "exact", head: true }).eq("client_id", clientId),
         supabase.from("designations").select("id", { count: "exact", head: true }).eq("client_id", clientId),
-        supabase.from("leave_types").select("id", { count: "exact", head: true }).eq("client_id", clientId),
-        supabase.from("holidays").select("id", { count: "exact", head: true }).eq("client_id", clientId),
         supabase.from("payroll_setups" as never).select("id", { count: "exact", head: true }).eq("client_id", clientId),
         supabase.from("expense_categories").select("id", { count: "exact", head: true }).eq("client_id", clientId),
       ]);
@@ -118,7 +106,6 @@ export function useOnboardingStatus() {
       const detect = {
         company_profile: !!(client?.country && client?.base_currency),
         org_structure: (deptRes.count ?? 0) > 0 && (designationRes.count ?? 0) > 0,
-        leave_holidays: (leaveTypesRes.count ?? 0) > 0,
         payroll_setup: (payrollSetupRes.count ?? 0) > 0,
         expense_setup: (expenseCatsRes.count ?? 0) > 0,
       };
