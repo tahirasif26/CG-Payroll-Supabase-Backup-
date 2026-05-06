@@ -432,7 +432,7 @@ export default function ExpensesPage() {
               <ScanLine className="h-4 w-4 mr-2" /> Auto Scan
             </Button>
           )}
-          {hasFeature("expenses.submit") && (
+          {scope === "me" && hasFeature("expenses.submit") && (
             <Button size="sm" variant="outline" onClick={() => navigate("/expenses/gps")}>
               <Navigation className="h-4 w-4 mr-2" /> GPS Tracking
             </Button>
