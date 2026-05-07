@@ -3,6 +3,7 @@ import { TaxSlab, PayslipComponent } from "@/types/payrollSetup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -44,11 +45,12 @@ interface Props {
   componentName?: string;
   onComponentNameChange?: (name: string) => void;
   enabled?: boolean;
+  onEnabledChange?: (v: boolean) => void;
 }
 
 const empty: TaxSlab = { id: "", name: "", incomeFrom: 0, incomeTo: 0, percentage: 0, fixedAmount: 0 };
 
-export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true }: Props) {
+export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true, onEnabledChange }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TaxSlab>(empty);
 
@@ -70,6 +72,16 @@ export default function TaxRulesTab({ data, onChange, componentName, onComponent
         <h3 className="text-lg font-semibold">Tax Rules</h3>
         <Button size="sm" onClick={() => { setEditing(empty); setOpen(true); }}><Plus className="h-4 w-4 mr-1" />Add Slab</Button>
       </div>
+
+      {onEnabledChange && (
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div>
+            <Label>Enable tax calculation</Label>
+            <p className="text-xs text-muted-foreground">Apply configured tax slabs to payroll runs and show on payslip</p>
+          </div>
+          <Switch checked={enabled} onCheckedChange={onEnabledChange} />
+        </div>
+      )}
 
       {onComponentNameChange && (
         <div className="space-y-2 rounded-lg border p-4">
