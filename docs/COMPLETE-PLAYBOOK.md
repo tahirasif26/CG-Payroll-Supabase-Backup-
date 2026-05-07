@@ -1,6 +1,6 @@
-# ConnectHR — Complete Operator Playbook
+# HRConnect — Complete Operator Playbook
 
-> The single source of truth for setting up and running ConnectHR end-to-end.
+> The single source of truth for setting up and running HRConnect end-to-end.
 > Written for the team that operates the platform — not for end users.
 > Read top-to-bottom for a new client onboarding. Use the table of contents to jump back to a specific step.
 
@@ -26,7 +26,7 @@
 
 ## 1. Roles & Permissions Model
 
-ConnectHR is **multi-tenant**. Every record belongs to a `client_id` and is isolated by Row-Level Security.
+HRConnect is **multi-tenant**. Every record belongs to a `client_id` and is isolated by Row-Level Security.
 
 | Role | Scope | Typical user |
 |---|---|---|
