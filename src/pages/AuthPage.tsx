@@ -70,8 +70,8 @@ export default function AuthPage() {
         <Card className="w-full max-w-md shadow-lg border-border/50">
           <CardHeader className="text-center pb-2 pt-8">
             <div className="flex items-center justify-center mb-4">
-              <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
               <span className="text-[28px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
+              <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
             </div>
             <p className="text-sm text-muted-foreground">Reset your password</p>
           </CardHeader>
@@ -102,8 +102,8 @@ export default function AuthPage() {
       <Card className="w-full max-w-md shadow-lg border-border/50">
         <CardHeader className="text-center pb-2 pt-8">
           <div className="flex items-center justify-center mb-1">
-            <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
             <span className="text-[28px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
+              <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
           </div>
           <p className="text-[9px] text-muted-foreground tracking-wide font-medium">powered by Consultify Global</p>
         </CardHeader>
