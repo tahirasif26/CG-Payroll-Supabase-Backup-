@@ -650,7 +650,182 @@ export default function MyProfilePage() {
             }}
           />
         </div>
-      </SectionShell>
+        </TabsContent>
+
+        <TabsContent value="work" className="space-y-6 mt-4">
+          <SectionShell title="Employment details">
+            <Row icon={IdCard} label="Employee ID"><span className="font-mono text-xs">{employee.emp_id || "—"}</span></Row>
+            <Row icon={Briefcase} label="Designation"><span>{employee.designation || "—"}</span></Row>
+            <Row icon={Building2} label="Department"><span>{employee.department || "—"}</span></Row>
+            <Row icon={CalendarIcon} label="Joining date">
+              <span>{employee.joining_date ? format(new Date(employee.joining_date), "dd MMM yyyy") : "—"}</span>
+            </Row>
+            <Row icon={Clock} label="Tenure"><span>{tenureLabel}</span></Row>
+            <Row icon={MapPin} label="Work location">
+              <span>{[employee.work_location_city, employee.work_location_country].filter(Boolean).join(", ") || "—"}</span>
+            </Row>
+            <Row icon={UserIcon} label="Type of hire"><span className="capitalize">{employee.category || "—"}</span></Row>
+            <Row icon={UsersIcon} label="Reports to">
+              <span>{managerEmp ? `${managerEmp.firstName} ${managerEmp.lastName}` : managerName}</span>
+            </Row>
+          </SectionShell>
+
+          {directReports.length > 0 && (
+            <SectionShell title={`Direct reports (${directReports.length})`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                {directReports.map((r) => (
+                  <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                    <Avatar className="h-9 w-9"><AvatarFallback className="text-xs bg-primary/10 text-primary">{(r.firstName?.[0] ?? "") + (r.lastName?.[0] ?? "")}</AvatarFallback></Avatar>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{r.firstName} {r.lastName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{r.designation || "—"}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SectionShell>
+          )}
+        </TabsContent>
+
+        <TabsContent value="compensation" className="space-y-6 mt-4">
+          <CompensationTab compensation={data?.compensation ?? []} baseSalary={data?.baseSalary ?? 0} currency={employee.pay_currency} />
+        </TabsContent>
+
+        <TabsContent value="documents" className="space-y-6 mt-4">
+          <DocumentsTab employeeId={empId} />
+        </TabsContent>
+
+        <TabsContent value="assets" className="space-y-6 mt-4">
+          <AssetsTab employeeId={empId} />
+        </TabsContent>
+      </Tabs>
     </div>
+  );
+}
+
+/* ───────── Sub-tabs ───────── */
+
+function CompensationTab({ compensation, baseSalary, currency }: { compensation: any[]; baseSalary: number; currency?: string }) {
+  const total = compensation.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const cur = currency || "";
+  return (
+    <SectionShell title="Compensation breakdown">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div className="rounded-lg border p-4">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Base salary</p>
+          <p className="text-lg font-semibold mt-1">{baseSalary.toLocaleString()} {cur}</p>
+        </div>
+        <div className="rounded-lg border p-4">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total gross</p>
+          <p className="text-lg font-semibold mt-1">{total.toLocaleString()} {cur}</p>
+        </div>
+        <div className="rounded-lg border p-4">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Components</p>
+          <p className="text-lg font-semibold mt-1">{compensation.length}</p>
+        </div>
+      </div>
+      {compensation.length === 0 ? (
+        <EmptyState icon={Wallet} title="No compensation set" description="Your compensation components have not been configured yet." />
+      ) : (
+        <Table>
+          <TableHeader><TableRow><TableHead>Component</TableHead><TableHead>Type</TableHead><TableHead>Effective from</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {compensation.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell className="font-medium">{c.component_name}</TableCell>
+                <TableCell><Badge variant="outline" className="capitalize text-[10px]">{c.component_type}</Badge></TableCell>
+                <TableCell className="text-xs">{c.effective_from ? format(new Date(c.effective_from), "dd MMM yyyy") : "—"}</TableCell>
+                <TableCell className="text-right font-mono">{Number(c.amount).toLocaleString()} {cur}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </SectionShell>
+  );
+}
+
+function DocumentsTab({ employeeId }: { employeeId: string }) {
+  const { data: docs = [], isLoading } = useQuery({
+    queryKey: ["my-documents", employeeId],
+    enabled: !!employeeId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("employee_documents")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <SectionShell title={`My documents (${docs.length})`}>
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>
+      ) : docs.length === 0 ? (
+        <EmptyState icon={FileText} title="No documents" description="Documents uploaded by HR will appear here." />
+      ) : (
+        <Table>
+          <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Number</TableHead><TableHead>Issued</TableHead><TableHead>Expires</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TableBody>
+            {docs.map((d: any) => (
+              <TableRow key={d.id}>
+                <TableCell className="font-medium capitalize">{d.doc_type}</TableCell>
+                <TableCell className="font-mono text-xs">{d.doc_number || "—"}</TableCell>
+                <TableCell className="text-xs">{d.issue_date ? format(new Date(d.issue_date), "dd MMM yyyy") : "—"}</TableCell>
+                <TableCell className="text-xs">{d.expiry_date ? format(new Date(d.expiry_date), "dd MMM yyyy") : "—"}</TableCell>
+                <TableCell><StatusBadge status={d.status} /></TableCell>
+                <TableCell>{d.file_url ? <Button variant="outline" size="sm" className="h-7 text-xs" asChild><a href={d.file_url} target="_blank" rel="noreferrer">View</a></Button> : null}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </SectionShell>
+  );
+}
+
+function AssetsTab({ employeeId }: { employeeId: string }) {
+  const { data: assets = [], isLoading } = useQuery({
+    queryKey: ["my-assets", employeeId],
+    enabled: !!employeeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("assets")
+        .select("id, asset_tag, name, status, serial_number, warranty_expiry, asset_categories(name), asset_conditions(name)")
+        .eq("employee_id", employeeId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <SectionShell title={`Assigned assets (${assets.length})`}>
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>
+      ) : assets.length === 0 ? (
+        <EmptyState icon={Package} title="No assets assigned" description="Assets your manager assigns will appear here." />
+      ) : (
+        <Table>
+          <TableHeader><TableRow><TableHead>Tag</TableHead><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Serial #</TableHead><TableHead>Condition</TableHead><TableHead>Warranty</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {assets.map((a: any) => (
+              <TableRow key={a.id}>
+                <TableCell className="font-mono text-xs">{a.asset_tag ?? a.id}</TableCell>
+                <TableCell className="font-medium">{a.name}</TableCell>
+                <TableCell>{a.asset_categories?.name ?? "—"}</TableCell>
+                <TableCell className="font-mono text-xs">{a.serial_number ?? "—"}</TableCell>
+                <TableCell>{a.asset_conditions?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs">{a.warranty_expiry ? new Date(a.warranty_expiry).toLocaleDateString() : "—"}</TableCell>
+                <TableCell><StatusBadge status={a.status ?? "assigned"} /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </SectionShell>
   );
 }
