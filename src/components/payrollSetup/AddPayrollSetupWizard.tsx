@@ -26,7 +26,7 @@ import LoanAdvanceTab from "./LoanAdvanceTab";
 import LeavesTab from "./LeavesTab";
 import BonusTab from "./BonusTab";
 import GratuityTab from "./GratuityTab";
-import ProvidentFundTab from "./ProvidentFundTab";
+import ProvidentFundTab, { syncProvidentFundComponent } from "./ProvidentFundTab";
 import FinalSettlementTab from "./FinalSettlementTab";
 
 
