@@ -306,6 +306,16 @@ export default function MyProfilePage() {
         </CardContent>
       </Card>
 
+      <Tabs defaultValue="personal" className="w-full">
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="personal"><UserIcon className="h-3.5 w-3.5 mr-1.5" />Personal</TabsTrigger>
+          <TabsTrigger value="work"><Briefcase className="h-3.5 w-3.5 mr-1.5" />Work</TabsTrigger>
+          <TabsTrigger value="compensation"><Wallet className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>
+          <TabsTrigger value="documents"><FileText className="h-3.5 w-3.5 mr-1.5" />Documents</TabsTrigger>
+          <TabsTrigger value="assets"><Package className="h-3.5 w-3.5 mr-1.5" />Assets</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="personal" className="space-y-6 mt-4">
       {/* ── General Information ── */}
       <SectionShell
         title="General information"
