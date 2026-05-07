@@ -10,27 +10,35 @@ interface Props {
 }
 
 export default function ProvidentFundTab({ data, onChange }: Props) {
+  const nameMissing = data.enabled && !(data.componentName ?? "").trim();
+
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold">Provident Fund / GOSI</h3>
+      <h3 className="text-lg font-semibold">Provident Fund</h3>
 
       <div className="flex items-center justify-between rounded-lg border p-4">
-        <Label>Enable provident fund / GOSI</Label>
+        <Label>Enable provident fund</Label>
         <Switch checked={data.enabled} onCheckedChange={v => onChange({ ...data, enabled: v })} />
       </div>
 
       {data.enabled && (
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Scheme type</Label>
-            <Select value={data.scheme} onValueChange={v => onChange({ ...data, scheme: v as any })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gosi_saudi">GOSI (Saudi Arabia)</SelectItem>
-                <SelectItem value="gpssa_uae">GPSSA (UAE)</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>
+              Component name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={data.componentName ?? ""}
+              placeholder="e.g. Provident Fund"
+              onChange={e => onChange({ ...data, componentName: e.target.value })}
+              aria-invalid={nameMissing}
+            />
+            <p className="text-xs text-muted-foreground">
+              This name will appear as a deduction component on the payslip.
+            </p>
+            {nameMissing && (
+              <p className="text-xs text-destructive">Component name is required.</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
