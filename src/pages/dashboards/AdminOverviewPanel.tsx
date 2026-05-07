@@ -218,7 +218,7 @@ export default function AdminOverviewPanel() {
           <ShortcutCard
             icon={Shield}
             title="Company Policies"
-            description="Distribute policies and track acknowledgements."
+            description="Distribute policy documents to your team."
             href="/policies"
           />
         )}
