@@ -22,7 +22,7 @@ import AutoDeductionsTab from "@/components/payrollSetup/AutoDeductionsTab";
 import LoanAdvanceTab from "@/components/payrollSetup/LoanAdvanceTab";
 import LeavesTab from "@/components/payrollSetup/LeavesTab";
 import BonusTab from "@/components/payrollSetup/BonusTab";
-import GratuityTab from "@/components/payrollSetup/GratuityTab";
+import GratuityTab, { syncGratuityComponent } from "@/components/payrollSetup/GratuityTab";
 import ProvidentFundTab, { syncProvidentFundComponent } from "@/components/payrollSetup/ProvidentFundTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
 
@@ -226,7 +226,7 @@ export default function PayrollSetupEditorPage() {
             />
           </TabsContent>
           <TabsContent value="bonus"><BonusTab data={setup.bonus} onChange={d => setSetup(s => ({ ...s, bonus: d }))} /></TabsContent>
-          <TabsContent value="gratuity"><GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d }))} /></TabsContent>
+          <TabsContent value="gratuity"><GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d, payslipComponents: syncGratuityComponent(s.payslipComponents, d) }))} /></TabsContent>
           <TabsContent value="provident">
             <ProvidentFundTab
               data={setup.providentFund}

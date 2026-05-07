@@ -1,9 +1,36 @@
-import { GratuitySettings } from "@/types/payrollSetup";
+import { GratuitySettings, PayslipComponent } from "@/types/payrollSetup";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+const GRATUITY_COMPONENT_ID = "__gratuity__";
+
+/**
+ * Mirror gratuity settings as a single earning component on the payslip list.
+ * Removed when disabled or when no name is provided.
+ */
+export function syncGratuityComponent(
+  components: PayslipComponent[],
+  g: GratuitySettings,
+): PayslipComponent[] {
+  const others = components.filter(c => c.id !== GRATUITY_COMPONENT_ID);
+  const name = (g.componentName ?? "").trim();
+  if (!g.enabled || !name) return others;
+  return [
+    ...others,
+    {
+      id: GRATUITY_COMPONENT_ID,
+      name,
+      type: "earning",
+      calculationType: "formula",
+      value: 0,
+      formula: "gratuity",
+      status: "active",
+    },
+  ];
+}
 
 interface Props {
   data: GratuitySettings;
@@ -22,6 +49,24 @@ export default function GratuityTab({ data, onChange }: Props) {
 
       {data.enabled && (
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>
+              Component name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={data.componentName ?? ""}
+              placeholder="e.g. Gratuity"
+              onChange={e => onChange({ ...data, componentName: e.target.value })}
+              aria-invalid={!(data.componentName ?? "").trim()}
+            />
+            <p className="text-xs text-muted-foreground">
+              This name will appear as an earning component on the payslip.
+            </p>
+            {!(data.componentName ?? "").trim() && (
+              <p className="text-xs text-destructive">Component name is required.</p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Accrual Slabs (Days per year of service)</Label>
             <div className="rounded-lg border">

@@ -95,6 +95,7 @@ export interface BonusSettings {
 export interface GratuitySettings {
   enabled: boolean;
   method: "saudi" | "uae" | "custom";
+  componentName?: string;
   slab1Days: number;
   slab2Days: number;
   slab3Days: number;
