@@ -240,6 +240,7 @@ export default function PayrollSetupEditorPage() {
                   employeeContributionPct: d.employeeRate,
                   employerContributionPct: d.employerRate,
                 },
+                payslipComponents: syncProvidentFundComponent(s.payslipComponents, d),
               }))}
             />
           </TabsContent>
