@@ -1,8 +1,34 @@
-import { ProvidentFundSettings } from "@/types/payrollSetup";
+import { ProvidentFundSettings, PayslipComponent } from "@/types/payrollSetup";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const PF_COMPONENT_ID = "__provident_fund__";
+
+/**
+ * Keep a single PF deduction row in the payslip components list in sync with
+ * Provident Fund settings. Removed when PF is disabled or has no name.
+ */
+export function syncProvidentFundComponent(
+  components: PayslipComponent[],
+  pf: ProvidentFundSettings,
+): PayslipComponent[] {
+  const others = components.filter(c => c.id !== PF_COMPONENT_ID);
+  const name = (pf.componentName ?? "").trim();
+  if (!pf.enabled || !name) return others;
+  return [
+    ...others,
+    {
+      id: PF_COMPONENT_ID,
+      name,
+      type: "deduction",
+      calculationType: "percentage",
+      value: pf.employeeRate,
+      status: "active",
+    },
+  ];
+}
 
 interface Props {
   data: ProvidentFundSettings;
