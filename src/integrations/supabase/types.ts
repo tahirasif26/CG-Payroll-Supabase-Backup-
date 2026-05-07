@@ -1646,6 +1646,7 @@ export type Database = {
           issue_date: string | null
           status: string
           updated_at: string
+          uploaded_by_self: boolean
         }
         Insert: {
           client_id: string
@@ -1659,6 +1660,7 @@ export type Database = {
           issue_date?: string | null
           status?: string
           updated_at?: string
+          uploaded_by_self?: boolean
         }
         Update: {
           client_id?: string
@@ -1672,6 +1674,7 @@ export type Database = {
           issue_date?: string | null
           status?: string
           updated_at?: string
+          uploaded_by_self?: boolean
         }
         Relationships: [
           {
