@@ -753,7 +753,6 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [filter, setFilter] = useState<"all" | "hr" | "self">("all");
   const [form, setForm] = useState({ doc_type: "", doc_number: "", issue_date: "", expiry_date: "" });
   const [pendingFile, setPendingFile] = useState<{ path: string; url: string | null } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -770,12 +769,6 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
       if (error) throw error;
       return data ?? [];
     },
-  });
-
-  const filtered = docs.filter((d: any) => {
-    if (filter === "hr") return !d.uploaded_by_self;
-    if (filter === "self") return d.uploaded_by_self;
-    return true;
   });
 
   const resetForm = () => {
@@ -828,7 +821,6 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
 
   const openFile = async (d: any) => {
     if (!d.file_url) return;
-    // file_url stored as storage path for self-uploads; legacy may be full URL
     if (d.file_url.startsWith("http")) { window.open(d.file_url, "_blank"); return; }
     const url = await getSignedUrl("employee-documents", d.file_url);
     if (url) window.open(url, "_blank");
@@ -837,37 +829,24 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
 
   return (
     <SectionShell
-      title={`My documents (${docs.length})`}
+      title={`Documents (${docs.length})`}
       action={
         <Button size="sm" onClick={() => setUploadOpen(true)}>
           <Plus className="h-4 w-4 mr-1.5" />Upload document
         </Button>
       }
     >
-      <div className="flex gap-1 mb-3">
-        {([["all","All"],["hr","From HR"],["self","Uploaded by me"]] as const).map(([k, l]) => (
-          <button
-            key={k}
-            onClick={() => setFilter(k)}
-            className={`px-3 py-1 text-xs rounded-md border ${filter === k ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
-
       {isLoading ? (
         <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>
-      ) : filtered.length === 0 ? (
+      ) : docs.length === 0 ? (
         <EmptyState icon={FileText} title="No documents" description="Upload a document or wait for HR to add one." />
       ) : (
         <Table>
-          <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Source</TableHead><TableHead>Number</TableHead><TableHead>Issued</TableHead><TableHead>Expires</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Number</TableHead><TableHead>Issued</TableHead><TableHead>Expires</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
           <TableBody>
-            {filtered.map((d: any) => (
+            {docs.map((d: any) => (
               <TableRow key={d.id}>
                 <TableCell className="font-medium capitalize">{d.doc_type}</TableCell>
-                <TableCell><Badge variant="outline" className="text-[10px]">{d.uploaded_by_self ? "Self" : "HR"}</Badge></TableCell>
                 <TableCell className="font-mono text-xs">{d.doc_number || "—"}</TableCell>
                 <TableCell className="text-xs">{d.issue_date ? format(new Date(d.issue_date), "dd MMM yyyy") : "—"}</TableCell>
                 <TableCell className="text-xs">{d.expiry_date ? format(new Date(d.expiry_date), "dd MMM yyyy") : "—"}</TableCell>
