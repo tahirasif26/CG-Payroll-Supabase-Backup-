@@ -92,16 +92,16 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             className={cn("flex items-center min-w-0", collapsed && "justify-center w-full")}
           >
             <span
-              className="text-[18px] font-extrabold tracking-tighter text-sidebar-foreground"
-              style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}
-            >
-              {collapsed ? "C" : "Connect"}
-            </span>
-            <span
               className="text-[18px] font-extrabold tracking-tighter text-primary"
               style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}
             >
               {collapsed ? "H" : "HR"}
+            </span>
+            <span
+              className="text-[18px] font-extrabold tracking-tighter text-sidebar-foreground"
+              style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}
+            >
+              {collapsed ? "C" : "Connect"}
             </span>
           </button>
           <button
