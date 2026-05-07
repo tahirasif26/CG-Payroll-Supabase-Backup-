@@ -88,7 +88,7 @@ function rowToSetup(row: any): PayrollSetup {
       maxCarryForwardDays: 10,
     },
     bonus: opts.bonus ?? { enabled: false, method: "percentage", value: 0, frequency: "annual", includeInPayslip: true },
-    gratuity: opts.gratuity ?? { enabled: true, method: "saudi", slab1Days: 15, slab2Days: 30, maxMonths: 24, basis: "basic" },
+    gratuity: opts.gratuity ?? { enabled: true, method: "saudi", slab1Days: 0, slab2Days: 15, slab3Days: 21, slab4Days: 30, maxMonths: 24, basis: "basic" },
     providentFund: opts.providentFund ?? { enabled: false, scheme: "gosi_saudi", employeeRate: 9.75, employerRate: 9.75, basis: "basic", autoDeduct: true },
     approvalWorkflow: opts.approvalWorkflow ?? { enabled: false, levels: [] },
   };

@@ -97,6 +97,8 @@ export interface GratuitySettings {
   method: "saudi" | "uae" | "custom";
   slab1Days: number;
   slab2Days: number;
+  slab3Days: number;
+  slab4Days: number;
   maxMonths: number;
   basis: "basic" | "total";
 }
