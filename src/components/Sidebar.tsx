@@ -13,7 +13,7 @@ import {
   type NavGroup,
 } from "@/lib/navigation";
 
-const COLLAPSE_KEY = "connecthr_sidebar_collapsed";
+const COLLAPSE_KEY = "hrconnect_sidebar_collapsed";
 
 function isPathActive(pathname: string, target: string): boolean {
   if (target === "/") return pathname === "/";

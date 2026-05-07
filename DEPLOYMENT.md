@@ -1,4 +1,4 @@
-# ConnectHR — Production Deployment Checklist
+# HRConnect — Production Deployment Checklist
 
 This is the pre-flight checklist to run before pointing customers at the app.
 
@@ -12,7 +12,7 @@ This is the pre-flight checklist to run before pointing customers at the app.
 
 ## 2. Auth
 - [ ] Email signup **disabled** in Lovable Cloud → Auth (only super-admin can create clients; admins invite employees)
-- [ ] Auth email templates customized with ConnectHR branding
+- [ ] Auth email templates customized with HRConnect branding
 - [ ] Password requirements set (min 8 chars, complexity)
 - [ ] Google OAuth provider configured with production redirect URIs
 

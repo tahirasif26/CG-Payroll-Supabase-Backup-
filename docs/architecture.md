@@ -1,4 +1,4 @@
-# ConnectHR — Architecture Overview
+# HRConnect — Architecture Overview
 
 ## Stack
 
