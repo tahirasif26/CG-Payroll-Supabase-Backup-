@@ -131,8 +131,8 @@ export default function ResetPasswordPage() {
         <Card className="w-full max-w-md shadow-lg border-border/50">
           <CardHeader className="text-center pb-2 pt-8">
             <div className="flex items-center justify-center mb-4">
-              <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
               <span className="text-[28px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
+              <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
             </div>
           </CardHeader>
           <CardContent className="pt-2 pb-8 px-8 text-center space-y-4">
@@ -150,8 +150,8 @@ export default function ResetPasswordPage() {
       <Card className="w-full max-w-md shadow-lg border-border/50">
         <CardHeader className="text-center pb-2 pt-8">
           <div className="flex items-center justify-center mb-4">
-            <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
             <span className="text-[28px] font-extrabold tracking-tighter text-primary" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>HR</span>
+              <span className="text-[28px] font-extrabold tracking-tighter text-foreground" style={{ fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif" }}>Connect</span>
           </div>
           <p className="text-sm text-muted-foreground">{isInvite ? "Welcome! Set a password to activate your account" : "Set your new password"}</p>
         </CardHeader>
