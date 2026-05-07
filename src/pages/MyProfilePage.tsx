@@ -14,8 +14,10 @@ import { useEmployees } from "@/contexts/EmployeeContext";
 import { useReporting } from "@/contexts/ReportingContext";
 import { supabase } from "@/integrations/supabase/client";
 import { FileUpload } from "@/components/FileUpload";
+import { getSignedUrl } from "@/lib/storage";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState } from "@/components/EmptyState";
@@ -747,6 +749,15 @@ function CompensationTab({ compensation, baseSalary, currency }: { compensation:
 }
 
 function DocumentsTab({ employeeId }: { employeeId: string }) {
+  const { clientId } = useRole();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [filter, setFilter] = useState<"all" | "hr" | "self">("all");
+  const [form, setForm] = useState({ doc_type: "", doc_number: "", issue_date: "", expiry_date: "" });
+  const [pendingFile, setPendingFile] = useState<{ path: string; url: string | null } | null>(null);
+  const [saving, setSaving] = useState(false);
+
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["my-documents", employeeId],
     enabled: !!employeeId,
@@ -761,29 +772,154 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
     },
   });
 
+  const filtered = docs.filter((d: any) => {
+    if (filter === "hr") return !d.uploaded_by_self;
+    if (filter === "self") return d.uploaded_by_self;
+    return true;
+  });
+
+  const resetForm = () => {
+    setForm({ doc_type: "", doc_number: "", issue_date: "", expiry_date: "" });
+    setPendingFile(null);
+  };
+
+  const submit = async () => {
+    if (!form.doc_type.trim()) {
+      toast({ title: "Document type required", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const payload: any = {
+      employee_id: employeeId,
+      client_id: clientId,
+      doc_type: form.doc_type.trim(),
+      doc_number: form.doc_number || null,
+      issue_date: form.issue_date || null,
+      expiry_date: form.expiry_date || null,
+      file_url: pendingFile?.path || null,
+      uploaded_by_self: true,
+      status: "active",
+    };
+    const { error } = await (supabase as any).from("employee_documents").insert(payload);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Failed to add document", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Document added" });
+    setUploadOpen(false);
+    resetForm();
+    qc.invalidateQueries({ queryKey: ["my-documents", employeeId] });
+  };
+
+  const removeDoc = async (d: any) => {
+    if (!confirm(`Delete document "${d.doc_type}"?`)) return;
+    if (d.file_url && d.uploaded_by_self) {
+      await supabase.storage.from("employee-documents").remove([d.file_url]);
+    }
+    const { error } = await (supabase as any).from("employee_documents").delete().eq("id", d.id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Deleted" });
+    qc.invalidateQueries({ queryKey: ["my-documents", employeeId] });
+  };
+
+  const openFile = async (d: any) => {
+    if (!d.file_url) return;
+    // file_url stored as storage path for self-uploads; legacy may be full URL
+    if (d.file_url.startsWith("http")) { window.open(d.file_url, "_blank"); return; }
+    const url = await getSignedUrl("employee-documents", d.file_url);
+    if (url) window.open(url, "_blank");
+    else toast({ title: "Could not open file", variant: "destructive" });
+  };
+
   return (
-    <SectionShell title={`My documents (${docs.length})`}>
+    <SectionShell
+      title={`My documents (${docs.length})`}
+      action={
+        <Button size="sm" onClick={() => setUploadOpen(true)}>
+          <Plus className="h-4 w-4 mr-1.5" />Upload document
+        </Button>
+      }
+    >
+      <div className="flex gap-1 mb-3">
+        {([["all","All"],["hr","From HR"],["self","Uploaded by me"]] as const).map(([k, l]) => (
+          <button
+            key={k}
+            onClick={() => setFilter(k)}
+            className={`px-3 py-1 text-xs rounded-md border ${filter === k ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>
-      ) : docs.length === 0 ? (
-        <EmptyState icon={FileText} title="No documents" description="Documents uploaded by HR will appear here." />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={FileText} title="No documents" description="Upload a document or wait for HR to add one." />
       ) : (
         <Table>
-          <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Number</TableHead><TableHead>Issued</TableHead><TableHead>Expires</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Source</TableHead><TableHead>Number</TableHead><TableHead>Issued</TableHead><TableHead>Expires</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
           <TableBody>
-            {docs.map((d: any) => (
+            {filtered.map((d: any) => (
               <TableRow key={d.id}>
                 <TableCell className="font-medium capitalize">{d.doc_type}</TableCell>
+                <TableCell><Badge variant="outline" className="text-[10px]">{d.uploaded_by_self ? "Self" : "HR"}</Badge></TableCell>
                 <TableCell className="font-mono text-xs">{d.doc_number || "—"}</TableCell>
                 <TableCell className="text-xs">{d.issue_date ? format(new Date(d.issue_date), "dd MMM yyyy") : "—"}</TableCell>
                 <TableCell className="text-xs">{d.expiry_date ? format(new Date(d.expiry_date), "dd MMM yyyy") : "—"}</TableCell>
                 <TableCell><StatusBadge status={d.status} /></TableCell>
-                <TableCell>{d.file_url ? <Button variant="outline" size="sm" className="h-7 text-xs" asChild><a href={d.file_url} target="_blank" rel="noreferrer">View</a></Button> : null}</TableCell>
+                <TableCell className="text-right space-x-1">
+                  {d.file_url && (
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openFile(d)}>View</Button>
+                  )}
+                  {d.uploaded_by_self && (
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={() => removeDoc(d)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
+
+      <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) resetForm(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Upload document</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Document type *</Label>
+              <Input value={form.doc_type} onChange={(e) => setForm({ ...form, doc_type: e.target.value })} placeholder="e.g. Passport, Visa, Certificate" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label className="text-xs">Document number</Label><Input value={form.doc_number} onChange={(e) => setForm({ ...form, doc_number: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label className="text-xs">Issue date</Label><Input type="date" value={form.issue_date} onChange={(e) => setForm({ ...form, issue_date: e.target.value })} /></div>
+            </div>
+            <div className="space-y-1.5"><Label className="text-xs">Expiry date</Label><Input type="date" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} /></div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">File</Label>
+              <FileUpload
+                bucket="employee-documents"
+                pathPrefix={employeeId}
+                accept="application/pdf,image/png,image/jpeg,image/webp"
+                maxSizeMB={10}
+                privateBucket
+                onUploaded={(path, url) => setPendingFile({ path, url })}
+                onRemoved={() => setPendingFile(null)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setUploadOpen(false)}>Cancel</Button>
+            <Button onClick={submit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SectionShell>
   );
 }
