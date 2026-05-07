@@ -76,7 +76,7 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
         {!isSuperAdmin && (
           <button
             className="p-2 rounded-lg hover:bg-muted transition-colors"
-            onClick={() => navigate("/settings/company")}
+            onClick={() => navigate("/account")}
             aria-label="Settings"
           >
             <Settings className="h-4 w-4 text-muted-foreground" />
