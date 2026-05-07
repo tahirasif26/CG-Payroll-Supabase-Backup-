@@ -15,16 +15,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import PayScheduleTab from "@/components/payrollSetup/PayScheduleTab";
 import PayslipComponentsTab from "@/components/payrollSetup/PayslipComponentsTab";
-import TaxRulesTab, { syncTaxComponent } from "@/components/payrollSetup/TaxRulesTab";
 import SalaryRulesTab from "@/components/payrollSetup/SalaryRulesTab";
-import OvertimeTab from "@/components/payrollSetup/OvertimeTab";
-import AutoDeductionsTab from "@/components/payrollSetup/AutoDeductionsTab";
-import LoanAdvanceTab from "@/components/payrollSetup/LoanAdvanceTab";
 import LeavesTab from "@/components/payrollSetup/LeavesTab";
-import BonusTab, { syncBonusComponent } from "@/components/payrollSetup/BonusTab";
-import GratuityTab, { syncGratuityComponent } from "@/components/payrollSetup/GratuityTab";
-import ProvidentFundTab, { syncProvidentFundComponent } from "@/components/payrollSetup/ProvidentFundTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
+import OptionsTab from "@/components/payrollSetup/OptionsTab";
 
 
 export const DEFAULT_PAYROLL_SETUP: PayrollSetup = {
