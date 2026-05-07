@@ -650,6 +650,7 @@ export default function MyProfilePage() {
             }}
           />
         </div>
+      </SectionShell>
         </TabsContent>
 
         <TabsContent value="work" className="space-y-6 mt-4">
