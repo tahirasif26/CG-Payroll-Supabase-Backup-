@@ -8,9 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
-  Calendar, Settings, Layers, Receipt, Wallet, Clock, MinusCircle,
-  Banknote, FileCheck, PiggyBank, Workflow, Check, ArrowLeft, ArrowRight, Save,
-  Plane, Gift, Award,
+  Calendar, Settings, Layers, Wallet, FileCheck, Check, ArrowLeft, ArrowRight, Save,
+  Plane, SlidersHorizontal,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
@@ -18,16 +17,10 @@ import type { PayrollSetup } from "@/types/payrollSetup";
 
 import PayScheduleTab from "./PayScheduleTab";
 import PayslipComponentsTab from "./PayslipComponentsTab";
-import TaxRulesTab, { syncTaxComponent } from "./TaxRulesTab";
 import SalaryRulesTab from "./SalaryRulesTab";
-import OvertimeTab from "./OvertimeTab";
-import AutoDeductionsTab from "./AutoDeductionsTab";
-import LoanAdvanceTab from "./LoanAdvanceTab";
 import LeavesTab from "./LeavesTab";
-import BonusTab, { syncBonusComponent } from "./BonusTab";
-import GratuityTab, { syncGratuityComponent } from "./GratuityTab";
-import ProvidentFundTab, { syncProvidentFundComponent } from "./ProvidentFundTab";
 import FinalSettlementTab from "./FinalSettlementTab";
+import OptionsTab from "./OptionsTab";
 
 
 interface Props {
