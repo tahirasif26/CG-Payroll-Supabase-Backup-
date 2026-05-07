@@ -226,7 +226,7 @@ export default function PayrollSetupEditorPage() {
             />
           </TabsContent>
           <TabsContent value="bonus"><BonusTab data={setup.bonus} onChange={d => setSetup(s => ({ ...s, bonus: d }))} /></TabsContent>
-          <TabsContent value="gratuity"><GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d }))} /></TabsContent>
+          <TabsContent value="gratuity"><GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d, payslipComponents: syncGratuityComponent(s.payslipComponents, d) }))} /></TabsContent>
           <TabsContent value="provident">
             <ProvidentFundTab
               data={setup.providentFund}
