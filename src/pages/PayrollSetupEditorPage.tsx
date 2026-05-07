@@ -149,15 +149,9 @@ export default function PayrollSetupEditorPage() {
           <TabsList className="inline-flex w-auto">
             <TabsTrigger value="schedule">Pay Schedule</TabsTrigger>
             <TabsTrigger value="components">Components</TabsTrigger>
-            <TabsTrigger value="tax">Tax Rules</TabsTrigger>
             <TabsTrigger value="salary">Salary Rules</TabsTrigger>
-            <TabsTrigger value="overtime">Overtime</TabsTrigger>
-            <TabsTrigger value="auto-deductions">Auto Deductions</TabsTrigger>
-            <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
             <TabsTrigger value="leaves">Leaves</TabsTrigger>
-            <TabsTrigger value="bonus">Bonus</TabsTrigger>
-            <TabsTrigger value="gratuity">Gratuity</TabsTrigger>
-            <TabsTrigger value="provident">Provident Fund</TabsTrigger>
+            <TabsTrigger value="options">Options</TabsTrigger>
             <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
           </TabsList>
         </ScrollArea>
@@ -165,32 +159,6 @@ export default function PayrollSetupEditorPage() {
         <div className="rounded-lg border p-6">
           <TabsContent value="schedule"><PayScheduleTab data={setup.paySchedule} onChange={d => setSetup(s => ({ ...s, paySchedule: d }))} /></TabsContent>
           <TabsContent value="components"><PayslipComponentsTab data={setup.payslipComponents} onChange={d => setSetup(s => ({ ...s, payslipComponents: d }))} /></TabsContent>
-
-          <TabsContent value="tax">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                  <Label>Enable tax calculation</Label>
-                  <p className="text-xs text-muted-foreground">Apply configured tax slabs to payroll runs</p>
-                </div>
-                <Switch
-                  checked={setup.options.enableTaxCalculation}
-                  onCheckedChange={v => setSetup(s => ({
-                    ...s,
-                    options: { ...s.options, enableTaxCalculation: v },
-                    payslipComponents: syncTaxComponent(s.payslipComponents, s.taxComponentName, v, s.taxRules.length > 0),
-                  }))}
-                />
-              </div>
-              <TaxRulesTab
-                data={setup.taxRules}
-                onChange={d => setSetup(s => ({ ...s, taxRules: d, payslipComponents: syncTaxComponent(s.payslipComponents, s.taxComponentName, s.options.enableTaxCalculation, d.length > 0) }))}
-                componentName={setup.taxComponentName}
-                onComponentNameChange={n => setSetup(s => ({ ...s, taxComponentName: n, payslipComponents: syncTaxComponent(s.payslipComponents, n, s.options.enableTaxCalculation, s.taxRules.length > 0) }))}
-                enabled={setup.options.enableTaxCalculation}
-              />
-            </div>
-          </TabsContent>
 
           <TabsContent value="salary">
             <div className="space-y-4">
@@ -205,51 +173,19 @@ export default function PayrollSetupEditorPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="overtime">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                  <Label>Include overtime in payroll</Label>
-                  <p className="text-xs text-muted-foreground">Add overtime earnings to payslips</p>
-                </div>
-                <Switch checked={setup.options.includeOvertime} onCheckedChange={v => setOption("includeOvertime", v)} />
-              </div>
-              <OvertimeTab data={setup.overtime} onChange={d => setSetup(s => ({ ...s, overtime: d }))} />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="auto-deductions"><AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} /></TabsContent>
-          <TabsContent value="loan"><LoanAdvanceTab data={setup.loanAdvance} onChange={d => setSetup(s => ({ ...s, loanAdvance: d }))} /></TabsContent>
-
           <TabsContent value="leaves">
             <LeavesTab
               data={setup.leaves}
               onChange={d => setSetup(s => ({
                 ...s,
                 leaves: d,
-                // mirror unpaid-leave master toggle into legacy options for downstream calc
                 options: { ...s.options, includeUnpaidLeave: d.includeUnpaidLeave },
               }))}
             />
           </TabsContent>
-          <TabsContent value="bonus"><BonusTab data={setup.bonus} onChange={d => setSetup(s => ({ ...s, bonus: d, payslipComponents: syncBonusComponent(s.payslipComponents, d) }))} /></TabsContent>
-          <TabsContent value="gratuity"><GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d, payslipComponents: syncGratuityComponent(s.payslipComponents, d) }))} /></TabsContent>
-          <TabsContent value="provident">
-            <ProvidentFundTab
-              data={setup.providentFund}
-              onChange={d => setSetup(s => ({
-                ...s,
-                providentFund: d,
-                // Mirror to legacy retirement object so existing summary/calc paths keep working.
-                retirement: {
-                  ...s.retirement,
-                  enablePF: d.enabled,
-                  employeeContributionPct: d.employeeRate,
-                  employerContributionPct: d.employerRate,
-                },
-                payslipComponents: syncProvidentFundComponent(s.payslipComponents, d),
-              }))}
-            />
+
+          <TabsContent value="options">
+            <OptionsTab setup={setup} setSetup={setSetup} />
           </TabsContent>
 
           <TabsContent value="settlement"><FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /></TabsContent>
