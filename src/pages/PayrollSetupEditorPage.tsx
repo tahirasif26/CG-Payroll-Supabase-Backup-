@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import PayScheduleTab from "@/components/payrollSetup/PayScheduleTab";
 import PayslipComponentsTab from "@/components/payrollSetup/PayslipComponentsTab";
-import TaxRulesTab from "@/components/payrollSetup/TaxRulesTab";
+import TaxRulesTab, { syncTaxComponent } from "@/components/payrollSetup/TaxRulesTab";
 import SalaryRulesTab from "@/components/payrollSetup/SalaryRulesTab";
 import OvertimeTab from "@/components/payrollSetup/OvertimeTab";
 import AutoDeductionsTab from "@/components/payrollSetup/AutoDeductionsTab";
@@ -179,9 +179,22 @@ export default function PayrollSetupEditorPage() {
                   <Label>Enable tax calculation</Label>
                   <p className="text-xs text-muted-foreground">Apply configured tax slabs to payroll runs</p>
                 </div>
-                <Switch checked={setup.options.enableTaxCalculation} onCheckedChange={v => setOption("enableTaxCalculation", v)} />
+                <Switch
+                  checked={setup.options.enableTaxCalculation}
+                  onCheckedChange={v => setSetup(s => ({
+                    ...s,
+                    options: { ...s.options, enableTaxCalculation: v },
+                    payslipComponents: syncTaxComponent(s.payslipComponents, s.taxComponentName, v, s.taxRules.length > 0),
+                  }))}
+                />
               </div>
-              <TaxRulesTab data={setup.taxRules} onChange={d => setSetup(s => ({ ...s, taxRules: d }))} />
+              <TaxRulesTab
+                data={setup.taxRules}
+                onChange={d => setSetup(s => ({ ...s, taxRules: d, payslipComponents: syncTaxComponent(s.payslipComponents, s.taxComponentName, s.options.enableTaxCalculation, d.length > 0) }))}
+                componentName={setup.taxComponentName}
+                onComponentNameChange={n => setSetup(s => ({ ...s, taxComponentName: n, payslipComponents: syncTaxComponent(s.payslipComponents, n, s.options.enableTaxCalculation, s.taxRules.length > 0) }))}
+                enabled={setup.options.enableTaxCalculation}
+              />
             </div>
           </TabsContent>
 

@@ -18,7 +18,7 @@ import type { PayrollSetup } from "@/types/payrollSetup";
 
 import PayScheduleTab from "./PayScheduleTab";
 import PayslipComponentsTab from "./PayslipComponentsTab";
-import TaxRulesTab from "./TaxRulesTab";
+import TaxRulesTab, { syncTaxComponent } from "./TaxRulesTab";
 import SalaryRulesTab from "./SalaryRulesTab";
 import OvertimeTab from "./OvertimeTab";
 import AutoDeductionsTab from "./AutoDeductionsTab";
@@ -121,7 +121,15 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
     },
     { id: "schedule", label: "Pay Schedule", icon: Calendar, content: <PayScheduleTab data={setup.paySchedule} onChange={d => setSetup(s => ({ ...s, paySchedule: d }))} /> },
     { id: "components", label: "Components", icon: Layers, content: <PayslipComponentsTab data={setup.payslipComponents} onChange={d => setSetup(s => ({ ...s, payslipComponents: d }))} /> },
-    { id: "tax", label: "Tax Rules", icon: Receipt, content: <TaxRulesTab data={setup.taxRules} onChange={d => setSetup(s => ({ ...s, taxRules: d }))} /> },
+    { id: "tax", label: "Tax Rules", icon: Receipt, content: (
+      <TaxRulesTab
+        data={setup.taxRules}
+        onChange={d => setSetup(s => ({ ...s, taxRules: d, payslipComponents: syncTaxComponent(s.payslipComponents, s.taxComponentName, s.options.enableTaxCalculation, d.length > 0) }))}
+        componentName={setup.taxComponentName}
+        onComponentNameChange={n => setSetup(s => ({ ...s, taxComponentName: n, payslipComponents: syncTaxComponent(s.payslipComponents, n, s.options.enableTaxCalculation, s.taxRules.length > 0) }))}
+        enabled={setup.options.enableTaxCalculation}
+      />
+    ) },
     { id: "salary", label: "Salary Rules", icon: Wallet, content: <SalaryRulesTab data={setup.salaryRules} onChange={d => setSetup(s => ({ ...s, salaryRules: d }))} /> },
     { id: "overtime", label: "Overtime", icon: Clock, content: <OvertimeTab data={setup.overtime} onChange={d => setSetup(s => ({ ...s, overtime: d }))} /> },
     { id: "auto-deductions", label: "Auto Deductions", icon: MinusCircle, content: <AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} /> },
