@@ -26,7 +26,7 @@ import LoanAdvanceTab from "./LoanAdvanceTab";
 import LeavesTab from "./LeavesTab";
 import BonusTab from "./BonusTab";
 import GratuityTab from "./GratuityTab";
-import ProvidentFundTab from "./ProvidentFundTab";
+import ProvidentFundTab, { syncProvidentFundComponent } from "./ProvidentFundTab";
 import FinalSettlementTab from "./FinalSettlementTab";
 
 
@@ -129,7 +129,7 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
     { id: "leaves", label: "Leaves", icon: Plane, content: <LeavesTab data={setup.leaves} onChange={d => setSetup(s => ({ ...s, leaves: d, options: { ...s.options, includeUnpaidLeave: d.includeUnpaidLeave } }))} /> },
     { id: "bonus", label: "Bonus", icon: Gift, content: <BonusTab data={setup.bonus} onChange={d => setSetup(s => ({ ...s, bonus: d }))} /> },
     { id: "gratuity", label: "Gratuity", icon: Award, content: <GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d }))} /> },
-    { id: "provident", label: "Provident Fund", icon: PiggyBank, content: <ProvidentFundTab data={setup.providentFund} onChange={d => setSetup(s => ({ ...s, providentFund: d, retirement: { ...s.retirement, enablePF: d.enabled, employeeContributionPct: d.employeeRate, employerContributionPct: d.employerRate } }))} /> },
+    { id: "provident", label: "Provident Fund", icon: PiggyBank, content: <ProvidentFundTab data={setup.providentFund} onChange={d => setSetup(s => ({ ...s, providentFund: d, retirement: { ...s.retirement, enablePF: d.enabled, employeeContributionPct: d.employeeRate, employerContributionPct: d.employerRate }, payslipComponents: syncProvidentFundComponent(s.payslipComponents, d) }))} /> },
     { id: "settlement", label: "Final Settlement", icon: FileCheck, content: <FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /> },
   ]), [setup]);
 

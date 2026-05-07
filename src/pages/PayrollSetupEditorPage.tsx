@@ -23,7 +23,7 @@ import LoanAdvanceTab from "@/components/payrollSetup/LoanAdvanceTab";
 import LeavesTab from "@/components/payrollSetup/LeavesTab";
 import BonusTab from "@/components/payrollSetup/BonusTab";
 import GratuityTab from "@/components/payrollSetup/GratuityTab";
-import ProvidentFundTab from "@/components/payrollSetup/ProvidentFundTab";
+import ProvidentFundTab, { syncProvidentFundComponent } from "@/components/payrollSetup/ProvidentFundTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
 
 
@@ -240,6 +240,7 @@ export default function PayrollSetupEditorPage() {
                   employeeContributionPct: d.employeeRate,
                   employerContributionPct: d.employerRate,
                 },
+                payslipComponents: syncProvidentFundComponent(s.payslipComponents, d),
               }))}
             />
           </TabsContent>
