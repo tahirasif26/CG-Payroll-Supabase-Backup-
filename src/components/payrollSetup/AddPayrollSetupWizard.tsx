@@ -128,6 +128,7 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
         componentName={setup.taxComponentName}
         onComponentNameChange={n => setSetup(s => ({ ...s, taxComponentName: n, payslipComponents: syncTaxComponent(s.payslipComponents, n, s.options.enableTaxCalculation, s.taxRules.length > 0) }))}
         enabled={setup.options.enableTaxCalculation}
+        onEnabledChange={v => setSetup(s => ({ ...s, options: { ...s.options, enableTaxCalculation: v }, payslipComponents: syncTaxComponent(s.payslipComponents, s.taxComponentName, v, s.taxRules.length > 0) }))}
       />
     ) },
     { id: "salary", label: "Salary Rules", icon: Wallet, content: <SalaryRulesTab data={setup.salaryRules} onChange={d => setSetup(s => ({ ...s, salaryRules: d }))} /> },
