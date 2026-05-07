@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TaxSlab } from "@/types/payrollSetup";
+import { TaxSlab, PayslipComponent } from "@/types/payrollSetup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,14 +7,48 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
+const TAX_COMPONENT_ID = "__income_tax__";
+
+/**
+ * Maintain a single Income Tax deduction row on the payslip components list.
+ * The actual amount is computed at payroll time from slab brackets — here we
+ * just expose the component so it shows on payslips. We use calculationType
+ * "formula" with formula="tax_slabs" as a marker for the calculator.
+ */
+export function syncTaxComponent(
+  components: PayslipComponent[],
+  taxComponentName: string | undefined,
+  enabled: boolean,
+  hasSlabs: boolean,
+): PayslipComponent[] {
+  const others = components.filter(c => c.id !== TAX_COMPONENT_ID);
+  const name = (taxComponentName ?? "").trim();
+  if (!enabled || !name || !hasSlabs) return others;
+  return [
+    ...others,
+    {
+      id: TAX_COMPONENT_ID,
+      name,
+      type: "deduction",
+      calculationType: "formula",
+      value: 0,
+      formula: "tax_slabs",
+      status: "active",
+    },
+  ];
+}
+
 interface Props {
   data: TaxSlab[];
   onChange: (data: TaxSlab[]) => void;
+  componentName?: string;
+  onComponentNameChange?: (name: string) => void;
+  enabled?: boolean;
 }
 
 const empty: TaxSlab = { id: "", name: "", incomeFrom: 0, incomeTo: 0, percentage: 0, fixedAmount: 0 };
 
-export default function TaxRulesTab({ data, onChange }: Props) {
+export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TaxSlab>(empty);
 
@@ -28,12 +62,35 @@ export default function TaxRulesTab({ data, onChange }: Props) {
     setOpen(false);
   };
 
+  const nameMissing = enabled && data.length > 0 && !(componentName ?? "").trim();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Tax Rules</h3>
         <Button size="sm" onClick={() => { setEditing(empty); setOpen(true); }}><Plus className="h-4 w-4 mr-1" />Add Slab</Button>
       </div>
+
+      {onComponentNameChange && (
+        <div className="space-y-2 rounded-lg border p-4">
+          <Label>
+            Payslip component name <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            value={componentName ?? ""}
+            placeholder="e.g. Income Tax"
+            onChange={e => onComponentNameChange(e.target.value)}
+            aria-invalid={nameMissing}
+          />
+          <p className="text-xs text-muted-foreground">
+            A single deduction row with this name appears on the payslip. The amount is calculated from the slab brackets based on each employee's salary — only the applicable slab(s) apply per employee.
+          </p>
+          {nameMissing && (
+            <p className="text-xs text-destructive">Component name is required when tax slabs are configured.</p>
+          )}
+        </div>
+      )}
+
       <Table>
         <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Income From</TableHead><TableHead>Income To</TableHead><TableHead>%</TableHead><TableHead>Fixed Amt</TableHead><TableHead className="w-20">Actions</TableHead></TableRow></TableHeader>
         <TableBody>

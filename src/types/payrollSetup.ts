@@ -139,6 +139,8 @@ export interface PayrollSetup {
   options: PayrollOptions;
   payslipComponents: PayslipComponent[];
   taxRules: TaxSlab[];
+  /** Mandatory display name for the income-tax deduction component on payslips. */
+  taxComponentName?: string;
   salaryRules: SalaryRules;
   overtime: OvertimeConfig;
   autoDeductions: AutoDeductions;
