@@ -106,6 +106,7 @@ export interface GratuitySettings {
 export interface ProvidentFundSettings {
   enabled: boolean;
   scheme: "gosi_saudi" | "gpssa_uae" | "custom";
+  componentName?: string;
   employeeRate: number;
   employerRate: number;
   basis: "basic" | "total";
