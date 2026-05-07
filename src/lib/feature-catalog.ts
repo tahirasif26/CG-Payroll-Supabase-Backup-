@@ -92,7 +92,6 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
     label: "Company Policies",
     features: [
       { key: "policies.view", label: "View Policies" },
-      { key: "policies.acknowledge", label: "Acknowledge Policies" },
     ],
   },
   {
