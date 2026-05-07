@@ -23,18 +23,6 @@ export default function GratuityTab({ data, onChange }: Props) {
       {data.enabled && (
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Calculation method</Label>
-            <Select value={data.method} onValueChange={v => onChange({ ...data, method: v as any })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="saudi">Saudi Labor Law</SelectItem>
-                <SelectItem value="uae">UAE Labor Law</SelectItem>
-                <SelectItem value="custom">Custom Slabs</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
             <Label className="text-sm font-semibold">Accrual Slabs (Days per year of service)</Label>
             <div className="rounded-lg border">
               <Table>
@@ -46,7 +34,7 @@ export default function GratuityTab({ data, onChange }: Props) {
                 </TableHeader>
                 <TableBody>
                   <TableRow>
-                    <TableCell>Less than 5 years</TableCell>
+                    <TableCell>Less than 1 year</TableCell>
                     <TableCell>
                       <Input
                         type="number"
@@ -57,13 +45,35 @@ export default function GratuityTab({ data, onChange }: Props) {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>5 years and above</TableCell>
+                    <TableCell>1 to 3 years</TableCell>
                     <TableCell>
                       <Input
                         type="number"
                         className="w-32"
                         value={data.slab2Days}
                         onChange={e => onChange({ ...data, slab2Days: Number(e.target.value) })}
+                      />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>3 to 5 years</TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        className="w-32"
+                        value={data.slab3Days}
+                        onChange={e => onChange({ ...data, slab3Days: Number(e.target.value) })}
+                      />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>More than 5 years</TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        className="w-32"
+                        value={data.slab4Days}
+                        onChange={e => onChange({ ...data, slab4Days: Number(e.target.value) })}
                       />
                     </TableCell>
                   </TableRow>
@@ -87,7 +97,7 @@ export default function GratuityTab({ data, onChange }: Props) {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="basic">Basic Salary only</SelectItem>
-                  <SelectItem value="total">Total Package</SelectItem>
+                  <SelectItem value="total">Total Gross</SelectItem>
                 </SelectContent>
               </Select>
             </div>
