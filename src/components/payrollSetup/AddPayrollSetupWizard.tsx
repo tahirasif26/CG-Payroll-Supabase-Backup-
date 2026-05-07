@@ -114,24 +114,9 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
     },
     { id: "schedule", label: "Pay Schedule", icon: Calendar, content: <PayScheduleTab data={setup.paySchedule} onChange={d => setSetup(s => ({ ...s, paySchedule: d }))} /> },
     { id: "components", label: "Components", icon: Layers, content: <PayslipComponentsTab data={setup.payslipComponents} onChange={d => setSetup(s => ({ ...s, payslipComponents: d }))} /> },
-    { id: "tax", label: "Tax Rules", icon: Receipt, content: (
-      <TaxRulesTab
-        data={setup.taxRules}
-        onChange={d => setSetup(s => ({ ...s, taxRules: d, payslipComponents: syncTaxComponent(s.payslipComponents, s.taxComponentName, s.options.enableTaxCalculation, d.length > 0) }))}
-        componentName={setup.taxComponentName}
-        onComponentNameChange={n => setSetup(s => ({ ...s, taxComponentName: n, payslipComponents: syncTaxComponent(s.payslipComponents, n, s.options.enableTaxCalculation, s.taxRules.length > 0) }))}
-        enabled={setup.options.enableTaxCalculation}
-        onEnabledChange={v => setSetup(s => ({ ...s, options: { ...s.options, enableTaxCalculation: v }, payslipComponents: syncTaxComponent(s.payslipComponents, s.taxComponentName, v, s.taxRules.length > 0) }))}
-      />
-    ) },
     { id: "salary", label: "Salary Rules", icon: Wallet, content: <SalaryRulesTab data={setup.salaryRules} onChange={d => setSetup(s => ({ ...s, salaryRules: d }))} /> },
-    { id: "overtime", label: "Overtime", icon: Clock, content: <OvertimeTab data={setup.overtime} onChange={d => setSetup(s => ({ ...s, overtime: d }))} /> },
-    { id: "auto-deductions", label: "Auto Deductions", icon: MinusCircle, content: <AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} /> },
-    { id: "loan", label: "Loan & Advance", icon: Banknote, content: <LoanAdvanceTab data={setup.loanAdvance} onChange={d => setSetup(s => ({ ...s, loanAdvance: d }))} /> },
     { id: "leaves", label: "Leaves", icon: Plane, content: <LeavesTab data={setup.leaves} onChange={d => setSetup(s => ({ ...s, leaves: d, options: { ...s.options, includeUnpaidLeave: d.includeUnpaidLeave } }))} /> },
-    { id: "bonus", label: "Bonus", icon: Gift, content: <BonusTab data={setup.bonus} onChange={d => setSetup(s => ({ ...s, bonus: d, payslipComponents: syncBonusComponent(s.payslipComponents, d) }))} /> },
-    { id: "gratuity", label: "Gratuity", icon: Award, content: <GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d, payslipComponents: syncGratuityComponent(s.payslipComponents, d) }))} /> },
-    { id: "provident", label: "Provident Fund", icon: PiggyBank, content: <ProvidentFundTab data={setup.providentFund} onChange={d => setSetup(s => ({ ...s, providentFund: d, retirement: { ...s.retirement, enablePF: d.enabled, employeeContributionPct: d.employeeRate, employerContributionPct: d.employerRate }, payslipComponents: syncProvidentFundComponent(s.payslipComponents, d) }))} /> },
+    { id: "options", label: "Options", icon: SlidersHorizontal, content: <OptionsTab setup={setup} setSetup={setSetup} /> },
     { id: "settlement", label: "Final Settlement", icon: FileCheck, content: <FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /> },
   ]), [setup]);
 
