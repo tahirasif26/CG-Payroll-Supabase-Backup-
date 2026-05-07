@@ -22,7 +22,7 @@ import AutoDeductionsTab from "@/components/payrollSetup/AutoDeductionsTab";
 import LoanAdvanceTab from "@/components/payrollSetup/LoanAdvanceTab";
 import LeavesTab from "@/components/payrollSetup/LeavesTab";
 import BonusTab from "@/components/payrollSetup/BonusTab";
-import GratuityTab from "@/components/payrollSetup/GratuityTab";
+import GratuityTab, { syncGratuityComponent } from "@/components/payrollSetup/GratuityTab";
 import ProvidentFundTab, { syncProvidentFundComponent } from "@/components/payrollSetup/ProvidentFundTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
 
