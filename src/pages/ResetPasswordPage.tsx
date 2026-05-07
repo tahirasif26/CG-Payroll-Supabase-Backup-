@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    toast({ title: "Password set successfully!", description: "Welcome to ConnectHR. Redirecting…" });
+    toast({ title: "Password set successfully!", description: "Welcome to HRConnect. Redirecting…" });
     window.history.replaceState(null, "", window.location.pathname);
     setTimeout(() => navigate("/", { replace: true }), 1000);
     setLoading(false);

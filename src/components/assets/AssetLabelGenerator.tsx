@@ -38,7 +38,7 @@ function LabelCard({ asset, companyName }: { asset: Asset; companyName: string }
   );
 }
 
-export function AssetLabelGenerator({ assets, open, onOpenChange, companyName = "ConnectHR", preSelectedIds }: AssetLabelGeneratorProps) {
+export function AssetLabelGenerator({ assets, open, onOpenChange, companyName = "HRConnect", preSelectedIds }: AssetLabelGeneratorProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(preSelectedIds || []));
   const { toast } = useToast();
 

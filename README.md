@@ -1,4 +1,4 @@
-# ConnectHR
+# HRConnect
 
 A multi-tenant Human Capital Management (HCM) suite for the Gulf region: payroll, expenses, leave, assets, performance, and compliance — built on React + Lovable Cloud (Supabase).
 
@@ -24,7 +24,7 @@ Prerequisites: Node 18+ and npm.
 
 ```sh
 git clone <YOUR_GIT_URL>
-cd connecthr
+cd hrconnect
 npm install
 cp .env.example .env  # then fill in VITE_SUPABASE_* values
 npm run dev
