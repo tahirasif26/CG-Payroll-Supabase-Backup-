@@ -24,7 +24,7 @@ import OvertimeTab from "./OvertimeTab";
 import AutoDeductionsTab from "./AutoDeductionsTab";
 import LoanAdvanceTab from "./LoanAdvanceTab";
 import LeavesTab from "./LeavesTab";
-import BonusTab from "./BonusTab";
+import BonusTab, { syncBonusComponent } from "./BonusTab";
 import GratuityTab, { syncGratuityComponent } from "./GratuityTab";
 import ProvidentFundTab, { syncProvidentFundComponent } from "./ProvidentFundTab";
 import FinalSettlementTab from "./FinalSettlementTab";
@@ -127,7 +127,7 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
     { id: "auto-deductions", label: "Auto Deductions", icon: MinusCircle, content: <AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} /> },
     { id: "loan", label: "Loan & Advance", icon: Banknote, content: <LoanAdvanceTab data={setup.loanAdvance} onChange={d => setSetup(s => ({ ...s, loanAdvance: d }))} /> },
     { id: "leaves", label: "Leaves", icon: Plane, content: <LeavesTab data={setup.leaves} onChange={d => setSetup(s => ({ ...s, leaves: d, options: { ...s.options, includeUnpaidLeave: d.includeUnpaidLeave } }))} /> },
-    { id: "bonus", label: "Bonus", icon: Gift, content: <BonusTab data={setup.bonus} onChange={d => setSetup(s => ({ ...s, bonus: d }))} /> },
+    { id: "bonus", label: "Bonus", icon: Gift, content: <BonusTab data={setup.bonus} onChange={d => setSetup(s => ({ ...s, bonus: d, payslipComponents: syncBonusComponent(s.payslipComponents, d) }))} /> },
     { id: "gratuity", label: "Gratuity", icon: Award, content: <GratuityTab data={setup.gratuity} onChange={d => setSetup(s => ({ ...s, gratuity: d, payslipComponents: syncGratuityComponent(s.payslipComponents, d) }))} /> },
     { id: "provident", label: "Provident Fund", icon: PiggyBank, content: <ProvidentFundTab data={setup.providentFund} onChange={d => setSetup(s => ({ ...s, providentFund: d, retirement: { ...s.retirement, enablePF: d.enabled, employeeContributionPct: d.employeeRate, employerContributionPct: d.employerRate }, payslipComponents: syncProvidentFundComponent(s.payslipComponents, d) }))} /> },
     { id: "settlement", label: "Final Settlement", icon: FileCheck, content: <FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /> },
