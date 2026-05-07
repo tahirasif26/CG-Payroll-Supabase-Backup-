@@ -153,11 +153,6 @@ export default function CompanyPoliciesPage() {
                       <Button variant="outline" size="sm" className="gap-1.5 text-xs">
                         <Download className="h-3.5 w-3.5" /> Download
                       </Button>
-                      {needsAck && canAcknowledge && (
-                        <Button size="sm" className="gap-1.5 text-xs" onClick={() => handleAcknowledge(policy.id)}>
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Acknowledge
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>
