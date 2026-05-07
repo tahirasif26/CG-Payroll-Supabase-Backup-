@@ -86,10 +86,19 @@ export interface LeaveSettings {
 
 export interface BonusSettings {
   enabled: boolean;
+  componentName?: string;
   method: "fixed" | "percentage" | "percentage_total";
   value: number;
-  frequency: "annual" | "semi_annual" | "quarterly" | "monthly";
+  frequency: "annual" | "semi_annual" | "quarterly" | "monthly" | "weekly";
   includeInPayslip: boolean;
+  /** For weekly frequency: 0 = Sunday … 6 = Saturday */
+  payoutDayOfWeek?: number;
+  /** For annual frequency: 1–12 */
+  payoutMonth?: number;
+  /** For semi-annual: two months [1–12, 1–12] */
+  payoutMonths?: number[];
+  /** For quarterly: starting month (1, 2 or 3); subsequent payouts at +3, +6, +9 */
+  quarterStartMonth?: number;
 }
 
 export interface GratuitySettings {
