@@ -223,11 +223,33 @@ export default function MyProfilePage() {
   }
 
   if (!empId || !employee) {
+    const displayName = profile?.full_name || user?.email?.split("@")[0] || "—";
+    const ini = (displayName || "U").split(" ").map((n) => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
     return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-8 text-center text-sm text-muted-foreground">
-            No employee record linked to your account yet. Please contact your administrator.
+      <div className="space-y-6">
+        <Card className="rounded-xl border shadow-none">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-5">
+              <Avatar className="h-20 w-20 rounded-xl">
+                {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt={displayName} className="rounded-xl object-cover" /> : null}
+                <AvatarFallback className="rounded-xl text-xl font-semibold bg-primary/10 text-primary">{ini}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-bold tracking-tight">{displayName}</h1>
+                <p className="text-sm text-muted-foreground mt-1 capitalize">{(profile as any)?.role || "Administrator"}</p>
+                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                  {user?.email && (
+                    <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{user.email}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
+          <CardContent className="p-4 text-sm text-amber-800 dark:text-amber-200">
+            Your account is not yet linked to an employee record. Add yourself as an employee from <span className="font-semibold">People → Add Employee</span> (use the same email as your login) to fill in your full profile, payroll, leave and document details.
           </CardContent>
         </Card>
       </div>
