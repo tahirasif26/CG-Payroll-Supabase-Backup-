@@ -14,10 +14,15 @@ import { useEmployees } from "@/contexts/EmployeeContext";
 import { useReporting } from "@/contexts/ReportingContext";
 import { supabase } from "@/integrations/supabase/client";
 import { FileUpload } from "@/components/FileUpload";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StatusBadge } from "@/components/StatusBadge";
+import { EmptyState } from "@/components/EmptyState";
 import {
   User as UserIcon, Calendar as CalendarIcon, Heart, Globe, Flag, Mail, Phone,
   MapPin, Building2, CreditCard, GraduationCap, Users as UsersIcon, ShieldAlert,
-  Pencil, Plus, Copy, Save, X, Briefcase, Clock,
+  Pencil, Plus, Copy, Save, X, Briefcase, Clock, Package, FileText, Wallet, IdCard,
 } from "lucide-react";
 import { format, differenceInYears, differenceInDays } from "date-fns";
 
