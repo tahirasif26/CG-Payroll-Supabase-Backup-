@@ -24,6 +24,7 @@ interface RoleContextType {
   roleFeatures: Set<string>;
   peopleFeatures: Set<string>;
   isOrphan: boolean;
+  customRoleName: string | null;
   hasFeature: (key: string) => boolean;
   hasPeopleFeature: (key: string) => boolean;
 
