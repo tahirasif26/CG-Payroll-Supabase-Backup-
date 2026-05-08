@@ -51,6 +51,7 @@ const initialState: AuthState = {
   roleFeatures: new Set<string>(),
   peopleFeatures: new Set<string>(),
   isOrphan: false,
+  customRoleName: null,
   loading: true,
 };
 
