@@ -32,12 +32,12 @@ export function ViewScopeProvider({ children }: { children: ReactNode }) {
 
   // When appRole loads (after async auth), set correct default
   useEffect(() => {
-    if (appRole === "admin" || appRole === "hr" || isSuperAdmin) {
+    if (isSuperAdmin || appRole === "admin" || (appRole === "hr" && hasPeopleAccess)) {
       setScope("people");
     } else if (appRole === "employee") {
       setScope("me");
     }
-  }, [appRole, isSuperAdmin]);
+  }, [appRole, isSuperAdmin, hasPeopleAccess]);
 
   return (
     <ViewScopeContext.Provider value={{ scope, setScope, hasPeopleAccess }}>

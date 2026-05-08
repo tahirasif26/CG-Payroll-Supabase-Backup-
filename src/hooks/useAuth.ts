@@ -86,8 +86,7 @@ export function useAuth() {
       const roleFeatures = new Set(roleFeatureRows.map((r) => r.feature_key));
       const peopleFeatures = new Set(roleFeatureRows.filter((r) => r.people_enabled).map((r) => r.feature_key));
 
-      // Merge: role features UNION employee-level overrides (employee feature_toggles)
-      const features = new Set<string>([...baseFeatures, ...roleFeatures]);
+      const features = baseFeatures;
 
       const rawEnabledModules = (enabledModulesRes.data ?? null) as unknown as string[] | null;
       const enabledModules = rawEnabledModules && rawEnabledModules.length > 0 ? rawEnabledModules : null;
@@ -222,17 +221,9 @@ export function useAuth() {
     if (state.enabledFeatures !== null && !state.enabledFeatures.includes(key)) return false;
     // Admin sees all client features
     if (state.role === "admin") return state.features.has(key);
-    // Custom role (hr): role_features take priority. If user also has a per-employee
-    // override, intersect with it (override can further restrict). If no role_features
-    // are assigned at all, fall back to client default features so the user isn't locked out.
+    // Custom role (hr): backend returns employee self-service features plus only
+    // People-enabled custom role features. People scope itself uses hasPeopleFeature().
     if (state.role === "hr") {
-      if (state.roleFeatures.size > 0) {
-        if (!state.roleFeatures.has(key)) return false;
-        if (state.employeeFeatures !== null && !state.employeeFeatures.includes(key)) return false;
-        return true;
-      }
-      // No custom role assigned — behave like a standard staff member
-      if (state.employeeFeatures !== null && !state.employeeFeatures.includes(key)) return false;
       return state.features.has(key);
     }
     // Employee — per-employee feature list
