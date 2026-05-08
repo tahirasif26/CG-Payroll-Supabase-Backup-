@@ -178,10 +178,11 @@ export default function CompanyStructurePage() {
   };
   const handleEtDelete = (id: string) => { deleteEmployeeType(id); toast({ title: "Deleted" }); };
 
-  // Divisions state
-  const [divItems, setDivItems] = useState<Division[]>(divisions);
+  // Divisions state (DB-backed)
+  type DivisionItem = { id: string; name: string; isActive: boolean };
+  const divItems: DivisionItem[] = dbDivisions.map((d: any) => ({ id: d.id, name: d.name, isActive: d.is_active }));
   const [divDialogOpen, setDivDialogOpen] = useState(false);
-  const [divEdit, setDivEdit] = useState<Division | null>(null);
+  const [divEdit, setDivEdit] = useState<DivisionItem | null>(null);
   const [divName, setDivName] = useState("");
 
   // Departments state
@@ -204,21 +205,28 @@ export default function CompanyStructurePage() {
   const [jtTitle, setJtTitle] = useState("");
   const [jtLevel, setJtLevel] = useState("Entry");
 
-  // Division handlers
+  // Division handlers (DB-backed)
   const openAddDiv = () => { setDivEdit(null); setDivName(""); setDivDialogOpen(true); };
-  const openEditDiv = (item: Division) => { setDivEdit(item); setDivName(item.name); setDivDialogOpen(true); };
-  const handleDivSubmit = (e: React.FormEvent) => {
+  const openEditDiv = (item: DivisionItem) => { setDivEdit(item); setDivName(item.name); setDivDialogOpen(true); };
+  const handleDivSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (divEdit) {
-      setDivItems(prev => prev.map(i => i.id === divEdit.id ? { ...i, name: divName } : i));
-      toast({ title: "Updated" });
-    } else {
-      setDivItems(prev => [...prev, { id: String(Date.now()), name: divName, isActive: true }]);
-      toast({ title: "Added", description: `${divName} division added.` });
-    }
-    setDivDialogOpen(false);
+    try {
+      if (divEdit) {
+        await updateDivMut.mutateAsync({ id: divEdit.id, name: divName });
+        toast({ title: "Updated" });
+      } else {
+        await addDivMut.mutateAsync(divName);
+        toast({ title: "Added", description: `${divName} division added.` });
+      }
+      setDivDialogOpen(false);
+    } catch { /* toast shown by mutation */ }
   };
-  const handleDivDelete = (id: string) => { setDivItems(prev => prev.filter(i => i.id !== id)); toast({ title: "Deleted" }); };
+  const handleDivDelete = async (id: string) => {
+    try {
+      await deleteDivMut.mutateAsync(id);
+      toast({ title: "Deleted" });
+    } catch { /* toast shown by mutation */ }
+  };
 
   // Department handlers (DB-backed)
   const openAddDept = () => { setDeptEdit(null); setDeptName(""); setDeptDialogOpen(true); };
