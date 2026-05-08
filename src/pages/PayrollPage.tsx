@@ -37,7 +37,6 @@ import { PayrollRun, OneOffAdjustment, Employee, Deduction, TaxConfig } from "@/
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { useAdvances } from "@/contexts/AdvanceContext";
-import { useDeductions } from "@/contexts/DeductionContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSeparations } from "@/contexts/SeparationContext";
 import { Button } from "@/components/ui/button";
@@ -328,7 +327,6 @@ function downloadCSV(content: string, filename: string) {
 export default function PayrollPage() {
   const { employees } = useEmployees();
   const { activeTypes, getTypeName } = useEmployeeTypes();
-  const { deductions } = useDeductions();
   const canApprovePayroll = useCanApprove("payroll");
   const { currentEmployeeId, clientId } = useRole();
   const queryClient = useQueryClient();
