@@ -167,7 +167,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-semibold truncate text-sidebar-foreground">{displayName}</p>
-                <p className="text-[10px] text-sidebar-foreground/55 capitalize truncate">{role}</p>
+                <p className="text-[10px] text-sidebar-foreground/55 truncate">{displayRole}</p>
               </div>
             )}
             {!collapsed && (
