@@ -299,7 +299,7 @@ export default function PayslipsPage() {
                 <TableCell>{run.month} {run.year}</TableCell>
                 <TableCell className="text-xs">{setup?.name || "—"}</TableCell>
                 <TableCell className="text-xs font-medium">{payCurrency}</TableCell>
-                <TableCell className="text-right">{emp.salary.toLocaleString()}</TableCell>
+                <TableCell className="text-right">{gross.toLocaleString()}</TableCell>
                 <TableCell className="text-right text-destructive">{deductions.toLocaleString()}</TableCell>
                 <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
                 <TableCell className="text-right">
