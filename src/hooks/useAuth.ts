@@ -167,6 +167,7 @@ export function useAuth() {
         roleFeatures,
         peopleFeatures,
         isOrphan,
+        customRoleName,
         loading: false,
       });
 
