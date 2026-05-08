@@ -90,6 +90,7 @@ const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const MyProfilePage = lazy(() => import("@/pages/MyProfilePage"));
+const AccountSettingsPage = lazy(() => import("@/pages/AccountSettingsPage"));
 
 const HRModuleSettingsPage = lazy(() => import("@/pages/HRModuleSettingsPage"));
 const ExpenseModuleSettingsPage = lazy(() => import("@/pages/ExpenseModuleSettingsPage"));
@@ -380,6 +381,7 @@ function AppRoutes() {
           } />
           <Route path="/account" element={<ProtectedRoute requiredRole={["super_admin","admin","hr","employee"]}><MyProfilePage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute requiredRole={["super_admin","admin","hr","employee"]}><MyProfilePage /></ProtectedRoute>} />
+          <Route path="/account-settings" element={<ProtectedRoute requiredRole={["super_admin","admin","hr","employee"]}><AccountSettingsPage /></ProtectedRoute>} />
 
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<NotFound />} />
