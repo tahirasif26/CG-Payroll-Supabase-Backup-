@@ -150,7 +150,7 @@ export function PolicyProvider({ children }: { children: ReactNode }) {
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PolicyDocument> }) => {
       const dbPatch = buildUpdatePayload(patch);
       if (Object.keys(dbPatch).length === 0) return;
-      const { error } = await supabase.from("company_policies").update(dbPatch).eq("id", id);
+      const { error } = await supabase.from("company_policies").update(dbPatch as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
