@@ -237,10 +237,10 @@ export default function PayslipsPage() {
       : employees;
     return runEmps.map(emp => {
       const setup = getSetupById(emp.payrollSetupId || "");
-      const { totalDeductions } = buildPayslipFromSetup(emp, setup);
-      const net = emp.salary - totalDeductions;
+      const { totalDeductions, gross } = buildPayslipFromSetup(emp, setup);
+      const net = gross - totalDeductions;
       const payCurrency = getEmployeePayCurrency(emp);
-      return { run, emp, deductions: totalDeductions, net, payCurrency, setup };
+      return { run, emp, gross, deductions: totalDeductions, net, payCurrency, setup };
     });
   });
 
