@@ -244,10 +244,11 @@ function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup |
     // Tax from setup's taxRules
     let taxDeductions = 0;
     if (setup?.options.enableTaxCalculation && setup.taxRules.length > 0) {
-      const annualGross = gross * 12;
+      const taxBase = (setup as any).taxBasis === "basic" ? basic : gross;
+      const annualBase = taxBase * 12;
       setup.taxRules.forEach(slab => {
-        if (annualGross >= slab.incomeFrom) {
-          const taxableInSlab = Math.min(annualGross, slab.incomeTo) - slab.incomeFrom;
+        if (annualBase >= slab.incomeFrom) {
+          const taxableInSlab = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
           if (taxableInSlab > 0) {
             taxDeductions += Math.round((taxableInSlab * slab.percentage / 100) / 12);
           }

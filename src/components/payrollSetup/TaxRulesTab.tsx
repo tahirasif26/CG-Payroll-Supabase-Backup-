@@ -46,11 +46,13 @@ interface Props {
   onComponentNameChange?: (name: string) => void;
   enabled?: boolean;
   onEnabledChange?: (v: boolean) => void;
+  basis?: "basic" | "gross";
+  onBasisChange?: (b: "basic" | "gross") => void;
 }
 
 const empty: TaxSlab = { id: "", name: "", incomeFrom: 0, incomeTo: 0, percentage: 0, fixedAmount: 0 };
 
-export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true, onEnabledChange }: Props) {
+export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true, onEnabledChange, basis = "gross", onBasisChange }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TaxSlab>(empty);
 
@@ -100,6 +102,33 @@ export default function TaxRulesTab({ data, onChange, componentName, onComponent
           {nameMissing && (
             <p className="text-xs text-destructive">Component name is required when tax slabs are configured.</p>
           )}
+        </div>
+      )}
+
+      {onBasisChange && (
+        <div className="space-y-2 rounded-lg border p-4">
+          <Label>Apply tax slabs on</Label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={basis === "basic" ? "default" : "outline"}
+              onClick={() => onBasisChange("basic")}
+            >
+              Basic Salary
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={basis === "gross" ? "default" : "outline"}
+              onClick={() => onBasisChange("gross")}
+            >
+              Gross (Basic + Earnings)
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Annualized {basis === "basic" ? "basic salary" : "gross pay"} is matched against the slab brackets.
+          </p>
         </div>
       )}
 

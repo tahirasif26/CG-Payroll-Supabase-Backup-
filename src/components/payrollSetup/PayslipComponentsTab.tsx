@@ -127,7 +127,7 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
                     <Badge variant="outline" className="text-[10px]">Base</Badge>
                   ) : (
                     <Badge variant={c.type === "earning" ? "default" : "destructive"} className="text-[10px]">
-                      {c.type === "earning" ? "Addition" : "Deduction"}
+                      {c.type === "earning" ? "Earnings" : "Deduction"}
                     </Badge>
                   )}
                 </TableCell>
@@ -165,8 +165,8 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
                 <Select value={editing.type} onValueChange={v => setEditing({ ...editing, type: v as any, name: "" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="earning">Additional</SelectItem>
-                    <SelectItem value="deduction">Division</SelectItem>
+                    <SelectItem value="earning">Earnings</SelectItem>
+                    <SelectItem value="deduction">Deduction</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -182,53 +182,71 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
 
   const selectedSetup = useMemo(() => activeSetups.find(s => s.id === form.payrollSetupId), [form.payrollSetupId, activeSetups]);
 
+  // Per-component overrides for THIS employee. Keyed by component id.
+  // mode tracks which field the user last edited so it stays stable when
+  // the base salary changes (the other field re-derives).
+  type CompOverride = { mode: "percent" | "value"; percent: number; value: number };
+  const [overrides, setOverrides] = useState<Record<string, CompOverride>>({});
+
+  // Reset overrides whenever the user picks a different payroll setup.
+  useEffect(() => { setOverrides({}); }, [form.payrollSetupId]);
+
+  const isBasicComp = (c: any) => c.id === "comp-basic-salary" || c.name === "Basic Salary";
+
+  const getEffective = (comp: any, baseSalary: number): { percent: number; value: number } => {
+    const o = overrides[comp.id];
+    if (o) {
+      if (o.mode === "percent") return { percent: o.percent, value: Math.round(baseSalary * o.percent / 100) };
+      return { percent: baseSalary > 0 ? Number((o.value / baseSalary * 100).toFixed(2)) : 0, value: o.value };
+    }
+    if (comp.calculationType === "percentage") {
+      return { percent: comp.value, value: Math.round(baseSalary * comp.value / 100) };
+    }
+    return { percent: baseSalary > 0 ? Number((comp.value / baseSalary * 100).toFixed(2)) : 0, value: comp.value };
+  };
+
+  const setOverridePercent = (compId: string, percent: number, baseSalary: number) =>
+    setOverrides(prev => ({ ...prev, [compId]: { mode: "percent", percent, value: Math.round(baseSalary * percent / 100) } }));
+  const setOverrideValue = (compId: string, value: number, baseSalary: number) =>
+    setOverrides(prev => ({ ...prev, [compId]: { mode: "value", percent: baseSalary > 0 ? Number((value / baseSalary * 100).toFixed(2)) : 0, value } }));
+
   // Real-time salary calculation
   const salaryBreakdown = useMemo(() => {
     if (!selectedSetup || !form.salary || Number(form.salary) <= 0) return null;
     const baseSalary = Number(form.salary);
-    const isBasic = (c: any) => c.id === "comp-basic-salary" || c.name === "Basic Salary";
-    const calcAmount = (comp: any) =>
-      comp.calculationType === "percentage" ? Math.round(baseSalary * comp.value / 100) : comp.value;
     const additions = selectedSetup.payslipComponents
-      .filter(c => c.type === "earning" && c.status === "active" && !isBasic(c))
-      .map(comp => ({
-        name: comp.name,
-        calculationType: comp.calculationType,
-        percentage: comp.calculationType === "percentage" ? comp.value : undefined,
-        amount: calcAmount(comp),
-      }));
+      .filter(c => c.type === "earning" && c.status === "active" && !isBasicComp(c))
+      .map(comp => {
+        const { percent, value } = getEffective(comp, baseSalary);
+        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
+      });
     const deductions = selectedSetup.payslipComponents
       .filter(c => c.type === "deduction" && c.status === "active")
-      .map(comp => ({
-        name: comp.name,
-        calculationType: comp.calculationType,
-        percentage: comp.calculationType === "percentage" ? comp.value : undefined,
-        amount: calcAmount(comp),
-      }));
+      .map(comp => {
+        const { percent, value } = getEffective(comp, baseSalary);
+        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
+      });
     const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
     let taxAmount = 0;
     const grossBeforeTax = baseSalary + totalAdditions;
+    const taxBase = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
     if (selectedSetup.options.enableTaxCalculation && selectedSetup.taxRules.length > 0) {
-      const annualGross = grossBeforeTax * 12;
+      const annualBase = taxBase * 12;
       selectedSetup.taxRules.forEach(slab => {
-        if (annualGross > slab.incomeFrom) {
-          const taxable = Math.min(annualGross, slab.incomeTo) - slab.incomeFrom;
+        if (annualBase > slab.incomeFrom) {
+          const taxable = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
           if (taxable > 0) taxAmount += Math.round(taxable * slab.percentage / 100 / 12);
         }
       });
     }
     return {
-      baseSalary,
-      additions,
-      deductions,
-      totalAdditions,
-      totalDeductions,
-      taxAmount,
+      baseSalary, additions, deductions,
+      totalAdditions, totalDeductions, taxAmount,
       grossTotal: grossBeforeTax,
       netSalary: grossBeforeTax - totalDeductions - taxAmount,
     };
-  }, [selectedSetup, form.salary]);
+  }, [selectedSetup, form.salary, overrides]);
 
   const updateField = useCallback((field: keyof FormData, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -930,20 +948,33 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                     </div>
                     {salaryBreakdown.additions.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Additions</p>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Earnings</p>
                         <div className="bg-muted/30 rounded-lg overflow-hidden">
-                          {salaryBreakdown.additions.map((item, i) => (
-                            <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-border/50 last:border-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">{item.name}</span>
-                                {item.calculationType === "percentage" && <Badge variant="secondary" className="text-[10px] h-5">{item.percentage}%</Badge>}
-                                {item.calculationType === "fixed" && <Badge variant="outline" className="text-[10px] h-5">Fixed</Badge>}
+                          {salaryBreakdown.additions.map((item) => (
+                            <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
+                              <span className="text-sm col-span-4 truncate">{item.name}</span>
+                              <div className="col-span-3 flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  className="h-7 text-xs"
+                                  value={item.percentage || 0}
+                                  onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)}
+                                />
+                                <span className="text-xs text-muted-foreground">%</span>
                               </div>
-                              <span className="text-sm font-semibold text-emerald-600">+{item.amount.toLocaleString()} {selectedSetup.currency}</span>
+                              <div className="col-span-4">
+                                <Input
+                                  type="number"
+                                  className="h-7 text-xs"
+                                  value={item.amount}
+                                  onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)}
+                                />
+                              </div>
+                              <span className="text-xs font-semibold text-emerald-600 col-span-1 text-right">{selectedSetup.currency}</span>
                             </div>
                           ))}
                           <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-500/10 font-semibold">
-                            <span className="text-sm">Total Additions</span>
+                            <span className="text-sm">Total Earnings</span>
                             <span className="text-sm text-emerald-600">+{salaryBreakdown.totalAdditions.toLocaleString()} {selectedSetup.currency}</span>
                           </div>
                         </div>
@@ -953,13 +984,27 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Deductions</p>
                         <div className="bg-muted/30 rounded-lg overflow-hidden">
-                          {salaryBreakdown.deductions.map((item, i) => (
-                            <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-border/50 last:border-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">{item.name}</span>
-                                {item.calculationType === "percentage" && <Badge variant="secondary" className="text-[10px] h-5">{item.percentage}%</Badge>}
+                          {salaryBreakdown.deductions.map((item) => (
+                            <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
+                              <span className="text-sm col-span-4 truncate">{item.name}</span>
+                              <div className="col-span-3 flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  className="h-7 text-xs"
+                                  value={item.percentage || 0}
+                                  onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)}
+                                />
+                                <span className="text-xs text-muted-foreground">%</span>
                               </div>
-                              <span className="text-sm font-semibold text-destructive">-{item.amount.toLocaleString()} {selectedSetup.currency}</span>
+                              <div className="col-span-4">
+                                <Input
+                                  type="number"
+                                  className="h-7 text-xs"
+                                  value={item.amount}
+                                  onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)}
+                                />
+                              </div>
+                              <span className="text-xs font-semibold text-destructive col-span-1 text-right">{selectedSetup.currency}</span>
                             </div>
                           ))}
                           <div className="flex items-center justify-between px-4 py-2.5 bg-destructive/10 font-semibold">

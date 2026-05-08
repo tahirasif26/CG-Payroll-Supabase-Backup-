@@ -141,6 +141,8 @@ export interface PayrollSetup {
   taxRules: TaxSlab[];
   /** Mandatory display name for the income-tax deduction component on payslips. */
   taxComponentName?: string;
+  /** Which figure tax slabs apply to: basic salary or gross (basic + earnings). Default: gross. */
+  taxBasis?: "basic" | "gross";
   salaryRules: SalaryRules;
   overtime: OvertimeConfig;
   autoDeductions: AutoDeductions;
