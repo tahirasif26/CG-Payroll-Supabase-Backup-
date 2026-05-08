@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useTimesheets, useCreateTimesheet, useApproveTimesheet } from "@/hooks/queries/useTimesheets";
 import { useProjects } from "@/hooks/queries/useProjects";
 import { useEmployees } from "@/hooks/queries/useEmployees";
