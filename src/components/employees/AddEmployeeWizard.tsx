@@ -948,20 +948,33 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                     </div>
                     {salaryBreakdown.additions.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Additions</p>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Earnings</p>
                         <div className="bg-muted/30 rounded-lg overflow-hidden">
-                          {salaryBreakdown.additions.map((item, i) => (
-                            <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-border/50 last:border-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">{item.name}</span>
-                                {item.calculationType === "percentage" && <Badge variant="secondary" className="text-[10px] h-5">{item.percentage}%</Badge>}
-                                {item.calculationType === "fixed" && <Badge variant="outline" className="text-[10px] h-5">Fixed</Badge>}
+                          {salaryBreakdown.additions.map((item) => (
+                            <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
+                              <span className="text-sm col-span-4 truncate">{item.name}</span>
+                              <div className="col-span-3 flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  className="h-7 text-xs"
+                                  value={item.percentage || 0}
+                                  onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)}
+                                />
+                                <span className="text-xs text-muted-foreground">%</span>
                               </div>
-                              <span className="text-sm font-semibold text-emerald-600">+{item.amount.toLocaleString()} {selectedSetup.currency}</span>
+                              <div className="col-span-4">
+                                <Input
+                                  type="number"
+                                  className="h-7 text-xs"
+                                  value={item.amount}
+                                  onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)}
+                                />
+                              </div>
+                              <span className="text-xs font-semibold text-emerald-600 col-span-1 text-right">{selectedSetup.currency}</span>
                             </div>
                           ))}
                           <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-500/10 font-semibold">
-                            <span className="text-sm">Total Additions</span>
+                            <span className="text-sm">Total Earnings</span>
                             <span className="text-sm text-emerald-600">+{salaryBreakdown.totalAdditions.toLocaleString()} {selectedSetup.currency}</span>
                           </div>
                         </div>
@@ -971,13 +984,27 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Deductions</p>
                         <div className="bg-muted/30 rounded-lg overflow-hidden">
-                          {salaryBreakdown.deductions.map((item, i) => (
-                            <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-border/50 last:border-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">{item.name}</span>
-                                {item.calculationType === "percentage" && <Badge variant="secondary" className="text-[10px] h-5">{item.percentage}%</Badge>}
+                          {salaryBreakdown.deductions.map((item) => (
+                            <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
+                              <span className="text-sm col-span-4 truncate">{item.name}</span>
+                              <div className="col-span-3 flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  className="h-7 text-xs"
+                                  value={item.percentage || 0}
+                                  onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)}
+                                />
+                                <span className="text-xs text-muted-foreground">%</span>
                               </div>
-                              <span className="text-sm font-semibold text-destructive">-{item.amount.toLocaleString()} {selectedSetup.currency}</span>
+                              <div className="col-span-4">
+                                <Input
+                                  type="number"
+                                  className="h-7 text-xs"
+                                  value={item.amount}
+                                  onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)}
+                                />
+                              </div>
+                              <span className="text-xs font-semibold text-destructive col-span-1 text-right">{selectedSetup.currency}</span>
                             </div>
                           ))}
                           <div className="flex items-center justify-between px-4 py-2.5 bg-destructive/10 font-semibold">
