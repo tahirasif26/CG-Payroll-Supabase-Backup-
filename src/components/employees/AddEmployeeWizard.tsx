@@ -385,7 +385,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           religion: form.religion || undefined,
           work_location_country: form.workLocationCountry || undefined,
           work_location_city: form.workLocationCity || undefined,
-          payroll_setup_id: undefined,
+          payroll_setup_id: form.payrollSetupId || undefined,
           reports_to: reportsToId,
           address: {
             address_line1: form.addressLine1, address_line2: form.addressLine2,
