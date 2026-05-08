@@ -48,6 +48,8 @@ export default function OptionsTab({ setup, setSetup }: Props) {
           onChange={d => setSetup(s => ({ ...s, taxRules: d, payslipComponents: syncTaxComponent(s.payslipComponents, s.taxComponentName, s.options.enableTaxCalculation, d.length > 0) }))}
           componentName={setup.taxComponentName}
           onComponentNameChange={n => setSetup(s => ({ ...s, taxComponentName: n, payslipComponents: syncTaxComponent(s.payslipComponents, n, s.options.enableTaxCalculation, s.taxRules.length > 0) }))}
+          basis={setup.taxBasis ?? "gross"}
+          onBasisChange={b => setSetup(s => ({ ...s, taxBasis: b }))}
         />
       ),
     },
