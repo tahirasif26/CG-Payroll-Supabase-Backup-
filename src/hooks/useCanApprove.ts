@@ -7,16 +7,29 @@ import { useApprovalGroups } from "@/hooks/queries/useApprovalMatrix";
  * Admin/super_admin always can. Otherwise, the user must be a member of any
  * approval group configured for the tenant.
  */
+const FEATURE_BY_CATEGORY: Record<string, string | undefined> = {
+  payroll: "payroll.approve_run",
+  expenses: "expenses.approve",
+  loans: "loans.approve",
+  leave: "leave.approve",
+  advances: "advances.approve",
+};
+
 export function useCanApprove(
-  _category: "expenses" | "loans" | "payroll" | "leave" | "advances"
+  category: "expenses" | "loans" | "payroll" | "leave" | "advances"
 ) {
-  const { appRole, clientId, isSuperAdmin } = useRole();
+  const { appRole, clientId, isSuperAdmin, hasFeature } = useRole();
   const { data: employee } = useCurrentEmployee();
   const { data: groups = [] } = useApprovalGroups(clientId);
 
   if (isSuperAdmin) return true;
   if (appRole === "admin") return true;
-  if (!employee?.id) return false;
 
+  // Custom role grant: if the user's role has the corresponding approval
+  // feature enabled, allow it without requiring approval-group membership.
+  const featureKey = FEATURE_BY_CATEGORY[category];
+  if (featureKey && hasFeature(featureKey)) return true;
+
+  if (!employee?.id) return false;
   return groups.some((g) => g.member_ids.includes(employee.id));
 }
