@@ -41,7 +41,6 @@ const EmployeesPage = lazy(() => import("@/pages/EmployeesPage"));
 const PayrollPage = lazy(() => import("@/pages/PayrollPage"));
 const CompensationPage = lazy(() => import("@/pages/CompensationPage"));
 const TaxPage = lazy(() => import("@/pages/TaxPage"));
-const TaxPage = lazy(() => import("@/pages/TaxPage"));
 const LoansPage = lazy(() => import("@/pages/LoansPage"));
 const ExpensesPage = lazy(() => import("@/pages/ExpensesPage"));
 const ExpenseAnalyticsPage = lazy(() => import("@/pages/ExpenseAnalyticsPage"));
