@@ -33,7 +33,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
-  const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin, roleFeatures } = useRole();
+  const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin, roleFeatures, customRoleName } = useRole();
   const { scope } = useViewScope();
   const location = useLocation();
   const navigate = useNavigate();
@@ -60,6 +60,12 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
     navigate(path);
     onCloseMobile();
   };
+
+  const displayRole =
+    appRole === "super_admin" ? "Super Admin"
+    : appRole === "admin" ? "Admin"
+    : appRole === "employee" ? "Employee"
+    : customRoleName ?? "Custom Role";
 
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -161,7 +167,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-semibold truncate text-sidebar-foreground">{displayName}</p>
-                <p className="text-[10px] text-sidebar-foreground/55 capitalize truncate">{role}</p>
+                <p className="text-[10px] text-sidebar-foreground/55 truncate">{displayRole}</p>
               </div>
             )}
             {!collapsed && (

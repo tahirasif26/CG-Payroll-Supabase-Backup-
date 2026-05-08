@@ -15,12 +15,17 @@ interface TopBarProps {
 }
 
 export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
-  const { profile, signOut, role, isSuperAdmin } = useRole();
+  const { profile, signOut, role, isSuperAdmin, appRole, customRoleName } = useRole();
   const { scope, setScope, hasPeopleAccess } = useViewScope();
   const navigate = useNavigate();
 
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const displayRole =
+    appRole === "super_admin" ? "Super Admin"
+    : appRole === "admin" ? "Admin"
+    : appRole === "employee" ? "Employee"
+    : customRoleName ?? "Custom Role";
 
   return (
     <header className="h-14 border-b bg-card flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shrink-0">
@@ -96,7 +101,7 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
           <DropdownMenuContent align="end" className="w-52">
             <div className="px-3 py-2">
               <p className="text-sm font-semibold truncate">{displayName}</p>
-              <p className="text-xs text-muted-foreground capitalize">{role}</p>
+              <p className="text-xs text-muted-foreground">{displayRole}</p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => navigate("/account")}>

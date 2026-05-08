@@ -24,6 +24,7 @@ interface RoleContextType {
   roleFeatures: Set<string>;
   peopleFeatures: Set<string>;
   isOrphan: boolean;
+  customRoleName: string | null;
   hasFeature: (key: string) => boolean;
   hasPeopleFeature: (key: string) => boolean;
 
@@ -62,6 +63,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         roleFeatures: auth.roleFeatures,
         peopleFeatures: auth.peopleFeatures,
         isOrphan: auth.isOrphan,
+        customRoleName: auth.customRoleName,
         hasFeature: auth.hasFeature,
         hasPeopleFeature: auth.hasPeopleFeature,
         user: auth.user,

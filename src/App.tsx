@@ -234,7 +234,7 @@ function AppRoutes() {
             <ProtectedRoute requiredRole={["admin", "hr"]}><DeductionsPage /></ProtectedRoute>
           } />
           <Route path="/loans" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><LoansPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr", "employee"]} requiredFeature="loans.view_own"><LoansPage /></ProtectedRoute>
           } />
           <Route path="/expense-analytics" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><ExpenseAnalyticsPage /></ProtectedRoute>
@@ -340,7 +340,7 @@ function AppRoutes() {
             <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollAnalyticsPage /></ProtectedRoute>
           } />
           <Route path="/id-cards" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><IDCardsPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr", "employee"]}><IDCardsPage /></ProtectedRoute>
           } />
           <Route path="/access-management" element={
             <ProtectedRoute requiredRole="admin"><AccessManagementPage /></ProtectedRoute>
