@@ -495,7 +495,7 @@ export default function PayrollPage() {
     const currentSepMap = getSepMap(run.id);
     const runFilteredEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
     const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
-    const currentBreakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances) : buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
+    const currentBreakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances) : buildBreakdown(runFilteredEmps, [] as Deduction[], initialTaxConfigs, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
     const runEmployeeCount = currentBreakdown.length;
     const runGross = currentBreakdown.reduce((s, l) => s + l.gross, 0);
     const runDed = currentBreakdown.reduce((s, l) => s + l.totalDeductions, 0);
