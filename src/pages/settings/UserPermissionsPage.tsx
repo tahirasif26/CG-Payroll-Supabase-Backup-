@@ -472,8 +472,10 @@ function FeaturesTab({ role, readOnly }: { role: RoleWithRelations; readOnly: bo
 
   const initialState = useMemo(() => {
     const map: Record<string, FeatureState> = {};
+    // All features are always enabled for the role (like default Employee).
+    // Only the "People" scope flag is configurable per feature.
     for (const d of defs) {
-      map[d.feature_key] = { enabled: false, people: false };
+      map[d.feature_key] = { enabled: true, people: false };
     }
     for (const ef of existing) {
       map[ef.feature_key] = { enabled: true, people: ef.people_enabled };
