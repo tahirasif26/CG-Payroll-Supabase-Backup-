@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useTimesheets, useCreateTimesheet, useApproveTimesheet } from "@/hooks/queries/useTimesheets";
 import { useProjects } from "@/hooks/queries/useProjects";
 import { useEmployees } from "@/hooks/queries/useEmployees";
@@ -15,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export default function TimesheetsPage() {
   const { role, currentEmployeeId } = useRole();
+  const { scope } = useViewScope();
   const [logOpen, setLogOpen] = useState(false);
   const [approveId, setApproveId] = useState<string | null>(null);
 
@@ -25,14 +27,16 @@ export default function TimesheetsPage() {
     [employees, currentEmployeeId]
   );
 
+  // Me scope (or employee role) → only fetch own timesheets.
+  const isMeScope = scope === "me" || role === "employee";
   const { data: allTimesheets = [] } = useTimesheets(
-    role === "employee" && myEmployee ? { employee_id: myEmployee.id } : undefined
+    isMeScope && myEmployee ? { employee_id: myEmployee.id } : undefined
   );
   const createTimesheet = useCreateTimesheet();
   const approveTimesheet = useApproveTimesheet();
 
-  // Filter to active employees only for employer view
-  const displayTimesheets = role === "employee"
+  // People scope: filter to active employees only.
+  const displayTimesheets = isMeScope
     ? allTimesheets
     : allTimesheets.filter((t: any) => t.employees?.status === "active");
 
@@ -62,10 +66,10 @@ export default function TimesheetsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={role === "employee" ? "My Timesheets" : "All Timesheets"}
-        description={role === "employee" ? "Log and track your time allocations." : "Review and approve employee timesheets."}
+        title={isMeScope ? "My Timesheets" : "All Timesheets"}
+        description={isMeScope ? "Log and track your time allocations." : "Review and approve employee timesheets."}
       >
-        {role === "employee" && (
+        {isMeScope && (
           <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={() => setLogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />Log Time
           </Button>
@@ -76,25 +80,25 @@ export default function TimesheetsPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              {role === "employer" && <TableHead className="font-semibold">Employee</TableHead>}
+              {!isMeScope && <TableHead className="font-semibold">Employee</TableHead>}
               <TableHead className="font-semibold">Project</TableHead>
               <TableHead className="font-semibold">Week Starting</TableHead>
               <TableHead className="font-semibold text-right">Hours</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
-              {role === "employer" && <TableHead className="font-semibold text-right">Actions</TableHead>}
+              {!isMeScope && <TableHead className="font-semibold text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {displayTimesheets.map((ts: any) => (
               <TableRow key={ts.id} className="hover:bg-muted/30 transition-colors">
-                {role === "employer" && (
+                {!isMeScope && (
                   <TableCell className="font-medium">{ts.employees?.first_name} {ts.employees?.last_name}</TableCell>
                 )}
                 <TableCell>{ts.projects?.name || "—"}</TableCell>
                 <TableCell>{ts.week_starting}</TableCell>
                 <TableCell className="text-right font-semibold">{ts.hours}h</TableCell>
                 <TableCell><StatusBadge status={ts.status} /></TableCell>
-                {role === "employer" && (
+                {!isMeScope && (
                   <TableCell className="text-right">
                     {ts.status === "submitted" && (
                       <Button variant="outline" size="sm" onClick={() => setApproveId(ts.id)}>Approve</Button>
@@ -105,7 +109,7 @@ export default function TimesheetsPage() {
             ))}
             {displayTimesheets.length === 0 && (
               <TableRow>
-                <TableCell colSpan={role === "employer" ? 6 : 4} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={!isMeScope ? 6 : 4} className="text-center text-muted-foreground py-8">
                   No timesheets yet.
                 </TableCell>
               </TableRow>
