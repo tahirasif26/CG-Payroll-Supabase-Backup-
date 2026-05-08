@@ -150,6 +150,10 @@ export default function PayrollAnalyticsPage() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-center gap-2 text-sm text-yellow-800">
+        <span className="text-yellow-600 font-bold">⚠️</span>
+        <span>Analytics are currently showing sample data. Real analytics will be available after your first completed payroll run.</span>
+      </div>
       <PageHeader title="Payroll Analytics" description="Compare payroll runs to identify trends and changes. Click chart bars to filter." />
 
       {/* Run Selector */}

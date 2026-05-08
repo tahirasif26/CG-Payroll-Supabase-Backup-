@@ -233,15 +233,6 @@ export const meNavigationGroups: NavGroup[] = [
     basePath: "/",
   },
   {
-    key: "people",
-    label: "People",
-    icon: Users,
-    children: [
-      { label: "Directory", path: "/people",    requiredFeature: "employees.view_directory" },
-      { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
-    ],
-  },
-  {
     key: "my-payroll",
     label: "My Payroll",
     icon: DollarSign,

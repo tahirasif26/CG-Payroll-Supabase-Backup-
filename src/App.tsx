@@ -228,10 +228,7 @@ function AppRoutes() {
           <Route path="/payroll" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollPage /></ProtectedRoute>
           } />
-          <Route path="/compensation" element={<Navigate to="/payroll/setup" replace />} />
-          <Route path="/deductions" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><DeductionsPage /></ProtectedRoute>
-          } />
+          <Route path="/deductions" element={<Navigate to="/payroll/setup" replace />} />
           <Route path="/loans" element={
             <ProtectedRoute requiredRole={["admin", "hr", "employee"]} requiredFeature="loans.view_own"><LoansPage /></ProtectedRoute>
           } />
@@ -239,7 +236,7 @@ function AppRoutes() {
             <ProtectedRoute requiredRole={["admin", "hr"]}><ExpenseAnalyticsPage /></ProtectedRoute>
           } />
           <Route path="/advances" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><AdvancesPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr", "employee"]} requiredFeature="advances.view_own"><AdvancesPage /></ProtectedRoute>
           } />
           <Route path="/outstanding-advances" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><OutstandingAdvancesPage /></ProtectedRoute>
