@@ -532,9 +532,11 @@ function FeaturesTab({ role, readOnly }: { role: RoleWithRelations; readOnly: bo
   };
 
   const handleSave = async () => {
+    // Only persist features the admin explicitly granted "People" access to.
+    // Personal "Me" features remain available to the user via employee defaults.
     const features = Object.entries(state)
-      .filter(([, v]) => v.enabled)
-      .map(([feature_key, v]) => ({ feature_key, people_enabled: v.people }));
+      .filter(([, v]) => v.people)
+      .map(([feature_key]) => ({ feature_key, people_enabled: true }));
     await setFeatures.mutateAsync({
       role_id: role.id,
       client_id: role.client_id,
