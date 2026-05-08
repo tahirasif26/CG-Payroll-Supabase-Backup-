@@ -21,6 +21,11 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
 
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const displayRole =
+    appRole === "super_admin" ? "Super Admin"
+    : appRole === "admin" ? "Admin"
+    : appRole === "employee" ? "Employee"
+    : customRoleName ?? "Custom Role";
 
   return (
     <header className="h-14 border-b bg-card flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shrink-0">
