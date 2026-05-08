@@ -15,7 +15,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
-  const { profile, signOut, role, isSuperAdmin } = useRole();
+  const { profile, signOut, role, isSuperAdmin, appRole, customRoleName } = useRole();
   const { scope, setScope, hasPeopleAccess } = useViewScope();
   const navigate = useNavigate();
 
