@@ -61,6 +61,12 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
     onCloseMobile();
   };
 
+  const displayRole =
+    appRole === "super_admin" ? "Super Admin"
+    : appRole === "admin" ? "Admin"
+    : appRole === "employee" ? "Employee"
+    : customRoleName ?? "Custom Role";
+
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
