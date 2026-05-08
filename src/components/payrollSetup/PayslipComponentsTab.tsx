@@ -127,7 +127,7 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
                     <Badge variant="outline" className="text-[10px]">Base</Badge>
                   ) : (
                     <Badge variant={c.type === "earning" ? "default" : "destructive"} className="text-[10px]">
-                      {c.type === "earning" ? "Addition" : "Deduction"}
+                      {c.type === "earning" ? "Earnings" : "Deduction"}
                     </Badge>
                   )}
                 </TableCell>
