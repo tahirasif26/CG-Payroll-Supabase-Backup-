@@ -83,7 +83,7 @@ export default function BonusTab({ data, onChange }: Props) {
                 <SelectContent>
                   <SelectItem value="fixed">Fixed Amount</SelectItem>
                   <SelectItem value="percentage">% of Basic Salary</SelectItem>
-                  <SelectItem value="percentage_total">% of Total Salary</SelectItem>
+                  <SelectItem value="percentage_total">% of Total Gross Salary</SelectItem>
                 </SelectContent>
               </Select>
             </div>
