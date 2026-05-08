@@ -151,8 +151,8 @@ export default function PayslipsPage() {
   const showMyView = (scope === "me" || !hasPeopleAccess) && currentEmployee;
   if (showMyView) {
     const setup = getSetupById(currentEmployee.payrollSetupId || "");
-    const { earnings, deductions: dedItems, totalDeductions } = buildPayslipFromSetup(currentEmployee, setup);
-    const monthlySalary = currentEmployee.salary;
+    const { earnings, deductions: dedItems, totalDeductions, gross } = buildPayslipFromSetup(currentEmployee, setup);
+    const monthlySalary = gross;
     const netPay = monthlySalary - totalDeductions;
     const payCurrency = getEmployeePayCurrency(currentEmployee);
 
