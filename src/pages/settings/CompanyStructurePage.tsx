@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { PageHeader } from "@/components/PageHeader";
-import { divisions, Division, JobTitle } from "@/data/settingsData";
+import type { JobTitle } from "@/data/settingsData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -118,6 +118,46 @@ export default function CompanyStructurePage() {
   });
 
 
+  // Divisions queries (DB-backed)
+  const { data: dbDivisions = [] } = useQuery({
+    queryKey: ["divisions", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("divisions").select("id, name, is_active").eq("client_id", clientId!).order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const addDivMut = useMutation({
+    mutationFn: async (name: string) => {
+      if (!clientId) throw new Error("No client context");
+      const { error } = await supabase.from("divisions").insert({ client_id: clientId, name });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["divisions", clientId] }),
+    onError: (e: Error) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+  });
+
+  const updateDivMut = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from("divisions").update({ name }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["divisions", clientId] }),
+    onError: (e: Error) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteDivMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("divisions").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["divisions", clientId] }),
+    onError: (e: Error) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
+  });
+
   // Employee Types state
   const [etDialogOpen, setEtDialogOpen] = useState(false);
   const [etEdit, setEtEdit] = useState<string | null>(null);
@@ -138,10 +178,11 @@ export default function CompanyStructurePage() {
   };
   const handleEtDelete = (id: string) => { deleteEmployeeType(id); toast({ title: "Deleted" }); };
 
-  // Divisions state
-  const [divItems, setDivItems] = useState<Division[]>(divisions);
+  // Divisions state (DB-backed)
+  type DivisionItem = { id: string; name: string; isActive: boolean };
+  const divItems: DivisionItem[] = dbDivisions.map((d: any) => ({ id: d.id, name: d.name, isActive: d.is_active }));
   const [divDialogOpen, setDivDialogOpen] = useState(false);
-  const [divEdit, setDivEdit] = useState<Division | null>(null);
+  const [divEdit, setDivEdit] = useState<DivisionItem | null>(null);
   const [divName, setDivName] = useState("");
 
   // Departments state
@@ -164,21 +205,28 @@ export default function CompanyStructurePage() {
   const [jtTitle, setJtTitle] = useState("");
   const [jtLevel, setJtLevel] = useState("Entry");
 
-  // Division handlers
+  // Division handlers (DB-backed)
   const openAddDiv = () => { setDivEdit(null); setDivName(""); setDivDialogOpen(true); };
-  const openEditDiv = (item: Division) => { setDivEdit(item); setDivName(item.name); setDivDialogOpen(true); };
-  const handleDivSubmit = (e: React.FormEvent) => {
+  const openEditDiv = (item: DivisionItem) => { setDivEdit(item); setDivName(item.name); setDivDialogOpen(true); };
+  const handleDivSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (divEdit) {
-      setDivItems(prev => prev.map(i => i.id === divEdit.id ? { ...i, name: divName } : i));
-      toast({ title: "Updated" });
-    } else {
-      setDivItems(prev => [...prev, { id: String(Date.now()), name: divName, isActive: true }]);
-      toast({ title: "Added", description: `${divName} division added.` });
-    }
-    setDivDialogOpen(false);
+    try {
+      if (divEdit) {
+        await updateDivMut.mutateAsync({ id: divEdit.id, name: divName });
+        toast({ title: "Updated" });
+      } else {
+        await addDivMut.mutateAsync(divName);
+        toast({ title: "Added", description: `${divName} division added.` });
+      }
+      setDivDialogOpen(false);
+    } catch { /* toast shown by mutation */ }
   };
-  const handleDivDelete = (id: string) => { setDivItems(prev => prev.filter(i => i.id !== id)); toast({ title: "Deleted" }); };
+  const handleDivDelete = async (id: string) => {
+    try {
+      await deleteDivMut.mutateAsync(id);
+      toast({ title: "Deleted" });
+    } catch { /* toast shown by mutation */ }
+  };
 
   // Department handlers (DB-backed)
   const openAddDept = () => { setDeptEdit(null); setDeptName(""); setDeptDialogOpen(true); };
