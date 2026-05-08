@@ -202,6 +202,7 @@ export function filterNavigation(
       const filteredChildren = g.children.filter((c) => {
         if (c.hideForRoles?.includes(role)) return false;
         if (c.requiredRoles && !c.requiredRoles.includes(role)) return false;
+        if (role === "hr" && roleFeatures && roleFeatures.size > 0 && c.requiredFeature && !roleFeatures.has(c.requiredFeature)) return false;
         if (c.requiredFeature && role !== "super_admin" && !hasFeature(c.requiredFeature)) return false;
         return true;
       });
