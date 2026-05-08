@@ -94,7 +94,7 @@ export default function ProvidentFundTab({ data, onChange }: Props) {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="basic">Basic Salary</SelectItem>
-                <SelectItem value="total">Total Salary</SelectItem>
+                <SelectItem value="total">Total Gross Salary</SelectItem>
               </SelectContent>
             </Select>
           </div>
