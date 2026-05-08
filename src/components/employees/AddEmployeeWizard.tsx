@@ -1022,8 +1022,12 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                         </div>
                       </div>
                     )}
+                    <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3 font-semibold">
+                      <span className="text-sm">Gross Salary</span>
+                      <span className="text-sm">{salaryBreakdown.grossTotal.toLocaleString()} {selectedSetup.currency}</span>
+                    </div>
                     <div className="flex items-center justify-between bg-primary/10 rounded-lg px-4 py-3.5 font-bold">
-                      <span className="text-base">Gross Total</span>
+                      <span className="text-base">Net Salary</span>
                       <span className="text-base text-primary">{salaryBreakdown.netSalary.toLocaleString()} {selectedSetup.currency}</span>
                     </div>
                   </div>

@@ -40,37 +40,39 @@ function getToReportingRate(fromCurrency: string): number {
   return defaultExchangeRates.find(r => r.fromCurrency === fromCurrency)?.toReportingRate || 1;
 }
 
-// Build payslip earnings/deductions from PayrollSetup
+// Build payslip earnings/deductions from PayrollSetup.
+// Convention: emp.salary = Basic Salary. Earning components are ADDED on top
+// of basic. Deductions and tax are computed against basic (matching the
+// AddEmployeeWizard live breakdown).
 function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
-  const gross = emp.salary;
-  const earnings: { label: string; amount: number }[] = [];
+  const basic = emp.salary;
+  const earnings: { label: string; amount: number }[] = [{ label: "Basic Salary", amount: basic }];
   const deductions: { label: string; amount: number }[] = [];
 
   if (setup) {
-    const activeEarnings = setup.payslipComponents.filter(c => c.type === "earning" && c.status === "active");
+    const isBasicComp = (c: any) => c.id === "comp-basic-salary" || (c.name || "").toLowerCase() === "basic salary";
+    const activeEarnings = setup.payslipComponents.filter(c => c.type === "earning" && c.status === "active" && !isBasicComp(c));
     const activeDeductions = setup.payslipComponents.filter(c => c.type === "deduction" && c.status === "active");
 
     activeEarnings.forEach(comp => {
-      const val = comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+      const val = comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
       earnings.push({ label: comp.name, amount: val });
     });
 
     activeDeductions.forEach(comp => {
-      const val = comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+      const val = comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
       deductions.push({ label: comp.name, amount: val });
     });
 
+    const totalEarningsForGross = earnings.reduce((s, e) => s + e.amount, 0);
+
     // Tax from setup's taxRules
     if (setup.options.enableTaxCalculation && setup.taxRules.length > 0) {
-      const basicComp = activeEarnings.find(c => c.name.toLowerCase().includes("basic"));
-      const basic = basicComp
-        ? (basicComp.calculationType === "percentage" ? Math.round(gross * basicComp.value / 100) : basicComp.value)
-        : Math.round(gross * 0.6);
-      const taxBase = (setup as any).taxBasis === "basic" ? basic : gross;
+      const taxBase = (setup as any).taxBasis === "basic" ? basic : totalEarningsForGross;
       const annualBase = taxBase * 12;
       let totalTax = 0;
       setup.taxRules.forEach(slab => {
-        if (annualBase >= slab.incomeFrom) {
+        if (annualBase > slab.incomeFrom) {
           const taxableInSlab = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
           if (taxableInSlab > 0) {
             totalTax += Math.round((taxableInSlab * slab.percentage / 100) / 12);
@@ -88,18 +90,13 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
         deductions.push({ label: rule.name, amount: rule.amount });
       }
     });
-  } else {
-    // Fallback if no setup
-    earnings.push({ label: "Basic Salary", amount: Math.round(gross * 0.6) });
-    earnings.push({ label: "Housing Allowance", amount: Math.round(gross * 0.25) });
-    earnings.push({ label: "Other Allowances", amount: Math.round(gross * 0.15) });
-    deductions.push({ label: "Statutory Deductions", amount: Math.round(gross * 0.1) });
   }
 
   const totalEarnings = earnings.reduce((s, e) => s + e.amount, 0);
   const totalDeductions = deductions.reduce((s, d) => s + d.amount, 0);
+  const gross = totalEarnings;
 
-  return { earnings, deductions, totalEarnings, totalDeductions };
+  return { earnings, deductions, totalEarnings, totalDeductions, gross, basic };
 }
 
 interface PayslipDetail {
@@ -154,8 +151,8 @@ export default function PayslipsPage() {
   const showMyView = (scope === "me" || !hasPeopleAccess) && currentEmployee;
   if (showMyView) {
     const setup = getSetupById(currentEmployee.payrollSetupId || "");
-    const { earnings, deductions: dedItems, totalDeductions } = buildPayslipFromSetup(currentEmployee, setup);
-    const monthlySalary = currentEmployee.salary;
+    const { earnings, deductions: dedItems, totalDeductions, gross } = buildPayslipFromSetup(currentEmployee, setup);
+    const monthlySalary = gross;
     const netPay = monthlySalary - totalDeductions;
     const payCurrency = getEmployeePayCurrency(currentEmployee);
 
@@ -240,10 +237,10 @@ export default function PayslipsPage() {
       : employees;
     return runEmps.map(emp => {
       const setup = getSetupById(emp.payrollSetupId || "");
-      const { totalDeductions } = buildPayslipFromSetup(emp, setup);
-      const net = emp.salary - totalDeductions;
+      const { totalDeductions, gross } = buildPayslipFromSetup(emp, setup);
+      const net = gross - totalDeductions;
       const payCurrency = getEmployeePayCurrency(emp);
-      return { run, emp, deductions: totalDeductions, net, payCurrency, setup };
+      return { run, emp, gross, deductions: totalDeductions, net, payCurrency, setup };
     });
   });
 
@@ -289,7 +286,7 @@ export default function PayslipsPage() {
                 title={search ? "No payslips match your search" : "No payslips yet"}
                 description={search ? "Try a different name, ID, or period." : "Process a payroll run to generate payslips."}
               />
-            ) : filtered.map(({ run, emp, deductions, net, payCurrency, setup }) => (
+            ) : filtered.map(({ run, emp, gross, deductions, net, payCurrency, setup }) => (
               <TableRow key={`${run.id}-${emp.id}`} className="hover:bg-muted/30 transition-colors">
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -302,7 +299,7 @@ export default function PayslipsPage() {
                 <TableCell>{run.month} {run.year}</TableCell>
                 <TableCell className="text-xs">{setup?.name || "—"}</TableCell>
                 <TableCell className="text-xs font-medium">{payCurrency}</TableCell>
-                <TableCell className="text-right">{emp.salary.toLocaleString()}</TableCell>
+                <TableCell className="text-right">{gross.toLocaleString()}</TableCell>
                 <TableCell className="text-right text-destructive">{deductions.toLocaleString()}</TableCell>
                 <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
                 <TableCell className="text-right">
@@ -312,7 +309,7 @@ export default function PayslipsPage() {
                       empId: emp.empId, department: emp.department,
                       designation: emp.designation, joiningDate: emp.joiningDate,
                       period: `${run.month} ${run.year}`,
-                      gross: emp.salary, deductions, net,
+                      gross, deductions, net,
                       employeeId: emp.id, payCurrency,
                       workLocationCountry: emp.workLocationCountry,
                       payrollSetupId: emp.payrollSetupId,

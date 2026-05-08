@@ -212,33 +212,29 @@ function buildBreakdown(allEmployees: Employee[], allDeductions: Deduction[], al
 
 function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup | undefined, oneOffs: OneOffAdjustment[], separationMap: Record<string, number>, processedSepIds: Set<string>, runId?: string, advancesData?: { employeeId: string; amount: number; payrollRunId?: string }[]): EmployeePayrollLine[] {
   const activeEmployees = allEmployees.filter(emp => !processedSepIds.has(emp.id));
+  const isBasicComp = (c: any) => c.id === "comp-basic-salary" || (c.name || "").toLowerCase() === "basic salary";
   return activeEmployees.map(emp => {
-    const gross = emp.salary;
-    // Use setup's payslip components to calculate basic & allowances
-    const activeEarnings = setup?.payslipComponents.filter(c => c.type === "earning" && c.status === "active") || [];
+    // emp.salary represents the Basic Salary. Earning components from the
+    // setup are ADDED on top of basic to form the gross. Deductions and tax
+    // are computed against basic (matching AddEmployeeWizard).
+    const basic = emp.salary;
+    const activeEarnings = setup?.payslipComponents.filter(c => c.type === "earning" && c.status === "active" && !isBasicComp(c)) || [];
     const activeDeductionComponents = setup?.payslipComponents.filter(c => c.type === "deduction" && c.status === "active") || [];
 
-    // Calculate basic from setup (first earning component is typically basic)
-    let basic = 0;
-    let totalEarnings = 0;
+    let allowances = 0;
     activeEarnings.forEach(comp => {
-      const val = comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
-      if (comp.name.toLowerCase().includes("basic") || comp.name.toLowerCase().includes("stipend")) {
-        basic = val;
-      }
-      totalEarnings += val;
+      allowances += comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
     });
-    if (basic === 0) basic = Math.round(gross * 0.6);
-    const allowances = gross - basic;
+    const gross = basic + allowances;
 
     // Loan deduction
     const activeLoan = loans.find(l => l.employeeId === emp.id && l.status === "active");
     const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
 
-    // Deductions from setup components
+    // Deductions from setup components — % is of basic
     let setupDeductions = 0;
     activeDeductionComponents.forEach(comp => {
-      setupDeductions += comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+      setupDeductions += comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
     });
 
     // Tax from setup's taxRules
@@ -247,7 +243,7 @@ function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup |
       const taxBase = (setup as any).taxBasis === "basic" ? basic : gross;
       const annualBase = taxBase * 12;
       setup.taxRules.forEach(slab => {
-        if (annualBase >= slab.incomeFrom) {
+        if (annualBase > slab.incomeFrom) {
           const taxableInSlab = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
           if (taxableInSlab > 0) {
             taxDeductions += Math.round((taxableInSlab * slab.percentage / 100) / 12);
