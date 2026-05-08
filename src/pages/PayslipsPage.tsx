@@ -309,7 +309,7 @@ export default function PayslipsPage() {
                       empId: emp.empId, department: emp.department,
                       designation: emp.designation, joiningDate: emp.joiningDate,
                       period: `${run.month} ${run.year}`,
-                      gross: emp.salary, deductions, net,
+                      gross, deductions, net,
                       employeeId: emp.id, payCurrency,
                       workLocationCountry: emp.workLocationCountry,
                       payrollSetupId: emp.payrollSetupId,
