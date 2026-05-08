@@ -46,11 +46,13 @@ interface Props {
   onComponentNameChange?: (name: string) => void;
   enabled?: boolean;
   onEnabledChange?: (v: boolean) => void;
+  basis?: "basic" | "gross";
+  onBasisChange?: (b: "basic" | "gross") => void;
 }
 
 const empty: TaxSlab = { id: "", name: "", incomeFrom: 0, incomeTo: 0, percentage: 0, fixedAmount: 0 };
 
-export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true, onEnabledChange }: Props) {
+export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true, onEnabledChange, basis = "gross", onBasisChange }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TaxSlab>(empty);
 
