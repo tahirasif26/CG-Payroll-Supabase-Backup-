@@ -37,7 +37,6 @@ import { PayrollRun, OneOffAdjustment, Employee, Deduction, TaxConfig } from "@/
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { defaultExchangeRates } from "@/data/settingsData";
 import { useAdvances } from "@/contexts/AdvanceContext";
-import { useDeductions } from "@/contexts/DeductionContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSeparations } from "@/contexts/SeparationContext";
 import { Button } from "@/components/ui/button";
@@ -328,7 +327,6 @@ function downloadCSV(content: string, filename: string) {
 export default function PayrollPage() {
   const { employees } = useEmployees();
   const { activeTypes, getTypeName } = useEmployeeTypes();
-  const { deductions } = useDeductions();
   const canApprovePayroll = useCanApprove("payroll");
   const { currentEmployeeId, clientId } = useRole();
   const queryClient = useQueryClient();
@@ -497,7 +495,7 @@ export default function PayrollPage() {
     const currentSepMap = getSepMap(run.id);
     const runFilteredEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
     const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
-    const currentBreakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances) : buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
+    const currentBreakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances) : buildBreakdown(runFilteredEmps, [] as Deduction[], initialTaxConfigs, oneOffs[run.id] || [], currentSepMap, processedSeps, run.id, approvedAdvances);
     const runEmployeeCount = currentBreakdown.length;
     const runGross = currentBreakdown.reduce((s, l) => s + l.gross, 0);
     const runDed = currentBreakdown.reduce((s, l) => s + l.totalDeductions, 0);
@@ -685,7 +683,7 @@ export default function PayrollPage() {
   const handleDownloadAccounting = (run: PayrollRun) => {
     const runFilteredEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
     const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
-    const breakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances);
+    const breakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runFilteredEmps, [] as Deduction[], initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances);
     const csv = generateAccountingCSV(run, breakdown, glMappings);
     downloadCSV(csv, `accounting-entry-${run.month}-${run.year}.csv`);
     toast({ title: "Downloaded", description: "Accounting entry CSV downloaded." });
@@ -723,7 +721,7 @@ export default function PayrollPage() {
     const sepMap = getSepMap(selectedRun.id);
     const runFilteredEmps = selectedRun.payrollSetupId ? employees.filter(e => e.payrollSetupId === selectedRun.payrollSetupId) : (selectedRun.employeeTypes && selectedRun.employeeTypes.length > 0 ? employees.filter(e => selectedRun.employeeTypes!.includes(e.category)) : employees);
     const runSetup = selectedRun.payrollSetupId ? getSetupById(selectedRun.payrollSetupId) : undefined;
-    const breakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances) : buildBreakdown(runFilteredEmps, deductions, initialTaxConfigs, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
+    const breakdown = runSetup ? buildBreakdownFromSetup(runFilteredEmps, runSetup, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances) : buildBreakdown(runFilteredEmps, [] as Deduction[], initialTaxConfigs, currentOneOffs, sepMap, isLocked ? new Set() : processedSeps, selectedRun.id, approvedAdvances);
     const totalLoan = breakdown.reduce((s, l) => s + l.loanDeduction, 0);
     const totalExpense = breakdown.reduce((s, l) => s + l.expenseReimbursement, 0);
     const totalAdvance = breakdown.reduce((s, l) => s + l.advanceGiven, 0);
@@ -1229,7 +1227,7 @@ export default function PayrollPage() {
                       const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
                       const runCurrency = runSetup?.currency || runEmps[0]?.payCurrency || REPORTING_CURRENCY;
                       const liveBreakdown = run.status !== "completed"
-                        ? (runSetup ? buildBreakdownFromSetup(runEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runEmps, deductions, initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances))
+                        ? (runSetup ? buildBreakdownFromSetup(runEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runEmps, [] as Deduction[], initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances))
                         : null;
                       const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
                       const dispGross = liveBreakdown
