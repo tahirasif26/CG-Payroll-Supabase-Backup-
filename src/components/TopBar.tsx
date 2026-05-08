@@ -1,7 +1,11 @@
-import { HelpCircle, LogOut, Menu, Search, Settings, User } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { HelpCircle, LogOut, Menu, Search, Settings, User, Loader2 } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -14,10 +18,21 @@ interface TopBarProps {
   onOpenMobileSidebar: () => void;
 }
 
+interface SearchResult {
+  type: string;
+  label: string;
+  sub: string;
+  path: string;
+}
+
 export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
-  const { profile, signOut, role, isSuperAdmin, appRole, customRoleName } = useRole();
+  const { profile, signOut, role, isSuperAdmin, appRole, customRoleName, clientId } = useRole();
   const { scope, setScope, hasPeopleAccess } = useViewScope();
   const navigate = useNavigate();
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const displayName = profile?.full_name || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -26,6 +41,84 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
     : appRole === "admin" ? "Admin"
     : appRole === "employee" ? "Employee"
     : customRoleName ?? "Custom Role";
+
+  const { data: searchResults = [], isLoading: searching } = useQuery({
+    queryKey: ["global-search", searchQuery, clientId],
+    enabled: searchQuery.length >= 2 && !!clientId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const q = searchQuery.toLowerCase();
+      const results: SearchResult[] = [];
+
+      const { data: emps } = await supabase
+        .from("employees")
+        .select("id, first_name, last_name, emp_id, department")
+        .eq("client_id", clientId!)
+        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,emp_id.ilike.%${q}%`)
+        .limit(4);
+
+      (emps ?? []).forEach((e: any) => results.push({
+        type: "Employee",
+        label: `${e.first_name ?? ""} ${e.last_name ?? ""}`.trim() || e.emp_id,
+        sub: `${e.emp_id}${e.department ? " · " + e.department : ""}`,
+        path: "/employees",
+      }));
+
+      const { data: exps } = await supabase
+        .from("expenses")
+        .select("id, description, amount, status")
+        .eq("client_id", clientId!)
+        .ilike("description", `%${q}%`)
+        .limit(3);
+
+      (exps ?? []).forEach((e: any) => results.push({
+        type: "Expense",
+        label: e.description ?? "Expense",
+        sub: `SAR ${e.amount ?? 0} · ${e.status}`,
+        path: "/expenses",
+      }));
+
+      const { data: loans } = await supabase
+        .from("loans")
+        .select("id, reason, principal, status")
+        .eq("client_id", clientId!)
+        .ilike("reason", `%${q}%`)
+        .limit(3);
+
+      (loans ?? []).forEach((l: any) => results.push({
+        type: "Loan",
+        label: l.reason ?? "Loan",
+        sub: `SAR ${l.principal ?? 0} · ${l.status}`,
+        path: "/loans",
+      }));
+
+      const { data: assets } = await supabase
+        .from("assets")
+        .select("id, name, asset_tag, status")
+        .eq("client_id", clientId!)
+        .or(`name.ilike.%${q}%,asset_tag.ilike.%${q}%`)
+        .limit(3);
+
+      (assets ?? []).forEach((a: any) => results.push({
+        type: "Asset",
+        label: a.name ?? a.asset_tag,
+        sub: `${a.asset_tag} · ${a.status}`,
+        path: "/assets/inventory",
+      }));
+
+      return results;
+    },
+  });
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   return (
     <header className="h-14 border-b bg-card flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shrink-0">
@@ -67,12 +160,52 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
           </div>
         )}
 
-        <div className="hidden md:flex relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <div ref={searchRef} className="hidden md:flex relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground z-10" />
           <Input
             placeholder="Search employees, expenses, assets..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+            onFocus={() => setSearchOpen(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); }
+            }}
             className="pl-9 h-9 w-full text-xs bg-muted/40 border-0 focus-visible:ring-1"
           />
+
+          {searchOpen && searchQuery.length >= 2 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-lg shadow-lg max-h-96 overflow-y-auto z-50">
+              {searching ? (
+                <div className="px-3 py-4 text-xs text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Searching...
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="px-3 py-4 text-xs text-muted-foreground">
+                  No results for "{searchQuery}"
+                </div>
+              ) : (
+                <div className="py-1">
+                  {searchResults.map((r, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        navigate(r.path);
+                        setSearchOpen(false);
+                        setSearchQuery("");
+                      }}
+                      className="w-full px-3 py-2 hover:bg-muted/50 transition-colors flex items-start gap-2 text-left"
+                    >
+                      <Badge variant="outline" className="text-[10px] mt-0.5 shrink-0">{r.type}</Badge>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium truncate">{r.label}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{r.sub}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
