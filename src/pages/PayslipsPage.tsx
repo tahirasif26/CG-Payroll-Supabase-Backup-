@@ -40,37 +40,39 @@ function getToReportingRate(fromCurrency: string): number {
   return defaultExchangeRates.find(r => r.fromCurrency === fromCurrency)?.toReportingRate || 1;
 }
 
-// Build payslip earnings/deductions from PayrollSetup
+// Build payslip earnings/deductions from PayrollSetup.
+// Convention: emp.salary = Basic Salary. Earning components are ADDED on top
+// of basic. Deductions and tax are computed against basic (matching the
+// AddEmployeeWizard live breakdown).
 function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
-  const gross = emp.salary;
-  const earnings: { label: string; amount: number }[] = [];
+  const basic = emp.salary;
+  const earnings: { label: string; amount: number }[] = [{ label: "Basic Salary", amount: basic }];
   const deductions: { label: string; amount: number }[] = [];
 
   if (setup) {
-    const activeEarnings = setup.payslipComponents.filter(c => c.type === "earning" && c.status === "active");
+    const isBasicComp = (c: any) => c.id === "comp-basic-salary" || (c.name || "").toLowerCase() === "basic salary";
+    const activeEarnings = setup.payslipComponents.filter(c => c.type === "earning" && c.status === "active" && !isBasicComp(c));
     const activeDeductions = setup.payslipComponents.filter(c => c.type === "deduction" && c.status === "active");
 
     activeEarnings.forEach(comp => {
-      const val = comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+      const val = comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
       earnings.push({ label: comp.name, amount: val });
     });
 
     activeDeductions.forEach(comp => {
-      const val = comp.calculationType === "percentage" ? Math.round(gross * comp.value / 100) : comp.value;
+      const val = comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
       deductions.push({ label: comp.name, amount: val });
     });
 
+    const totalEarningsForGross = earnings.reduce((s, e) => s + e.amount, 0);
+
     // Tax from setup's taxRules
     if (setup.options.enableTaxCalculation && setup.taxRules.length > 0) {
-      const basicComp = activeEarnings.find(c => c.name.toLowerCase().includes("basic"));
-      const basic = basicComp
-        ? (basicComp.calculationType === "percentage" ? Math.round(gross * basicComp.value / 100) : basicComp.value)
-        : Math.round(gross * 0.6);
-      const taxBase = (setup as any).taxBasis === "basic" ? basic : gross;
+      const taxBase = (setup as any).taxBasis === "basic" ? basic : totalEarningsForGross;
       const annualBase = taxBase * 12;
       let totalTax = 0;
       setup.taxRules.forEach(slab => {
-        if (annualBase >= slab.incomeFrom) {
+        if (annualBase > slab.incomeFrom) {
           const taxableInSlab = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
           if (taxableInSlab > 0) {
             totalTax += Math.round((taxableInSlab * slab.percentage / 100) / 12);
@@ -88,18 +90,13 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
         deductions.push({ label: rule.name, amount: rule.amount });
       }
     });
-  } else {
-    // Fallback if no setup
-    earnings.push({ label: "Basic Salary", amount: Math.round(gross * 0.6) });
-    earnings.push({ label: "Housing Allowance", amount: Math.round(gross * 0.25) });
-    earnings.push({ label: "Other Allowances", amount: Math.round(gross * 0.15) });
-    deductions.push({ label: "Statutory Deductions", amount: Math.round(gross * 0.1) });
   }
 
   const totalEarnings = earnings.reduce((s, e) => s + e.amount, 0);
   const totalDeductions = deductions.reduce((s, d) => s + d.amount, 0);
+  const gross = totalEarnings;
 
-  return { earnings, deductions, totalEarnings, totalDeductions };
+  return { earnings, deductions, totalEarnings, totalDeductions, gross, basic };
 }
 
 interface PayslipDetail {
