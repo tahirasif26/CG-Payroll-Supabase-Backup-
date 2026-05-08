@@ -4196,6 +4196,7 @@ export type Database = {
           last_working_date: string
           leave_encashment: number
           loan_deduction: number
+          metadata: Json
           notice_period_days: number
           notice_period_pay: number
           notice_period_served: boolean
@@ -4219,6 +4220,7 @@ export type Database = {
           last_working_date: string
           leave_encashment?: number
           loan_deduction?: number
+          metadata?: Json
           notice_period_days?: number
           notice_period_pay?: number
           notice_period_served?: boolean
@@ -4242,6 +4244,7 @@ export type Database = {
           last_working_date?: string
           leave_encashment?: number
           loan_deduction?: number
+          metadata?: Json
           notice_period_days?: number
           notice_period_pay?: number
           notice_period_served?: boolean
