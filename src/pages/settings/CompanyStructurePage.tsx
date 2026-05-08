@@ -118,6 +118,46 @@ export default function CompanyStructurePage() {
   });
 
 
+  // Divisions queries (DB-backed)
+  const { data: dbDivisions = [] } = useQuery({
+    queryKey: ["divisions", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("divisions").select("id, name, is_active").eq("client_id", clientId!).order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const addDivMut = useMutation({
+    mutationFn: async (name: string) => {
+      if (!clientId) throw new Error("No client context");
+      const { error } = await supabase.from("divisions").insert({ client_id: clientId, name });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["divisions", clientId] }),
+    onError: (e: Error) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+  });
+
+  const updateDivMut = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from("divisions").update({ name }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["divisions", clientId] }),
+    onError: (e: Error) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteDivMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("divisions").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["divisions", clientId] }),
+    onError: (e: Error) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
+  });
+
   // Employee Types state
   const [etDialogOpen, setEtDialogOpen] = useState(false);
   const [etEdit, setEtEdit] = useState<string | null>(null);
