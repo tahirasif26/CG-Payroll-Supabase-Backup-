@@ -340,7 +340,7 @@ function AppRoutes() {
             <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollAnalyticsPage /></ProtectedRoute>
           } />
           <Route path="/id-cards" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><IDCardsPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr", "employee"]}><IDCardsPage /></ProtectedRoute>
           } />
           <Route path="/access-management" element={
             <ProtectedRoute requiredRole="admin"><AccessManagementPage /></ProtectedRoute>
