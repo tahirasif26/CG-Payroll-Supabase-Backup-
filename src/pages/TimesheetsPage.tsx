@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export default function TimesheetsPage() {
   const { role, currentEmployeeId } = useRole();
+  const { scope } = useViewScope();
   const [logOpen, setLogOpen] = useState(false);
   const [approveId, setApproveId] = useState<string | null>(null);
 
@@ -26,14 +27,16 @@ export default function TimesheetsPage() {
     [employees, currentEmployeeId]
   );
 
+  // Me scope (or employee role) → only fetch own timesheets.
+  const isMeScope = scope === "me" || role === "employee";
   const { data: allTimesheets = [] } = useTimesheets(
-    role === "employee" && myEmployee ? { employee_id: myEmployee.id } : undefined
+    isMeScope && myEmployee ? { employee_id: myEmployee.id } : undefined
   );
   const createTimesheet = useCreateTimesheet();
   const approveTimesheet = useApproveTimesheet();
 
-  // Filter to active employees only for employer view
-  const displayTimesheets = role === "employee"
+  // People scope: filter to active employees only.
+  const displayTimesheets = isMeScope
     ? allTimesheets
     : allTimesheets.filter((t: any) => t.employees?.status === "active");
 
