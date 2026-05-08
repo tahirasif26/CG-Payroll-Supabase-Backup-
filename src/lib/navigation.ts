@@ -285,6 +285,7 @@ export const meNavigationGroups: NavGroup[] = [
     children: [
       { label: "My Profile", path: "/profile" },
       { label: "My ID Card", path: "/id-cards" },
+      { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
     ],
   },
   {
