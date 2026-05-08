@@ -331,7 +331,7 @@ export default function MyProfilePage() {
       </Card>
 
       <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="flex flex-wrap h-auto">
+        <TabsList className="flex flex-wrap h-auto justify-start w-full">
           <TabsTrigger value="personal"><UserIcon className="h-3.5 w-3.5 mr-1.5" />Personal</TabsTrigger>
           <TabsTrigger value="work"><Briefcase className="h-3.5 w-3.5 mr-1.5" />Work</TabsTrigger>
           <TabsTrigger value="compensation"><Wallet className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>
