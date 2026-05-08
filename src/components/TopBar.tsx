@@ -101,7 +101,7 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
           <DropdownMenuContent align="end" className="w-52">
             <div className="px-3 py-2">
               <p className="text-sm font-semibold truncate">{displayName}</p>
-              <p className="text-xs text-muted-foreground capitalize">{role}</p>
+              <p className="text-xs text-muted-foreground">{displayRole}</p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => navigate("/account")}>
