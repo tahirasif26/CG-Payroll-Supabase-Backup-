@@ -105,6 +105,33 @@ export default function TaxRulesTab({ data, onChange, componentName, onComponent
         </div>
       )}
 
+      {onBasisChange && (
+        <div className="space-y-2 rounded-lg border p-4">
+          <Label>Apply tax slabs on</Label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={basis === "basic" ? "default" : "outline"}
+              onClick={() => onBasisChange("basic")}
+            >
+              Basic Salary
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={basis === "gross" ? "default" : "outline"}
+              onClick={() => onBasisChange("gross")}
+            >
+              Gross (Basic + Earnings)
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Annualized {basis === "basic" ? "basic salary" : "gross pay"} is matched against the slab brackets.
+          </p>
+        </div>
+      )}
+
       <Table>
         <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Income From</TableHead><TableHead>Income To</TableHead><TableHead>%</TableHead><TableHead>Fixed Amt</TableHead><TableHead className="w-20">Actions</TableHead></TableRow></TableHeader>
         <TableBody>
