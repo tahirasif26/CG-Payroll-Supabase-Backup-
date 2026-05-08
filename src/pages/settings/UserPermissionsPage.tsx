@@ -580,21 +580,15 @@ function FeaturesTab({ role, readOnly }: { role: RoleWithRelations; readOnly: bo
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm">{meta.label}</div>
                 <div className="text-[11px] text-muted-foreground">
-                  {readOnly ? `${summary.total} of ${summary.total}` : `${summary.on} of ${summary.total}`} features enabled
+                  {summary.total} feature{summary.total === 1 ? "" : "s"}
                 </div>
               </div>
-              <Switch
-                checked={moduleOn}
-                disabled={readOnly}
-                onCheckedChange={(v) => toggleModule(modKey, v)}
-              />
             </div>
 
             {isExpanded && (
               <div className="border-t divide-y">
                 {(grouped[modKey] ?? []).map((f) => {
-                  const cur = state[f.feature_key] ?? { enabled: false, people: false };
-                  const enabled = readOnly ? true : cur.enabled;
+                  const cur = state[f.feature_key] ?? { enabled: true, people: false };
                   return (
                     <div key={f.feature_key} className="flex items-center gap-3 px-4 py-2.5 pl-12">
                       <div className="flex-1 min-w-0">
@@ -603,23 +597,14 @@ function FeaturesTab({ role, readOnly }: { role: RoleWithRelations; readOnly: bo
                           <div className="text-[11px] text-muted-foreground truncate">{f.description}</div>
                         )}
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={enabled}
-                            disabled={readOnly}
-                            onCheckedChange={(v) => toggleFeature(f.feature_key, v)}
-                          />
-                        </div>
-                        <div className={cn("flex items-center gap-2", !enabled && "opacity-40")}>
-                          <Switch
-                            checked={readOnly ? true : cur.people}
-                            disabled={readOnly || !enabled}
-                            onCheckedChange={(v) => togglePeople(f.feature_key, v)}
-                            className="data-[state=checked]:bg-rose-500"
-                          />
-                          <span className="text-xs text-muted-foreground">People</span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={readOnly ? true : cur.people}
+                          disabled={readOnly}
+                          onCheckedChange={(v) => togglePeople(f.feature_key, v)}
+                          className="data-[state=checked]:bg-rose-500"
+                        />
+                        <span className="text-xs text-muted-foreground">People</span>
                       </div>
                     </div>
                   );
