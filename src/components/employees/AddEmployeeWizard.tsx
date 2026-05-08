@@ -209,11 +209,12 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
     let taxAmount = 0;
     const grossBeforeTax = baseSalary + totalAdditions;
+    const taxBase = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
     if (selectedSetup.options.enableTaxCalculation && selectedSetup.taxRules.length > 0) {
-      const annualGross = grossBeforeTax * 12;
+      const annualBase = taxBase * 12;
       selectedSetup.taxRules.forEach(slab => {
-        if (annualGross > slab.incomeFrom) {
-          const taxable = Math.min(annualGross, slab.incomeTo) - slab.incomeFrom;
+        if (annualBase > slab.incomeFrom) {
+          const taxable = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
           if (taxable > 0) taxAmount += Math.round(taxable * slab.percentage / 100 / 12);
         }
       });
