@@ -62,11 +62,16 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
 
     // Tax from setup's taxRules
     if (setup.options.enableTaxCalculation && setup.taxRules.length > 0) {
-      const annualGross = gross * 12;
+      const basicComp = activeEarnings.find(c => c.name.toLowerCase().includes("basic"));
+      const basic = basicComp
+        ? (basicComp.calculationType === "percentage" ? Math.round(gross * basicComp.value / 100) : basicComp.value)
+        : Math.round(gross * 0.6);
+      const taxBase = (setup as any).taxBasis === "basic" ? basic : gross;
+      const annualBase = taxBase * 12;
       let totalTax = 0;
       setup.taxRules.forEach(slab => {
-        if (annualGross >= slab.incomeFrom) {
-          const taxableInSlab = Math.min(annualGross, slab.incomeTo) - slab.incomeFrom;
+        if (annualBase >= slab.incomeFrom) {
+          const taxableInSlab = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
           if (taxableInSlab > 0) {
             totalTax += Math.round((taxableInSlab * slab.percentage / 100) / 12);
           }
