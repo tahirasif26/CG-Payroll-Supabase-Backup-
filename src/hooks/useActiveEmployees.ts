@@ -8,7 +8,7 @@ export function useActiveEmployees() {
   const { employees } = useEmployees();
   const { separations } = useSeparations();
   const separatedIds = new Set(
-    separations.filter((s) => s.status === "approved").map((s) => s.employeeId)
+    separations.filter((s) => s.status === "completed").map((s) => s.employeeId)
   );
   return employees.filter((e) => !separatedIds.has(e.id));
 }
