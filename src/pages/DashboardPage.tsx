@@ -3,7 +3,6 @@ import { useViewScope } from "@/contexts/ViewScopeContext";
 import { DashboardSkeleton } from "@/components/dashboards/DashboardSkeleton";
 import SuperAdminDashboard from "@/pages/dashboards/SuperAdminDashboard";
 import AdminDashboard from "@/pages/dashboards/AdminDashboard";
-import HRDashboard from "@/pages/dashboards/HRDashboard";
 import EmployeeDashboard from "@/pages/dashboards/EmployeeDashboard";
 import AdminEssDashboard from "@/pages/dashboards/AdminEssDashboard";
 
