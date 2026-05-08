@@ -209,24 +209,24 @@ function AppRoutes() {
 
           {/* Employees — admin/hr */}
           <Route path="/employees" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><EmployeesPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="employees.view_directory"><EmployeesPage /></ProtectedRoute>
           } />
 
           {/* Payroll — admin/hr */}
           <Route path="/payroll/setup" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSetupPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="payroll.create_run"><PayrollSetupPage /></ProtectedRoute>
           } />
           <Route path="/payroll/setup/new" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSetupEditorPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="payroll.create_run"><PayrollSetupEditorPage /></ProtectedRoute>
           } />
           <Route path="/payroll/setup/:id/view" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSetupViewPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="payroll.create_run"><PayrollSetupViewPage /></ProtectedRoute>
           } />
           <Route path="/payroll/setup/:id" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollSetupEditorPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="payroll.create_run"><PayrollSetupEditorPage /></ProtectedRoute>
           } />
           <Route path="/payroll" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><PayrollPage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="payroll.view_all_runs"><PayrollPage /></ProtectedRoute>
           } />
           <Route path="/deductions" element={<Navigate to="/payroll/setup" replace />} />
           <Route path="/loans" element={

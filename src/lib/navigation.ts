@@ -46,11 +46,11 @@ export const navigationGroups: NavGroup[] = [
     icon: Users,
     moduleFeatureKey: "employees",
     children: [
-      { label: "Directory", path: "/employees", requiredRoles: ["admin", "hr"] },
+      { label: "Directory", path: "/employees", requiredRoles: ["admin", "hr"], requiredFeature: "employees.view_directory" },
       { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
       { label: "Imp Dates", path: "/birthdays", requiredFeature: "employees.view_birthdays" },
       { label: "Leave Management", path: "/leave", requiredFeature: "leave.view_balance", labelsByRole: { employee: "My Leave" } },
-      { label: "⚙ HR Settings", path: "/employees/settings", requiredRoles: ["admin", "hr"] },
+      { label: "⚙ HR Settings", path: "/employees/settings", requiredRoles: ["admin", "hr"], requiredFeature: "employees.edit" },
     ],
   },
   {
@@ -59,12 +59,12 @@ export const navigationGroups: NavGroup[] = [
     icon: DollarSign,
     moduleFeatureKey: "payroll",
     children: [
-      { label: "Payroll Setup", path: "/payroll/setup", requiredRoles: ["admin", "hr"] },
-      { label: "Payroll Runs", path: "/payroll", requiredRoles: ["admin", "hr"] },
+      { label: "Payroll Setup", path: "/payroll/setup", requiredRoles: ["admin", "hr"], requiredFeature: "payroll.create_run" },
+      { label: "Payroll Runs", path: "/payroll", requiredRoles: ["admin", "hr"], requiredFeature: "payroll.view_all_runs" },
       { label: "Payslips", path: "/payslips", requiredFeature: "payroll.view_own_payslip", labelsByRole: { employee: "My Payslips" } },
-      { label: "End of Service", path: "/separations", requiredRoles: ["admin", "hr"] },
+      { label: "End of Service", path: "/separations", requiredRoles: ["admin", "hr"], requiredFeature: "payroll.view_all_runs" },
       { label: "Loans", path: "/loans", requiredFeature: "loans.view_own" },
-      { label: "Analytics", path: "/analytics", requiredRoles: ["admin", "hr"] },
+      { label: "Analytics", path: "/analytics", requiredRoles: ["admin", "hr"], requiredFeature: "payroll.export_csv" },
       
     ],
   },
@@ -76,9 +76,9 @@ export const navigationGroups: NavGroup[] = [
     children: [
       { label: "Expenses", path: "/expenses", requiredFeature: "expenses.view_own", labelsByRole: { employee: "My Expenses" } },
       { label: "Advances", path: "/advances", requiredFeature: "advances.view_own" },
-      { label: "Outstanding Advances", path: "/outstanding-advances", requiredRoles: ["admin", "hr"] },
-      { label: "Expense Analytics", path: "/expense-analytics", requiredRoles: ["admin", "hr"] },
-      { label: "⚙ Expense Settings", path: "/expenses/settings", requiredRoles: ["admin", "hr"] },
+      { label: "Outstanding Advances", path: "/outstanding-advances", requiredRoles: ["admin", "hr"], requiredFeature: "advances.approve" },
+      { label: "Expense Analytics", path: "/expense-analytics", requiredRoles: ["admin", "hr"], requiredFeature: "expenses.view_all" },
+      { label: "⚙ Expense Settings", path: "/expenses/settings", requiredRoles: ["admin", "hr"], requiredFeature: "expenses.approve" },
     ],
   },
   {
@@ -87,12 +87,12 @@ export const navigationGroups: NavGroup[] = [
     icon: Package,
     moduleFeatureKey: "assets",
     children: [
-      { label: "Dashboard", path: "/assets/dashboard", requiredRoles: ["admin", "hr"] },
+      { label: "Dashboard", path: "/assets/dashboard", requiredRoles: ["admin", "hr"], requiredFeature: "assets.view_inventory" },
       { label: "Asset Inventory", path: "/assets/inventory", requiredFeature: "assets.view_inventory" },
-      { label: "Asset Settings", path: "/assets/master-data", requiredRoles: ["admin", "hr"] },
+      { label: "Asset Settings", path: "/assets/master-data", requiredRoles: ["admin", "hr"], requiredFeature: "assets.manage" },
       { label: "Asset Store", path: "/assets/store", requiredFeature: "assets.request_new" },
       { label: "Asset Requests", path: "/assets/requests", requiredFeature: "assets.approve_requests" },
-      { label: "Asset Audits", path: "/assets/audits", requiredRoles: ["admin", "hr"] },
+      { label: "Asset Audits", path: "/assets/audits", requiredRoles: ["admin", "hr"], requiredFeature: "assets.manage" },
     ],
   },
   {

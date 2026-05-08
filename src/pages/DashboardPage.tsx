@@ -17,7 +17,7 @@ export default function DashboardPage() {
   // Admin/HR: switch between people-wide and personal ESS dashboard via TopBar tabs
   if (appRole === "admin" || appRole === "hr") {
     if (scope === "me") return <AdminEssDashboard />;
-    return appRole === "admin" ? <AdminDashboard /> : <HRDashboard />;
+    return <AdminDashboard />;
   }
 
   return <EmployeeDashboard />;

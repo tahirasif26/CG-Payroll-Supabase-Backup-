@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 import type { AppRole } from "@/hooks/useAuth";
 import { AccessDenied } from "./AccessDenied";
 
@@ -19,7 +20,8 @@ export function ProtectedRoute({
   fallback = "denied",
   redirectTo = "/",
 }: ProtectedRouteProps) {
-  const { appRole, isSuperAdmin, isOrphan, hasFeature, session, loading } = useRole();
+  const { appRole, isSuperAdmin, isOrphan, hasFeature, hasPeopleFeature, session, loading } = useRole();
+  const { scope } = useViewScope();
 
   if (loading) {
     return (
@@ -64,6 +66,11 @@ export function ProtectedRoute({
 
   // Feature check (applies to everyone except super_admin, who bypasses features)
   if (!isSuperAdmin && requiredFeature && !hasFeature(requiredFeature)) {
+    return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
+  }
+
+  // Custom People-side routes must respect the People toggle, not just personal Me defaults.
+  if (!isSuperAdmin && appRole === "hr" && scope === "people" && requiredFeature && !hasPeopleFeature(requiredFeature)) {
     return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
   }
 
