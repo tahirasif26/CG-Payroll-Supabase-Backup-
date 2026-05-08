@@ -406,6 +406,20 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           })),
           send_invite: sendInvite,
         });
+        // Insert base salary into employee_compensation for the newly created employee
+        if (form.salary && Number(form.salary) > 0 && clientId) {
+          const newEmpId = (createEmployee.data as any)?.employee?.id;
+          if (newEmpId) {
+            await (supabase as any).from("employee_compensation").insert({
+              employee_id: newEmpId,
+              client_id: clientId,
+              component_name: "Base Salary",
+              component_type: "base",
+              amount: Number(form.salary),
+              effective_from: new Date().toISOString().split("T")[0],
+            });
+          }
+        }
         addEmployee(newEmp);
         resetAndClose();
       }
