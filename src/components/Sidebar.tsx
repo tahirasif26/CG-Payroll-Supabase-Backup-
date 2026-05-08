@@ -33,7 +33,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
-  const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin, roleFeatures } = useRole();
+  const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin, roleFeatures, customRoleName } = useRole();
   const { scope } = useViewScope();
   const location = useLocation();
   const navigate = useNavigate();
