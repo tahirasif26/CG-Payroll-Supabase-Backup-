@@ -43,6 +43,7 @@ function adaptEmployee(row: any, comp: any[] = []): Employee {
     workLocationCountry: row.work_location_country ?? "",
     payCurrency: row.pay_currency ?? undefined,
     payrollSetupId: row.payroll_setup_id ?? undefined,
+    userId: row.user_id ?? undefined,
     compensation: mappedComp.length ? mappedComp : undefined,
   };
 }

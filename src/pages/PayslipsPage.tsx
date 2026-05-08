@@ -116,10 +116,13 @@ interface PayslipDetail {
 
 export default function PayslipsPage() {
   const { employees } = useEmployees();
-  const { role, currentEmployeeId } = useRole();
+  const { role, currentEmployeeId, user } = useRole();
   const { scope, hasPeopleAccess } = useViewScope();
   const { setups, getSetupById } = usePayrollSetups();
-  const currentEmployee = employees.find(e => e.id === currentEmployeeId);
+  const currentEmployee =
+    employees.find(e => e.id === currentEmployeeId) ||
+    employees.find(e => e.empId === currentEmployeeId) ||
+    (user ? employees.find(e => e.userId === user.id) : undefined);
   const { data: dbRuns = [] } = usePayrollRuns({ status: "completed" });
   const completedRuns = dbRuns.map(r => ({
     id: r.id,
