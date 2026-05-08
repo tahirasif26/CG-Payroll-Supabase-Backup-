@@ -32,6 +32,8 @@ export interface AuthState {
   peopleFeatures: Set<string>;
   /** True when user has a role (admin/hr/employee) but NO employees row in this client. */
   isOrphan: boolean;
+  /** Display name of the user's custom role (e.g. "HR", "Finance Manager"). Null for system roles. */
+  customRoleName: string | null;
   loading: boolean;
 }
 
