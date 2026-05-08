@@ -95,12 +95,12 @@ export function useAuth() {
       const rawEnabledFeatures = (enabledFeaturesRes.data ?? null) as unknown as string[] | null;
       const enabledFeatures = rawEnabledFeatures && rawEnabledFeatures.length > 0 ? rawEnabledFeatures : null;
 
-      type EmployeeAccessRow = { id: string; user_id: string | null; enabled_features: string[] | null };
+      type EmployeeAccessRow = { id: string; user_id: string | null; enabled_features: string[] | null; role_id: string | null };
 
       const fetchEmployeeAccess = async (column: "user_id" | "emp_id" | "email", value: string) => {
         let query = (supabase as any)
           .from("employees")
-          .select("id, user_id, enabled_features")
+          .select("id, user_id, enabled_features, role_id")
           .eq(column, value);
 
         if (resolvedClientId) {
@@ -132,6 +132,17 @@ export function useAuth() {
       const rawEmployeeFeatures = employeeRow?.enabled_features ?? null;
       // NULL = no override (inherit all client features). Empty array = explicit deny all.
       const employeeFeatures = Array.isArray(rawEmployeeFeatures) ? rawEmployeeFeatures : null;
+
+      // Fetch custom role name when employee has a role_id assigned
+      let customRoleName: string | null = null;
+      if (employeeRow?.role_id) {
+        const { data: roleRow } = await (supabase as any)
+          .from("roles")
+          .select("name")
+          .eq("id", employeeRow.role_id)
+          .maybeSingle();
+        customRoleName = (roleRow?.name as string | undefined) ?? null;
+      }
 
       // Orphan = user has a client-scoped role (admin/hr/employee) but no
       // employees row. Such users can authenticate but most modules will not
