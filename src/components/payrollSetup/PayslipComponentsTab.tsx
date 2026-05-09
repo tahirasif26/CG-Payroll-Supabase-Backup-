@@ -187,14 +187,34 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Component Name</Label>
-              <Select value={editing.name} onValueChange={v => setEditing({ ...editing, name: v })}>
+              <Select
+                value={isOther ? OTHER_VALUE : editing.name}
+                onValueChange={v => {
+                  if (v === OTHER_VALUE) {
+                    setIsOther(true);
+                    setEditing({ ...editing, name: "" });
+                  } else {
+                    setIsOther(false);
+                    setEditing({ ...editing, name: v });
+                  }
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Select a name" /></SelectTrigger>
                 <SelectContent>
                   {COMPONENT_NAMES.map(name => (
                     <SelectItem key={name} value={name}>{name}</SelectItem>
                   ))}
+                  <SelectItem value={OTHER_VALUE}>Other (custom)</SelectItem>
                 </SelectContent>
               </Select>
+              {isOther && (
+                <Input
+                  autoFocus
+                  placeholder="Enter custom component name"
+                  value={editing.name}
+                  onChange={e => setEditing({ ...editing, name: e.target.value })}
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Value {editing.calculationType === "percentage" ? "(% of Basic Salary)" : "(fixed amount)"}</Label>
