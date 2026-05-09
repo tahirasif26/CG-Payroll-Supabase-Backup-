@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Palette, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/hooks/useAuth";
 
 const themeOptions = [
   { id: "orange", label: "Orange", hue: "22 97% 41%", preview: "hsl(22, 97%, 41%)" },
@@ -22,23 +25,56 @@ function applyTheme(hue: string) {
 
 export default function VisualPreferencePage() {
   const { toast } = useToast();
-  const [selected, setSelected] = useState(() => {
-    return localStorage.getItem("cg-theme-color") || "orange";
-  });
+  const { clientId } = useRole();
+  const { role } = useAuth();
+  const isAdmin = role === "admin";
+  const [selected, setSelected] = useState(() => localStorage.getItem("cg-theme-color") || "orange");
+  const [saving, setSaving] = useState(false);
+
+  // Load company-wide theme on mount
+  useEffect(() => {
+    if (!clientId) return;
+    (supabase as any)
+      .from("clients")
+      .select("theme_color")
+      .eq("id", clientId)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data?.theme_color) {
+          setSelected(data.theme_color);
+          const t = themeOptions.find(o => o.id === data.theme_color);
+          if (t) applyTheme(t.hue);
+        }
+      });
+  }, [clientId]);
 
   useEffect(() => {
     const theme = themeOptions.find(t => t.id === selected);
     if (theme) applyTheme(theme.hue);
   }, [selected]);
 
-  const handleSelect = (id: string) => {
+  const handleSelect = async (id: string) => {
+    if (!isAdmin) {
+      toast({ title: "Admins only", description: "Only the company admin can change the theme.", variant: "destructive" });
+      return;
+    }
     setSelected(id);
     localStorage.setItem("cg-theme-color", id);
     const theme = themeOptions.find(t => t.id === id);
-    if (theme) {
-      applyTheme(theme.hue);
-      toast({ title: "Theme Updated", description: `Primary color set to ${theme.label}.` });
+    if (theme) applyTheme(theme.hue);
+
+    if (!clientId) return;
+    setSaving(true);
+    const { error } = await (supabase as any)
+      .from("clients")
+      .update({ theme_color: id })
+      .eq("id", clientId);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      return;
     }
+    if (theme) toast({ title: "Theme Updated", description: `Primary color set to ${theme.label} for everyone.` });
   };
 
   return (
@@ -51,7 +87,10 @@ export default function VisualPreferencePage() {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-4">
-            Choose a primary accent color for the entire application. This affects buttons, links, sidebar highlights, and charts.
+            {isAdmin
+              ? "Choose a primary accent color. This applies to every user in your company."
+              : "The primary accent color is set by your company admin."}
+            {saving && " Saving…"}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {themeOptions.map((theme) => (

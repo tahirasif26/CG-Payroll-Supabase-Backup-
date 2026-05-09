@@ -1151,6 +1151,7 @@ export type Database = {
           setup_dismissed_at: string | null
           status: Database["public"]["Enums"]["client_status"]
           subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          theme_color: string
           timezone: string
           updated_at: string
           year_end_date: string
@@ -1172,6 +1173,7 @@ export type Database = {
           setup_dismissed_at?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          theme_color?: string
           timezone?: string
           updated_at?: string
           year_end_date?: string
@@ -1193,6 +1195,7 @@ export type Database = {
           setup_dismissed_at?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          theme_color?: string
           timezone?: string
           updated_at?: string
           year_end_date?: string
