@@ -658,7 +658,10 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Country</p>
-                  <Input value={form.country} onChange={e => updateField("country", e.target.value)} className="h-8 text-sm" />
+                  <Select value={form.country || ""} onValueChange={v => updateField("country", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select country" /></SelectTrigger>
+                    <SelectContent className="max-h-72">{COUNTRY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Postal Code</p>
