@@ -56,7 +56,7 @@ export function EmployeeTypeProvider({ children }: { children: ReactNode }) {
 
   const updateMut = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<EmployeeType> }) => {
-      const payload: Record<string, unknown> = {};
+      const payload: { name?: string; is_active?: boolean } = {};
       if (updates.name !== undefined) payload.name = updates.name;
       if (updates.isActive !== undefined) payload.is_active = updates.isActive;
       const { error } = await supabase.from("employee_types").update(payload).eq("id", id);
