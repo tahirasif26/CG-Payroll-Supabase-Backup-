@@ -132,16 +132,24 @@ export default function LoansPage() {
       toast({ title: "Profile not found", description: "Your employee profile could not be loaded.", variant: "destructive" });
       return;
     }
-    const principal = Number(newAmount);
+    if (!newAck) {
+      toast({ title: "Please confirm", description: "Acknowledge the deduction terms before submitting.", variant: "destructive" });
+      return;
+    }
+    const principal = principalNum;
+    const reasonText = `[${newLoanType}] ${newReason}`.trim();
     const created = await createLoan.mutateAsync({
       employee_id: emp.id,
       principal,
-      monthly_deduction: Number(newMonthly),
+      monthly_deduction: monthlyEmi,
       start_date: newStart,
-      end_date: newEnd,
+      end_date: computedEndDate,
+      interest_rate: interestNum,
+      reason: reasonText,
     });
     setNewOpen(false);
-    setNewEmployee(""); setNewAmount(""); setNewMonthly(""); setNewStart(""); setNewEnd("");
+    setNewAmount(""); setNewTenure("12"); setNewInterest("0");
+    setNewReason(""); setNewLoanType("Personal"); setNewAck(false);
     toast({ title: "Loan Created", description: "The loan has been successfully created." });
 
     // Route approval request (Step 11)
