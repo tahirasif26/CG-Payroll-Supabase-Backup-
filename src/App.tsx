@@ -286,10 +286,10 @@ function AppRoutes() {
             <ProtectedRoute requiredRole={["admin", "hr"]}><ProjectSettingsPage /></ProtectedRoute>
           } />
           <Route path="/settings/company" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyProfilePage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="settings.company_profile"><CompanyProfilePage /></ProtectedRoute>
           } />
           <Route path="/settings/visual" element={
-            <ProtectedRoute requiredRole={["admin", "hr"]}><VisualPreferencePage /></ProtectedRoute>
+            <ProtectedRoute requiredRole={["admin", "hr"]} requiredFeature="settings.visual_preferences"><VisualPreferencePage /></ProtectedRoute>
           } />
           <Route path="/settings/company-policies" element={
             <ProtectedRoute requiredRole={["admin", "hr"]}><CompanyPoliciesSettingsPage /></ProtectedRoute>
