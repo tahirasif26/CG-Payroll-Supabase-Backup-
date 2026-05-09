@@ -95,7 +95,7 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
             <Label>Country</Label>
             <Select value={setup.country} onValueChange={v => setSetup(s => ({ ...s, country: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-72">{COUNTRY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
