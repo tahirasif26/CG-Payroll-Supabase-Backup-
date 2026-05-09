@@ -22,15 +22,15 @@ const COMPONENT_NAMES = [
   "Medical Allowance",
   "Overtime Pay",
   "Performance Bonus",
-  "Other Earning",
   "Income Tax",
   "Loan Deduction",
   "Advance Recovery",
   "Absence Deduction",
   "Late Penalty",
   "Health Insurance",
-  "Other Deduction",
 ];
+
+const OTHER_VALUE = "__other__";
 
 const BASIC_SALARY_ID = "comp-basic-salary";
 
@@ -55,6 +55,14 @@ const empty: PayslipComponent = {
 export default function PayslipComponentsTab({ data, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PayslipComponent>(empty);
+  const [isOther, setIsOther] = useState(false);
+
+  const openAdd = () => { setEditing(empty); setIsOther(false); setOpen(true); };
+  const openEdit = (c: PayslipComponent) => {
+    setEditing(c);
+    setIsOther(!!c.name && !COMPONENT_NAMES.includes(c.name));
+    setOpen(true);
+  };
 
   // Ensure Basic Salary is always present and pinned at the top.
   useEffect(() => {
@@ -89,7 +97,7 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Payslip Components</h3>
-        <Button size="sm" onClick={() => { setEditing(empty); setOpen(true); }}>
+        <Button size="sm" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-1" />Add Component
         </Button>
       </div>
@@ -135,7 +143,7 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
                   <div className="flex gap-1">
                     {!locked && (
                       <>
-                        <Button variant="ghost" size="sm" onClick={() => { setEditing(c); setOpen(true); }}>
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(c)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => onChange(data.filter(x => x.id !== c.id))}>
@@ -179,14 +187,34 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Component Name</Label>
-              <Select value={editing.name} onValueChange={v => setEditing({ ...editing, name: v })}>
+              <Select
+                value={isOther ? OTHER_VALUE : editing.name}
+                onValueChange={v => {
+                  if (v === OTHER_VALUE) {
+                    setIsOther(true);
+                    setEditing({ ...editing, name: "" });
+                  } else {
+                    setIsOther(false);
+                    setEditing({ ...editing, name: v });
+                  }
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Select a name" /></SelectTrigger>
                 <SelectContent>
                   {COMPONENT_NAMES.map(name => (
                     <SelectItem key={name} value={name}>{name}</SelectItem>
                   ))}
+                  <SelectItem value={OTHER_VALUE}>Other (custom)</SelectItem>
                 </SelectContent>
               </Select>
+              {isOther && (
+                <Input
+                  autoFocus
+                  placeholder="Enter custom component name"
+                  value={editing.name}
+                  onChange={e => setEditing({ ...editing, name: e.target.value })}
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Value {editing.calculationType === "percentage" ? "(% of Basic Salary)" : "(fixed amount)"}</Label>
