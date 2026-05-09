@@ -141,12 +141,12 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
       toast({ title: "Payroll setup created" });
     }
     onOpenChange(false);
-    setSetup(defaultSetup());
+    setSetup(makeDefault());
     setStep(0);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setStep(0); if (!editId) setSetup(defaultSetup()); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setStep(0); if (!editId) setSetup(makeDefault()); } }}>
       <DialogContent className="max-w-5xl p-0 max-h-[90vh] flex flex-col">
         <DialogHeader className="px-6 pt-6 pb-3 border-b">
           <DialogTitle>{editId ? `Edit Payroll Setup` : "New Payroll Setup"}</DialogTitle>
