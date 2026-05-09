@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { calcMonthlyTax } from "@/lib/taxSlabs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
