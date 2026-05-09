@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS theme_color text NOT NULL DEFAULT 'orange';
