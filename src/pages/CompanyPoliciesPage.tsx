@@ -97,7 +97,23 @@ export default function CompanyPoliciesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      disabled={!policy.fileUrl || policy.fileUrl === "#"}
+                      onClick={() => {
+                        if (!policy.fileUrl || policy.fileUrl === "#") return;
+                        const a = document.createElement("a");
+                        a.href = policy.fileUrl;
+                        a.download = policy.fileName || policy.title;
+                        a.target = "_blank";
+                        a.rel = "noopener noreferrer";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                      }}
+                    >
                       <Download className="h-3.5 w-3.5" /> Download
                     </Button>
                   </div>
