@@ -1,17 +1,10 @@
-export const workLocationCountries = [
-  "Saudi Arabia",
-  "UAE",
-  "Qatar",
-  "Bahrain",
-  "Kuwait",
-  "Oman",
-  "Egypt",
-  "Jordan",
-  "United Kingdom",
-  "United States",
-] as const;
+import { COUNTRY_NAMES } from "@/lib/countries";
 
-export type WorkLocationCountry = typeof workLocationCountries[number];
+// Full world country list — kept here as a runtime array so existing
+// `.map(...)` consumers keep working.
+export const workLocationCountries: readonly string[] = COUNTRY_NAMES;
+
+export type WorkLocationCountry = string;
 
 export interface CompensationSetting {
   id: string;
