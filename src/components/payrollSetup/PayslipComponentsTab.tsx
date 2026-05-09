@@ -55,6 +55,14 @@ const empty: PayslipComponent = {
 export default function PayslipComponentsTab({ data, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PayslipComponent>(empty);
+  const [isOther, setIsOther] = useState(false);
+
+  const openAdd = () => { setEditing(empty); setIsOther(false); setOpen(true); };
+  const openEdit = (c: PayslipComponent) => {
+    setEditing(c);
+    setIsOther(!!c.name && !COMPONENT_NAMES.includes(c.name));
+    setOpen(true);
+  };
 
   // Ensure Basic Salary is always present and pinned at the top.
   useEffect(() => {
