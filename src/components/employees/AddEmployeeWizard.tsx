@@ -703,7 +703,10 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Currency</p>
-                  <Input value={form.bankCurrency} onChange={e => updateField("bankCurrency", e.target.value)} className="h-8 text-sm" />
+                  <Select value={form.bankCurrency || ""} onValueChange={v => updateField("bankCurrency", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select currency" /></SelectTrigger>
+                    <SelectContent className="max-h-72">{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Beneficiary Name</p>
