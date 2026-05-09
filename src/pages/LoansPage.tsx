@@ -627,14 +627,14 @@ export default function LoansPage() {
       </div>
 
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>New Employee Loan</DialogTitle>
-            <DialogDescription>Create a new loan for an employee.</DialogDescription>
+            <DialogTitle>New Loan Request</DialogTitle>
+            <DialogDescription>Submit a loan request. Repayment will be deducted from your monthly payroll.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Employee</Label>
+              <Label>Applicant</Label>
               <Input
                 value={
                   currentEmpRow
@@ -646,27 +646,86 @@ export default function LoansPage() {
               />
               <p className="text-xs text-muted-foreground">Loan requests are always submitted under your own account.</p>
             </div>
-            <div className="space-y-2">
-              <Label>Loan Amount (SAR)</Label>
-              <Input type="number" placeholder="0" value={newAmount} onChange={e => setNewAmount(e.target.value)} required min={1} />
-            </div>
-            <div className="space-y-2">
-              <Label>Monthly Deduction (SAR)</Label>
-              <Input type="number" placeholder="0" value={newMonthly} onChange={e => setNewMonthly(e.target.value)} required min={1} />
-            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Start Date</Label>
-                <Input type="date" value={newStart} onChange={e => setNewStart(e.target.value)} required />
+                <Label>Loan Type</Label>
+                <Select value={newLoanType} onValueChange={setNewLoanType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LOAN_TYPES.map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>End Date</Label>
-                <Input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} required />
+                <Label>Loan Amount (SAR)</Label>
+                <Input type="number" placeholder="0" value={newAmount}
+                  onChange={e => setNewAmount(e.target.value)} required min={1} step="1" />
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tenure (months)</Label>
+                <Input type="number" value={newTenure}
+                  onChange={e => setNewTenure(e.target.value)} required min={1} max={120} step="1" />
+              </div>
+              <div className="space-y-2">
+                <Label>Interest Rate (% p.a.)</Label>
+                <Input type="number" value={newInterest}
+                  onChange={e => setNewInterest(e.target.value)} min={0} max={100} step="0.01" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Disbursement Date</Label>
+              <Input type="date" value={newStart}
+                onChange={e => setNewStart(e.target.value)} required />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Reason / Purpose</Label>
+              <Textarea placeholder="Brief reason for the loan request..."
+                value={newReason} onChange={e => setNewReason(e.target.value)} required maxLength={500} />
+            </div>
+
+            {/* Summary */}
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Monthly EMI</span>
+                <span className="font-semibold">SAR {monthlyEmi.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Interest</span>
+                <span>SAR {Math.round(totalInterest).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Payable</span>
+                <span>SAR {Math.round(totalPayable).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Repayment Ends</span>
+                <span>{computedEndDate || "—"}</span>
+              </div>
+            </div>
+
+            <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={newAck}
+                onChange={e => setNewAck(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>I authorize the company to deduct the monthly EMI shown above from my salary until the loan is fully repaid.</span>
+            </label>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={createLoan.isPending}>Create Loan</Button>
+              <Button type="submit" disabled={createLoan.isPending || !newAck || principalNum <= 0}>
+                {createLoan.isPending ? "Submitting..." : "Submit Request"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
