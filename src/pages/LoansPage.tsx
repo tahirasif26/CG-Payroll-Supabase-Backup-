@@ -83,17 +83,39 @@ export default function LoansPage() {
   const [pauseMonths, setPauseMonths] = useState("1");
   const [pauseReason, setPauseReason] = useState("");
 
-  // New loan
+  // New loan — industry-standard fields
+  const LOAN_TYPES = [
+    "Personal", "Salary Advance", "Education", "Medical",
+    "Housing", "Vehicle", "Emergency", "Other",
+  ];
   const [newEmployee, setNewEmployee] = useState("");
+  const [newLoanType, setNewLoanType] = useState<string>("Personal");
   const [newAmount, setNewAmount] = useState("");
-  const [newMonthly, setNewMonthly] = useState("");
-  const [newStart, setNewStart] = useState("");
-  const [newEnd, setNewEnd] = useState("");
+  const [newTenure, setNewTenure] = useState("12"); // months
+  const [newInterest, setNewInterest] = useState("0"); // %
+  const [newStart, setNewStart] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newReason, setNewReason] = useState("");
+  const [newAck, setNewAck] = useState(false);
 
-  // Always auto-fill loan request to the current user (self-service only)
+  // Auto-fill loan request to the current user (self-service only)
   useEffect(() => {
     if (currentEmpRow?.id) setNewEmployee(currentEmpRow.id);
   }, [currentEmpRow?.id]);
+
+  // Derived: monthly EMI (simple interest), end date
+  const principalNum = Number(newAmount) || 0;
+  const tenureNum = Math.max(1, Number(newTenure) || 1);
+  const interestNum = Math.max(0, Number(newInterest) || 0);
+  const totalInterest = (principalNum * interestNum * (tenureNum / 12)) / 100;
+  const totalPayable = principalNum + totalInterest;
+  const monthlyEmi = tenureNum > 0 ? Math.ceil(totalPayable / tenureNum) : 0;
+  const computedEndDate = (() => {
+    if (!newStart) return "";
+    const d = new Date(newStart);
+    if (isNaN(d.getTime())) return "";
+    d.setMonth(d.getMonth() + tenureNum);
+    return d.toISOString().slice(0, 10);
+  })();
 
   const activeLoans = loanList.filter((l) => l.status === "active");
   const totalOutstanding = activeLoans.reduce((s, l) => s + (l.remaining_balance || 0), 0);
@@ -110,16 +132,24 @@ export default function LoansPage() {
       toast({ title: "Profile not found", description: "Your employee profile could not be loaded.", variant: "destructive" });
       return;
     }
-    const principal = Number(newAmount);
+    if (!newAck) {
+      toast({ title: "Please confirm", description: "Acknowledge the deduction terms before submitting.", variant: "destructive" });
+      return;
+    }
+    const principal = principalNum;
+    const reasonText = `[${newLoanType}] ${newReason}`.trim();
     const created = await createLoan.mutateAsync({
       employee_id: emp.id,
       principal,
-      monthly_deduction: Number(newMonthly),
+      monthly_deduction: monthlyEmi,
       start_date: newStart,
-      end_date: newEnd,
+      end_date: computedEndDate,
+      interest_rate: interestNum,
+      reason: reasonText,
     });
     setNewOpen(false);
-    setNewEmployee(""); setNewAmount(""); setNewMonthly(""); setNewStart(""); setNewEnd("");
+    setNewAmount(""); setNewTenure("12"); setNewInterest("0");
+    setNewReason(""); setNewLoanType("Personal"); setNewAck(false);
     toast({ title: "Loan Created", description: "The loan has been successfully created." });
 
     // Route approval request (Step 11)
@@ -597,14 +627,14 @@ export default function LoansPage() {
       </div>
 
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>New Employee Loan</DialogTitle>
-            <DialogDescription>Create a new loan for an employee.</DialogDescription>
+            <DialogTitle>New Loan Request</DialogTitle>
+            <DialogDescription>Submit a loan request. Repayment will be deducted from your monthly payroll.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Employee</Label>
+              <Label>Applicant</Label>
               <Input
                 value={
                   currentEmpRow
@@ -616,27 +646,86 @@ export default function LoansPage() {
               />
               <p className="text-xs text-muted-foreground">Loan requests are always submitted under your own account.</p>
             </div>
-            <div className="space-y-2">
-              <Label>Loan Amount (SAR)</Label>
-              <Input type="number" placeholder="0" value={newAmount} onChange={e => setNewAmount(e.target.value)} required min={1} />
-            </div>
-            <div className="space-y-2">
-              <Label>Monthly Deduction (SAR)</Label>
-              <Input type="number" placeholder="0" value={newMonthly} onChange={e => setNewMonthly(e.target.value)} required min={1} />
-            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Start Date</Label>
-                <Input type="date" value={newStart} onChange={e => setNewStart(e.target.value)} required />
+                <Label>Loan Type</Label>
+                <Select value={newLoanType} onValueChange={setNewLoanType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LOAN_TYPES.map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>End Date</Label>
-                <Input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} required />
+                <Label>Loan Amount (SAR)</Label>
+                <Input type="number" placeholder="0" value={newAmount}
+                  onChange={e => setNewAmount(e.target.value)} required min={1} step="1" />
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tenure (months)</Label>
+                <Input type="number" value={newTenure}
+                  onChange={e => setNewTenure(e.target.value)} required min={1} max={120} step="1" />
+              </div>
+              <div className="space-y-2">
+                <Label>Interest Rate (% p.a.)</Label>
+                <Input type="number" value={newInterest}
+                  onChange={e => setNewInterest(e.target.value)} min={0} max={100} step="0.01" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Disbursement Date</Label>
+              <Input type="date" value={newStart}
+                onChange={e => setNewStart(e.target.value)} required />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Reason / Purpose</Label>
+              <Textarea placeholder="Brief reason for the loan request..."
+                value={newReason} onChange={e => setNewReason(e.target.value)} required maxLength={500} />
+            </div>
+
+            {/* Summary */}
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Monthly EMI</span>
+                <span className="font-semibold">SAR {monthlyEmi.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Interest</span>
+                <span>SAR {Math.round(totalInterest).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Payable</span>
+                <span>SAR {Math.round(totalPayable).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Repayment Ends</span>
+                <span>{computedEndDate || "—"}</span>
+              </div>
+            </div>
+
+            <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={newAck}
+                onChange={e => setNewAck(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>I authorize the company to deduct the monthly EMI shown above from my salary until the loan is fully repaid.</span>
+            </label>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={createLoan.isPending}>Create Loan</Button>
+              <Button type="submit" disabled={createLoan.isPending || !newAck || principalNum <= 0}>
+                {createLoan.isPending ? "Submitting..." : "Submit Request"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

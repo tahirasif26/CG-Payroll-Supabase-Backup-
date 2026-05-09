@@ -97,6 +97,8 @@ export function useCreateLoan() {
       monthly_deduction: number;
       start_date: string;
       end_date: string;
+      interest_rate?: number;
+      reason?: string;
     }) => {
       if (!clientId) throw new Error("No client context");
       const insert = {
@@ -107,6 +109,8 @@ export function useCreateLoan() {
         monthly_deduction: payload.monthly_deduction,
         start_date: payload.start_date,
         end_date: payload.end_date,
+        interest_rate: payload.interest_rate ?? 0,
+        reason: payload.reason ?? null,
         status: "active",
       };
       const { data, error } = await (supabase as any).from("loans").insert(insert).select().single();
