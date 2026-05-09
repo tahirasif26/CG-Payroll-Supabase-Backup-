@@ -97,7 +97,7 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Payslip Components</h3>
-        <Button size="sm" onClick={() => { setEditing(empty); setOpen(true); }}>
+        <Button size="sm" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-1" />Add Component
         </Button>
       </div>
