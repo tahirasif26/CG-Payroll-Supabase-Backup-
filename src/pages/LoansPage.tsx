@@ -83,17 +83,39 @@ export default function LoansPage() {
   const [pauseMonths, setPauseMonths] = useState("1");
   const [pauseReason, setPauseReason] = useState("");
 
-  // New loan
+  // New loan — industry-standard fields
+  const LOAN_TYPES = [
+    "Personal", "Salary Advance", "Education", "Medical",
+    "Housing", "Vehicle", "Emergency", "Other",
+  ];
   const [newEmployee, setNewEmployee] = useState("");
+  const [newLoanType, setNewLoanType] = useState<string>("Personal");
   const [newAmount, setNewAmount] = useState("");
-  const [newMonthly, setNewMonthly] = useState("");
-  const [newStart, setNewStart] = useState("");
-  const [newEnd, setNewEnd] = useState("");
+  const [newTenure, setNewTenure] = useState("12"); // months
+  const [newInterest, setNewInterest] = useState("0"); // %
+  const [newStart, setNewStart] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newReason, setNewReason] = useState("");
+  const [newAck, setNewAck] = useState(false);
 
-  // Always auto-fill loan request to the current user (self-service only)
+  // Auto-fill loan request to the current user (self-service only)
   useEffect(() => {
     if (currentEmpRow?.id) setNewEmployee(currentEmpRow.id);
   }, [currentEmpRow?.id]);
+
+  // Derived: monthly EMI (simple interest), end date
+  const principalNum = Number(newAmount) || 0;
+  const tenureNum = Math.max(1, Number(newTenure) || 1);
+  const interestNum = Math.max(0, Number(newInterest) || 0);
+  const totalInterest = (principalNum * interestNum * (tenureNum / 12)) / 100;
+  const totalPayable = principalNum + totalInterest;
+  const monthlyEmi = tenureNum > 0 ? Math.ceil(totalPayable / tenureNum) : 0;
+  const computedEndDate = (() => {
+    if (!newStart) return "";
+    const d = new Date(newStart);
+    if (isNaN(d.getTime())) return "";
+    d.setMonth(d.getMonth() + tenureNum);
+    return d.toISOString().slice(0, 10);
+  })();
 
   const activeLoans = loanList.filter((l) => l.status === "active");
   const totalOutstanding = activeLoans.reduce((s, l) => s + (l.remaining_balance || 0), 0);
