@@ -116,8 +116,19 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const activeSetups = setups.filter(s => s.status === "active");
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
 
+  const { client } = useClient();
+  const defaultCountry = client.country ?? "";
+  const defaultCurrency = client.currency ?? "";
+  const buildInitialForm = (): FormData => ({
+    ...INITIAL_FORM,
+    country: defaultCountry,
+    bankCountry: defaultCountry,
+    workLocationCountry: defaultCountry,
+    bankCurrency: defaultCurrency,
+  });
+
   const [activeTab, setActiveTab] = useState("personal");
-  const [form, setForm] = useState<FormData>(INITIAL_FORM);
+  const [form, setForm] = useState<FormData>(buildInitialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [education, setEducation] = useState<{ degree: string; institution: string; year: string; field: string }[]>([]);
   const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
