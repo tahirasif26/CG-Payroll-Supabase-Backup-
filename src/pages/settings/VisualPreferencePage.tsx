@@ -87,7 +87,10 @@ export default function VisualPreferencePage() {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-4">
-            Choose a primary accent color for the entire application. This affects buttons, links, sidebar highlights, and charts.
+            {isAdmin
+              ? "Choose a primary accent color. This applies to every user in your company."
+              : "The primary accent color is set by your company admin."}
+            {saving && " Saving…"}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {themeOptions.map((theme) => (
