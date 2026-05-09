@@ -209,9 +209,27 @@ export default function ExpensesPage() {
   };
 
   const buildPayload = () => {
-    const emp = employees.find((em) => em.id === formEmployee);
-    if (!emp || !formExpenseDate || !clientId) return null;
-    const payCurrency = getEmployeePayCurrency(emp.id, employees);
+    // Resolve employee: prefer the form selection, but fall back to the current
+    // user's employee row so submissions never silently fail when the wider
+    // employees list hasn't loaded (or doesn't include the submitter).
+    const empId = formEmployee || currentEmpRow?.id || "";
+    const empFromList = employees.find((em) => em.id === empId);
+    const emp = empFromList ?? (currentEmpRow && currentEmpRow.id === empId
+      ? { id: currentEmpRow.id, payCurrency: (currentEmpRow as any).pay_currency || "SAR" } as any
+      : null);
+    if (!emp || !formExpenseDate || !clientId) {
+      toast({
+        title: "Cannot submit claim",
+        description: !formExpenseDate
+          ? "Please pick an expense date."
+          : !emp
+            ? "Your employee profile is not linked yet. Please contact your admin."
+            : "Missing required information.",
+        variant: "destructive",
+      });
+      return null;
+    }
+    const payCurrency = empFromList ? getEmployeePayCurrency(emp.id, employees) : (emp.payCurrency || "SAR");
     const expCurrency = formCurrency || payCurrency;
     const isMulti = expCurrency !== payCurrency;
     const convertedAmount = isMulti ? computeConvertedAmount() : Number(formAmount);
