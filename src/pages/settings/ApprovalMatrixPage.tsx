@@ -106,6 +106,7 @@ export default function ApprovalMatrixPage() {
           <TabsTrigger value="groups">Groups</TabsTrigger>
           <TabsTrigger value="policies">Policies</TabsTrigger>
           <TabsTrigger value="settings">Delegation</TabsTrigger>
+          <TabsTrigger value="test">Test</TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvers">
@@ -133,6 +134,15 @@ export default function ApprovalMatrixPage() {
             allEmployees={allEmployees as any[]}
             empMap={empMap}
             clientId={clientId}
+          />
+        </TabsContent>
+
+        <TabsContent value="test">
+          <ApprovalTestTab
+            clientId={clientId}
+            groups={groups}
+            policies={policies}
+            empMap={empMap}
           />
         </TabsContent>
       </Tabs>
