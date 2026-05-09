@@ -131,14 +131,14 @@ export default function PayrollSetupEditorPage() {
             <Label>Country</Label>
             <Select value={setup.country} onValueChange={v => setSetup(s => ({ ...s, country: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-72">{countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
             <Label>Currency</Label>
             <Select value={setup.currency} onValueChange={v => setSetup(s => ({ ...s, currency: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-72">{currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
