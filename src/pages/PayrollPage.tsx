@@ -240,16 +240,8 @@ function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup |
     // Tax from setup's taxRules
     let taxDeductions = 0;
     if (setup?.options.enableTaxCalculation && setup.taxRules.length > 0) {
-      const taxBase = (setup as any).taxBasis === "basic" ? basic : gross;
-      const annualBase = taxBase * 12;
-      setup.taxRules.forEach(slab => {
-        if (annualBase > slab.incomeFrom) {
-          const taxableInSlab = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
-          if (taxableInSlab > 0) {
-            taxDeductions += Math.round((taxableInSlab * slab.percentage / 100) / 12);
-          }
-        }
-      });
+      const taxBaseMonthly = (setup as any).taxBasis === "basic" ? basic : gross;
+      taxDeductions = calcMonthlyTax(setup, taxBaseMonthly);
     }
 
     // Auto deductions from setup
