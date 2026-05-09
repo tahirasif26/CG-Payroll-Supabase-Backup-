@@ -182,7 +182,7 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
               <Select value={editing.name} onValueChange={v => setEditing({ ...editing, name: v })}>
                 <SelectTrigger><SelectValue placeholder="Select a name" /></SelectTrigger>
                 <SelectContent>
-                  {(editing.type === "earning" ? ADDITION_NAMES : DEDUCTION_NAMES).map(name => (
+                  {COMPONENT_NAMES.map(name => (
                     <SelectItem key={name} value={name}>{name}</SelectItem>
                   ))}
                 </SelectContent>
