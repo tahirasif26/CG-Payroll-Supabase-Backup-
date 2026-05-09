@@ -452,7 +452,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   };
 
   const resetAndClose = () => {
-    setForm(INITIAL_FORM);
+    setForm(buildInitialForm());
     setActiveTab("personal");
     setErrors({});
     setEducation([]);
