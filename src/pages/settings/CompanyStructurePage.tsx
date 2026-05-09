@@ -440,11 +440,6 @@ export default function CompanyStructurePage() {
           <DialogHeader><DialogTitle>{jtEdit ? "Edit Title" : "Add Title"}</DialogTitle><DialogDescription>Configure a job title.</DialogDescription></DialogHeader>
           <form onSubmit={handleJtSubmit} className="space-y-4">
             <div className="space-y-2"><Label>Title</Label><Input value={jtTitle} onChange={e => setJtTitle(e.target.value)} required /></div>
-            <div className="space-y-2"><Label>Level</Label>
-              <Select value={jtLevel} onValueChange={setJtLevel}><SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="Leadership">Leadership</SelectItem><SelectItem value="Management">Management</SelectItem><SelectItem value="Professional">Professional</SelectItem><SelectItem value="Entry">Entry</SelectItem></SelectContent>
-              </Select>
-            </div>
             <DialogFooter><Button type="button" variant="outline" onClick={() => setJtDialogOpen(false)}>Cancel</Button><Button type="submit">{jtEdit ? "Update" : "Add"}</Button></DialogFooter>
           </form>
         </DialogContent>
