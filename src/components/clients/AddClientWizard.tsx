@@ -11,23 +11,7 @@ import { cn } from "@/lib/utils";
 import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
 import { MODULE_CATALOG } from "@/lib/feature-catalog";
 
-const COUNTRIES = [
-  { code: "SA", name: "Saudi Arabia", tz: "Asia/Riyadh", currency: "SAR" },
-  { code: "AE", name: "United Arab Emirates", tz: "Asia/Dubai", currency: "AED" },
-  { code: "BH", name: "Bahrain", tz: "Asia/Bahrain", currency: "BHD" },
-  { code: "KW", name: "Kuwait", tz: "Asia/Kuwait", currency: "KWD" },
-  { code: "OM", name: "Oman", tz: "Asia/Muscat", currency: "OMR" },
-  { code: "QA", name: "Qatar", tz: "Asia/Qatar", currency: "QAR" },
-  { code: "EG", name: "Egypt", tz: "Africa/Cairo", currency: "EGP" },
-  { code: "JO", name: "Jordan", tz: "Asia/Amman", currency: "JOD" },
-  { code: "US", name: "United States", tz: "America/New_York", currency: "USD" },
-  { code: "GB", name: "United Kingdom", tz: "Europe/London", currency: "GBP" },
-  { code: "DE", name: "Germany", tz: "Europe/Berlin", currency: "EUR" },
-  { code: "IN", name: "India", tz: "Asia/Kolkata", currency: "INR" },
-];
-
-const TIMEZONES = ["Asia/Riyadh", "Asia/Dubai", "Asia/Bahrain", "Asia/Kuwait", "Asia/Muscat", "Asia/Qatar", "Africa/Cairo", "Asia/Amman", "Europe/London", "Europe/Berlin", "America/New_York", "Asia/Kolkata", "UTC"];
-const CURRENCIES = ["SAR", "AED", "USD", "EUR", "GBP", "BHD", "KWD", "OMR", "QAR", "EGP", "JOD", "INR"];
+import { COUNTRIES, TIMEZONES, CURRENCIES } from "@/lib/countries";
 
 const PLANS = [
   { id: "starter", name: "Starter", icon: Sparkles, desc: "Up to 25 employees, core HR + payroll", color: "text-slate-600", bg: "bg-slate-50 border-slate-200" },
