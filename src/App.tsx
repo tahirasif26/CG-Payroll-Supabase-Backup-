@@ -84,6 +84,7 @@ const PayrollSetupPage = lazy(() => import("@/pages/PayrollSetupPage"));
 const PayrollSetupEditorPage = lazy(() => import("@/pages/PayrollSetupEditorPage"));
 const PayrollSetupViewPage = lazy(() => import("@/pages/PayrollSetupViewPage"));
 const UserPermissionsPage = lazy(() => import("@/pages/settings/UserPermissionsPage"));
+const ModuleAccessPage = lazy(() => import("@/pages/settings/ModuleAccessPage"));
 
 const MyAccessPage = lazy(() => import("@/pages/MyAccessPage"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
@@ -205,6 +206,9 @@ function AppRoutes() {
           } />
           <Route path="/settings/user-permissions" element={
             <ProtectedRoute requiredRole={["super_admin","admin","hr"]}><UserPermissionsPage /></ProtectedRoute>
+          } />
+          <Route path="/settings/module-access" element={
+            <ProtectedRoute requiredRole={["admin"]}><ModuleAccessPage /></ProtectedRoute>
           } />
 
           {/* Employees — admin/hr */}
