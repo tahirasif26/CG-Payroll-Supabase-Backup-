@@ -22,15 +22,15 @@ const COMPONENT_NAMES = [
   "Medical Allowance",
   "Overtime Pay",
   "Performance Bonus",
-  "Other Earning",
   "Income Tax",
   "Loan Deduction",
   "Advance Recovery",
   "Absence Deduction",
   "Late Penalty",
   "Health Insurance",
-  "Other Deduction",
 ];
+
+const OTHER_VALUE = "__other__";
 
 const BASIC_SALARY_ID = "comp-basic-salary";
 
