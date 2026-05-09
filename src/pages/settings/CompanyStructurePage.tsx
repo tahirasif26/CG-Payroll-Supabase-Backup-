@@ -357,7 +357,6 @@ export default function CompanyStructurePage() {
             <Table>
               <TableHeader><TableRow className="bg-muted/50">
                 <TableHead className="font-semibold">Title</TableHead>
-                <TableHead className="font-semibold">Level</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="font-semibold text-right">Actions</TableHead>
               </TableRow></TableHeader>
@@ -365,7 +364,6 @@ export default function CompanyStructurePage() {
                 {jtItems.map(item => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.title}</TableCell>
-                    <TableCell><Badge variant="outline">{item.level}</Badge></TableCell>
                     <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditJt(item)}><Pencil className="h-3.5 w-3.5" /></Button>
