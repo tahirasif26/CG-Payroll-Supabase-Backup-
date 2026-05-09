@@ -143,7 +143,7 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
                   <div className="flex gap-1">
                     {!locked && (
                       <>
-                        <Button variant="ghost" size="sm" onClick={() => { setEditing(c); setOpen(true); }}>
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(c)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => onChange(data.filter(x => x.id !== c.id))}>
