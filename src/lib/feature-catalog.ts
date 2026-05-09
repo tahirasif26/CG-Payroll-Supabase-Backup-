@@ -117,6 +117,14 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
       { key: "audit.view", label: "View Audit Trail", description: "See who changed what and when" },
     ],
   },
+  {
+    key: "settings",
+    label: "Settings",
+    features: [
+      { key: "settings.company_profile", label: "Company Profile", description: "Manage company name, logo, and fiscal year-end" },
+      { key: "settings.visual_preferences", label: "Visual Preferences", description: "Choose theme color and visual styling" },
+    ],
+  },
 ];
 
 export function allFeaturesForModules(moduleKeys: string[]): string[] {

@@ -148,13 +148,13 @@ export const navigationGroups: NavGroup[] = [
     icon: Settings,
     requiredRoles: ["admin", "hr"],
     children: [
-      { label: "Company Profile", path: "/settings/company" },
+      { label: "Company Profile", path: "/settings/company", requiredFeature: "settings.company_profile" },
       { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"] },
       { label: "Module Access", path: "/settings/module-access", requiredRoles: ["admin"] },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
       { label: "Policies", path: "/settings/company-policies", requiredRoles: ["admin", "hr"] },
       { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"], requiredFeature: "audit.view" },
-      { label: "Visual Preferences", path: "/settings/visual" },
+      { label: "Visual Preferences", path: "/settings/visual", requiredFeature: "settings.visual_preferences" },
     ],
   },
 ];
