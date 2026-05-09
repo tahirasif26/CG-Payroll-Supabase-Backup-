@@ -95,11 +95,14 @@ export function useApprovers(clientId: string | null) {
       if (roleIds.length > 0) {
         const { data: rfs, error: e2 } = await (supabase as any)
           .from("role_features")
-          .select("role_id, feature_key")
+          .select("role_id, feature_key, people_enabled")
           .in("role_id", roleIds)
           .in("feature_key", APPROVE_FEATURE_KEYS);
         if (e2) throw e2;
         (rfs ?? []).forEach((r: any) => {
+          // Only count as an approver capability if the role has the
+          // people-level (approve) toggle enabled for that feature.
+          if (!r.people_enabled) return;
           const arr = roleCapMap.get(r.role_id) ?? [];
           arr.push(r.feature_key);
           roleCapMap.set(r.role_id, arr);
