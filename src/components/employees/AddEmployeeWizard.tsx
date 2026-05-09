@@ -21,6 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useClient } from "@/contexts/ClientContext";
+import { COUNTRY_NAMES, CURRENCIES } from "@/lib/countries";
 
 function computeEmpPrefix(name?: string | null): string {
   if (!name) return "EM";
