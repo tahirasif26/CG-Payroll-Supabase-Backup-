@@ -14,7 +14,7 @@ interface Props {
   onChange: (data: PayslipComponent[]) => void;
 }
 
-const ADDITION_NAMES = [
+const COMPONENT_NAMES = [
   "Housing Allowance (HRA)",
   "Transport Allowance",
   "Food Allowance",
@@ -23,10 +23,6 @@ const ADDITION_NAMES = [
   "Overtime Pay",
   "Performance Bonus",
   "Other Earning",
-];
-
-const DEDUCTION_NAMES = [
-  "GOSI (Employee 9.75%)",
   "Income Tax",
   "Loan Deduction",
   "Advance Recovery",
@@ -186,7 +182,7 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
               <Select value={editing.name} onValueChange={v => setEditing({ ...editing, name: v })}>
                 <SelectTrigger><SelectValue placeholder="Select a name" /></SelectTrigger>
                 <SelectContent>
-                  {(editing.type === "earning" ? ADDITION_NAMES : DEDUCTION_NAMES).map(name => (
+                  {COMPONENT_NAMES.map(name => (
                     <SelectItem key={name} value={name}>{name}</SelectItem>
                   ))}
                 </SelectContent>
