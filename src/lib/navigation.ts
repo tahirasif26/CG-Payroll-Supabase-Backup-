@@ -50,6 +50,7 @@ export const navigationGroups: NavGroup[] = [
       { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
       { label: "Imp Dates", path: "/birthdays", requiredFeature: "employees.view_birthdays" },
       { label: "Leave Management", path: "/leave", requiredFeature: "leave.view_balance", labelsByRole: { employee: "My Leave" } },
+      { label: "Employee Cards", path: "/id-cards", requiredRoles: ["admin", "hr"], requiredFeature: "employees.view_id_cards" },
       { label: "⚙ HR Settings", path: "/employees/settings", requiredRoles: ["admin", "hr"], requiredFeature: "employees.edit" },
     ],
   },
