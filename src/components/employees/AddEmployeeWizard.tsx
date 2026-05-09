@@ -21,6 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useClient } from "@/contexts/ClientContext";
+import { COUNTRY_NAMES, CURRENCIES } from "@/lib/countries";
 
 function computeEmpPrefix(name?: string | null): string {
   if (!name) return "EM";
@@ -114,8 +116,19 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const activeSetups = setups.filter(s => s.status === "active");
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
 
+  const { client } = useClient();
+  const defaultCountry = client.country ?? "";
+  const defaultCurrency = client.currency ?? "";
+  const buildInitialForm = (): FormData => ({
+    ...INITIAL_FORM,
+    country: defaultCountry,
+    bankCountry: defaultCountry,
+    workLocationCountry: defaultCountry,
+    bankCurrency: defaultCurrency,
+  });
+
   const [activeTab, setActiveTab] = useState("personal");
-  const [form, setForm] = useState<FormData>(INITIAL_FORM);
+  const [form, setForm] = useState<FormData>(buildInitialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [education, setEducation] = useState<{ degree: string; institution: string; year: string; field: string }[]>([]);
   const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
@@ -439,7 +452,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   };
 
   const resetAndClose = () => {
-    setForm(INITIAL_FORM);
+    setForm(buildInitialForm());
     setActiveTab("personal");
     setErrors({});
     setEducation([]);
@@ -645,7 +658,10 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Country</p>
-                  <Input value={form.country} onChange={e => updateField("country", e.target.value)} className="h-8 text-sm" />
+                  <Select value={form.country || ""} onValueChange={v => updateField("country", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select country" /></SelectTrigger>
+                    <SelectContent className="max-h-72">{COUNTRY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Postal Code</p>
@@ -668,7 +684,10 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Bank Country</p>
-                  <Input value={form.bankCountry} onChange={e => updateField("bankCountry", e.target.value)} className="h-8 text-sm" />
+                  <Select value={form.bankCountry || ""} onValueChange={v => updateField("bankCountry", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select country" /></SelectTrigger>
+                    <SelectContent className="max-h-72">{COUNTRY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">SWIFT Code</p>
@@ -684,7 +703,10 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Currency</p>
-                  <Input value={form.bankCurrency} onChange={e => updateField("bankCurrency", e.target.value)} className="h-8 text-sm" />
+                  <Select value={form.bankCurrency || ""} onValueChange={v => updateField("bankCurrency", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select currency" /></SelectTrigger>
+                    <SelectContent className="max-h-72">{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Beneficiary Name</p>
@@ -840,7 +862,10 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Work Location Country</p>
-                  <Input value={form.workLocationCountry} onChange={e => updateField("workLocationCountry", e.target.value)} placeholder="e.g. Saudi Arabia" className="h-8 text-sm" />
+                  <Select value={form.workLocationCountry || ""} onValueChange={v => updateField("workLocationCountry", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select country" /></SelectTrigger>
+                    <SelectContent className="max-h-72">{COUNTRY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>

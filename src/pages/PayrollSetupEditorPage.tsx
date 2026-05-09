@@ -19,6 +19,8 @@ import SalaryRulesTab from "@/components/payrollSetup/SalaryRulesTab";
 import LeavesTab from "@/components/payrollSetup/LeavesTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
 import OptionsTab from "@/components/payrollSetup/OptionsTab";
+import { useClient } from "@/contexts/ClientContext";
+import { COUNTRY_NAMES, CURRENCIES } from "@/lib/countries";
 
 
 export const DEFAULT_PAYROLL_SETUP: PayrollSetup = {
@@ -63,9 +65,15 @@ export default function PayrollSetupEditorPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getSetupById, addSetup, updateSetup } = usePayrollSetups();
+  const { client } = useClient();
   const isNew = !id || id === "new";
 
-  const [setup, setSetup] = useState<PayrollSetup>({ ...DEFAULT_PAYROLL_SETUP, id: `ps-${Date.now()}` });
+  const [setup, setSetup] = useState<PayrollSetup>(() => ({
+    ...DEFAULT_PAYROLL_SETUP,
+    id: `ps-${Date.now()}`,
+    country: client.country ?? DEFAULT_PAYROLL_SETUP.country,
+    currency: client.currency ?? DEFAULT_PAYROLL_SETUP.currency,
+  }));
 
   useEffect(() => {
     if (!isNew && id) {
@@ -93,8 +101,8 @@ export default function PayrollSetupEditorPage() {
     }
   };
 
-  const countries = ["Saudi Arabia", "UAE", "Qatar", "Bahrain", "Kuwait", "Oman"];
-  const currencies = ["SAR", "AED", "QAR", "BHD", "KWD", "OMR", "USD"];
+  const countries = COUNTRY_NAMES;
+  const currencies = CURRENCIES;
 
   // Helpers for the inline option toggles surfaced in tax / salary / overtime tabs.
   const setOption = (key: keyof PayrollSetup["options"], v: boolean) =>
@@ -123,14 +131,14 @@ export default function PayrollSetupEditorPage() {
             <Label>Country</Label>
             <Select value={setup.country} onValueChange={v => setSetup(s => ({ ...s, country: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-72">{countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
             <Label>Currency</Label>
             <Select value={setup.currency} onValueChange={v => setSetup(s => ({ ...s, currency: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-72">{currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2">

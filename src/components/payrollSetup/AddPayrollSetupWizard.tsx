@@ -21,6 +21,8 @@ import SalaryRulesTab from "./SalaryRulesTab";
 import LeavesTab from "./LeavesTab";
 import FinalSettlementTab from "./FinalSettlementTab";
 import OptionsTab from "./OptionsTab";
+import { useClient } from "@/contexts/ClientContext";
+import { COUNTRY_NAMES, CURRENCIES } from "@/lib/countries";
 
 
 interface Props {
@@ -31,14 +33,11 @@ interface Props {
   editId?: string;
 }
 
-const COUNTRIES = ["Saudi Arabia", "UAE", "Qatar", "Bahrain", "Kuwait", "Oman"];
-const CURRENCIES = ["SAR", "AED", "QAR", "BHD", "KWD", "OMR", "USD"];
-
-const defaultSetup = (): PayrollSetup => ({
+const defaultSetup = (clientCountry: string, clientCurrency: string): PayrollSetup => ({
   id: `ps-${Date.now()}`,
   name: "",
-  country: "Saudi Arabia",
-  currency: "SAR",
+  country: clientCountry,
+  currency: clientCurrency,
   status: "active",
   lastUpdated: new Date().toISOString().split("T")[0],
   paySchedule: { payFrequency: "monthly", cycleStartDate: "1", cycleEndDate: "30", payDate: "28", cutoffDate: "25" },
@@ -76,7 +75,11 @@ const defaultSetup = (): PayrollSetup => ({
 export default function AddPayrollSetupWizard({ open, onOpenChange, initial, editId }: Props) {
   const { addSetup, updateSetup } = usePayrollSetups();
   const { toast } = useToast();
-  const [setup, setSetup] = useState<PayrollSetup>(initial ?? defaultSetup());
+  const { client } = useClient();
+  const clientCountry = client.country ?? "Saudi Arabia";
+  const clientCurrency = client.currency ?? "SAR";
+  const makeDefault = () => defaultSetup(clientCountry, clientCurrency);
+  const [setup, setSetup] = useState<PayrollSetup>(initial ?? makeDefault());
   const [step, setStep] = useState(0);
 
   const STEPS = useMemo(() => ([
@@ -92,14 +95,14 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
             <Label>Country</Label>
             <Select value={setup.country} onValueChange={v => setSetup(s => ({ ...s, country: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-72">{COUNTRY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
             <Label>Currency</Label>
             <Select value={setup.currency} onValueChange={v => setSetup(s => ({ ...s, currency: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-72">{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
@@ -138,12 +141,12 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
       toast({ title: "Payroll setup created" });
     }
     onOpenChange(false);
-    setSetup(defaultSetup());
+    setSetup(makeDefault());
     setStep(0);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setStep(0); if (!editId) setSetup(defaultSetup()); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setStep(0); if (!editId) setSetup(makeDefault()); } }}>
       <DialogContent className="max-w-5xl p-0 max-h-[90vh] flex flex-col">
         <DialogHeader className="px-6 pt-6 pb-3 border-b">
           <DialogTitle>{editId ? `Edit Payroll Setup` : "New Payroll Setup"}</DialogTitle>
