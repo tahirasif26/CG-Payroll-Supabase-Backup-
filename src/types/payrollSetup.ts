@@ -143,6 +143,8 @@ export interface PayrollSetup {
   taxComponentName?: string;
   /** Which figure tax slabs apply to: basic salary or gross (basic + earnings). Default: gross. */
   taxBasis?: "basic" | "gross";
+  /** Whether tax slab brackets (incomeFrom/incomeTo) are monthly or annual amounts. Default: annual. */
+  taxBracketBasis?: "monthly" | "annual";
   salaryRules: SalaryRules;
   overtime: OvertimeConfig;
   autoDeductions: AutoDeductions;

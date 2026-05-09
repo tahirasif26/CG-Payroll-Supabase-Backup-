@@ -35,6 +35,7 @@ import {
   Plus, Trash2, Upload, ArrowRight, ArrowLeft, SkipForward
 } from "lucide-react";
 import type { Employee } from "@/types/hcm";
+import { calcMonthlyTax } from "@/lib/taxSlabs";
 
 interface AddEmployeeWizardProps {
   open: boolean;
@@ -228,18 +229,9 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
       });
     const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
-    let taxAmount = 0;
     const grossBeforeTax = baseSalary + totalAdditions;
-    const taxBase = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
-    if (selectedSetup.options.enableTaxCalculation && selectedSetup.taxRules.length > 0) {
-      const annualBase = taxBase * 12;
-      selectedSetup.taxRules.forEach(slab => {
-        if (annualBase > slab.incomeFrom) {
-          const taxable = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
-          if (taxable > 0) taxAmount += Math.round(taxable * slab.percentage / 100 / 12);
-        }
-      });
-    }
+    const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
+    const taxAmount = calcMonthlyTax(selectedSetup, taxBaseMonthly);
     return {
       baseSalary, additions, deductions,
       totalAdditions, totalDeductions, taxAmount,

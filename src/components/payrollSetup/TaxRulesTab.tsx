@@ -48,11 +48,13 @@ interface Props {
   onEnabledChange?: (v: boolean) => void;
   basis?: "basic" | "gross";
   onBasisChange?: (b: "basic" | "gross") => void;
+  bracketBasis?: "monthly" | "annual";
+  onBracketBasisChange?: (b: "monthly" | "annual") => void;
 }
 
 const empty: TaxSlab = { id: "", name: "", incomeFrom: 0, incomeTo: 0, percentage: 0, fixedAmount: 0 };
 
-export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true, onEnabledChange, basis = "gross", onBasisChange }: Props) {
+export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true, onEnabledChange, basis = "gross", onBasisChange, bracketBasis = "annual", onBracketBasisChange }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TaxSlab>(empty);
 
@@ -128,6 +130,21 @@ export default function TaxRulesTab({ data, onChange, componentName, onComponent
           </div>
           <p className="text-xs text-muted-foreground">
             Annualized {basis === "basic" ? "basic salary" : "gross pay"} is matched against the slab brackets.
+          </p>
+        </div>
+      )}
+
+      {onBracketBasisChange && (
+        <div className="space-y-2 rounded-lg border p-4">
+          <Label>Slab brackets are in</Label>
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant={bracketBasis === "monthly" ? "default" : "outline"} onClick={() => onBracketBasisChange("monthly")}>Monthly amounts</Button>
+            <Button type="button" size="sm" variant={bracketBasis === "annual" ? "default" : "outline"} onClick={() => onBracketBasisChange("annual")}>Annual amounts</Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {bracketBasis === "monthly"
+              ? "Income From / Income To are matched against the employee's monthly pay."
+              : "Income From / Income To are matched against the employee's annualised pay (monthly × 12)."}
           </p>
         </div>
       )}

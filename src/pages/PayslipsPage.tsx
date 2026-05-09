@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { calcMonthlyTax } from "@/lib/taxSlabs";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
@@ -68,17 +69,8 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
 
     // Tax from setup's taxRules
     if (setup.options.enableTaxCalculation && setup.taxRules.length > 0) {
-      const taxBase = (setup as any).taxBasis === "basic" ? basic : totalEarningsForGross;
-      const annualBase = taxBase * 12;
-      let totalTax = 0;
-      setup.taxRules.forEach(slab => {
-        if (annualBase > slab.incomeFrom) {
-          const taxableInSlab = Math.min(annualBase, slab.incomeTo) - slab.incomeFrom;
-          if (taxableInSlab > 0) {
-            totalTax += Math.round((taxableInSlab * slab.percentage / 100) / 12);
-          }
-        }
-      });
+      const taxBaseMonthly = (setup as any).taxBasis === "basic" ? basic : totalEarningsForGross;
+      const totalTax = calcMonthlyTax(setup, taxBaseMonthly);
       if (totalTax > 0) {
         deductions.push({ label: "Income Tax", amount: totalTax });
       }

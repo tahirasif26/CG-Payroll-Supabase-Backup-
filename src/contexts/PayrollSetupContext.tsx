@@ -45,6 +45,9 @@ function rowToSetup(row: any): PayrollSetup {
     },
     payslipComponents: opts.payslipComponents ?? [],
     taxRules: opts.taxRules ?? [],
+    taxComponentName: (opts as any).taxComponentName,
+    taxBasis: (opts as any).taxBasis,
+    taxBracketBasis: (opts as any).taxBracketBasis,
     salaryRules: opts.salaryRules ?? {
       salaryType: "fixed",
       prorationRule: "calendar-days",
