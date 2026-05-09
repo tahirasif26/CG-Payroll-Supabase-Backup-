@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
-import { useAuth } from "@/hooks/useAuth";
+
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,8 @@ import { MODULE_CATALOG, allFeaturesForModules } from "@/lib/feature-catalog";
 import { Save, RotateCcw, Info } from "lucide-react";
 
 export default function ModuleAccessPage() {
-  const { clientId } = useRole();
-  const { isAdmin } = useAuth();
+  const { clientId, role } = useRole();
+  const isAdmin = role === "admin" || role === "super_admin";
   const { toast } = useToast();
   const qc = useQueryClient();
 
