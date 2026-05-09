@@ -14,7 +14,7 @@ interface Props {
   onChange: (data: PayslipComponent[]) => void;
 }
 
-const ADDITION_NAMES = [
+const COMPONENT_NAMES = [
   "Housing Allowance (HRA)",
   "Transport Allowance",
   "Food Allowance",
@@ -23,10 +23,6 @@ const ADDITION_NAMES = [
   "Overtime Pay",
   "Performance Bonus",
   "Other Earning",
-];
-
-const DEDUCTION_NAMES = [
-  "GOSI (Employee 9.75%)",
   "Income Tax",
   "Loan Deduction",
   "Advance Recovery",
