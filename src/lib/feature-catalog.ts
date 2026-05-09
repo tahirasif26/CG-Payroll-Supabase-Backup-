@@ -31,6 +31,7 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
       { key: "employees.edit", label: "Edit Employees" },
       { key: "employees.deactivate", label: "Deactivate Employee" },
       { key: "leave.view_team_calendar", label: "View Team Leave Calendar" },
+      { key: "employees.view_id_cards", label: "Employee ID Cards" },
     ],
   },
   {
