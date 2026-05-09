@@ -19,6 +19,8 @@ import SalaryRulesTab from "@/components/payrollSetup/SalaryRulesTab";
 import LeavesTab from "@/components/payrollSetup/LeavesTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
 import OptionsTab from "@/components/payrollSetup/OptionsTab";
+import { useClient } from "@/contexts/ClientContext";
+import { COUNTRY_NAMES, CURRENCIES } from "@/lib/countries";
 
 
 export const DEFAULT_PAYROLL_SETUP: PayrollSetup = {
