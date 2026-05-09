@@ -14,8 +14,8 @@ import { MODULE_CATALOG, allFeaturesForModules } from "@/lib/feature-catalog";
 import { Save, RotateCcw, Info } from "lucide-react";
 
 export default function ModuleAccessPage() {
-  const { clientId, role } = useRole();
-  const isAdmin = role === "admin" || role === "super_admin";
+  const { clientId, appRole } = useRole();
+  const isAdmin = appRole === "admin" || appRole === "super_admin";
   const { toast } = useToast();
   const qc = useQueryClient();
 
