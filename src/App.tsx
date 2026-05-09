@@ -399,7 +399,6 @@ function AppRoutes() {
 }
 
 const App = () => {
-  useThemeInit();
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
