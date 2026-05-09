@@ -75,7 +75,11 @@ const defaultSetup = (clientCountry: string, clientCurrency: string): PayrollSet
 export default function AddPayrollSetupWizard({ open, onOpenChange, initial, editId }: Props) {
   const { addSetup, updateSetup } = usePayrollSetups();
   const { toast } = useToast();
-  const [setup, setSetup] = useState<PayrollSetup>(initial ?? defaultSetup());
+  const { client } = useClient();
+  const clientCountry = client.country ?? "Saudi Arabia";
+  const clientCurrency = client.currency ?? "SAR";
+  const makeDefault = () => defaultSetup(clientCountry, clientCurrency);
+  const [setup, setSetup] = useState<PayrollSetup>(initial ?? makeDefault());
   const [step, setStep] = useState(0);
 
   const STEPS = useMemo(() => ([
