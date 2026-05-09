@@ -21,6 +21,8 @@ import SalaryRulesTab from "./SalaryRulesTab";
 import LeavesTab from "./LeavesTab";
 import FinalSettlementTab from "./FinalSettlementTab";
 import OptionsTab from "./OptionsTab";
+import { useClient } from "@/contexts/ClientContext";
+import { COUNTRY_NAMES, CURRENCIES } from "@/lib/countries";
 
 
 interface Props {
@@ -31,14 +33,11 @@ interface Props {
   editId?: string;
 }
 
-const COUNTRIES = ["Saudi Arabia", "UAE", "Qatar", "Bahrain", "Kuwait", "Oman"];
-const CURRENCIES = ["SAR", "AED", "QAR", "BHD", "KWD", "OMR", "USD"];
-
-const defaultSetup = (): PayrollSetup => ({
+const defaultSetup = (clientCountry: string, clientCurrency: string): PayrollSetup => ({
   id: `ps-${Date.now()}`,
   name: "",
-  country: "Saudi Arabia",
-  currency: "SAR",
+  country: clientCountry,
+  currency: clientCurrency,
   status: "active",
   lastUpdated: new Date().toISOString().split("T")[0],
   paySchedule: { payFrequency: "monthly", cycleStartDate: "1", cycleEndDate: "30", payDate: "28", cutoffDate: "25" },
