@@ -129,6 +129,7 @@ function RouteRedirector() {
 
 function AppRoutes() {
   const { session, loading } = useRole();
+  useThemeInit();
 
   // CRITICAL: Detect invite/recovery URLs BEFORE auth check.
   // The URL hash (#access_token=...&type=invite|recovery) MUST land on
@@ -398,7 +399,6 @@ function AppRoutes() {
 }
 
 const App = () => {
-  useThemeInit();
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
