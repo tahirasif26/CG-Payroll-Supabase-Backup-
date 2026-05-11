@@ -524,8 +524,54 @@ export default function PayrollPage() {
           total_deductions: runDed,
           total_net: runGross - runDed,
         }).eq("id", id);
+
+        // Persist payroll_lines so payslip downloads work for each employee.
+        if (clientId && currentBreakdown.length > 0) {
+          const setupCurrency = runSetup?.currency || "SAR";
+          const rate = getToReportingRate(setupCurrency);
+          // Clear any prior lines for this run, then insert fresh from current breakdown.
+          await supabase.from("payroll_lines").delete().eq("payroll_run_id", id);
+          const rows = currentBreakdown.map((l) => ({
+            payroll_run_id: id,
+            employee_id: l.emp.id,
+            client_id: clientId,
+            basic: Math.round(l.basic),
+            allowances: Math.round(l.allowances),
+            gross: Math.round(l.gross),
+            loan_deduction: Math.round(l.loanDeduction),
+            tax_deduction: 0,
+            statutory_deduction: 0,
+            other_deductions: Math.round(l.otherDeductions),
+            total_deductions: Math.round(l.totalDeductions),
+            expense_reimbursement: Math.round(l.expenseReimbursement),
+            advance_given: Math.round(l.advanceGiven),
+            one_off_benefits: Math.round(l.oneOffBenefits),
+            one_off_deductions: Math.round(l.oneOffDeductions),
+            separation_settlement: Math.round(l.separationSettlement),
+            net_pay: Math.round(l.net),
+            pay_currency: setupCurrency,
+            exchange_rate: rate,
+            net_in_reporting_currency: Math.round(l.net * rate),
+            snapshot_data: {
+              employee: {
+                first_name: l.emp.firstName,
+                last_name: l.emp.lastName,
+                emp_id: l.emp.empId,
+                department: l.emp.department,
+                designation: l.emp.designation,
+                joining_date: l.emp.joiningDate,
+              },
+              run: { month: run.month, year: run.year },
+              setup: runSetup ? { name: runSetup.name, country: runSetup.country, currency: runSetup.currency, frequency: runSetup.paySchedule?.payFrequency } : null,
+            },
+          }));
+          await (supabase as any).from("payroll_lines").insert(rows);
+        }
+
         queryClient.invalidateQueries({ queryKey: ["payroll_runs"] });
-      } catch {
+        queryClient.invalidateQueries({ queryKey: ["payroll_lines"] });
+      } catch (e) {
+        console.error("[payroll complete] persist failed", e);
         // Non-fatal — UI already reflects completion locally.
       }
     })();
