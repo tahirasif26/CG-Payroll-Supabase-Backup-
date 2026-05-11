@@ -494,7 +494,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   // ============ STORE ITEMS ============
   const addStoreItem = async (item: AssetStoreItem) => {
     if (!clientId) return;
-    await sb.from("asset_store_items").insert({
+    const { error } = await sb.from("asset_store_items").insert({
       client_id: clientId,
       name: item.name,
       category_id: item.categoryId || null,
@@ -509,6 +509,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       specifications: item.specifications || null,
       publish_to_store: item.publishToStore,
     });
+    if (error) { showDbError("add store item", error); return; }
     qc.invalidateQueries({ queryKey: ["asset_store_items"] });
   };
   const updateStoreItem = async (id: string, data: Partial<AssetStoreItem>) => {
