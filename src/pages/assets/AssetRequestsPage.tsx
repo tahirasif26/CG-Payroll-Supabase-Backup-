@@ -12,12 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
 export default function AssetRequestsPage() {
-  const { role, currentEmployeeId } = useRole();
+  const { currentEmployeeId, hasFeature } = useRole();
   const navigate = useNavigate();
   const { assetRequests, approveRequest, rejectRequest, getEmployeeRequests } = useAssets();
   const { toast } = useToast();
 
-  const displayRequests = role === "employee" ? getEmployeeRequests(currentEmployeeId) : assetRequests;
+  const canApprove = hasFeature("assets.approve_requests");
+  const displayRequests = canApprove ? assetRequests : getEmployeeRequests(currentEmployeeId);
 
   return (
     <div className="space-y-6">
