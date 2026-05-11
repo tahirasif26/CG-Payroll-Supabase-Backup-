@@ -1161,7 +1161,7 @@ function TimeOffTab({ emp, readOnly = false }: { emp: Employee; readOnly?: boole
   const totalUsed = empLeaves.filter(l => l.status === "approved").reduce((s, l) => s + l.days, 0);
 
   return (
-    <SectionCard title="Time Off & Vacation" icon={Calendar} editing={editing} onEdit={startEditing} onSave={saveEditing} onCancel={() => setEditing(false)}>
+    <SectionCard title="Time Off & Vacation" icon={Calendar} editing={editing} onEdit={readOnly ? undefined : startEditing} onSave={saveEditing} onCancel={() => setEditing(false)}>
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-muted/50 rounded-lg p-3 text-center">
