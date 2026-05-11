@@ -461,7 +461,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
-                        Invite pending
+                        Unverified
                       </Badge>
                     )}
                   </div>

@@ -134,6 +134,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
   const [sendInvite, setSendInvite] = useState(true);
   const [inviting, setInviting] = useState(false);
+  const [resending, setResending] = useState(false);
 
   // Prefill form when editing an existing employee.
   useEffect(() => {
@@ -504,6 +505,39 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
               <Switch id="send-invite" checked={sendInvite} onCheckedChange={setSendInvite} />
               <Label htmlFor="send-invite" className="text-sm text-muted-foreground cursor-pointer">Send login invite</Label>
             </div>
+          )}
+          {isEditMode && form.email && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                if (!clientId) return;
+                setResending(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke("resend-invite", {
+                    body: { email: form.email, client_id: clientId },
+                  });
+                  const payload: any = data;
+                  const errMsg: string = (error as any)?.message ?? payload?.error ?? "";
+                  if (payload?.verified === true || /already verified/i.test(errMsg)) {
+                    toast({ title: "Already verified", description: `${form.email} has already accepted the invite.` });
+                  } else if (error) {
+                    throw error;
+                  } else if (payload?.error) {
+                    throw new Error(payload.error);
+                  } else {
+                    toast({ title: "Invitation resent", description: `Invitation resent to ${form.email}.` });
+                  }
+                } catch (e: any) {
+                  toast({ title: "Could not resend invite", description: e?.message ?? "Something went wrong", variant: "destructive" });
+                } finally {
+                  setResending(false);
+                }
+              }}
+              disabled={resending}
+            >
+              {resending ? "Sending..." : "Resend Invitation Email"}
+            </Button>
           )}
           {isEditMode && onInitiateSeparation && (
             <Button size="sm" variant="destructive" onClick={onInitiateSeparation}>
