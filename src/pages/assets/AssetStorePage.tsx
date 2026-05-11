@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useAssets } from "@/contexts/AssetContext";
 import { AssetStoreItem } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
