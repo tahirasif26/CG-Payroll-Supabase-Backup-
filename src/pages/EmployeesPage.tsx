@@ -1712,9 +1712,9 @@ function EmployeesDirectory() {
     );
   }
 
-  // Admin/HR viewing another employee's profile → use the wizard layout (same as Add Employee).
-  // Self-profile and employee-viewing-others keep the legacy compact view.
-  if (selectedEmployee && role !== "employee" && selectedEmployee.id !== currentEmployeeId) {
+  // Admin/HR viewing another employee's profile in EDIT mode → use the wizard.
+  // View mode (profileViewOnly=true) falls through to the read-only profile panel below.
+  if (selectedEmployee && !profileViewOnly && role !== "employee" && selectedEmployee.id !== currentEmployeeId) {
     return (
       <AddEmployeeWizard
         open={true}
