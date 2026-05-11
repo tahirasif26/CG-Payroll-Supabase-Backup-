@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useAssets } from "@/contexts/AssetContext";
 import { AssetStoreItem } from "@/types/hcm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,8 +25,9 @@ let storeIdCounter = 100;
 let reqIdCounter = 100;
 
 export default function AssetStorePage() {
-  const { role, currentEmployeeId, hasFeature } = useRole();
+  const { role, hasFeature } = useRole();
   const { scope } = useViewScope();
+  const { data: currentEmp } = useCurrentEmployee();
   const canManageStore = scope === "people" && hasFeature("assets.manage_store");
   const activeEmps = useActiveEmployees();
   const {
@@ -115,11 +117,14 @@ export default function AssetStorePage() {
   const handleRequestSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reqStoreItem) return;
-    const emp = activeEmps.find(e => e.id === currentEmployeeId);
+    if (!currentEmp?.id) {
+      toast({ title: "Cannot submit request", description: "Your employee profile is not set up. Please contact your admin.", variant: "destructive" });
+      return;
+    }
     addAssetRequest({
       id: `req-${++reqIdCounter}`,
-      employeeId: currentEmployeeId,
-      employeeName: emp ? `${emp.firstName} ${emp.lastName}` : "Current User",
+      employeeId: currentEmp.id,
+      employeeName: `${currentEmp.first_name || ""} ${currentEmp.last_name || ""}`.trim() || "Current User",
       storeItemId: reqStoreItem.id,
       storeItemName: reqStoreItem.name,
       category: reqStoreItem.categoryName,
@@ -512,7 +517,7 @@ export default function AssetStorePage() {
               <div className="space-y-2"><Label>Category</Label><Input readOnly value={reqStoreItem?.categoryName || ""} className="bg-muted" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Employee</Label><Input readOnly value={activeEmps.find(e => e.id === currentEmployeeId) ? `${activeEmps.find(e => e.id === currentEmployeeId)!.firstName} ${activeEmps.find(e => e.id === currentEmployeeId)!.lastName}` : "Current User"} className="bg-muted" /></div>
+              <div className="space-y-2"><Label>Employee</Label><Input readOnly value={currentEmp ? `${currentEmp.first_name || ""} ${currentEmp.last_name || ""}`.trim() : "Current User"} className="bg-muted" /></div>
               <div className="space-y-2"><Label>Request Date</Label><Input readOnly value={new Date().toLocaleDateString()} className="bg-muted" /></div>
             </div>
             <div className="space-y-2"><Label>Reason for Request <span className="text-destructive">*</span></Label><Textarea required value={reqReason} onChange={e => setReqReason(e.target.value)} placeholder="Explain why you need this asset..." /></div>

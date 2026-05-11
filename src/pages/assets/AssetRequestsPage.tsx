@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyTableRow } from "@/components/EmptyState";
@@ -12,13 +13,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
 export default function AssetRequestsPage() {
-  const { currentEmployeeId, hasFeature } = useRole();
+  const { hasFeature } = useRole();
+  const { data: currentEmp } = useCurrentEmployee();
   const navigate = useNavigate();
   const { assetRequests, approveRequest, rejectRequest, getEmployeeRequests } = useAssets();
   const { toast } = useToast();
 
   const canApprove = hasFeature("assets.approve_requests");
-  const displayRequests = canApprove ? assetRequests : getEmployeeRequests(currentEmployeeId);
+  const displayRequests = canApprove ? assetRequests : (currentEmp?.id ? getEmployeeRequests(currentEmp.id) : []);
 
   return (
     <div className="space-y-6">

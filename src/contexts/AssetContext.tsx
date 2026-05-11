@@ -539,8 +539,12 @@ export function AssetProvider({ children }: { children: ReactNode }) {
 
   // ============ REQUESTS ============
   const addAssetRequest = async (req: AssetRequest) => {
-    if (!clientId) return;
-    const { data: inserted } = await sb.from("asset_requests").insert({
+    if (!clientId) { toast.error("No active workspace."); return; }
+    if (!req.employeeId || !/^[0-9a-f-]{36}$/i.test(req.employeeId)) {
+      toast.error("Your employee profile is missing — please contact your admin.");
+      return;
+    }
+    const { data: inserted, error } = await sb.from("asset_requests").insert({
       client_id: clientId,
       employee_id: req.employeeId,
       store_item_id: req.storeItemId || null,
@@ -549,6 +553,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       priority: req.priority,
       status: req.status,
     }).select().single();
+    if (error) { showDbError("submit asset request", error); return; }
     qc.invalidateQueries({ queryKey: ["asset_requests"] });
 
     // Route through approval matrix (assets category)
