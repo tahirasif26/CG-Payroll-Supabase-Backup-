@@ -343,7 +343,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       warranty_expiry: asset.warrantyExpiry || null,
       service_due_date: asset.serviceDueDate || null,
     }).select().single();
-    if (error) { console.error("addAsset", error); return; }
+    if (error) { showDbError("add asset", error); return; }
     await writeHistory(data.id, "created", { toEmployeeId: asset.employeeId, note: `Asset "${asset.name}" created` });
     if (asset.employeeId) {
       await writeHistory(data.id, "assigned", { toEmployeeId: asset.employeeId });
