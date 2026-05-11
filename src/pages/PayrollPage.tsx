@@ -567,7 +567,7 @@ export default function PayrollPage() {
           "January", "February", "March", "April", "May", "June",
           "July", "August", "September", "October", "November", "December",
         ];
-        const freq = (setup.payFrequency || (setup as any).pay_frequency || "monthly").toString().toLowerCase();
+        const freq = ((setup as any).payFrequency || (setup as any).pay_frequency || (setup as any).paySchedule?.frequency || "monthly").toString().toLowerCase();
         const stepMonths =
           freq.includes("semi-annual") || freq.includes("biannual") ? 6 :
           freq.includes("quarter") ? 3 :
