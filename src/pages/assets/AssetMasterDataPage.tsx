@@ -14,9 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-let catIdCounter = 100;
-let condIdCounter = 100;
-let locIdCounter = 100;
 
 export default function AssetMasterDataPage() {
   const {
