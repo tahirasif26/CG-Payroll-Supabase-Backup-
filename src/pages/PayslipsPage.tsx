@@ -146,7 +146,7 @@ export default function PayslipsPage() {
     const { earnings, deductions: dedItems, totalDeductions, gross } = buildPayslipFromSetup(currentEmployee, setup);
     const monthlySalary = gross;
     const netPay = monthlySalary - totalDeductions;
-    const payCurrency = getEmployeePayCurrency(currentEmployee);
+    const payCurrency = setup?.currency || getEmployeePayCurrency(currentEmployee);
 
     // Only show runs matching employee's setup
     const myRuns = completedRuns.filter(r => r.payrollSetupId === currentEmployee.payrollSetupId);
