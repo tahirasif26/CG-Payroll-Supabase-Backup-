@@ -62,6 +62,9 @@ export default function LeavePage() {
   const qc = useQueryClient();
   const { toast } = useToast();
 
+  const location = useLocation();
+  const view = new URLSearchParams(location.search).get("view") === "balances" ? "balances" : "requests";
+
   const [newOpen, setNewOpen] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
