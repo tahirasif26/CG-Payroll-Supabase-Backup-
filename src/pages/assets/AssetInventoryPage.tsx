@@ -277,7 +277,7 @@ export default function AssetInventoryPage() {
     addAsset(newAsset);
     if (newPublish === "publish" && catObj) {
       const si: AssetStoreItem = {
-        id: `si-${++storeIdCounter}`,
+        id: "",
         name: newName,
         categoryId: catObj.id,
         categoryName: catObj.name,
