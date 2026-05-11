@@ -117,11 +117,14 @@ export default function AssetStorePage() {
   const handleRequestSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reqStoreItem) return;
-    const emp = activeEmps.find(e => e.id === currentEmployeeId);
+    if (!currentEmp?.id) {
+      toast({ title: "Cannot submit request", description: "Your employee profile is not set up. Please contact your admin.", variant: "destructive" });
+      return;
+    }
     addAssetRequest({
       id: `req-${++reqIdCounter}`,
-      employeeId: currentEmployeeId,
-      employeeName: emp ? `${emp.firstName} ${emp.lastName}` : "Current User",
+      employeeId: currentEmp.id,
+      employeeName: `${currentEmp.first_name || ""} ${currentEmp.last_name || ""}`.trim() || "Current User",
       storeItemId: reqStoreItem.id,
       storeItemName: reqStoreItem.name,
       category: reqStoreItem.categoryName,
