@@ -426,7 +426,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   // ============ CATEGORY/CONDITION/LOCATION MUTATIONS ============
   const addCategory = async (cat: AssetCategory) => {
     if (!clientId) return;
-    await sb.from("asset_categories").insert({ client_id: clientId, name: cat.name, description: cat.description || null, status: cat.status });
+    const { error } = await sb.from("asset_categories").insert({ client_id: clientId, name: cat.name, description: cat.description || null, status: cat.status });
+    if (error) { showDbError("add category", error); return; }
     qc.invalidateQueries({ queryKey: ["asset_categories"] });
   };
   const updateCategory = async (id: string, data: Partial<AssetCategory>) => {
