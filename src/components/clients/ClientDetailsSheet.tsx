@@ -36,16 +36,37 @@ export function ClientDetailsSheet({ client, open, onOpenChange }: Props) {
       const { data, error } = await supabase.functions.invoke("resend-invite", {
         body: { user_id: userId, client_id: client.id },
       });
+      // Treat "already verified" as informational, not an error
+      const payload = (data as any) ?? {};
+      const errMsg = (error as any)?.message || payload?.error;
+      const isAlreadyVerified = payload?.verified === true ||
+        (typeof errMsg === "string" && errMsg.toLowerCase().includes("already verified"));
+
+      if (isAlreadyVerified) {
+        toast({
+          title: "Already verified",
+          description: `${displayName} has already signed in — no invite needed.`,
+        });
+        return;
+      }
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if (payload?.error) throw new Error(payload.error);
       toast({
         title: "Invite resent",
         description: `A fresh login link was sent to ${displayName}.`,
       });
     } catch (err: any) {
+      const msg = err?.message ?? "Something went wrong";
+      if (msg.toLowerCase().includes("already verified")) {
+        toast({
+          title: "Already verified",
+          description: `${displayName} has already signed in — no invite needed.`,
+        });
+        return;
+      }
       toast({
         title: "Could not resend invite",
-        description: err?.message ?? "Something went wrong",
+        description: msg,
         variant: "destructive",
       });
     } finally {
