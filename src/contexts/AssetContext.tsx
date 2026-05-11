@@ -413,7 +413,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       employee_id: null,
     }));
     const { data, error } = await sb.from("assets").insert(rows).select();
-    if (error) { console.error("bulkAddAssets", error); return; }
+    if (error) { showDbError("bulk add assets", error); return; }
     if (data && Array.isArray(data)) {
       await Promise.all(data.map((d: any) => writeHistory(d.id, "created", { note: `Bulk created: "${d.name}"` })));
     }
