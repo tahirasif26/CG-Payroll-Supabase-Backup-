@@ -1172,11 +1172,20 @@ export default function PayrollPage() {
 
       {/* Unified Payroll Runs view */}
       {(() => {
-        const allRuns = [...dbRuns].sort((a, b) => {
-          const ad = a.run_date ? new Date(a.run_date).getTime() : 0;
-          const bd = b.run_date ? new Date(b.run_date).getTime() : 0;
-          return bd - ad;
-        });
+        // Overlay local optimistic status (e.g. just-completed) onto dbRuns so
+        // the Processing/Completed tabs reflect the change immediately, even
+        // before the DB query refetches.
+        const localStatusById = new Map(runs.map(r => [r.id, r.status] as const));
+        const allRuns = [...dbRuns]
+          .map(r => {
+            const local = localStatusById.get(r.id);
+            return local && local !== r.status ? { ...r, status: local } : r;
+          })
+          .sort((a, b) => {
+            const ad = a.run_date ? new Date(a.run_date).getTime() : 0;
+            const bd = b.run_date ? new Date(b.run_date).getTime() : 0;
+            return bd - ad;
+          });
 
         const computeRow = (r: PayrollRunRow) => {
           const setup = getSetupById(r.payroll_setup_id ?? "");
