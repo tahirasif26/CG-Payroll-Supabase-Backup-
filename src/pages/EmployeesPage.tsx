@@ -901,7 +901,7 @@ function WorkInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: bool
   const reportsToDisplay = getManagerName(emp.id) || "No Manager";
 
   return (
-    <SectionCard title="Work Information" icon={Briefcase} editing={editing} onEdit={() => setEditing(true)} onSave={handleSave} onCancel={() => { setEditing(false); setData(prev => ({ ...prev, reportsToId: latestManagerId })); }}>
+    <SectionCard title="Work Information" icon={Briefcase} editing={editing} onEdit={readOnly ? undefined : () => setEditing(true)} onSave={handleSave} onCancel={() => { setEditing(false); setData(prev => ({ ...prev, reportsToId: latestManagerId })); }}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <EditableField label="Employee ID" value={data.empId} editing={editing} onChange={v => setData({ ...data, empId: v })} />
         <EditableField label="Work Email" value={data.workEmail} editing={editing} onChange={v => setData({ ...data, workEmail: v })} />
