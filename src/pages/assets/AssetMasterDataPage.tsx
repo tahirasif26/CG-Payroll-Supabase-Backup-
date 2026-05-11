@@ -59,7 +59,7 @@ export default function AssetMasterDataPage() {
         updateCategory(editId, { name: formName, description: formDesc });
         toast({ title: "Category Updated", description: `"${formName}" updated.` });
       } else {
-        addCategory({ id: `cat-${++catIdCounter}`, name: formName, description: formDesc, status: "active", createdDate: today });
+        addCategory({ id: "", name: formName, description: formDesc, status: "active", createdDate: today });
         toast({ title: "Category Created", description: `"${formName}" created.` });
       }
     } else if (dialogType === "condition") {
