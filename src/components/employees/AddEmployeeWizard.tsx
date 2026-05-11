@@ -134,6 +134,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const [dependants, setDependants] = useState<{ name: string; relation: string; dateOfBirth: string }[]>([]);
   const [sendInvite, setSendInvite] = useState(true);
   const [inviting, setInviting] = useState(false);
+  const [resending, setResending] = useState(false);
 
   // Prefill form when editing an existing employee.
   useEffect(() => {
