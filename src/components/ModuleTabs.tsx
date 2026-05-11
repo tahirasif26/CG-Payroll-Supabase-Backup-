@@ -13,8 +13,34 @@ import {
 } from "@/lib/navigation";
 
 function isPathActive(pathname: string, target: string): boolean {
-  if (target === "/") return pathname === "/";
-  return pathname === target || pathname.startsWith(target + "/");
+  const base = target.split("?")[0];
+  if (base === "/") return pathname === "/";
+  return pathname === base || pathname.startsWith(base + "/");
+}
+
+function isChildActive(
+  pathname: string,
+  search: string,
+  child: { path: string },
+  siblings: { path: string }[],
+): boolean {
+  const [childPath, childQuery] = child.path.split("?");
+  if (!isPathActive(pathname, childPath)) return false;
+  const queriedSiblings = siblings.filter((s) => {
+    const [sp, sq] = s.path.split("?");
+    return sp === childPath && sq;
+  });
+  const matchesQuery = (q: string) => {
+    const params = new URLSearchParams(search);
+    const tp = new URLSearchParams("?" + q);
+    for (const [k, v] of tp.entries()) {
+      if (params.get(k) !== v) return false;
+    }
+    return true;
+  };
+  if (childQuery) return matchesQuery(childQuery);
+  // base (no query) — active only if no queried sibling matches the URL
+  return !queriedSiblings.some((s) => matchesQuery(s.path.split("?")[1]!));
 }
 
 function isGroupActive(pathname: string, g: NavGroup): boolean {
