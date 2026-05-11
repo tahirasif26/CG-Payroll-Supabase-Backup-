@@ -215,11 +215,23 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
       const { data, error } = await supabase.functions.invoke("resend-invite", {
         body: { email: emp.email, client_id: clientId },
       });
+      const payload: any = data;
+      // Already-verified case: edge function returns 409 with { verified: true }
+      const errMsg: string = (error as any)?.message ?? payload?.error ?? "";
+      const isAlreadyVerified =
+        payload?.verified === true || /already verified/i.test(errMsg);
+      if (isAlreadyVerified) {
+        toast({
+          title: "Already verified",
+          description: `${emp.email} has already accepted the invite.`,
+        });
+        return;
+      }
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if (payload?.error) throw new Error(payload.error);
       toast({
-        title: "Invite resent",
-        description: `A fresh login link was sent to ${emp.email}.`,
+        title: "Invitation resent",
+        description: `Invitation resent to ${emp.email}.`,
       });
     } catch (e: any) {
       toast({
