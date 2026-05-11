@@ -31,16 +31,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 // xlsx is dynamically imported in handleBulkFileUpload to keep it out of the initial bundle
 
-let assetIdCounter = 100;
-let storeIdCounter = 200;
-
-
-
-
-
-
+let assetTagSeq = 0;
 function generateAssetTag() {
-  return `AST-${String(++assetIdCounter).padStart(3, "0")}`;
+  // Unique per call: timestamp tail + monotonic suffix to avoid collisions within the same ms
+  const tail = Date.now().toString().slice(-6);
+  assetTagSeq = (assetTagSeq + 1) % 100;
+  return `AST-${tail}${String(assetTagSeq).padStart(2, "0")}`;
 }
 
 export default function AssetInventoryPage() {
