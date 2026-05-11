@@ -1170,20 +1170,47 @@ export default function PayrollPage() {
         return null;
       })()}
 
-      {/* Live Payrolls — auto-created, in-progress runs */}
+      {/* Unified Payroll Runs view */}
       {(() => {
-        const liveRuns = dbRuns.filter(r => r.status !== "completed" && r.status !== "failed");
-        if (liveRuns.length === 0) return null;
-        const allSelected = selectedLiveIds.length === liveRuns.length;
+        const allRuns = [...dbRuns].sort((a, b) => {
+          const ad = a.run_date ? new Date(a.run_date).getTime() : 0;
+          const bd = b.run_date ? new Date(b.run_date).getTime() : 0;
+          return bd - ad;
+        });
+
+        const computeRow = (r: PayrollRunRow) => {
+          const setup = getSetupById(r.payroll_setup_id ?? "");
+          const localRun = runs.find(x => x.id === r.id) ?? adaptPayrollRun(r);
+          const runEmps = localRun.payrollSetupId
+            ? employees.filter(e => e.payrollSetupId === localRun.payrollSetupId)
+            : (localRun.employeeTypes && localRun.employeeTypes.length > 0
+                ? employees.filter(e => localRun.employeeTypes!.includes(e.category))
+                : employees);
+          const currency = setup?.currency || runEmps[0]?.payCurrency || REPORTING_CURRENCY;
+          const liveBreakdown = localRun.status !== "completed"
+            ? (setup
+                ? buildBreakdownFromSetup(runEmps, setup, oneOffs[localRun.id] || [], getSepMap(localRun.id), processedSeps, localRun.id, approvedAdvances)
+                : buildBreakdown(runEmps, [] as Deduction[], initialTaxConfigs, oneOffs[localRun.id] || [], getSepMap(localRun.id), processedSeps, localRun.id, approvedAdvances))
+            : null;
+          const count = liveBreakdown ? liveBreakdown.length : localRun.employeeCount;
+          const gross = liveBreakdown ? Math.round(liveBreakdown.reduce((s, l) => s + l.gross, 0)) : localRun.totalGross;
+          const ded = liveBreakdown ? Math.round(liveBreakdown.reduce((s, l) => s + l.totalDeductions, 0)) : localRun.totalDeductions;
+          const net = liveBreakdown ? Math.round(liveBreakdown.reduce((s, l) => s + l.net, 0)) : localRun.totalNet;
+          return { setup, localRun, currency, count, gross, ded, net, daysLeft: getDaysUntil(r.run_date) };
+        };
+
+        const isDraft = (s: string) => s !== "completed" && s !== "failed" && s !== "processing";
+        const draftIds = allRuns.filter(r => isDraft(r.status)).map(r => r.id);
+        const allSelected = draftIds.length > 0 && selectedLiveIds.length === draftIds.length;
         const toggleOne = (id: string) =>
           setSelectedLiveIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
         const toggleAll = () =>
-          setSelectedLiveIds(allSelected ? [] : liveRuns.map(r => r.id));
+          setSelectedLiveIds(allSelected ? [] : draftIds);
         const processSelected = () => {
           if (selectedLiveIds.length === 0) return;
-          const ordered = liveRuns.filter(r => selectedLiveIds.includes(r.id)).map(r => r.id);
+          const ordered = allRuns.filter(r => selectedLiveIds.includes(r.id)).map(r => r.id);
           const [firstId, ...rest] = ordered;
-          const firstRow = liveRuns.find(r => r.id === firstId)!;
+          const firstRow = allRuns.find(r => r.id === firstId)!;
           const localRun = runs.find(x => x.id === firstId) ?? adaptPayrollRun(firstRow);
           setSelectedRun(localRun);
           setPendingQueue(rest);
@@ -1192,12 +1219,13 @@ export default function PayrollPage() {
             toast({ title: `Processing ${ordered.length} payrolls`, description: `Next ${rest.length} will open after this one.` });
           }
         };
+
         return (
           <div>
             <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Live Payrolls</span>
-                <Badge variant="secondary">{liveRuns.length}</Badge>
+                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Payroll Runs</span>
+                <Badge variant="secondary">{allRuns.length}</Badge>
                 {selectedLiveIds.length > 0 && (
                   <Badge variant="outline" className="ml-1">{selectedLiveIds.length} selected</Badge>
                 )}
@@ -1212,41 +1240,58 @@ export default function PayrollPage() {
                   </>
                 )}
                 <div className="inline-flex rounded-md border bg-background p-0.5">
-                  <Button
-                    size="sm"
-                    variant={liveView === "cards" ? "secondary" : "ghost"}
-                    className="h-7 px-3 text-xs"
-                    onClick={() => setLiveView("cards")}
-                  >Cards</Button>
-                  <Button
-                    size="sm"
-                    variant={liveView === "list" ? "secondary" : "ghost"}
-                    className="h-7 px-3 text-xs"
-                    onClick={() => setLiveView("list")}
-                  >List</Button>
+                  <Button size="sm" variant={liveView === "cards" ? "secondary" : "ghost"} className="h-7 px-3 text-xs" onClick={() => setLiveView("cards")}>Cards</Button>
+                  <Button size="sm" variant={liveView === "list" ? "secondary" : "ghost"} className="h-7 px-3 text-xs" onClick={() => setLiveView("list")}>List</Button>
                 </div>
               </div>
             </div>
-            {liveView === "cards" ? (
+
+            {allRuns.length === 0 ? (
+              <div className="bg-card rounded-xl border p-8 text-center text-muted-foreground text-sm">No payroll runs yet.</div>
+            ) : liveView === "cards" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {liveRuns.map(r => {
-                  const setup = getSetupById(r.payroll_setup_id ?? "");
-                  const checked = selectedLiveIds.includes(r.id);
+                {allRuns.map(r => {
+                  const { setup, localRun, currency, net, daysLeft } = computeRow(r);
+                  const draft = isDraft(r.status);
+                  const isUrgent = draft && daysLeft <= 3;
                   return (
-                    <div key={r.id} className="relative">
-                      <div className="absolute top-2 left-2 z-10">
-                        <Checkbox checked={checked} onCheckedChange={() => toggleOne(r.id)} aria-label="Select payroll" />
-                      </div>
-                      <LivePayrollCard
-                        run={r}
-                        setupName={setup?.name ?? "Payroll"}
-                        currency={setup?.currency ?? REPORTING_CURRENCY}
-                        onProcess={(row) => {
-                          const localRun = runs.find(x => x.id === row.id) ?? adaptPayrollRun(row);
-                          setSelectedRun(localRun);
-                        }}
-                      />
-                    </div>
+                    <Card key={r.id} className={`border ${isUrgent ? "border-destructive/60 bg-destructive/5" : r.status === "completed" ? "border-success/30" : r.status === "processing" ? "border-warning/40 bg-warning/5" : "border-border"}`}>
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0">
+                            <CardTitle className="text-sm font-semibold truncate">{setup?.name ?? "Payroll"}</CardTitle>
+                            <p className="text-xs text-muted-foreground mt-0.5">{currency} · {r.month} {r.year}</p>
+                          </div>
+                          <StatusBadge status={r.status as any} />
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex justify-between text-xs gap-2">
+                          <div>
+                            <p className="text-muted-foreground">Pay Date</p>
+                            <p className="font-medium">{r.run_date ? new Date(r.run_date).toLocaleDateString() : "—"}</p>
+                          </div>
+                          {draft && (
+                            <div className="text-right">
+                              <p className="text-muted-foreground">Days Left</p>
+                              <p className={`font-bold text-base ${isUrgent ? "text-destructive" : "text-primary"}`}>{daysLeft}</p>
+                            </div>
+                          )}
+                          <div className="text-right">
+                            <p className="text-muted-foreground">Net</p>
+                            <p className="font-semibold">{net.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          variant={isUrgent ? "destructive" : draft ? "default" : "outline"}
+                          onClick={() => setSelectedRun(localRun)}
+                        >
+                          {draft ? <><Play className="h-3.5 w-3.5 mr-1" /> Process</> : <><Eye className="h-3.5 w-3.5 mr-1" /> View</>}
+                        </Button>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
@@ -1254,47 +1299,68 @@ export default function PayrollPage() {
               <div className="bg-card rounded-xl border overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/50">
                       <TableHead className="w-10">
-                        <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
+                        {draftIds.length > 0 && <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />}
                       </TableHead>
-                      <TableHead>Payroll Setup</TableHead>
-                      <TableHead>Period</TableHead>
-                      <TableHead>Currency</TableHead>
-                      <TableHead>Pay Date</TableHead>
-                      <TableHead>Days Left</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="font-semibold">Payroll Setup</TableHead>
+                      <TableHead className="font-semibold">Period</TableHead>
+                      <TableHead className="font-semibold">Currency</TableHead>
+                      <TableHead className="font-semibold">Pay Date</TableHead>
+                      <TableHead className="font-semibold">Days Left</TableHead>
+                      <TableHead className="font-semibold">Employees</TableHead>
+                      <TableHead className="font-semibold text-right">Gross</TableHead>
+                      <TableHead className="font-semibold text-right">Deductions</TableHead>
+                      <TableHead className="font-semibold text-right">Net</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {liveRuns.map(r => {
-                      const setup = getSetupById(r.payroll_setup_id ?? "");
+                    {allRuns.map(r => {
+                      const { setup, localRun, currency, count, gross, ded, net, daysLeft } = computeRow(r);
+                      const draft = isDraft(r.status);
+                      const isUrgent = draft && daysLeft <= 3;
                       const checked = selectedLiveIds.includes(r.id);
-                      const daysLeft = getDaysUntil(r.run_date);
-                      const isUrgent = daysLeft <= 3;
                       return (
-                        <TableRow key={r.id} className={checked ? "bg-muted/40" : ""}>
-                          <TableCell>
-                            <Checkbox checked={checked} onCheckedChange={() => toggleOne(r.id)} aria-label="Select payroll" />
+                        <TableRow key={r.id} className={`hover:bg-muted/30 transition-colors cursor-pointer ${checked ? "bg-muted/40" : ""}`} onClick={() => setSelectedRun(localRun)}>
+                          <TableCell onClick={e => e.stopPropagation()}>
+                            {draft && <Checkbox checked={checked} onCheckedChange={() => toggleOne(r.id)} aria-label="Select payroll" />}
                           </TableCell>
                           <TableCell className="font-medium">{setup?.name ?? "Payroll"}</TableCell>
                           <TableCell>{r.month} {r.year}</TableCell>
-                          <TableCell>{setup?.currency ?? REPORTING_CURRENCY}</TableCell>
+                          <TableCell className="font-medium text-xs">{currency}</TableCell>
                           <TableCell>{r.run_date ? new Date(r.run_date).toLocaleDateString() : "—"}</TableCell>
-                          <TableCell className={isUrgent ? "text-destructive font-semibold" : "font-medium"}>{daysLeft}</TableCell>
+                          <TableCell className={isUrgent ? "text-destructive font-semibold" : draft ? "font-medium" : "text-muted-foreground"}>{draft ? daysLeft : "—"}</TableCell>
+                          <TableCell>{count}</TableCell>
+                          <TableCell className="text-right">{gross.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-destructive">{ded.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
                           <TableCell><StatusBadge status={r.status as any} /></TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant={isUrgent ? "destructive" : "default"}
-                              onClick={() => {
-                                const localRun = runs.find(x => x.id === r.id) ?? adaptPayrollRun(r);
-                                setSelectedRun(localRun);
-                              }}
-                            >
-                              <Play className="h-3.5 w-3.5 mr-1" /> Process
-                            </Button>
+                          <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-end gap-1 items-center">
+                              {draft && (
+                                <Button size="sm" variant={isUrgent ? "destructive" : "default"} onClick={() => setSelectedRun(localRun)}>
+                                  <Play className="h-3.5 w-3.5 mr-1" /> Process
+                                </Button>
+                              )}
+                              {!draft && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRun(localRun)}><Eye className="h-3.5 w-3.5" /></Button>
+                              )}
+                              {r.status === "completed" && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadAccounting(localRun)}>
+                                  <Download className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {r.status === "completed" && (
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground ml-1" />
+                              )}
+                              {(r.status === "processing" || draft || r.status === "failed") && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRun(localRun.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -1306,96 +1372,6 @@ export default function PayrollPage() {
           </div>
         );
       })()}
-
-      <Tabs defaultValue="processing" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="processing">Processing</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-        </TabsList>
-
-        {["processing", "completed"].map(tab => {
-          const filtered = runs.filter(r => tab === "completed" ? r.status === "completed" : r.status !== "completed");
-          return (
-            <TabsContent key={tab} value={tab}>
-              <div className="bg-card rounded-xl border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold">Period</TableHead>
-                      <TableHead className="font-semibold">Payroll Setup</TableHead>
-                      <TableHead className="font-semibold">Employees</TableHead>
-                      <TableHead className="font-semibold">Currency</TableHead>
-                      <TableHead className="font-semibold text-right">Gross</TableHead>
-                      <TableHead className="font-semibold text-right">Deductions</TableHead>
-                      <TableHead className="font-semibold text-right">Net</TableHead>
-                      <TableHead className="font-semibold">Run Date</TableHead>
-                      <TableHead className="font-semibold">Status</TableHead>
-                      <TableHead className="font-semibold text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.length > 0 ? filtered.map((run) => {
-                      const runEmps = run.payrollSetupId ? employees.filter(e => e.payrollSetupId === run.payrollSetupId) : (run.employeeTypes && run.employeeTypes.length > 0 ? employees.filter(e => run.employeeTypes!.includes(e.category)) : employees);
-                      const runSetup = run.payrollSetupId ? getSetupById(run.payrollSetupId) : undefined;
-                      const runCurrency = runSetup?.currency || runEmps[0]?.payCurrency || REPORTING_CURRENCY;
-                      const liveBreakdown = run.status !== "completed"
-                        ? (runSetup ? buildBreakdownFromSetup(runEmps, runSetup, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances) : buildBreakdown(runEmps, [] as Deduction[], initialTaxConfigs, oneOffs[run.id] || [], getSepMap(run.id), processedSeps, run.id, approvedAdvances))
-                        : null;
-                      const dispCount = liveBreakdown ? liveBreakdown.length : run.employeeCount;
-                      const dispGross = liveBreakdown
-                        ? Math.round(liveBreakdown.reduce((s, l) => s + l.gross, 0))
-                        : run.totalGross;
-                      const dispDed = liveBreakdown
-                        ? Math.round(liveBreakdown.reduce((s, l) => s + l.totalDeductions, 0))
-                        : run.totalDeductions;
-                      const dispNet = liveBreakdown
-                        ? Math.round(liveBreakdown.reduce((s, l) => s + l.net, 0))
-                        : run.totalNet;
-                      return (
-                        <TableRow key={run.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedRun(run)}>
-                          <TableCell className="font-medium">{run.month} {run.year}</TableCell>
-                          <TableCell className="text-xs">{run.payrollSetupId ? (getSetupById(run.payrollSetupId)?.name || "—") : (run.employeeTypes?.map(t => getTypeName(t)).join(", ") || "All")}</TableCell>
-                          <TableCell>{dispCount}</TableCell>
-                          <TableCell className="font-medium text-xs">{runCurrency}</TableCell>
-                          <TableCell className="text-right">{dispGross.toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-destructive">{dispDed.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-semibold">{dispNet.toLocaleString()}</TableCell>
-                          <TableCell>{run.runDate || "—"}</TableCell>
-                          <TableCell><StatusBadge status={run.status} /></TableCell>
-                          <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                            <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRun(run)}><Eye className="h-3.5 w-3.5" /></Button>
-                              {run.status === "completed" && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadAccounting(run)}>
-                                  <Download className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                              {run.status === "completed" && (
-                                <Lock className="h-3.5 w-3.5 text-muted-foreground ml-1 mt-2" />
-                              )}
-                              {(run.status === "processing" || run.status === "draft" || run.status === "failed") && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRun(run.id)}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    }) : (
-                      <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                          {tab === "completed" ? "No completed payroll runs yet." : "No processing payroll runs."}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-          );
-        })}
-      </Tabs>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
