@@ -75,7 +75,7 @@ export default function AssetMasterDataPage() {
         updateLocation(editId, { name: formName, description: formDesc });
         toast({ title: "Location Updated", description: `"${formName}" updated.` });
       } else {
-        addLocation({ id: `loc-${++locIdCounter}`, name: formName, description: formDesc, status: "active", createdDate: today });
+        addLocation({ id: "", name: formName, description: formDesc, status: "active", createdDate: today });
         toast({ title: "Location Created", description: `"${formName}" created.` });
       }
     }
