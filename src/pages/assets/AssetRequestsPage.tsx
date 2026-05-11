@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyTableRow } from "@/components/EmptyState";
