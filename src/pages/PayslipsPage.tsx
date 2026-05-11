@@ -231,7 +231,7 @@ export default function PayslipsPage() {
       const setup = getSetupById(emp.payrollSetupId || "");
       const { totalDeductions, gross } = buildPayslipFromSetup(emp, setup);
       const net = gross - totalDeductions;
-      const payCurrency = getEmployeePayCurrency(emp);
+      const payCurrency = setup?.currency || getEmployeePayCurrency(emp);
       return { run, emp, gross, deductions: totalDeductions, net, payCurrency, setup };
     });
   });
