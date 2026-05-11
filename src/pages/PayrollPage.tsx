@@ -555,8 +555,9 @@ export default function PayrollPage() {
     toast({ title: "Payroll Completed", description: `${run.month} ${run.year} payroll for ${setupName} is locked.` });
     setSelectedRun(null);
 
-    // Auto-create the next month's draft run for this setup so the live cards
-    // pipeline keeps rolling forward.
+    // Auto-create the next period's draft run for this setup so the live cards
+    // pipeline keeps rolling forward. Frequency-aware + dedupes against any
+    // existing future run for the same setup.
     void (async () => {
       try {
         if (!run.payrollSetupId || !clientId) return;
@@ -566,22 +567,42 @@ export default function PayrollPage() {
           "January", "February", "March", "April", "May", "June",
           "July", "August", "September", "October", "November", "December",
         ];
+        const freq = ((setup as any).payFrequency || (setup as any).pay_frequency || (setup as any).paySchedule?.frequency || "monthly").toString().toLowerCase();
+        const stepMonths =
+          freq.includes("semi-annual") || freq.includes("biannual") ? 6 :
+          freq.includes("quarter") ? 3 :
+          freq.includes("annual") || freq === "yearly" ? 12 :
+          1; // monthly / weekly / biweekly / semi-monthly all roll month-by-month for the card view
         const curIdx = monthNames.indexOf(run.month);
         const baseIdx = curIdx >= 0 ? curIdx : new Date().getMonth();
-        const nextIdx = (baseIdx + 1) % 12;
-        const nextYear = baseIdx === 11 ? run.year + 1 : run.year;
+        const totalIdx = baseIdx + stepMonths;
+        const nextIdx = ((totalIdx % 12) + 12) % 12;
+        const nextYear = run.year + Math.floor(totalIdx / 12);
+        const nextMonth = monthNames[nextIdx];
+
+        // Dedupe: if a run for the same setup + period already exists, skip.
+        const existing = (dbRuns as PayrollRunRow[]).find(
+          r2 => r2.payroll_setup_id === setup.id && r2.month === nextMonth && r2.year === nextYear
+        );
+        if (existing) {
+          queryClient.invalidateQueries({ queryKey: ["payroll_runs"] });
+          return;
+        }
+
         const payDate = parseInt(setup.paySchedule?.payDate ?? "25", 10) || 25;
         const { data: { user } } = await supabase.auth.getUser();
         if (!user?.id) return;
         await supabase.from("payroll_runs").insert({
           client_id: clientId,
           payroll_setup_id: setup.id,
-          month: monthNames[nextIdx],
+          month: nextMonth,
           year: nextYear,
           run_date: `${nextYear}-${String(nextIdx + 1).padStart(2, "0")}-${String(payDate).padStart(2, "0")}`,
           status: "draft",
           created_by: user.id,
         });
+        // Allow the auto-create effect to re-fire for this setup if needed later.
+        autoCreateAttemptedRef.current.delete(setup.id);
         queryClient.invalidateQueries({ queryKey: ["payroll_runs"] });
       } catch {
         // Non-fatal: next run can be added manually if this fails.
@@ -1172,11 +1193,20 @@ export default function PayrollPage() {
 
       {/* Unified Payroll Runs view */}
       {(() => {
-        const allRuns = [...dbRuns].sort((a, b) => {
-          const ad = a.run_date ? new Date(a.run_date).getTime() : 0;
-          const bd = b.run_date ? new Date(b.run_date).getTime() : 0;
-          return bd - ad;
-        });
+        // Overlay local optimistic status (e.g. just-completed) onto dbRuns so
+        // the Processing/Completed tabs reflect the change immediately, even
+        // before the DB query refetches.
+        const localStatusById = new Map(runs.map(r => [r.id, r.status] as const));
+        const allRuns = [...dbRuns]
+          .map(r => {
+            const local = localStatusById.get(r.id);
+            return local && local !== r.status ? { ...r, status: local } : r;
+          })
+          .sort((a, b) => {
+            const ad = a.run_date ? new Date(a.run_date).getTime() : 0;
+            const bd = b.run_date ? new Date(b.run_date).getTime() : 0;
+            return bd - ad;
+          });
 
         const computeRow = (r: PayrollRunRow) => {
           const setup = getSetupById(r.payroll_setup_id ?? "");
