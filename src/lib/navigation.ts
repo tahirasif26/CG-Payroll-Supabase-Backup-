@@ -249,8 +249,8 @@ export const meNavigationGroups: NavGroup[] = [
     label: "My Leave",
     icon: CalendarDays,
     children: [
-      { label: "Leave Balance", path: "/leave",            requiredFeature: "leave.view_balance" },
-      { label: "Apply Leave",   path: "/leave?apply=true", requiredFeature: "leave.apply" },
+      { label: "Leave Requests", path: "/leave",                 requiredFeature: "leave.view_balance" },
+      { label: "Leave Balances", path: "/leave?view=balances",   requiredFeature: "leave.view_balance" },
     ],
   },
   {

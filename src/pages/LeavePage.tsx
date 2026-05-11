@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
@@ -60,6 +61,9 @@ export default function LeavePage() {
   const activeLeaveTypes = leaveTypes.filter(lt => lt.isActive);
   const qc = useQueryClient();
   const { toast } = useToast();
+
+  const location = useLocation();
+  const view = new URLSearchParams(location.search).get("view") === "balances" ? "balances" : "requests";
 
   const [newOpen, setNewOpen] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
@@ -278,127 +282,118 @@ export default function LeavePage() {
         </div>
       </PageHeader>
 
-      <Tabs defaultValue="requests">
-        <TabsList>
-          <TabsTrigger value="requests">Leave Requests</TabsTrigger>
-          <TabsTrigger value="balances">Leave Balances</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="requests">
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by employee or reason..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-              </div>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-[180px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {activeLeaveTypes.map(lt => (
-                    <SelectItem key={lt.id} value={lt.id}>{lt.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+      {view === "balances" ? (
+        <Card>
+          <CardContent className="p-0">
+            <div className="p-4 border-b">
+              <p className="text-sm text-muted-foreground">Fiscal Year: <span className="font-semibold text-foreground">{currentFY}</span></p>
             </div>
-
-            <div className="bg-card rounded-xl border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">Employee</TableHead>
-                    <TableHead className="font-semibold">Type</TableHead>
-                    <TableHead className="font-semibold">From</TableHead>
-                    <TableHead className="font-semibold">To</TableHead>
-                    <TableHead className="font-semibold">Days</TableHead>
-                    <TableHead className="font-semibold">Reason</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLeaves.length === 0 ? (
-                    <EmptyTableRow colSpan={8} icon={CalendarOff} title="No leave requests" description="Apply for leave or adjust filters to see results." />
-                  ) : filteredLeaves.map((leave) => (
-                    <TableRow key={leave.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-medium">{empMap.get(leave.employee_id) || "—"}</TableCell>
-                      <TableCell className="capitalize">{ltMap.get(leave.leave_type_id) || "—"}</TableCell>
-                      <TableCell>{new Date(leave.start_date).toLocaleDateString()}</TableCell>
-                      <TableCell>{new Date(leave.end_date).toLocaleDateString()}</TableCell>
-                      <TableCell className="font-semibold">{leave.days}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{leave.reason}</TableCell>
-                      <TableCell><StatusBadge status={leave.status as any} /></TableCell>
-                      <TableCell>
-                        {leave.status === "pending" && (
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-success hover:bg-success/10" onClick={() => { setSelectedLeave(leave.id); setApproveOpen(true); }}>
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={() => { setSelectedLeave(leave.id); setRejectOpen(true); }}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Employee</TableHead>
+                  <TableHead className="font-semibold">Leave Type</TableHead>
+                  <TableHead className="font-semibold text-right">Entitled</TableHead>
+                  <TableHead className="font-semibold text-right">Carried Forward</TableHead>
+                  <TableHead className="font-semibold text-right">Used</TableHead>
+                  <TableHead className="font-semibold text-right">Remaining</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {balanceRows.length === 0 ? (
+                  <EmptyTableRow colSpan={6} icon={Scale} title="No balance data yet" description="Allocate leave to employees to populate balances." />
+                ) : (
+                  balanceRows.map((row, i) => (
+                    <TableRow key={`${row.empId}-${row.leaveType}-${i}`} className="hover:bg-muted/30">
+                      <TableCell className="font-medium">{row.empName}</TableCell>
+                      <TableCell>{row.leaveType}</TableCell>
+                      <TableCell className="text-right">{row.entitled}</TableCell>
+                      <TableCell className="text-right">{row.carriedForward}</TableCell>
+                      <TableCell className="text-right">{row.used}</TableCell>
+                      <TableCell className="text-right">
+                        <span className={row.remaining <= 3 ? "text-amber-600 font-semibold" : row.remaining > 5 ? "text-green-600 font-semibold" : "font-semibold"}>
+                          {row.remaining}
+                        </span>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search by employee or reason..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
             </div>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[180px]"><Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" /><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {activeLeaveTypes.map(lt => (
+                  <SelectItem key={lt.id} value={lt.id}>{lt.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </TabsContent>
 
-        <TabsContent value="balances">
-          <Card>
-            <CardContent className="p-0">
-              <div className="p-4 border-b">
-                <p className="text-sm text-muted-foreground">Fiscal Year: <span className="font-semibold text-foreground">{currentFY}</span></p>
-              </div>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">Employee</TableHead>
-                    <TableHead className="font-semibold">Leave Type</TableHead>
-                    <TableHead className="font-semibold text-right">Entitled</TableHead>
-                    <TableHead className="font-semibold text-right">Carried Forward</TableHead>
-                    <TableHead className="font-semibold text-right">Used</TableHead>
-                    <TableHead className="font-semibold text-right">Remaining</TableHead>
+          <div className="bg-card rounded-xl border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Employee</TableHead>
+                  <TableHead className="font-semibold">Type</TableHead>
+                  <TableHead className="font-semibold">From</TableHead>
+                  <TableHead className="font-semibold">To</TableHead>
+                  <TableHead className="font-semibold">Days</TableHead>
+                  <TableHead className="font-semibold">Reason</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLeaves.length === 0 ? (
+                  <EmptyTableRow colSpan={8} icon={CalendarOff} title="No leave requests" description="Apply for leave or adjust filters to see results." />
+                ) : filteredLeaves.map((leave) => (
+                  <TableRow key={leave.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="font-medium">{empMap.get(leave.employee_id) || "—"}</TableCell>
+                    <TableCell className="capitalize">{ltMap.get(leave.leave_type_id) || "—"}</TableCell>
+                    <TableCell>{new Date(leave.start_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(leave.end_date).toLocaleDateString()}</TableCell>
+                    <TableCell className="font-semibold">{leave.days}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{leave.reason}</TableCell>
+                    <TableCell><StatusBadge status={leave.status as any} /></TableCell>
+                    <TableCell>
+                      {leave.status === "pending" && (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-success hover:bg-success/10" onClick={() => { setSelectedLeave(leave.id); setApproveOpen(true); }}>
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={() => { setSelectedLeave(leave.id); setRejectOpen(true); }}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {balanceRows.length === 0 ? (
-                    <EmptyTableRow colSpan={6} icon={Scale} title="No balance data yet" description="Allocate leave to employees to populate balances." />
-                  ) : (
-                    balanceRows.map((row, i) => (
-                      <TableRow key={`${row.empId}-${row.leaveType}-${i}`} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{row.empName}</TableCell>
-                        <TableCell>{row.leaveType}</TableCell>
-                        <TableCell className="text-right">{row.entitled}</TableCell>
-                        <TableCell className="text-right">{row.carriedForward}</TableCell>
-                        <TableCell className="text-right">{row.used}</TableCell>
-                        <TableCell className="text-right">
-                          <span className={row.remaining <= 3 ? "text-amber-600 font-semibold" : row.remaining > 5 ? "text-green-600 font-semibold" : "font-semibold"}>
-                            {row.remaining}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       {/* New Leave Request Dialog */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>

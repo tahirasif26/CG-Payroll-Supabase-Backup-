@@ -13,8 +13,34 @@ import {
 } from "@/lib/navigation";
 
 function isPathActive(pathname: string, target: string): boolean {
-  if (target === "/") return pathname === "/";
-  return pathname === target || pathname.startsWith(target + "/");
+  const base = target.split("?")[0];
+  if (base === "/") return pathname === "/";
+  return pathname === base || pathname.startsWith(base + "/");
+}
+
+function isChildActive(
+  pathname: string,
+  search: string,
+  child: { path: string },
+  siblings: { path: string }[],
+): boolean {
+  const [childPath, childQuery] = child.path.split("?");
+  if (!isPathActive(pathname, childPath)) return false;
+  const queriedSiblings = siblings.filter((s) => {
+    const [sp, sq] = s.path.split("?");
+    return sp === childPath && sq;
+  });
+  const matchesQuery = (q: string) => {
+    const params = new URLSearchParams(search);
+    const tp = new URLSearchParams("?" + q);
+    for (const [k, v] of tp.entries()) {
+      if (params.get(k) !== v) return false;
+    }
+    return true;
+  };
+  if (childQuery) return matchesQuery(childQuery);
+  // base (no query) — active only if no queried sibling matches the URL
+  return !queriedSiblings.some((s) => matchesQuery(s.path.split("?")[1]!));
 }
 
 function isGroupActive(pathname: string, g: NavGroup): boolean {
@@ -50,7 +76,7 @@ export function ModuleTabs() {
     <div className="border-b bg-card sticky top-14 z-20 shrink-0">
       <div className="flex gap-1 overflow-x-auto px-4 md:px-6 scrollbar-hide">
         {activeGroup.children.map((c) => {
-          const active = isPathActive(location.pathname, c.path);
+          const active = isChildActive(location.pathname, location.search, c, activeGroup.children!);
           const label = appRole ? resolveChildLabel(c, appRole) : c.label;
           return (
             <button
