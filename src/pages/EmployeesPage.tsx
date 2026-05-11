@@ -847,7 +847,7 @@ function PersonalInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: 
   );
 }
 
-function WorkInfoTab({ emp }: { emp: Employee }) {
+function WorkInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: boolean }) {
   const ext = getExtData(emp.id);
   const [editing, setEditing] = useState(false);
   const { toast } = useToast();
