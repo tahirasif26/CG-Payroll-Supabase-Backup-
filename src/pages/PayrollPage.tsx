@@ -417,6 +417,22 @@ export default function PayrollPage() {
   const activeEmps = useActiveEmployees();
   const { leaveTypes, balances, initializeBalances, runYearEndCarryforward, completedRollovers } = useLeaveTypes();
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
+  const [liveView, setLiveView] = useState<"cards" | "list">("cards");
+  const [selectedLiveIds, setSelectedLiveIds] = useState<string[]>([]);
+  const [pendingQueue, setPendingQueue] = useState<string[]>([]);
+  // When the detail sheet closes (selectedRun becomes null) and there are
+  // queued payrolls left to process, auto-open the next one.
+  React.useEffect(() => {
+    if (!selectedRun && pendingQueue.length > 0) {
+      const [nextId, ...rest] = pendingQueue;
+      const nextRow = dbRuns.find(r => r.id === nextId);
+      if (nextRow) {
+        const localRun = runs.find(x => x.id === nextId) ?? adaptPayrollRun(nextRow);
+        setSelectedRun(localRun);
+      }
+      setPendingQueue(rest);
+    }
+  }, [selectedRun, pendingQueue, dbRuns, runs]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ id: string; action: "approve" | "reject" } | null>(null);
   const [carryforwardOpen, setCarryforwardOpen] = useState(false);
