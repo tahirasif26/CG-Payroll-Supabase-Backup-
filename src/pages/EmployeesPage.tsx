@@ -472,9 +472,11 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }} title="View profile">
                         <User className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }} title="Documents">
-                        <FileText className="h-3.5 w-3.5" />
-                      </Button>
+                      {onEdit && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onEdit(emp); }} title="Edit employee">
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       {!(inviteStatusMap.has(emp.empId) && inviteStatusMap.get(emp.empId)) && (
                         <Button
                           variant="ghost"
