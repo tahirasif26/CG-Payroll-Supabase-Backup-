@@ -24,27 +24,27 @@ export default function AssetRequestsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Asset Requests"
-        description={role === "employer" ? "Review and manage asset requests from employees." : "Track your asset requests."}
+        description={canApprove ? "Review and manage asset requests from employees." : "Track your asset requests."}
       />
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              {role === "employer" && <TableHead className="font-semibold">Employee</TableHead>}
+              {canApprove && <TableHead className="font-semibold">Employee</TableHead>}
               <TableHead className="font-semibold">Asset Name</TableHead>
               <TableHead className="font-semibold">Category</TableHead>
               <TableHead className="font-semibold">Request Date</TableHead>
               <TableHead className="font-semibold">Reason</TableHead>
               <TableHead className="font-semibold">Priority</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
-              {role === "employer" && <TableHead className="font-semibold text-right">Actions</TableHead>}
+              {canApprove && <TableHead className="font-semibold text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {displayRequests.length > 0 ? displayRequests.map(req => (
               <TableRow key={req.id} className="hover:bg-muted/30 transition-colors">
-                {role === "employer" && (
+                {canApprove && (
                   <TableCell className="font-medium">
                     {req.employeeId ? (
                       <button
@@ -65,7 +65,7 @@ export default function AssetRequestsPage() {
                 <TableCell className="max-w-[200px] truncate" title={req.reason}>{req.reason}</TableCell>
                 <TableCell><Badge variant={req.priority === "high" ? "destructive" : req.priority === "medium" ? "default" : "secondary"}>{req.priority.charAt(0).toUpperCase() + req.priority.slice(1)}</Badge></TableCell>
                 <TableCell><StatusBadge status={req.status} /></TableCell>
-                {role === "employer" && (
+                {canApprove && (
                   <TableCell className="text-right">
                     {req.status === "pending" ? (
                       <div className="flex justify-end gap-1">
@@ -79,7 +79,7 @@ export default function AssetRequestsPage() {
                 )}
               </TableRow>
             )) : (
-              <EmptyTableRow colSpan={role === "employer" ? 8 : 6} icon={ClipboardList} title="No requests yet" description="Asset requests will appear here." />
+              <EmptyTableRow colSpan={canApprove ? 8 : 6} icon={ClipboardList} title="No requests yet" description="Asset requests will appear here." />
             )}
           </TableBody>
         </Table>
