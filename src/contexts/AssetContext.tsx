@@ -7,6 +7,16 @@ import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { Asset, AssetCategory, AssetStoreItem, AssetRequest, AssetConditionItem, AssetLocationItem } from "@/types/hcm";
 import { AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
 import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
+import { toast } from "sonner";
+
+function showDbError(action: string, error: any) {
+  console.error(action, error);
+  if (error?.code === "23505") {
+    toast.error("Duplicate value — this record already exists. Please use a different identifier.");
+  } else {
+    toast.error(error?.message || `Failed to ${action}`);
+  }
+}
 
 export interface AssetHistoryEntry {
   id: string;
@@ -333,7 +343,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       warranty_expiry: asset.warrantyExpiry || null,
       service_due_date: asset.serviceDueDate || null,
     }).select().single();
-    if (error) { console.error("addAsset", error); return; }
+    if (error) { showDbError("add asset", error); return; }
     await writeHistory(data.id, "created", { toEmployeeId: asset.employeeId, note: `Asset "${asset.name}" created` });
     if (asset.employeeId) {
       await writeHistory(data.id, "assigned", { toEmployeeId: asset.employeeId });
@@ -403,7 +413,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       employee_id: null,
     }));
     const { data, error } = await sb.from("assets").insert(rows).select();
-    if (error) { console.error("bulkAddAssets", error); return; }
+    if (error) { showDbError("bulk add assets", error); return; }
     if (data && Array.isArray(data)) {
       await Promise.all(data.map((d: any) => writeHistory(d.id, "created", { note: `Bulk created: "${d.name}"` })));
     }
@@ -416,7 +426,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   // ============ CATEGORY/CONDITION/LOCATION MUTATIONS ============
   const addCategory = async (cat: AssetCategory) => {
     if (!clientId) return;
-    await sb.from("asset_categories").insert({ client_id: clientId, name: cat.name, description: cat.description || null, status: cat.status });
+    const { error } = await sb.from("asset_categories").insert({ client_id: clientId, name: cat.name, description: cat.description || null, status: cat.status });
+    if (error) { showDbError("add category", error); return; }
     qc.invalidateQueries({ queryKey: ["asset_categories"] });
   };
   const updateCategory = async (id: string, data: Partial<AssetCategory>) => {
@@ -440,7 +451,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
 
   const addCondition = async (item: AssetConditionItem) => {
     if (!clientId) return;
-    await sb.from("asset_conditions").insert({ client_id: clientId, name: item.name, description: item.description || null, status: item.status });
+    const { error } = await sb.from("asset_conditions").insert({ client_id: clientId, name: item.name, description: item.description || null, status: item.status });
+    if (error) { showDbError("add condition", error); return; }
     qc.invalidateQueries({ queryKey: ["asset_conditions"] });
   };
   const updateCondition = async (id: string, data: Partial<AssetConditionItem>) => {
@@ -460,7 +472,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
 
   const addLocation = async (item: AssetLocationItem) => {
     if (!clientId) return;
-    await sb.from("asset_locations").insert({ client_id: clientId, name: item.name, description: item.description || null, status: item.status });
+    const { error } = await sb.from("asset_locations").insert({ client_id: clientId, name: item.name, description: item.description || null, status: item.status });
+    if (error) { showDbError("add location", error); return; }
     qc.invalidateQueries({ queryKey: ["asset_locations"] });
   };
   const updateLocation = async (id: string, data: Partial<AssetLocationItem>) => {
@@ -481,7 +494,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   // ============ STORE ITEMS ============
   const addStoreItem = async (item: AssetStoreItem) => {
     if (!clientId) return;
-    await sb.from("asset_store_items").insert({
+    const { error } = await sb.from("asset_store_items").insert({
       client_id: clientId,
       name: item.name,
       category_id: item.categoryId || null,
@@ -496,6 +509,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       specifications: item.specifications || null,
       publish_to_store: item.publishToStore,
     });
+    if (error) { showDbError("add store item", error); return; }
     qc.invalidateQueries({ queryKey: ["asset_store_items"] });
   };
   const updateStoreItem = async (id: string, data: Partial<AssetStoreItem>) => {

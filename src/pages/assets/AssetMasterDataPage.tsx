@@ -14,9 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-let catIdCounter = 100;
-let condIdCounter = 100;
-let locIdCounter = 100;
 
 export default function AssetMasterDataPage() {
   const {
@@ -62,7 +59,7 @@ export default function AssetMasterDataPage() {
         updateCategory(editId, { name: formName, description: formDesc });
         toast({ title: "Category Updated", description: `"${formName}" updated.` });
       } else {
-        addCategory({ id: `cat-${++catIdCounter}`, name: formName, description: formDesc, status: "active", createdDate: today });
+        addCategory({ id: "", name: formName, description: formDesc, status: "active", createdDate: today });
         toast({ title: "Category Created", description: `"${formName}" created.` });
       }
     } else if (dialogType === "condition") {
@@ -70,7 +67,7 @@ export default function AssetMasterDataPage() {
         updateCondition(editId, { name: formName, description: formDesc });
         toast({ title: "Condition Updated", description: `"${formName}" updated.` });
       } else {
-        addCondition({ id: `cond-${++condIdCounter}`, name: formName, description: formDesc, status: "active", createdDate: today });
+        addCondition({ id: "", name: formName, description: formDesc, status: "active", createdDate: today });
         toast({ title: "Condition Created", description: `"${formName}" created.` });
       }
     } else {
@@ -78,7 +75,7 @@ export default function AssetMasterDataPage() {
         updateLocation(editId, { name: formName, description: formDesc });
         toast({ title: "Location Updated", description: `"${formName}" updated.` });
       } else {
-        addLocation({ id: `loc-${++locIdCounter}`, name: formName, description: formDesc, status: "active", createdDate: today });
+        addLocation({ id: "", name: formName, description: formDesc, status: "active", createdDate: today });
         toast({ title: "Location Created", description: `"${formName}" created.` });
       }
     }
