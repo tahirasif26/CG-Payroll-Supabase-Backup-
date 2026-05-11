@@ -203,7 +203,7 @@ export default function AssetInventoryPage() {
     const newAssets: Asset[] = bulkPreviewSerials.map(serial => {
       const tag = generateAssetTag();
       return {
-        id: String(assetIdCounter),
+        id: "",
         assetTag: tag,
         name: bulkName,
         category: catObj.name,
