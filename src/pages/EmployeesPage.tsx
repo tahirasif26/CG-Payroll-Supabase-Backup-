@@ -571,7 +571,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
   );
 }
 
-function PersonalInfoTab({ emp }: { emp: Employee }) {
+function PersonalInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: boolean }) {
   const { data: profile, isLoading } = useEmployeeProfile(emp.id);
   const updateProfile = useUpdateEmployeeProfile();
   const [editing, setEditing] = useState<string | null>(null);
