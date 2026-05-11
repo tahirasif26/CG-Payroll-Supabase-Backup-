@@ -170,7 +170,7 @@ type SortDir = "asc" | "desc";
 
 const ITEMS_PER_PAGE = 10;
 
-function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; isEmployee?: boolean }) {
+function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; onEdit?: (emp: Employee) => void; isEmployee?: boolean }) {
   const { getTypeName } = useEmployeeTypes();
   const { removeEmployee } = useEmployees();
   const { toast } = useToast();
