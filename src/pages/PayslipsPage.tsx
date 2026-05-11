@@ -146,7 +146,7 @@ export default function PayslipsPage() {
     const { earnings, deductions: dedItems, totalDeductions, gross } = buildPayslipFromSetup(currentEmployee, setup);
     const monthlySalary = gross;
     const netPay = monthlySalary - totalDeductions;
-    const payCurrency = getEmployeePayCurrency(currentEmployee);
+    const payCurrency = setup?.currency || getEmployeePayCurrency(currentEmployee);
 
     // Only show runs matching employee's setup
     const myRuns = completedRuns.filter(r => r.payrollSetupId === currentEmployee.payrollSetupId);
@@ -231,7 +231,7 @@ export default function PayslipsPage() {
       const setup = getSetupById(emp.payrollSetupId || "");
       const { totalDeductions, gross } = buildPayslipFromSetup(emp, setup);
       const net = gross - totalDeductions;
-      const payCurrency = getEmployeePayCurrency(emp);
+      const payCurrency = setup?.currency || getEmployeePayCurrency(emp);
       return { run, emp, gross, deductions: totalDeductions, net, payCurrency, setup };
     });
   });
@@ -332,7 +332,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
 
   const emp = employees.find(e => e.empId === payslip.empId);
   const setup = getSetupById(payslip.payrollSetupId || emp?.payrollSetupId || "");
-  const payCurrency = payslip.payCurrency || REPORTING_CURRENCY;
+  const payCurrency = setup?.currency || payslip.payCurrency || REPORTING_CURRENCY;
   const isMultiCurrency = payCurrency !== REPORTING_CURRENCY;
   const toReportingRate = getToReportingRate(payCurrency);
   const sepRecord = separations.find(s => s.employeeId === payslip.employeeId);
