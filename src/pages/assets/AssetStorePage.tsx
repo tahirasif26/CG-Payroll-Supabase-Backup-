@@ -517,7 +517,7 @@ export default function AssetStorePage() {
               <div className="space-y-2"><Label>Category</Label><Input readOnly value={reqStoreItem?.categoryName || ""} className="bg-muted" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Employee</Label><Input readOnly value={activeEmps.find(e => e.id === currentEmployeeId) ? `${activeEmps.find(e => e.id === currentEmployeeId)!.firstName} ${activeEmps.find(e => e.id === currentEmployeeId)!.lastName}` : "Current User"} className="bg-muted" /></div>
+              <div className="space-y-2"><Label>Employee</Label><Input readOnly value={currentEmp ? `${currentEmp.first_name || ""} ${currentEmp.last_name || ""}`.trim() : "Current User"} className="bg-muted" /></div>
               <div className="space-y-2"><Label>Request Date</Label><Input readOnly value={new Date().toLocaleDateString()} className="bg-muted" /></div>
             </div>
             <div className="space-y-2"><Label>Reason for Request <span className="text-destructive">*</span></Label><Textarea required value={reqReason} onChange={e => setReqReason(e.target.value)} placeholder="Explain why you need this asset..." /></div>
