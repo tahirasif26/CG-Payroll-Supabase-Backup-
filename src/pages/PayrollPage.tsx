@@ -417,6 +417,22 @@ export default function PayrollPage() {
   const activeEmps = useActiveEmployees();
   const { leaveTypes, balances, initializeBalances, runYearEndCarryforward, completedRollovers } = useLeaveTypes();
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
+  const [liveView, setLiveView] = useState<"cards" | "list">("cards");
+  const [selectedLiveIds, setSelectedLiveIds] = useState<string[]>([]);
+  const [pendingQueue, setPendingQueue] = useState<string[]>([]);
+  // When the detail sheet closes (selectedRun becomes null) and there are
+  // queued payrolls left to process, auto-open the next one.
+  React.useEffect(() => {
+    if (!selectedRun && pendingQueue.length > 0) {
+      const [nextId, ...rest] = pendingQueue;
+      const nextRow = dbRuns.find(r => r.id === nextId);
+      if (nextRow) {
+        const localRun = runs.find(x => x.id === nextId) ?? adaptPayrollRun(nextRow);
+        setSelectedRun(localRun);
+      }
+      setPendingQueue(rest);
+    }
+  }, [selectedRun, pendingQueue, dbRuns, runs]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ id: string; action: "approve" | "reject" } | null>(null);
   const [carryforwardOpen, setCarryforwardOpen] = useState(false);
@@ -1158,29 +1174,135 @@ export default function PayrollPage() {
       {(() => {
         const liveRuns = dbRuns.filter(r => r.status !== "completed" && r.status !== "failed");
         if (liveRuns.length === 0) return null;
+        const allSelected = selectedLiveIds.length === liveRuns.length;
+        const toggleOne = (id: string) =>
+          setSelectedLiveIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+        const toggleAll = () =>
+          setSelectedLiveIds(allSelected ? [] : liveRuns.map(r => r.id));
+        const processSelected = () => {
+          if (selectedLiveIds.length === 0) return;
+          const ordered = liveRuns.filter(r => selectedLiveIds.includes(r.id)).map(r => r.id);
+          const [firstId, ...rest] = ordered;
+          const firstRow = liveRuns.find(r => r.id === firstId)!;
+          const localRun = runs.find(x => x.id === firstId) ?? adaptPayrollRun(firstRow);
+          setSelectedRun(localRun);
+          setPendingQueue(rest);
+          setSelectedLiveIds([]);
+          if (rest.length > 0) {
+            toast({ title: `Processing ${ordered.length} payrolls`, description: `Next ${rest.length} will open after this one.` });
+          }
+        };
         return (
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Live Payrolls</span>
-              <Badge variant="secondary">{liveRuns.length}</Badge>
+            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Live Payrolls</span>
+                <Badge variant="secondary">{liveRuns.length}</Badge>
+                {selectedLiveIds.length > 0 && (
+                  <Badge variant="outline" className="ml-1">{selectedLiveIds.length} selected</Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {selectedLiveIds.length > 0 && (
+                  <>
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedLiveIds([])}>Clear</Button>
+                    <Button size="sm" onClick={processSelected}>
+                      <Play className="h-3.5 w-3.5 mr-1" /> Process {selectedLiveIds.length} Selected
+                    </Button>
+                  </>
+                )}
+                <div className="inline-flex rounded-md border bg-background p-0.5">
+                  <Button
+                    size="sm"
+                    variant={liveView === "cards" ? "secondary" : "ghost"}
+                    className="h-7 px-3 text-xs"
+                    onClick={() => setLiveView("cards")}
+                  >Cards</Button>
+                  <Button
+                    size="sm"
+                    variant={liveView === "list" ? "secondary" : "ghost"}
+                    className="h-7 px-3 text-xs"
+                    onClick={() => setLiveView("list")}
+                  >List</Button>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {liveRuns.map(r => {
-                const setup = getSetupById(r.payroll_setup_id ?? "");
-                return (
-                  <LivePayrollCard
-                    key={r.id}
-                    run={r}
-                    setupName={setup?.name ?? "Payroll"}
-                    currency={setup?.currency ?? REPORTING_CURRENCY}
-                    onProcess={(row) => {
-                      const localRun = runs.find(x => x.id === row.id) ?? adaptPayrollRun(row);
-                      setSelectedRun(localRun);
-                    }}
-                  />
-                );
-              })}
-            </div>
+            {liveView === "cards" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {liveRuns.map(r => {
+                  const setup = getSetupById(r.payroll_setup_id ?? "");
+                  const checked = selectedLiveIds.includes(r.id);
+                  return (
+                    <div key={r.id} className="relative">
+                      <div className="absolute top-2 left-2 z-10">
+                        <Checkbox checked={checked} onCheckedChange={() => toggleOne(r.id)} aria-label="Select payroll" />
+                      </div>
+                      <LivePayrollCard
+                        run={r}
+                        setupName={setup?.name ?? "Payroll"}
+                        currency={setup?.currency ?? REPORTING_CURRENCY}
+                        onProcess={(row) => {
+                          const localRun = runs.find(x => x.id === row.id) ?? adaptPayrollRun(row);
+                          setSelectedRun(localRun);
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-card rounded-xl border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
+                      </TableHead>
+                      <TableHead>Payroll Setup</TableHead>
+                      <TableHead>Period</TableHead>
+                      <TableHead>Currency</TableHead>
+                      <TableHead>Pay Date</TableHead>
+                      <TableHead>Days Left</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {liveRuns.map(r => {
+                      const setup = getSetupById(r.payroll_setup_id ?? "");
+                      const checked = selectedLiveIds.includes(r.id);
+                      const daysLeft = getDaysUntil(r.run_date);
+                      const isUrgent = daysLeft <= 3;
+                      return (
+                        <TableRow key={r.id} className={checked ? "bg-muted/40" : ""}>
+                          <TableCell>
+                            <Checkbox checked={checked} onCheckedChange={() => toggleOne(r.id)} aria-label="Select payroll" />
+                          </TableCell>
+                          <TableCell className="font-medium">{setup?.name ?? "Payroll"}</TableCell>
+                          <TableCell>{r.month} {r.year}</TableCell>
+                          <TableCell>{setup?.currency ?? REPORTING_CURRENCY}</TableCell>
+                          <TableCell>{r.run_date ? new Date(r.run_date).toLocaleDateString() : "—"}</TableCell>
+                          <TableCell className={isUrgent ? "text-destructive font-semibold" : "font-medium"}>{daysLeft}</TableCell>
+                          <TableCell><StatusBadge status={r.status as any} /></TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant={isUrgent ? "destructive" : "default"}
+                              onClick={() => {
+                                const localRun = runs.find(x => x.id === r.id) ?? adaptPayrollRun(r);
+                                setSelectedRun(localRun);
+                              }}
+                            >
+                              <Play className="h-3.5 w-3.5 mr-1" /> Process
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         );
       })()}
