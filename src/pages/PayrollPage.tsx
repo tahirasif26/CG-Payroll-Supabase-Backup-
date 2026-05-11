@@ -1220,37 +1220,17 @@ export default function PayrollPage() {
           }
         };
 
-        return (
-          <div>
-            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Payroll Runs</span>
-                <Badge variant="secondary">{allRuns.length}</Badge>
-                {selectedLiveIds.length > 0 && (
-                  <Badge variant="outline" className="ml-1">{selectedLiveIds.length} selected</Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {selectedLiveIds.length > 0 && (
-                  <>
-                    <Button size="sm" variant="ghost" onClick={() => setSelectedLiveIds([])}>Clear</Button>
-                    <Button size="sm" onClick={processSelected}>
-                      <Play className="h-3.5 w-3.5 mr-1" /> Process {selectedLiveIds.length} Selected
-                    </Button>
-                  </>
-                )}
-                <div className="inline-flex rounded-md border bg-background p-0.5">
-                  <Button size="sm" variant={liveView === "cards" ? "secondary" : "ghost"} className="h-7 px-3 text-xs" onClick={() => setLiveView("cards")}>Cards</Button>
-                  <Button size="sm" variant={liveView === "list" ? "secondary" : "ghost"} className="h-7 px-3 text-xs" onClick={() => setLiveView("list")}>List</Button>
-                </div>
-              </div>
-            </div>
+        const processingRuns = allRuns.filter(r => r.status !== "completed");
+        const completedRuns = allRuns.filter(r => r.status === "completed");
 
-            {allRuns.length === 0 ? (
-              <div className="bg-card rounded-xl border p-8 text-center text-muted-foreground text-sm">No payroll runs yet.</div>
-            ) : liveView === "cards" ? (
+        const renderRuns = (list: typeof allRuns, emptyMsg: string) => {
+          if (list.length === 0) {
+            return <div className="bg-card rounded-xl border p-8 text-center text-muted-foreground text-sm">{emptyMsg}</div>;
+          }
+          if (liveView === "cards") {
+            return (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {allRuns.map(r => {
+                {list.map(r => {
                   const { setup, localRun, currency, net, daysLeft } = computeRow(r);
                   const draft = isDraft(r.status);
                   const isUrgent = draft && daysLeft <= 3;
@@ -1282,12 +1262,7 @@ export default function PayrollPage() {
                             <p className="font-semibold">{net.toLocaleString()}</p>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          className="w-full"
-                          variant={isUrgent ? "destructive" : draft ? "default" : "outline"}
-                          onClick={() => setSelectedRun(localRun)}
-                        >
+                        <Button size="sm" className="w-full" variant={isUrgent ? "destructive" : draft ? "default" : "outline"} onClick={() => setSelectedRun(localRun)}>
                           {draft ? <><Play className="h-3.5 w-3.5 mr-1" /> Process</> : <><Eye className="h-3.5 w-3.5 mr-1" /> View</>}
                         </Button>
                       </CardContent>
@@ -1295,80 +1270,122 @@ export default function PayrollPage() {
                   );
                 })}
               </div>
-            ) : (
-              <div className="bg-card rounded-xl border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-10">
-                        {draftIds.length > 0 && <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />}
-                      </TableHead>
-                      <TableHead className="font-semibold">Payroll Setup</TableHead>
-                      <TableHead className="font-semibold">Period</TableHead>
-                      <TableHead className="font-semibold">Currency</TableHead>
-                      <TableHead className="font-semibold">Pay Date</TableHead>
-                      <TableHead className="font-semibold">Days Left</TableHead>
-                      <TableHead className="font-semibold">Employees</TableHead>
-                      <TableHead className="font-semibold text-right">Gross</TableHead>
-                      <TableHead className="font-semibold text-right">Deductions</TableHead>
-                      <TableHead className="font-semibold text-right">Net</TableHead>
-                      <TableHead className="font-semibold">Status</TableHead>
-                      <TableHead className="font-semibold text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allRuns.map(r => {
-                      const { setup, localRun, currency, count, gross, ded, net, daysLeft } = computeRow(r);
-                      const draft = isDraft(r.status);
-                      const isUrgent = draft && daysLeft <= 3;
-                      const checked = selectedLiveIds.includes(r.id);
-                      return (
-                        <TableRow key={r.id} className={`hover:bg-muted/30 transition-colors cursor-pointer ${checked ? "bg-muted/40" : ""}`} onClick={() => setSelectedRun(localRun)}>
-                          <TableCell onClick={e => e.stopPropagation()}>
-                            {draft && <Checkbox checked={checked} onCheckedChange={() => toggleOne(r.id)} aria-label="Select payroll" />}
-                          </TableCell>
-                          <TableCell className="font-medium">{setup?.name ?? "Payroll"}</TableCell>
-                          <TableCell>{r.month} {r.year}</TableCell>
-                          <TableCell className="font-medium text-xs">{currency}</TableCell>
-                          <TableCell>{r.run_date ? new Date(r.run_date).toLocaleDateString() : "—"}</TableCell>
-                          <TableCell className={isUrgent ? "text-destructive font-semibold" : draft ? "font-medium" : "text-muted-foreground"}>{draft ? daysLeft : "—"}</TableCell>
-                          <TableCell>{count}</TableCell>
-                          <TableCell className="text-right">{gross.toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-destructive">{ded.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
-                          <TableCell><StatusBadge status={r.status as any} /></TableCell>
-                          <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                            <div className="flex justify-end gap-1 items-center">
-                              {draft && (
-                                <Button size="sm" variant={isUrgent ? "destructive" : "default"} onClick={() => setSelectedRun(localRun)}>
-                                  <Play className="h-3.5 w-3.5 mr-1" /> Process
-                                </Button>
-                              )}
-                              {!draft && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRun(localRun)}><Eye className="h-3.5 w-3.5" /></Button>
-                              )}
-                              {r.status === "completed" && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadAccounting(localRun)}>
-                                  <Download className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                              {r.status === "completed" && (
-                                <Lock className="h-3.5 w-3.5 text-muted-foreground ml-1" />
-                              )}
-                              {(r.status === "processing" || draft || r.status === "failed") && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRun(localRun.id)}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+            );
+          }
+          const listDraftIds = list.filter(r => isDraft(r.status)).map(r => r.id);
+          const listAllSelected = listDraftIds.length > 0 && listDraftIds.every(id => selectedLiveIds.includes(id));
+          const toggleAllList = () =>
+            setSelectedLiveIds(listAllSelected ? selectedLiveIds.filter(id => !listDraftIds.includes(id)) : Array.from(new Set([...selectedLiveIds, ...listDraftIds])));
+          return (
+            <div className="bg-card rounded-xl border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-10">
+                      {listDraftIds.length > 0 && <Checkbox checked={listAllSelected} onCheckedChange={toggleAllList} aria-label="Select all" />}
+                    </TableHead>
+                    <TableHead className="font-semibold">Payroll Setup</TableHead>
+                    <TableHead className="font-semibold">Period</TableHead>
+                    <TableHead className="font-semibold">Currency</TableHead>
+                    <TableHead className="font-semibold">Pay Date</TableHead>
+                    <TableHead className="font-semibold">Days Left</TableHead>
+                    <TableHead className="font-semibold">Employees</TableHead>
+                    <TableHead className="font-semibold text-right">Gross</TableHead>
+                    <TableHead className="font-semibold text-right">Deductions</TableHead>
+                    <TableHead className="font-semibold text-right">Net</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {list.map(r => {
+                    const { setup, localRun, currency, count, gross, ded, net, daysLeft } = computeRow(r);
+                    const draft = isDraft(r.status);
+                    const isUrgent = draft && daysLeft <= 3;
+                    const checked = selectedLiveIds.includes(r.id);
+                    return (
+                      <TableRow key={r.id} className={`hover:bg-muted/30 transition-colors cursor-pointer ${checked ? "bg-muted/40" : ""}`} onClick={() => setSelectedRun(localRun)}>
+                        <TableCell onClick={e => e.stopPropagation()}>
+                          {draft && <Checkbox checked={checked} onCheckedChange={() => toggleOne(r.id)} aria-label="Select payroll" />}
+                        </TableCell>
+                        <TableCell className="font-medium">{setup?.name ?? "Payroll"}</TableCell>
+                        <TableCell>{r.month} {r.year}</TableCell>
+                        <TableCell className="font-medium text-xs">{currency}</TableCell>
+                        <TableCell>{r.run_date ? new Date(r.run_date).toLocaleDateString() : "—"}</TableCell>
+                        <TableCell className={isUrgent ? "text-destructive font-semibold" : draft ? "font-medium" : "text-muted-foreground"}>{draft ? daysLeft : "—"}</TableCell>
+                        <TableCell>{count}</TableCell>
+                        <TableCell className="text-right">{gross.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-destructive">{ded.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-semibold">{net.toLocaleString()}</TableCell>
+                        <TableCell><StatusBadge status={r.status as any} /></TableCell>
+                        <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                          <div className="flex justify-end gap-1 items-center">
+                            {draft && (
+                              <Button size="sm" variant={isUrgent ? "destructive" : "default"} onClick={() => setSelectedRun(localRun)}>
+                                <Play className="h-3.5 w-3.5 mr-1" /> Process
+                              </Button>
+                            )}
+                            {!draft && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRun(localRun)}><Eye className="h-3.5 w-3.5" /></Button>
+                            )}
+                            {r.status === "completed" && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadAccounting(localRun)}>
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {r.status === "completed" && (
+                              <Lock className="h-3.5 w-3.5 text-muted-foreground ml-1" />
+                            )}
+                            {(r.status === "processing" || draft || r.status === "failed") && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRun(localRun.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          );
+        };
+
+        return (
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Payroll Runs</span>
+                <Badge variant="secondary">{allRuns.length}</Badge>
+                {selectedLiveIds.length > 0 && (
+                  <Badge variant="outline" className="ml-1">{selectedLiveIds.length} selected</Badge>
+                )}
               </div>
-            )}
+              <div className="flex items-center gap-2">
+                {selectedLiveIds.length > 0 && (
+                  <>
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedLiveIds([])}>Clear</Button>
+                    <Button size="sm" onClick={processSelected}>
+                      <Play className="h-3.5 w-3.5 mr-1" /> Process {selectedLiveIds.length} Selected
+                    </Button>
+                  </>
+                )}
+                <div className="inline-flex rounded-md border bg-background p-0.5">
+                  <Button size="sm" variant={liveView === "cards" ? "secondary" : "ghost"} className="h-7 px-3 text-xs" onClick={() => setLiveView("cards")}>Cards</Button>
+                  <Button size="sm" variant={liveView === "list" ? "secondary" : "ghost"} className="h-7 px-3 text-xs" onClick={() => setLiveView("list")}>List</Button>
+                </div>
+              </div>
+            </div>
+
+            <Tabs defaultValue="processing" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="processing">Processing <Badge variant="secondary" className="ml-2">{processingRuns.length}</Badge></TabsTrigger>
+                <TabsTrigger value="completed">Completed <Badge variant="secondary" className="ml-2">{completedRuns.length}</Badge></TabsTrigger>
+              </TabsList>
+              <TabsContent value="processing">{renderRuns(processingRuns, "No processing payroll runs.")}</TabsContent>
+              <TabsContent value="completed">{renderRuns(completedRuns, "No completed payroll runs yet.")}</TabsContent>
+            </Tabs>
           </div>
         );
       })()}
