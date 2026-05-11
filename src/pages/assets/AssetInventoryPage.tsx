@@ -223,7 +223,7 @@ export default function AssetInventoryPage() {
 
     if (bulkPublish === "publish") {
       const si: AssetStoreItem = {
-        id: `si-${++storeIdCounter}`,
+        id: "",
         name: bulkName,
         categoryId: catObj.id,
         categoryName: catObj.name,
