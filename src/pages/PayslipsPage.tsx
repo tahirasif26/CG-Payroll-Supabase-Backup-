@@ -332,7 +332,7 @@ function PayslipDialog({ payslip, onClose, onDownload }: { payslip: PayslipDetai
 
   const emp = employees.find(e => e.empId === payslip.empId);
   const setup = getSetupById(payslip.payrollSetupId || emp?.payrollSetupId || "");
-  const payCurrency = payslip.payCurrency || REPORTING_CURRENCY;
+  const payCurrency = setup?.currency || payslip.payCurrency || REPORTING_CURRENCY;
   const isMultiCurrency = payCurrency !== REPORTING_CURRENCY;
   const toReportingRate = getToReportingRate(payCurrency);
   const sepRecord = separations.find(s => s.employeeId === payslip.employeeId);
