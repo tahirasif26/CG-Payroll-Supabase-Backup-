@@ -2119,7 +2119,12 @@ function EmployeesDirectory() {
       </div>
 
       
-      <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
+      <EmployeeDirectoryTable
+        employees={localEmployees.filter(e => e.status !== "separated")}
+        onSelect={(emp) => { setProfileViewOnly(true); setSelectedEmployee(emp); }}
+        onEdit={isEmployee ? undefined : (emp) => setEditEmpId(emp.id)}
+        isEmployee={isEmployee}
+      />
     </div>
   );
 }
