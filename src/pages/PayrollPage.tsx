@@ -1283,7 +1283,7 @@ export default function PayrollPage() {
                           <TableCell>{setup?.currency ?? REPORTING_CURRENCY}</TableCell>
                           <TableCell>{r.run_date ? new Date(r.run_date).toLocaleDateString() : "—"}</TableCell>
                           <TableCell className={isUrgent ? "text-destructive font-semibold" : "font-medium"}>{daysLeft}</TableCell>
-                          <TableCell><StatusBadge status={r.status} /></TableCell>
+                          <TableCell><StatusBadge status={r.status as any} /></TableCell>
                           <TableCell className="text-right">
                             <Button
                               size="sm"
