@@ -1901,7 +1901,7 @@ function EmployeesDirectory() {
               <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
             </div>
           </div>
-        {!isOwnProfile && (
+        {!isOwnProfile && !profileViewOnly && (
           <div className="flex items-center gap-2">
             {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
               <Button variant="outline" size="sm" onClick={() => setEditEmpId(selectedEmployee.id)}>
@@ -1927,10 +1927,10 @@ function EmployeesDirectory() {
             <TabsTrigger value="assets"><Monitor className="h-3.5 w-3.5 mr-1.5" />Assets</TabsTrigger>
             {!isOwnProfile && <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>}
           </TabsList>
-          <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} readOnly={isOwnProfile} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
-          <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
+          <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
+          <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
+          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} readOnly={isOwnProfile || profileViewOnly} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
+          <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={openUploadDialog} documents={allDocs[selectedEmployee.id] || []} onReupload={openReuploadDialog} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>
