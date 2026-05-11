@@ -1,213 +1,152 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
-import { useEmployees as useEmployeesCtx } from "@/contexts/EmployeeContext";
-import { useActiveEmployees } from "@/hooks/useActiveEmployees";
-import type { Employee } from "@/types/hcm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useViewScope } from "@/contexts/ViewScopeContext";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { useReporting } from "@/contexts/ReportingContext";
-import { Search, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, ChevronRight, ChevronDown, Loader2, Users } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+interface OrgEmp {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  designation: string | null;
+  department: string | null;
+  avatar_url: string | null;
+  reports_to: string | null;
+  status: string;
+}
 
 interface OrgNode {
-  employee: Employee;
-  reports: OrgNode[];
+  employee: OrgEmp | null; // null = virtual root
+  children: OrgNode[];
 }
 
-function buildOrgTree(reportMap: Record<string, string>, empList: Employee[]): OrgNode[] {
-  const nodeMap = new Map<string, OrgNode>();
-  empList.forEach(e => nodeMap.set(e.id, { employee: e, reports: [] }));
+const VIRTUAL_ROOT_ID = "__company_root__";
 
-  const hasParent = new Set<string>();
-  Object.entries(reportMap).forEach(([empId, managerId]) => {
-    const manager = nodeMap.get(managerId);
-    const emp = nodeMap.get(empId);
-    if (manager && emp && managerId !== empId) {
-      manager.reports.push(emp);
-      hasParent.add(empId);
-    }
-  });
+function fullName(e: OrgEmp | null): string {
+  if (!e) return "Company";
+  return `${e.first_name ?? ""} ${e.last_name ?? ""}`.trim() || "—";
+}
+
+function initials(e: OrgEmp | null): string {
+  if (!e) return "CO";
+  return `${(e.first_name ?? "?")[0] ?? ""}${(e.last_name ?? "?")[0] ?? ""}`.toUpperCase();
+}
+
+function buildTree(emps: OrgEmp[]): OrgNode {
+  const byId = new Map<string, OrgNode>();
+  emps.forEach(e => byId.set(e.id, { employee: e, children: [] }));
 
   const roots: OrgNode[] = [];
-  empList.forEach(e => {
-    if (!hasParent.has(e.id)) roots.push(nodeMap.get(e.id)!);
+  emps.forEach(e => {
+    const node = byId.get(e.id)!;
+    const parent = e.reports_to ? byId.get(e.reports_to) : undefined;
+    if (parent && parent !== node) {
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
   });
-  return roots;
+
+  if (roots.length === 1) return roots[0];
+  return { employee: null, children: roots };
 }
 
-// Collect all descendant IDs from a node
-function collectDescendantIds(node: OrgNode): Set<string> {
-  const ids = new Set<string>();
-  function walk(n: OrgNode) {
-    n.reports.forEach(child => {
-      ids.add(child.employee.id);
-      walk(child);
-    });
-  }
-  walk(node);
-  return ids;
-}
-
-function OrgNodeCard({
-  node, level = 0, onClickEmployee, highlightId, hoveredParentId, onHoverNode,
+function NodeCard({
+  node,
+  depth,
+  highlightId,
+  defaultCollapsedFromDepth,
 }: {
   node: OrgNode;
-  level?: number;
-  onClickEmployee: (emp: Employee) => void;
+  depth: number;
   highlightId: string | null;
-  hoveredParentId: string | null;
-  onHoverNode: (empId: string | null) => void;
+  defaultCollapsedFromDepth: number;
 }) {
+  const initialCollapsed = depth >= defaultCollapsedFromDepth && node.children.length > 0;
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
   const ref = useRef<HTMLDivElement>(null);
-  const isHighlighted = highlightId === node.employee.id;
-  const isHoveredParent = hoveredParentId === node.employee.id;
 
-  // Check if this node is a descendant of the hovered parent
-  const descendantIds = useMemo(() => {
-    if (isHoveredParent) return collectDescendantIds(node);
-    return new Set<string>();
-  }, [isHoveredParent, node]);
+  const isMe = node.employee?.id === highlightId;
+  const isVirtual = !node.employee;
+  const hasChildren = node.children.length > 0;
 
   useEffect(() => {
-    if (isHighlighted && ref.current) {
+    if (isMe && ref.current) {
       ref.current.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
     }
-  }, [isHighlighted]);
-
-  const hasReports = node.reports.length > 0;
+  }, [isMe]);
 
   return (
     <div className="flex flex-col items-center">
       <div
         ref={ref}
-        onClick={() => onClickEmployee(node.employee)}
-        onMouseEnter={() => { if (hasReports) onHoverNode(node.employee.id); }}
-        onMouseLeave={() => { if (hasReports) onHoverNode(null); }}
-        className={`
-          w-44 px-4 py-3 border cursor-pointer transition-all duration-200
-          ${level === 0
-            ? "bg-primary text-primary-foreground border-primary"
-            : "bg-card border-border hover:border-primary/50"
-          }
-          ${isHighlighted ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg scale-105" : ""}
-          ${isHoveredParent ? "ring-2 ring-primary shadow-md" : ""}
-        `}
+        onClick={() => hasChildren && setCollapsed(c => !c)}
+        className={[
+          "w-48 px-3 py-2.5 border rounded-md transition-all duration-150 select-none",
+          hasChildren ? "cursor-pointer" : "",
+          isVirtual
+            ? "bg-muted/50 border-dashed text-muted-foreground"
+            : depth === 0
+              ? "bg-primary text-primary-foreground border-primary"
+              : "bg-card border-border hover:border-primary/50",
+          isMe ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md" : "",
+        ].join(" ")}
       >
-        <p className={`text-sm font-semibold truncate ${level === 0 ? "" : "text-foreground"}`}>
-          {node.employee.firstName} {node.employee.lastName}
-        </p>
-        <p className={`text-[11px] truncate ${level === 0 ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-          {node.employee.designation}
-        </p>
-        {hasReports && (
-          <p className={`text-[10px] mt-0.5 ${level === 0 ? "text-primary-foreground/50" : "text-muted-foreground/60"}`}>
-            {node.reports.length} direct report{node.reports.length > 1 ? "s" : ""}
-          </p>
-        )}
-      </div>
-      {hasReports && (
-        <>
-          <div className={`w-px h-5 transition-colors duration-200 ${isHoveredParent ? "bg-primary" : "bg-border"}`} />
-          <div className="flex gap-3 relative">
-            {node.reports.length > 1 && (
-              <div
-                className={`absolute top-0 left-1/2 -translate-x-1/2 h-px transition-colors duration-200 ${isHoveredParent ? "bg-primary" : "bg-border"}`}
-                style={{ width: `calc(100% - 176px)` }}
-              />
-            )}
-            {node.reports.map(child => (
-              <div key={child.employee.id} className="flex flex-col items-center">
-                <div className={`w-px h-5 transition-colors duration-200 ${isHoveredParent ? "bg-primary" : "bg-border"}`} />
-                <ChildOrgNodeCard
-                  node={child}
-                  level={level + 1}
-                  onClickEmployee={onClickEmployee}
-                  highlightId={highlightId}
-                  hoveredParentId={hoveredParentId}
-                  onHoverNode={onHoverNode}
-                  isUnderHoveredParent={isHoveredParent}
-                />
-              </div>
-            ))}
+        <div className="flex items-center gap-2.5">
+          <Avatar className="h-8 w-8 shrink-0">
+            {node.employee?.avatar_url && <AvatarImage src={node.employee.avatar_url} />}
+            <AvatarFallback className="text-[10px] font-bold">{initials(node.employee)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <p className="text-[12.5px] font-semibold truncate flex items-center gap-1">
+              {fullName(node.employee)}
+              {isMe && (
+                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-foreground/20 text-primary-foreground">
+                  You
+                </span>
+              )}
+            </p>
+            <p className={`text-[10.5px] truncate ${depth === 0 && !isVirtual ? "text-primary-foreground/75" : "text-muted-foreground"}`}>
+              {node.employee?.designation || (isVirtual ? "All employees" : "—")}
+            </p>
           </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function ChildOrgNodeCard({
-  node, level = 0, onClickEmployee, highlightId, hoveredParentId, onHoverNode, isUnderHoveredParent,
-}: {
-  node: OrgNode;
-  level?: number;
-  onClickEmployee: (emp: Employee) => void;
-  highlightId: string | null;
-  hoveredParentId: string | null;
-  onHoverNode: (empId: string | null) => void;
-  isUnderHoveredParent: boolean;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isHighlighted = highlightId === node.employee.id;
-  const isHoveredParent = hoveredParentId === node.employee.id;
-  const hasReports = node.reports.length > 0;
-
-  useEffect(() => {
-    if (isHighlighted && ref.current) {
-      ref.current.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-    }
-  }, [isHighlighted]);
-
-  return (
-    <div className="flex flex-col items-center">
-      <div
-        ref={ref}
-        onClick={() => onClickEmployee(node.employee)}
-        onMouseEnter={() => { if (hasReports) onHoverNode(node.employee.id); }}
-        onMouseLeave={() => { if (hasReports) onHoverNode(null); }}
-        className={`
-          w-44 px-4 py-3 border cursor-pointer transition-all duration-200
-          ${isUnderHoveredParent ? "bg-primary/10 border-primary/40 shadow-sm" : "bg-card border-border hover:border-primary/50"}
-          ${isHighlighted ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg scale-105" : ""}
-          ${isHoveredParent ? "ring-2 ring-primary shadow-md" : ""}
-        `}
-      >
-        <p className="text-sm font-semibold truncate text-foreground">
-          {node.employee.firstName} {node.employee.lastName}
-        </p>
-        <p className="text-[11px] truncate text-muted-foreground">
-          {node.employee.designation}
-        </p>
-        {hasReports && (
-          <p className="text-[10px] mt-0.5 text-muted-foreground/60">
-            {node.reports.length} direct report{node.reports.length > 1 ? "s" : ""}
+          {hasChildren && (
+            <span className={`shrink-0 ${depth === 0 && !isVirtual ? "text-primary-foreground/75" : "text-muted-foreground"}`}>
+              {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </span>
+          )}
+        </div>
+        {hasChildren && (
+          <p className={`mt-1 text-[10px] ${depth === 0 && !isVirtual ? "text-primary-foreground/60" : "text-muted-foreground/70"}`}>
+            {node.children.length} direct report{node.children.length > 1 ? "s" : ""}
           </p>
         )}
       </div>
-      {hasReports && (
+
+      {hasChildren && !collapsed && (
         <>
-          <div className={`w-px h-5 transition-colors duration-200 ${isHoveredParent || isUnderHoveredParent ? "bg-primary" : "bg-border"}`} />
-          <div className="flex gap-3 relative">
-            {node.reports.length > 1 && (
+          <div className="w-px h-5 bg-border" />
+          <div className="flex gap-4 relative">
+            {node.children.length > 1 && (
               <div
-                className={`absolute top-0 left-1/2 -translate-x-1/2 h-px transition-colors duration-200 ${isHoveredParent || isUnderHoveredParent ? "bg-primary" : "bg-border"}`}
-                style={{ width: `calc(100% - 176px)` }}
+                className="absolute top-0 left-1/2 -translate-x-1/2 h-px bg-border"
+                style={{ width: `calc(100% - 192px)` }}
               />
             )}
-            {node.reports.map(child => (
-              <div key={child.employee.id} className="flex flex-col items-center">
-                <div className={`w-px h-5 transition-colors duration-200 ${isHoveredParent || isUnderHoveredParent ? "bg-primary" : "bg-border"}`} />
-                <ChildOrgNodeCard
+            {node.children.map(child => (
+              <div key={child.employee?.id ?? VIRTUAL_ROOT_ID} className="flex flex-col items-center">
+                <div className="w-px h-5 bg-border" />
+                <NodeCard
                   node={child}
-                  level={level + 1}
-                  onClickEmployee={onClickEmployee}
+                  depth={depth + 1}
                   highlightId={highlightId}
-                  hoveredParentId={hoveredParentId}
-                  onHoverNode={onHoverNode}
-                  isUnderHoveredParent={isHoveredParent || isUnderHoveredParent}
+                  defaultCollapsedFromDepth={defaultCollapsedFromDepth}
                 />
               </div>
             ))}
@@ -219,49 +158,49 @@ function ChildOrgNodeCard({
 }
 
 export default function OrgChartPage() {
-  const { employees } = useEmployeesCtx();
-  const activeEmployees = useActiveEmployees();
-  const { reportMap, setReportTo, getManagerName, getManagerId } = useReporting();
-  const [editEmp, setEditEmp] = useState<Employee | null>(null);
-  const [selectedManager, setSelectedManager] = useState("__none__");
+  const { clientId } = useAuth();
+  const { scope } = useViewScope();
+  const { data: currentEmp } = useCurrentEmployee();
   const [search, setSearch] = useState("");
-  const [highlightId, setHighlightId] = useState<string | null>(null);
-  const [hoveredParentId, setHoveredParentId] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [pinpointId, setPinpointId] = useState<string | null>(null);
 
-  const tree = useMemo(() => buildOrgTree(reportMap, activeEmployees), [reportMap, activeEmployees]);
+  const { data: employees = [], isLoading } = useQuery({
+    queryKey: ["org-chart-employees", clientId],
+    enabled: !!clientId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, first_name, last_name, designation, department, avatar_url, reports_to, status")
+        .eq("client_id", clientId!)
+        .eq("status", "active")
+        .order("first_name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as OrgEmp[];
+    },
+  });
 
-  const searchResults = search.trim()
-    ? activeEmployees.filter(e =>
-        `${e.firstName} ${e.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-        e.designation.toLowerCase().includes(search.toLowerCase()) ||
-        e.department.toLowerCase().includes(search.toLowerCase())
+  const tree = useMemo(() => buildTree(employees), [employees]);
+
+  const highlightId =
+    pinpointId ?? (scope === "me" ? currentEmp?.id ?? null : null);
+
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    return employees
+      .filter(e =>
+        `${e.first_name ?? ""} ${e.last_name ?? ""}`.toLowerCase().includes(q) ||
+        (e.designation ?? "").toLowerCase().includes(q) ||
+        (e.department ?? "").toLowerCase().includes(q)
       )
-    : [];
+      .slice(0, 8);
+  }, [search, employees]);
 
   const handlePinpoint = (empId: string) => {
-    setHighlightId(empId);
+    setPinpointId(empId);
     setSearch("");
-    setTimeout(() => setHighlightId(null), 3000);
-  };
-
-  const openEditDialog = (emp: Employee) => {
-    setEditEmp(emp);
-    const currentMgr = getManagerId(emp.id);
-    setSelectedManager(currentMgr || "__none__");
-  };
-
-  const handleSaveReportTo = () => {
-    if (!editEmp) return;
-    const currentMgr = getManagerId(editEmp.id);
-    const newMgr = selectedManager === "__none__" ? null : selectedManager;
-
-    // Only update if there's an actual change
-    if (newMgr !== currentMgr) {
-      setReportTo(editEmp.id, newMgr);
-      toast({ title: "Updated", description: `Reporting line updated for ${editEmp.firstName} ${editEmp.lastName}.` });
-    }
-    setEditEmp(null);
+    setTimeout(() => setPinpointId(null), 4000);
   };
 
   return (
@@ -269,16 +208,25 @@ export default function OrgChartPage() {
       <PageHeader title="Organization Chart" description="Company structure and reporting lines.">
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search employee..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input
+            placeholder="Search employee..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9"
+          />
           {searchResults.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
               {searchResults.map(emp => (
-                <button key={emp.id} onClick={() => handlePinpoint(emp.id)} className="w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between text-sm">
-                  <div>
-                    <span className="font-medium text-foreground">{emp.firstName} {emp.lastName}</span>
-                    <span className="text-muted-foreground ml-2 text-xs">{emp.designation}</span>
+                <button
+                  key={emp.id}
+                  onClick={() => handlePinpoint(emp.id)}
+                  className="w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between text-sm"
+                >
+                  <div className="min-w-0">
+                    <span className="font-medium text-foreground">{fullName(emp)}</span>
+                    <span className="text-muted-foreground ml-2 text-xs">{emp.designation ?? "—"}</span>
                   </div>
-                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                  <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
                 </button>
               ))}
             </div>
@@ -286,55 +234,34 @@ export default function OrgChartPage() {
         </div>
       </PageHeader>
 
-      <div className="bg-card border rounded-lg p-8 overflow-x-auto">
-        <div className="flex justify-center gap-6 min-w-max">
-          {tree.map(node => (
-            <OrgNodeCard
-              key={node.employee.id}
-              node={node}
-              onClickEmployee={openEditDialog}
-              highlightId={highlightId}
-              hoveredParentId={hoveredParentId}
-              onHoverNode={setHoveredParentId}
-            />
-          ))}
-        </div>
-      </div>
-
-      <Dialog open={!!editEmp} onOpenChange={(open) => { if (!open) setEditEmp(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Change Reporting Line</DialogTitle>
-            <DialogDescription>{editEmp && `${editEmp.firstName} ${editEmp.lastName} — ${editEmp.designation}`}</DialogDescription>
-          </DialogHeader>
-          {editEmp && (
-            <div className="space-y-4">
-              {getManagerName(editEmp.id) && (
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Currently reports to: </span>
-                  <span className="font-medium text-foreground">{getManagerName(editEmp.id)}</span>
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label>Reports To</Label>
-                <Select value={selectedManager} onValueChange={setSelectedManager}>
-                  <SelectTrigger><SelectValue placeholder="Select manager..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">No Manager (Top Level)</SelectItem>
-                    {activeEmployees.filter(e => e.id !== editEmp.id).map(e => (
-                      <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName} — {e.designation}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      <div className="bg-card border rounded-lg" style={{ height: "calc(100vh - 220px)", minHeight: 480 }}>
+        {isLoading ? (
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : employees.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center px-6">
+            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Users className="h-6 w-6 text-muted-foreground" />
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditEmp(null)}>Cancel</Button>
-            <Button onClick={handleSaveReportTo}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <p className="font-semibold text-foreground">No employees yet</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+              Add employees to see the org chart.
+            </p>
+          </div>
+        ) : (
+          <div className="h-full overflow-auto p-8">
+            <div className="flex justify-center min-w-max">
+              <NodeCard
+                node={tree}
+                depth={0}
+                highlightId={highlightId}
+                defaultCollapsedFromDepth={3}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
