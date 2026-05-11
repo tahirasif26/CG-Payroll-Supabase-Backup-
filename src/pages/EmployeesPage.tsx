@@ -1609,6 +1609,7 @@ function EmployeesDirectory() {
   const { employees: localEmployees, updateEmployee, addEmployee } = useEmployees();
   const { getTypeName } = useEmployeeTypes();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [profileViewOnly, setProfileViewOnly] = useState(true);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
   const [editEmpId, setEditEmpId] = useState<string | null>(null);
   
