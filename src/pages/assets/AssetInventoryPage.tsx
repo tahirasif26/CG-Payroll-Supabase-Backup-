@@ -257,7 +257,7 @@ export default function AssetInventoryPage() {
     const catObj = categories.find(c => c.id === newCategory);
     const tag = generateAssetTag();
     const newAsset: Asset = {
-      id: String(assetIdCounter),
+      id: "",
       assetTag: tag,
       name: newName,
       category: catObj?.name || newCategory,
