@@ -451,7 +451,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
 
   const addCondition = async (item: AssetConditionItem) => {
     if (!clientId) return;
-    await sb.from("asset_conditions").insert({ client_id: clientId, name: item.name, description: item.description || null, status: item.status });
+    const { error } = await sb.from("asset_conditions").insert({ client_id: clientId, name: item.name, description: item.description || null, status: item.status });
+    if (error) { showDbError("add condition", error); return; }
     qc.invalidateQueries({ queryKey: ["asset_conditions"] });
   };
   const updateCondition = async (id: string, data: Partial<AssetConditionItem>) => {
