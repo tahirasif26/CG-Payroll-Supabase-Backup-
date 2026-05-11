@@ -1098,7 +1098,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
   );
 }
 
-function TimeOffTab({ emp }: { emp: Employee }) {
+function TimeOffTab({ emp, readOnly = false }: { emp: Employee; readOnly?: boolean }) {
   const { data: empLeavesDb = [] } = useQuery({
     queryKey: ["employee-leave-requests", emp.id],
     enabled: !!emp.id,
