@@ -1220,7 +1220,22 @@ export default function PayrollPage() {
           }
         };
 
-        const processingRuns = allRuns.filter(r => r.status !== "completed");
+        // Show only the earliest (oldest) non-completed run per payroll setup.
+        // Next month opens automatically once the current one is processed.
+        const nonCompleted = allRuns.filter(r => r.status !== "completed");
+        const earliestPerSetup = new Map<string, PayrollRunRow>();
+        for (const r of nonCompleted) {
+          const key = r.payroll_setup_id ?? "__none__";
+          const existing = earliestPerSetup.get(key);
+          const rDate = r.run_date ? new Date(r.run_date).getTime() : 0;
+          const eDate = existing?.run_date ? new Date(existing.run_date).getTime() : Infinity;
+          if (!existing || rDate < eDate) earliestPerSetup.set(key, r);
+        }
+        const processingRuns = Array.from(earliestPerSetup.values()).sort((a, b) => {
+          const ad = a.run_date ? new Date(a.run_date).getTime() : 0;
+          const bd = b.run_date ? new Date(b.run_date).getTime() : 0;
+          return ad - bd;
+        });
         const completedRuns = allRuns.filter(r => r.status === "completed");
 
         const renderRuns = (list: typeof allRuns, emptyMsg: string) => {
