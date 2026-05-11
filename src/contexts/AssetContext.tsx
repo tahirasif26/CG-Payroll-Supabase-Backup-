@@ -7,6 +7,16 @@ import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { Asset, AssetCategory, AssetStoreItem, AssetRequest, AssetConditionItem, AssetLocationItem } from "@/types/hcm";
 import { AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
 import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
+import { toast } from "sonner";
+
+function showDbError(action: string, error: any) {
+  console.error(action, error);
+  if (error?.code === "23505") {
+    toast.error("Duplicate value — this record already exists. Please use a different identifier.");
+  } else {
+    toast.error(error?.message || `Failed to ${action}`);
+  }
+}
 
 export interface AssetHistoryEntry {
   id: string;
