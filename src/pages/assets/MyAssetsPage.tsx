@@ -2,7 +2,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Package, ClipboardList } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
@@ -28,11 +29,25 @@ export default function MyAssetsPage() {
     },
   });
 
+  const { data: myRequests = [], isLoading: loadingReqs } = useQuery({
+    queryKey: ["my-asset-requests", employee?.id],
+    enabled: !!employee?.id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("asset_requests")
+        .select("id, request_date, reason, priority, status, asset_store_items(name, asset_categories(name))")
+        .eq("employee_id", employee!.id)
+        .order("request_date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="My Assets"
-        description="Assets currently assigned to you."
+        description="Assets currently assigned to you and your asset requests."
       />
 
       <Card>
@@ -73,6 +88,50 @@ export default function MyAssetsPage() {
                         : "—"}
                     </TableCell>
                     <TableCell><StatusBadge status={a.status ?? "assigned"} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" /> My Requests ({myRequests.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingReqs ? (
+            <LoadingState rows={3} variant="table" />
+          ) : myRequests.length === 0 ? (
+            <EmptyState icon={ClipboardList} title="No requests yet" description="Requests you submit from the Asset Store will appear here." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Asset</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Request Date</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {myRequests.map((r: any) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{r.asset_store_items?.name ?? "—"}</TableCell>
+                    <TableCell>{r.asset_store_items?.asset_categories?.name ?? "—"}</TableCell>
+                    <TableCell>{new Date(r.request_date).toLocaleDateString()}</TableCell>
+                    <TableCell className="max-w-[240px] truncate" title={r.reason ?? ""}>{r.reason ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={r.priority === "high" ? "destructive" : r.priority === "medium" ? "default" : "secondary"}>
+                        {String(r.priority).charAt(0).toUpperCase() + String(r.priority).slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell><StatusBadge status={r.status} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
