@@ -25,8 +25,9 @@ let storeIdCounter = 100;
 let reqIdCounter = 100;
 
 export default function AssetStorePage() {
-  const { role, currentEmployeeId, hasFeature } = useRole();
+  const { role, hasFeature } = useRole();
   const { scope } = useViewScope();
+  const { data: currentEmp } = useCurrentEmployee();
   const canManageStore = scope === "people" && hasFeature("assets.manage_store");
   const activeEmps = useActiveEmployees();
   const {
