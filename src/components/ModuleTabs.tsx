@@ -76,7 +76,7 @@ export function ModuleTabs() {
     <div className="border-b bg-card sticky top-14 z-20 shrink-0">
       <div className="flex gap-1 overflow-x-auto px-4 md:px-6 scrollbar-hide">
         {activeGroup.children.map((c) => {
-          const active = isPathActive(location.pathname, c.path);
+          const active = isChildActive(location.pathname, location.search, c, activeGroup.children!);
           const label = appRole ? resolveChildLabel(c, appRole) : c.label;
           return (
             <button
