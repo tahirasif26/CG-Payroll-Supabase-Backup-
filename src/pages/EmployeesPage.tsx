@@ -718,7 +718,7 @@ function PersonalInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: 
   return (
     <div className="space-y-4">
       {/* Bio */}
-      <SectionCard title="Basic Information" icon={User} editing={editing === "bio"} onEdit={() => setEditing("bio")} onSave={() => saveSection("bio")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Basic Information" icon={User} editing={editing === "bio"} onEdit={readOnly ? undefined : () => setEditing("bio")} onSave={() => saveSection("bio")} onCancel={() => setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <EditableField label="First Name" value={bio.firstName} editing={editing === "bio"} onChange={v => setBio({ ...bio, firstName: v })} />
           <EditableField label="Last Name" value={bio.lastName} editing={editing === "bio"} onChange={v => setBio({ ...bio, lastName: v })} />
@@ -732,7 +732,7 @@ function PersonalInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: 
       </SectionCard>
 
       {/* Contact & Emergency */}
-      <SectionCard title="Contact & Emergency" icon={Phone} editing={editing === "contact"} onEdit={() => setEditing("contact")} onSave={() => saveSection("contact")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Contact & Emergency" icon={Phone} editing={editing === "contact"} onEdit={readOnly ? undefined : () => setEditing("contact")} onSave={() => saveSection("contact")} onCancel={() => setEditing(null)}>
         <div className="space-y-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Personal Contact</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -752,7 +752,7 @@ function PersonalInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: 
       </SectionCard>
 
       {/* Residential Address */}
-      <SectionCard title="Residential Address" icon={MapPin} editing={editing === "address"} onEdit={() => setEditing("address")} onSave={() => saveSection("address")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Residential Address" icon={MapPin} editing={editing === "address"} onEdit={readOnly ? undefined : () => setEditing("address")} onSave={() => saveSection("address")} onCancel={() => setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <EditableField label="Address Line 1" value={address.addressLine1} editing={editing === "address"} onChange={v => setAddress({ ...address, addressLine1: v })} />
           <EditableField label="Address Line 2" value={address.addressLine2} editing={editing === "address"} onChange={v => setAddress({ ...address, addressLine2: v })} />
@@ -764,7 +764,7 @@ function PersonalInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: 
       </SectionCard>
 
       {/* Bank Details */}
-      <SectionCard title="Bank Account Details" icon={CreditCard} editing={editing === "bank"} onEdit={() => setEditing("bank")} onSave={() => saveSection("bank")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Bank Account Details" icon={CreditCard} editing={editing === "bank"} onEdit={readOnly ? undefined : () => setEditing("bank")} onSave={() => saveSection("bank")} onCancel={() => setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <EditableField label="Bank Name" value={bank.bankName} editing={editing === "bank"} onChange={v => setBank({ ...bank, bankName: v })} />
           <EditableField label="Bank Country" value={bank.bankCountry} editing={editing === "bank"} onChange={v => setBank({ ...bank, bankCountry: v })} />
@@ -777,7 +777,7 @@ function PersonalInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: 
       </SectionCard>
 
       {/* Education */}
-      <SectionCard title="Education" icon={GraduationCap} editing={editing === "education"} onEdit={() => setEditing("education")} onSave={() => saveSection("education")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Education" icon={GraduationCap} editing={editing === "education"} onEdit={readOnly ? undefined : () => setEditing("education")} onSave={() => saveSection("education")} onCancel={() => setEditing(null)}>
         {education.length > 0 ? (
           <div className="space-y-4">
             {education.map((edu, i) => (
@@ -816,7 +816,7 @@ function PersonalInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: 
       </SectionCard>
 
       {/* Dependants */}
-      <SectionCard title="Dependants" icon={Heart} editing={editing === "dependants"} onEdit={() => setEditing("dependants")} onSave={() => saveSection("dependants")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Dependants" icon={Heart} editing={editing === "dependants"} onEdit={readOnly ? undefined : () => setEditing("dependants")} onSave={() => saveSection("dependants")} onCancel={() => setEditing(null)}>
         {dependants.length > 0 ? (
           <div className="space-y-4">
             {dependants.map((dep, i) => (
