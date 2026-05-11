@@ -170,7 +170,7 @@ type SortDir = "asc" | "desc";
 
 const ITEMS_PER_PAGE = 10;
 
-function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; isEmployee?: boolean }) {
+function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; onEdit?: (emp: Employee) => void; isEmployee?: boolean }) {
   const { getTypeName } = useEmployeeTypes();
   const { removeEmployee } = useEmployees();
   const { toast } = useToast();
@@ -472,9 +472,11 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }} title="View profile">
                         <User className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onSelect(emp); }} title="Documents">
-                        <FileText className="h-3.5 w-3.5" />
-                      </Button>
+                      {onEdit && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onEdit(emp); }} title="Edit employee">
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       {!(inviteStatusMap.has(emp.empId) && inviteStatusMap.get(emp.empId)) && (
                         <Button
                           variant="ghost"
@@ -569,7 +571,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, isEmployee = fal
   );
 }
 
-function PersonalInfoTab({ emp }: { emp: Employee }) {
+function PersonalInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: boolean }) {
   const { data: profile, isLoading } = useEmployeeProfile(emp.id);
   const updateProfile = useUpdateEmployeeProfile();
   const [editing, setEditing] = useState<string | null>(null);
@@ -716,7 +718,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
   return (
     <div className="space-y-4">
       {/* Bio */}
-      <SectionCard title="Basic Information" icon={User} editing={editing === "bio"} onEdit={() => setEditing("bio")} onSave={() => saveSection("bio")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Basic Information" icon={User} editing={editing === "bio"} onEdit={readOnly ? undefined : () => setEditing("bio")} onSave={() => saveSection("bio")} onCancel={() => setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <EditableField label="First Name" value={bio.firstName} editing={editing === "bio"} onChange={v => setBio({ ...bio, firstName: v })} />
           <EditableField label="Last Name" value={bio.lastName} editing={editing === "bio"} onChange={v => setBio({ ...bio, lastName: v })} />
@@ -730,7 +732,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Contact & Emergency */}
-      <SectionCard title="Contact & Emergency" icon={Phone} editing={editing === "contact"} onEdit={() => setEditing("contact")} onSave={() => saveSection("contact")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Contact & Emergency" icon={Phone} editing={editing === "contact"} onEdit={readOnly ? undefined : () => setEditing("contact")} onSave={() => saveSection("contact")} onCancel={() => setEditing(null)}>
         <div className="space-y-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Personal Contact</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -750,7 +752,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Residential Address */}
-      <SectionCard title="Residential Address" icon={MapPin} editing={editing === "address"} onEdit={() => setEditing("address")} onSave={() => saveSection("address")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Residential Address" icon={MapPin} editing={editing === "address"} onEdit={readOnly ? undefined : () => setEditing("address")} onSave={() => saveSection("address")} onCancel={() => setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <EditableField label="Address Line 1" value={address.addressLine1} editing={editing === "address"} onChange={v => setAddress({ ...address, addressLine1: v })} />
           <EditableField label="Address Line 2" value={address.addressLine2} editing={editing === "address"} onChange={v => setAddress({ ...address, addressLine2: v })} />
@@ -762,7 +764,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Bank Details */}
-      <SectionCard title="Bank Account Details" icon={CreditCard} editing={editing === "bank"} onEdit={() => setEditing("bank")} onSave={() => saveSection("bank")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Bank Account Details" icon={CreditCard} editing={editing === "bank"} onEdit={readOnly ? undefined : () => setEditing("bank")} onSave={() => saveSection("bank")} onCancel={() => setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <EditableField label="Bank Name" value={bank.bankName} editing={editing === "bank"} onChange={v => setBank({ ...bank, bankName: v })} />
           <EditableField label="Bank Country" value={bank.bankCountry} editing={editing === "bank"} onChange={v => setBank({ ...bank, bankCountry: v })} />
@@ -775,7 +777,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Education */}
-      <SectionCard title="Education" icon={GraduationCap} editing={editing === "education"} onEdit={() => setEditing("education")} onSave={() => saveSection("education")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Education" icon={GraduationCap} editing={editing === "education"} onEdit={readOnly ? undefined : () => setEditing("education")} onSave={() => saveSection("education")} onCancel={() => setEditing(null)}>
         {education.length > 0 ? (
           <div className="space-y-4">
             {education.map((edu, i) => (
@@ -814,7 +816,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
       </SectionCard>
 
       {/* Dependants */}
-      <SectionCard title="Dependants" icon={Heart} editing={editing === "dependants"} onEdit={() => setEditing("dependants")} onSave={() => saveSection("dependants")} onCancel={() => setEditing(null)}>
+      <SectionCard title="Dependants" icon={Heart} editing={editing === "dependants"} onEdit={readOnly ? undefined : () => setEditing("dependants")} onSave={() => saveSection("dependants")} onCancel={() => setEditing(null)}>
         {dependants.length > 0 ? (
           <div className="space-y-4">
             {dependants.map((dep, i) => (
@@ -845,7 +847,7 @@ function PersonalInfoTab({ emp }: { emp: Employee }) {
   );
 }
 
-function WorkInfoTab({ emp }: { emp: Employee }) {
+function WorkInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: boolean }) {
   const ext = getExtData(emp.id);
   const [editing, setEditing] = useState(false);
   const { toast } = useToast();
@@ -899,7 +901,7 @@ function WorkInfoTab({ emp }: { emp: Employee }) {
   const reportsToDisplay = getManagerName(emp.id) || "No Manager";
 
   return (
-    <SectionCard title="Work Information" icon={Briefcase} editing={editing} onEdit={() => setEditing(true)} onSave={handleSave} onCancel={() => { setEditing(false); setData(prev => ({ ...prev, reportsToId: latestManagerId })); }}>
+    <SectionCard title="Work Information" icon={Briefcase} editing={editing} onEdit={readOnly ? undefined : () => setEditing(true)} onSave={handleSave} onCancel={() => { setEditing(false); setData(prev => ({ ...prev, reportsToId: latestManagerId })); }}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <EditableField label="Employee ID" value={data.empId} editing={editing} onChange={v => setData({ ...data, empId: v })} />
         <EditableField label="Work Email" value={data.workEmail} editing={editing} onChange={v => setData({ ...data, workEmail: v })} />
@@ -1096,7 +1098,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
   );
 }
 
-function TimeOffTab({ emp }: { emp: Employee }) {
+function TimeOffTab({ emp, readOnly = false }: { emp: Employee; readOnly?: boolean }) {
   const { data: empLeavesDb = [] } = useQuery({
     queryKey: ["employee-leave-requests", emp.id],
     enabled: !!emp.id,
@@ -1159,7 +1161,7 @@ function TimeOffTab({ emp }: { emp: Employee }) {
   const totalUsed = empLeaves.filter(l => l.status === "approved").reduce((s, l) => s + l.days, 0);
 
   return (
-    <SectionCard title="Time Off & Vacation" icon={Calendar} editing={editing} onEdit={startEditing} onSave={saveEditing} onCancel={() => setEditing(false)}>
+    <SectionCard title="Time Off & Vacation" icon={Calendar} editing={editing} onEdit={readOnly ? undefined : startEditing} onSave={saveEditing} onCancel={() => setEditing(false)}>
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-muted/50 rounded-lg p-3 text-center">
@@ -1607,6 +1609,7 @@ function EmployeesDirectory() {
   const { employees: localEmployees, updateEmployee, addEmployee } = useEmployees();
   const { getTypeName } = useEmployeeTypes();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [profileViewOnly, setProfileViewOnly] = useState(true);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
   const [editEmpId, setEditEmpId] = useState<string | null>(null);
   
@@ -1898,7 +1901,7 @@ function EmployeesDirectory() {
               <p className="text-sm text-muted-foreground">{selectedEmployee.designation} · {selectedEmployee.department} · {selectedEmployee.empId}</p>
             </div>
           </div>
-        {!isOwnProfile && (
+        {!isOwnProfile && !profileViewOnly && (
           <div className="flex items-center gap-2">
             {selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive" && (
               <Button variant="outline" size="sm" onClick={() => setEditEmpId(selectedEmployee.id)}>
@@ -1924,10 +1927,10 @@ function EmployeesDirectory() {
             <TabsTrigger value="assets"><Monitor className="h-3.5 w-3.5 mr-1.5" />Assets</TabsTrigger>
             {!isOwnProfile && <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>}
           </TabsList>
-          <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} /></TabsContent>
-          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} readOnly={isOwnProfile} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
-          <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} /></TabsContent>
+          <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
+          <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
+          <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} readOnly={isOwnProfile || profileViewOnly} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
+          <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={openUploadDialog} documents={allDocs[selectedEmployee.id] || []} onReupload={openReuploadDialog} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>
@@ -2116,7 +2119,12 @@ function EmployeesDirectory() {
       </div>
 
       
-      <EmployeeDirectoryTable employees={localEmployees.filter(e => e.status !== "separated")} onSelect={setSelectedEmployee} isEmployee={isEmployee} />
+      <EmployeeDirectoryTable
+        employees={localEmployees.filter(e => e.status !== "separated")}
+        onSelect={(emp) => { setProfileViewOnly(true); setSelectedEmployee(emp); }}
+        onEdit={isEmployee ? undefined : (emp) => setEditEmpId(emp.id)}
+        isEmployee={isEmployee}
+      />
     </div>
   );
 }
