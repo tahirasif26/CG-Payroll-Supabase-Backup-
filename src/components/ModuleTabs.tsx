@@ -26,6 +26,12 @@ function isChildActive(
 ): boolean {
   const [childPath, childQuery] = child.path.split("?");
   if (!isPathActive(pathname, childPath)) return false;
+  // If a more specific sibling path also matches, defer to it
+  const moreSpecific = siblings.some((s) => {
+    const sp = s.path.split("?")[0];
+    return sp !== childPath && sp.startsWith(childPath + "/") && isPathActive(pathname, sp);
+  });
+  if (moreSpecific) return false;
   const queriedSiblings = siblings.filter((s) => {
     const [sp, sq] = s.path.split("?");
     return sp === childPath && sq;
