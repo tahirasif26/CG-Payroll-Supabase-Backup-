@@ -333,9 +333,24 @@ function GroupsTab({
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-base">{g.name}</h3>
-                      <Badge variant="outline">{fmtLimit(g.max_limit_halalas)}</Badge>
+                      {g.category && (
+                        <Badge variant="outline" className="capitalize">
+                          {CATEGORIES.find((c) => c.key === g.category)?.label ?? g.category}
+                        </Badge>
+                      )}
+                      <Badge variant="outline">
+                        {(() => {
+                          const u = CATEGORIES.find((c) => c.key === g.category)?.unit ?? "money";
+                          if (g.max_limit_halalas == null) return "Unlimited";
+                          const min = g.min_limit_halalas ?? 0;
+                          if (u === "money") {
+                            return `SAR ${(min / 100).toLocaleString()} – ${(g.max_limit_halalas / 100).toLocaleString()}`;
+                          }
+                          return `${min} – ${g.max_limit_halalas} days`;
+                        })()}
+                      </Badge>
                       <Badge variant="secondary">{APPROVAL_TYPE_LABELS[g.approval_type]}</Badge>
                     </div>
                     <div className="flex items-center gap-2">
