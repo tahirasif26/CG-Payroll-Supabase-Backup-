@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useMemo, useEffect, useRef } from "react";
+import { createContext, useContext, ReactNode, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -108,7 +108,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   const { clientId, user } = useAuth();
   const { employees } = useEmployees();
   const qc = useQueryClient();
-  const seedDoneRef = useRef(false);
+  
 
   const empNameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -169,24 +169,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     queryFn: async () => { const { data, error } = await sb.from("asset_history").select("*").eq("client_id", clientId).order("created_at", { ascending: false }); if (error) throw error; return data || []; },
   });
 
-  // ============ AUTO-SEED defaults on first visit ============
-  useEffect(() => {
-    if (!clientId || seedDoneRef.current) return;
-    if (catsRaw.length > 0 || condsRaw.length > 0 || locsRaw.length > 0) { seedDoneRef.current = true; return; }
-    // Only seed if all three are empty (fresh tenant)
-    const seed = async () => {
-      seedDoneRef.current = true;
-      await Promise.all([
-        sb.from("asset_categories").insert(DEFAULT_CATEGORIES.map(c => ({ ...c, client_id: clientId, status: "active" }))),
-        sb.from("asset_conditions").insert(DEFAULT_CONDITIONS.map(c => ({ ...c, client_id: clientId, status: "active" }))),
-        sb.from("asset_locations").insert(DEFAULT_LOCATIONS.map(l => ({ ...l, client_id: clientId, status: "active" }))),
-      ]);
-      qc.invalidateQueries({ queryKey: ["asset_categories"] });
-      qc.invalidateQueries({ queryKey: ["asset_conditions"] });
-      qc.invalidateQueries({ queryKey: ["asset_locations"] });
-    };
-    seed();
-  }, [clientId, catsRaw.length, condsRaw.length, locsRaw.length, qc]);
+  // Default reference data is seeded server-side by the create-client edge function
+  // when a super admin provisions a new tenant. No client-side auto-seed to avoid duplicates.
 
   // ============ MAPPING TO UI SHAPES ============
   const categories: AssetCategory[] = useMemo(() => catsRaw.map((c: any) => ({
