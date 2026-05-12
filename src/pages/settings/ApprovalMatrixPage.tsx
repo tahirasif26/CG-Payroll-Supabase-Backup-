@@ -648,15 +648,23 @@ function GroupDialog({
 // POLICIES TAB
 // ═══════════════════════════════════════════════════════════════════════
 function PoliciesTab({
-  policies, groups, clientId,
+  policies, groups, clientId, enabledModules,
 }: {
   policies: ApprovalPolicy[];
   groups: ApprovalGroup[];
   clientId: string | null;
+  enabledModules: string[] | null;
 }) {
+  const visibleCategories = useMemo(
+    () => enabledCategoryDefs(enabledModules),
+    [enabledModules],
+  );
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ApprovalPolicy | null>(null);
-  const [defaultCategory, setDefaultCategory] = useState<PolicyCategory>("expenses_travel");
+  const [defaultCategory, setDefaultCategory] = useState<PolicyCategory>(
+    visibleCategories[0]?.key ?? "expenses_travel",
+  );
   const deletePolicy = useDeleteApprovalPolicy();
 
   const byCategory = useMemo(() => {
@@ -685,7 +693,14 @@ function PoliciesTab({
 
   return (
     <div className="space-y-4">
-      {CATEGORIES.map((c) => {
+      {visibleCategories.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground text-sm">
+            No modules enabled for this client.
+          </CardContent>
+        </Card>
+      ) : null}
+      {visibleCategories.map((c) => {
         const rows = byCategory.get(c.key) ?? [];
         return (
           <Card key={c.key}>
