@@ -36,6 +36,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { ApprovalTestTab } from "@/components/approvalMatrix/ApprovalTestTab";
+import { CATEGORY_DEFS, enabledCategoryDefs, isCategoryEnabled, type CategoryDef } from "@/lib/approvalCategories";
 
 const APPROVAL_TYPE_LABELS: Record<ApprovalType, string> = {
   any_one: "Any one member",
@@ -43,15 +44,9 @@ const APPROVAL_TYPE_LABELS: Record<ApprovalType, string> = {
   majority: "Majority (51%)",
 };
 
-const CATEGORIES: { key: PolicyCategory; label: string; unit: "money" | "days" }[] = [
-  { key: "expenses_travel", label: "Expenses — Travel", unit: "money" },
-  { key: "expenses_meals", label: "Expenses — Meals", unit: "money" },
-  { key: "expenses_other", label: "Expenses — Other", unit: "money" },
-  { key: "leave", label: "Leave", unit: "days" },
-  { key: "loans", label: "Loans", unit: "money" },
-  { key: "advances", label: "Advances", unit: "money" },
-  { key: "assets", label: "Assets", unit: "money" },
-];
+// Categories visible in the Approval Matrix. Payroll & Timesheets are
+// intentionally excluded — they do not flow through this matrix.
+const CATEGORIES = CATEGORY_DEFS;
 
 // Stored as halalas (smallest unit). UI uses SAR.
 const toHalalas = (sar: string): number | null => {
@@ -69,7 +64,7 @@ const initials = (a?: string | null, b?: string | null) =>
   `${(a ?? "").charAt(0)}${(b ?? "").charAt(0)}`.toUpperCase() || "?";
 
 export default function ApprovalMatrixPage() {
-  const { clientId } = useRole();
+  const { clientId, enabledModules } = useRole();
   const { data: approvers = [] } = useApprovers(clientId);
   const { data: groups = [] } = useApprovalGroups(clientId);
   const { data: policies = [] } = useApprovalPolicies(clientId);
@@ -110,7 +105,7 @@ export default function ApprovalMatrixPage() {
         </TabsList>
 
         <TabsContent value="approvers">
-          <ApproversTab approvers={approvers} groups={groups} />
+          <ApproversTab approvers={approvers} groups={groups} enabledModules={enabledModules} />
         </TabsContent>
 
         <TabsContent value="groups">
@@ -120,11 +115,12 @@ export default function ApprovalMatrixPage() {
             empMap={empMap}
             groupMap={groupMap}
             clientId={clientId}
+            enabledModules={enabledModules}
           />
         </TabsContent>
 
         <TabsContent value="policies">
-          <PoliciesTab policies={policies} groups={groups} clientId={clientId} />
+          <PoliciesTab policies={policies} groups={groups} clientId={clientId} enabledModules={enabledModules} />
         </TabsContent>
 
         <TabsContent value="settings">
@@ -156,9 +152,11 @@ export default function ApprovalMatrixPage() {
 function ApproversTab({
   approvers,
   groups,
+  enabledModules,
 }: {
   approvers: ReturnType<typeof useApprovers>["data"];
   groups: ApprovalGroup[];
+  enabledModules: string[] | null;
 }) {
   const [search, setSearch] = useState("");
   const list = approvers ?? [];
@@ -176,9 +174,17 @@ function ApproversTab({
   const groupForApprover = (empId: string) =>
     groups.find((g) => g.member_ids.includes(empId));
 
+  // Map capability feature_keys → module names, then keep only those modules
+  // the client has enabled (so "Assets" doesn't appear if Asset Tracking is off).
+  const allowedModules = new Set(
+    CATEGORY_DEFS.filter((c) => isCategoryEnabled(c.key, enabledModules)).map((c) => c.module),
+  );
   const capabilityModules = (caps: string[]) => {
     const modules = new Set<string>();
-    caps.forEach((k) => modules.add(k.split(".")[0]));
+    caps.forEach((k) => {
+      const def = CATEGORY_DEFS.find((c) => c.approveFeature === k);
+      if (def && allowedModules.has(def.module)) modules.add(def.module);
+    });
     return Array.from(modules);
   };
 
@@ -275,12 +281,14 @@ function GroupsTab({
   empMap,
   groupMap,
   clientId,
+  enabledModules,
 }: {
   groups: ApprovalGroup[];
   approvers: ReturnType<typeof useApprovers>["data"];
   empMap: Map<string, { name: string; avatar: string | null }>;
   groupMap: Map<string, ApprovalGroup>;
   clientId: string | null;
+  enabledModules: string[] | null;
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ApprovalGroup | null>(null);
@@ -378,13 +386,14 @@ function GroupsTab({
         approvers={approvers ?? []}
         groups={groups}
         clientId={clientId}
+        enabledModules={enabledModules}
       />
     </div>
   );
 }
 
 function GroupDialog({
-  open, onOpenChange, editing, approvers, groups, clientId,
+  open, onOpenChange, editing, approvers, groups, clientId, enabledModules,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -392,42 +401,95 @@ function GroupDialog({
   approvers: NonNullable<ReturnType<typeof useApprovers>["data"]>;
   groups: ApprovalGroup[];
   clientId: string | null;
+  enabledModules: string[] | null;
 }) {
   const create = useCreateApprovalGroup();
   const update = useUpdateApprovalGroup();
 
+  const availableCategories = useMemo(
+    () => enabledCategoryDefs(enabledModules),
+    [enabledModules],
+  );
+
   const [name, setName] = useState("");
-  const [limit, setLimit] = useState("");
+  const [category, setCategory] = useState<PolicyCategory | "">("");
+  const [minVal, setMinVal] = useState("");
+  const [maxVal, setMaxVal] = useState("");
   const [type, setType] = useState<ApprovalType>("any_one");
   const [escDays, setEscDays] = useState("");
   const [escTo, setEscTo] = useState<string>("admin");
   const [members, setMembers] = useState<string[]>([]);
+
+  const catDef = useMemo(
+    () => CATEGORY_DEFS.find((c) => c.key === category) ?? null,
+    [category],
+  );
+  const isMoney = catDef?.unit !== "days";
+  const unitLabel = isMoney ? "SAR" : "days";
 
   // Initialize when editing changes
   useMemo(() => {
     if (open) {
       if (editing) {
         setName(editing.name);
-        setLimit(toSAR(editing.max_limit_halalas));
+        setCategory(editing.category ?? "");
+        const editIsMoney =
+          (CATEGORY_DEFS.find((c) => c.key === editing.category)?.unit ?? "money") === "money";
+        setMinVal(
+          editing.min_limit_halalas == null
+            ? ""
+            : editIsMoney
+              ? toSAR(editing.min_limit_halalas)
+              : String(editing.min_limit_halalas),
+        );
+        setMaxVal(
+          editing.max_limit_halalas == null
+            ? ""
+            : editIsMoney
+              ? toSAR(editing.max_limit_halalas)
+              : String(editing.max_limit_halalas),
+        );
         setType(editing.approval_type);
         setEscDays(editing.escalate_after_days?.toString() ?? "");
         setEscTo(editing.escalate_to_group_id ?? "admin");
         setMembers(editing.member_ids);
       } else {
-        setName(""); setLimit(""); setType("any_one"); setEscDays(""); setEscTo("admin"); setMembers([]);
+        setName(""); setCategory(""); setMinVal(""); setMaxVal("");
+        setType("any_one"); setEscDays(""); setEscTo("admin"); setMembers([]);
       }
     }
   }, [open, editing]);
 
+  // Members eligible for the selected category — must have the matching
+  // approve feature granted on their role (people-level enabled).
+  const eligibleApprovers = useMemo(() => {
+    if (!catDef) return [];
+    return approvers.filter((a) => a.capabilities.includes(catDef.approveFeature));
+  }, [approvers, catDef]);
+
+  // When category changes, drop any selected members no longer eligible.
+  const eligibleIdSet = useMemo(
+    () => new Set(eligibleApprovers.map((a) => a.id)),
+    [eligibleApprovers],
+  );
+
+  const parseValue = (v: string): number | null => {
+    if (!v.trim()) return null;
+    return isMoney ? toHalalas(v) : Number(v);
+  };
+
   const handleSave = () => {
     if (!clientId || !name.trim()) return;
+    const filteredMembers = members.filter((id) => eligibleIdSet.has(id));
     const payload = {
       name: name.trim(),
-      max_limit_halalas: toHalalas(limit),
+      category: (category || null) as PolicyCategory | null,
+      min_limit_halalas: parseValue(minVal),
+      max_limit_halalas: parseValue(maxVal),
       approval_type: type,
       escalate_after_days: escDays.trim() ? Number(escDays) : null,
       escalate_to_group_id: escTo === "admin" ? null : escTo,
-      member_ids: members,
+      member_ids: filteredMembers,
     };
     if (editing) {
       update.mutate({ id: editing.id, ...payload }, { onSuccess: () => onOpenChange(false) });
@@ -446,19 +508,54 @@ function GroupDialog({
 
         <div className="space-y-3">
           <div>
+            <Label>Category</Label>
+            <Select value={category} onValueChange={(v) => setCategory(v as PolicyCategory)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableCategories.length === 0 ? (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                    No modules enabled.
+                  </div>
+                ) : (
+                  availableCategories.map((c) => (
+                    <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label>Group name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Senior Approvers" />
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Max limit (SAR)</Label>
+              <Label>Min ({unitLabel})</Label>
               <Input
-                value={limit}
-                onChange={(e) => setLimit(e.target.value)}
-                placeholder="Empty = unlimited"
+                value={minVal}
+                onChange={(e) => setMinVal(e.target.value)}
+                placeholder="Empty = 0"
                 type="number"
+                disabled={!catDef}
               />
             </div>
+            <div>
+              <Label>Max ({unitLabel})</Label>
+              <Input
+                value={maxVal}
+                onChange={(e) => setMaxVal(e.target.value)}
+                placeholder="Empty = unlimited"
+                type="number"
+                disabled={!catDef}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Approval type</Label>
               <Select value={type} onValueChange={(v: ApprovalType) => setType(v)}>
@@ -470,9 +567,6 @@ function GroupDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Escalate after (days)</Label>
               <Input
@@ -482,32 +576,39 @@ function GroupDialog({
                 type="number"
               />
             </div>
-            <div>
-              <Label>Escalate to</Label>
-              <Select value={escTo} onValueChange={setEscTo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin only</SelectItem>
-                  {groups
-                    .filter((g) => g.id !== editing?.id)
-                    .map((g) => (
-                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+
+          <div>
+            <Label>Escalate to</Label>
+            <Select value={escTo} onValueChange={setEscTo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin only</SelectItem>
+                {groups
+                  .filter((g) => g.id !== editing?.id)
+                  .map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <Label>Members</Label>
-            {approvers.length === 0 ? (
+            {!catDef ? (
               <p className="text-xs text-muted-foreground py-2">
-                No approvers available. Admins are auto-included; otherwise grant a role any "*.approve" feature in User Permissions.
+                Select a category above to see eligible approvers.
+              </p>
+            ) : eligibleApprovers.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">
+                No employees have approval rights for {catDef.label}. Grant the
+                "{catDef.approveFeature}" feature (people-level) to a role in
+                User Permissions first.
               </p>
             ) : (
               <ScrollArea className="h-48 border rounded-md p-2">
                 <div className="space-y-1">
-                  {approvers.map((a) => (
+                  {eligibleApprovers.map((a) => (
                     <label
                       key={a.id}
                       className="flex items-center gap-2 p-1.5 rounded hover:bg-muted cursor-pointer"
@@ -534,7 +635,9 @@ function GroupDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={!name.trim()}>{editing ? "Save" : "Create"}</Button>
+          <Button onClick={handleSave} disabled={!name.trim() || !category}>
+            {editing ? "Save" : "Create"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -545,15 +648,23 @@ function GroupDialog({
 // POLICIES TAB
 // ═══════════════════════════════════════════════════════════════════════
 function PoliciesTab({
-  policies, groups, clientId,
+  policies, groups, clientId, enabledModules,
 }: {
   policies: ApprovalPolicy[];
   groups: ApprovalGroup[];
   clientId: string | null;
+  enabledModules: string[] | null;
 }) {
+  const visibleCategories = useMemo(
+    () => enabledCategoryDefs(enabledModules),
+    [enabledModules],
+  );
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ApprovalPolicy | null>(null);
-  const [defaultCategory, setDefaultCategory] = useState<PolicyCategory>("expenses_travel");
+  const [defaultCategory, setDefaultCategory] = useState<PolicyCategory>(
+    visibleCategories[0]?.key ?? "expenses_travel",
+  );
   const deletePolicy = useDeleteApprovalPolicy();
 
   const byCategory = useMemo(() => {
@@ -582,7 +693,14 @@ function PoliciesTab({
 
   return (
     <div className="space-y-4">
-      {CATEGORIES.map((c) => {
+      {visibleCategories.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground text-sm">
+            No modules enabled for this client.
+          </CardContent>
+        </Card>
+      ) : null}
+      {visibleCategories.map((c) => {
         const rows = byCategory.get(c.key) ?? [];
         return (
           <Card key={c.key}>
@@ -660,13 +778,14 @@ function PoliciesTab({
         defaultCategory={defaultCategory}
         groups={groups}
         clientId={clientId}
+        enabledModules={enabledModules}
       />
     </div>
   );
 }
 
 function PolicyDialog({
-  open, onOpenChange, editing, defaultCategory, groups, clientId,
+  open, onOpenChange, editing, defaultCategory, groups, clientId, enabledModules,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -674,6 +793,7 @@ function PolicyDialog({
   defaultCategory: PolicyCategory;
   groups: ApprovalGroup[];
   clientId: string | null;
+  enabledModules: string[] | null;
 }) {
   const upsert = useUpsertApprovalPolicy();
 
@@ -743,7 +863,7 @@ function PolicyDialog({
             <Select value={category} onValueChange={(v: PolicyCategory) => setCategory(v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((c) => (
+                {enabledCategoryDefs(enabledModules).map((c) => (
                   <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
                 ))}
               </SelectContent>

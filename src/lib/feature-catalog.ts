@@ -40,7 +40,7 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
     features: [
       { key: "payroll.create_run", label: "Create Payroll Run" },
       { key: "payroll.view_all_runs", label: "View All Payroll Runs" },
-      { key: "payroll.approve_run", label: "Approve Payroll Run" },
+      // payroll.approve_run intentionally removed — payroll is not routed via the Approval Matrix.
       { key: "payroll.view_own_payslip", label: "View Own Payslip" },
       { key: "payroll.download_payslip", label: "Download Payslip" },
       { key: "payroll.view_salary_breakdown", label: "View Salary Breakdown" },
@@ -100,7 +100,7 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
     label: "Timesheets",
     features: [
       { key: "timesheets.submit", label: "Submit Timesheets" },
-      { key: "timesheets.approve", label: "Approve Timesheets" },
+      // timesheets.approve intentionally removed — timesheets do not route via the Approval Matrix.
     ],
   },
   {
