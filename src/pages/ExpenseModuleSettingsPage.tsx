@@ -24,7 +24,7 @@ export default function ExpenseModuleSettingsPage() {
         description="Manage expense categories, mileage rates and cost allocation rules."
       />
       <Tabs defaultValue="categories" className="w-full">
-        <TabsList className="flex flex-wrap h-auto">
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="mileage">Mileage Rates</TabsTrigger>
           <TabsTrigger value="cost">Cost Allocation</TabsTrigger>
