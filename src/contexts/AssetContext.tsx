@@ -108,7 +108,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   const { clientId, user } = useAuth();
   const { employees } = useEmployees();
   const qc = useQueryClient();
-  const seedDoneRef = useRef(false);
+  
 
   const empNameById = useMemo(() => {
     const m = new Map<string, string>();
