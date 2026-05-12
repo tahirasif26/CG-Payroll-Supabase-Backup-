@@ -117,7 +117,7 @@ export default function ApprovalMatrixPage() {
         </TabsList>
 
         <TabsContent value="approvers">
-          <ApproversTab approvers={approvers} groups={groups} enabledModules={enabledModules} />
+          <ApproversTab approvers={approvers} groups={groups} />
         </TabsContent>
 
         <TabsContent value="groups">
@@ -164,47 +164,14 @@ export default function ApprovalMatrixPage() {
 function ApproversTab({
   approvers,
   groups,
-  enabledModules,
 }: {
   approvers: ReturnType<typeof useApprovers>["data"];
   groups: ApprovalGroup[];
-  enabledModules: string[];
 }) {
   const [search, setSearch] = useState("");
   const list = approvers ?? [];
 
-  // Map a feature_key's module → client nav module key.
-  const featureModuleToNav = (m: string): string | null => {
-    switch (m) {
-      case "expenses":
-      case "advances":
-        return "expenses";
-      case "leave":
-        return "employees";
-      case "loans":
-        return "payroll";
-      case "assets":
-        return "assets";
-      case "performance":
-        return "employees";
-      default:
-        return null;
-    }
-  };
-
-  // Filter capabilities by client's enabled modules. Empty = all enabled.
-  const visibleCapabilities = (caps: string[]): string[] => {
-    if (!enabledModules || enabledModules.length === 0) return caps;
-    return caps.filter((k) => {
-      const nav = featureModuleToNav(k.split(".")[0]);
-      return nav !== null && enabledModules.includes(nav);
-    });
-  };
-
-  // Drop approvers whose only capabilities are for disabled modules.
-  const visibleApprovers = list.filter((a) => visibleCapabilities(a.capabilities).length > 0);
-
-  const filtered = visibleApprovers.filter((a) => {
+  const filtered = list.filter((a) => {
     const q = search.toLowerCase();
     if (!q) return true;
     return (
@@ -219,7 +186,7 @@ function ApproversTab({
 
   const capabilityModules = (caps: string[]) => {
     const modules = new Set<string>();
-    visibleCapabilities(caps).forEach((k) => modules.add(k.split(".")[0]));
+    caps.forEach((k) => modules.add(k.split(".")[0]));
     return Array.from(modules);
   };
 
