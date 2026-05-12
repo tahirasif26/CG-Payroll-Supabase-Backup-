@@ -283,13 +283,19 @@ function GroupsTab({
   empMap,
   groupMap,
   clientId,
+  enabledModules,
 }: {
   groups: ApprovalGroup[];
   approvers: ReturnType<typeof useApprovers>["data"];
   empMap: Map<string, { name: string; avatar: string | null }>;
   groupMap: Map<string, ApprovalGroup>;
   clientId: string | null;
+  enabledModules: string[];
 }) {
+  const visibleCategories = useMemo(
+    () => filterCategoriesByModules(enabledModules),
+    [enabledModules],
+  );
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ApprovalGroup | null>(null);
   const deleteGroup = useDeleteApprovalGroup();
