@@ -76,7 +76,7 @@ const initials = (a?: string | null, b?: string | null) =>
   `${(a ?? "").charAt(0)}${(b ?? "").charAt(0)}`.toUpperCase() || "?";
 
 export default function ApprovalMatrixPage() {
-  const { clientId } = useRole();
+  const { clientId, enabledModules } = useRole();
   const { data: approvers = [] } = useApprovers(clientId);
   const { data: groups = [] } = useApprovalGroups(clientId);
   const { data: policies = [] } = useApprovalPolicies(clientId);
