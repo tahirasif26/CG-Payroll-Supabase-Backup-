@@ -13,8 +13,6 @@ export default function CostAllocationPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Cost Allocation" description="Track employee time and cost allocation across projects." />
-
       <div className="bg-card rounded-xl border overflow-hidden">
         <Table>
           <TableHeader>
@@ -30,21 +28,32 @@ export default function CostAllocationPage() {
             {isLoading ? (
               <TableSkeletonRows colSpan={5} />
             ) : filtered.length === 0 ? (
-              <EmptyTableRow colSpan={5} icon={PieChart} title="No cost allocations" description="Allocations will appear once employees log time against projects." />
-            ) : filtered.map((ca: any) => (
-              <TableRow key={ca.id}>
-                <TableCell className="font-medium">{ca.employees?.first_name} {ca.employees?.last_name}</TableCell>
-                <TableCell className="font-mono text-sm">{ca.projects?.code || "—"}</TableCell>
-                <TableCell>{ca.projects?.name || "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{ca.month} {ca.year}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-3 min-w-[140px]">
-                    <Progress value={Number(ca.allocation)} className="h-2 flex-1" />
-                    <span className="text-sm font-semibold w-10 text-right">{Number(ca.allocation)}%</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+              <EmptyTableRow
+                colSpan={5}
+                icon={PieChart}
+                title="No cost allocations"
+                description="Allocations will appear once employees log time against projects."
+              />
+            ) : (
+              filtered.map((ca: any) => (
+                <TableRow key={ca.id}>
+                  <TableCell className="font-medium">
+                    {ca.employees?.first_name} {ca.employees?.last_name}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{ca.projects?.code || "—"}</TableCell>
+                  <TableCell>{ca.projects?.name || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {ca.month} {ca.year}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Progress value={Number(ca.allocation)} className="h-2 flex-1" />
+                      <span className="text-sm font-semibold w-10 text-right">{Number(ca.allocation)}%</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
