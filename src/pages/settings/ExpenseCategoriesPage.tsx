@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PageHeader } from "@/components/PageHeader";
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableSkeletonRows } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import MileageSettings from "@/components/expenses/MileageSettings";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
@@ -87,55 +85,43 @@ export default function ExpenseCategoriesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Expense Settings" description="Configure expense categories and mileage rates." />
-      <Tabs defaultValue="categories">
-        <TabsList>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="mileage">Mileage Rates</TabsTrigger>
-        </TabsList>
-        <TabsContent value="categories" className="space-y-4 mt-4">
-          <div className="flex justify-end">
-            <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAdd}>
-              <Plus className="h-4 w-4 mr-2" />Add Category
-            </Button>
-          </div>
-          <div className="bg-card rounded-xl border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Category</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="font-semibold text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableSkeletonRows colSpan={3} />
-                ) : items.length === 0 ? (
-                  <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">No categories yet. Add one to get started.</TableCell></TableRow>
-                ) : items.map(item => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell><StatusBadge status={item.is_active ? "active" : "inactive"} /></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => del.mutate(item.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-        <TabsContent value="mileage" className="mt-4">
-          <MileageSettings />
-        </TabsContent>
-      </Tabs>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAdd}>
+          <Plus className="h-4 w-4 mr-2" />Add Category
+        </Button>
+      </div>
+      <div className="bg-card rounded-xl border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="font-semibold">Category</TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="font-semibold text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableSkeletonRows colSpan={3} />
+            ) : items.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">No categories yet. Add one to get started.</TableCell></TableRow>
+            ) : items.map(item => (
+              <TableRow key={item.id}>
+                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell><StatusBadge status={item.is_active ? "active" : "inactive"} /></TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => del.mutate(item.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
