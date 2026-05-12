@@ -61,15 +61,13 @@ export interface ApproverRow {
 }
 
 // Any feature_key that grants approval rights → makes the holder an approver.
+// Note: payroll & timesheets approvals are NOT routed via the Approval Matrix.
 const APPROVE_FEATURE_KEYS = [
   "expenses.approve",
   "loans.approve",
   "leave.approve",
   "advances.approve",
   "assets.approve_requests",
-  "payroll.approve_run",
-  "performance.calibration",
-  "timesheets.approve",
 ];
 
 export function useApprovers(clientId: string | null) {
