@@ -649,40 +649,6 @@ function GroupDialog({
               );
             })()}
           </div>
-          {/* legacy block below removed */}
-          {false && (
-            <div>
-              <Label>Members</Label>
-              {approvers.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2">
-                  No approvers available.
-                </p>
-              ) : (
-              <ScrollArea className="h-48 border rounded-md p-2">
-                <div className="space-y-1">
-                  {approvers.map((a) => (
-                    <label
-                      key={a.id}
-                      className="flex items-center gap-2 p-1.5 rounded hover:bg-muted cursor-pointer"
-                    >
-                      <Checkbox
-                        checked={members.includes(a.id)}
-                        onCheckedChange={(checked) => {
-                          setMembers((prev) =>
-                            checked ? [...prev, a.id] : prev.filter((x) => x !== a.id),
-                          );
-                        }}
-                      />
-                      <span className="text-sm">
-                        {a.first_name} {a.last_name}
-                        <span className="text-xs text-muted-foreground ml-2">({a.role_name})</span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </div>
         </div>
 
         <DialogFooter>
