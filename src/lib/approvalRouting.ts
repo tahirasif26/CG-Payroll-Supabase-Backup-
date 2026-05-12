@@ -26,35 +26,9 @@ export interface RouteApprovalResult {
   approverCount: number;
 }
 
-// Map a policy category → the client nav-module key that must be enabled.
-function categoryToClientModule(category: string): string | null {
-  if (category.startsWith("expenses")) return "expenses";
-  if (category === "advances") return "expenses";
-  if (category === "leave") return "employees";
-  if (category === "loans") return "payroll";
-  if (category === "assets") return "assets";
-  return null;
-}
-
 export async function routeApprovalRequest(args: RouteApprovalArgs): Promise<RouteApprovalResult> {
   const { clientId, category, value, notification } = args;
   if (!clientId) return { routedTo: "none", groupId: null, approverCount: 0 };
-
-  // Skip routing entirely if the client doesn't have the relevant module.
-  const requiredModule = categoryToClientModule(category);
-  if (requiredModule) {
-    try {
-      const { data: hasMod } = await (supabase as any).rpc("client_has_module", {
-        _client_id: clientId,
-        _module_key: requiredModule,
-      });
-      if (hasMod === false) {
-        return { routedTo: "none", groupId: null, approverCount: 0 };
-      }
-    } catch (e) {
-      console.warn("[approval routing] client_has_module failed:", e);
-    }
-  }
 
   let groupId: string | null = null;
   try {
