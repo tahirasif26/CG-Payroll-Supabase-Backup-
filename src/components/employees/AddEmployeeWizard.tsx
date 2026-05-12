@@ -1158,17 +1158,119 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
         </TabsContent>
 
         {/* ========== ASSETS TAB ========== */}
-        <TabsContent value="assets" className="mt-4">
+        <TabsContent value="assets" className="mt-4 space-y-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2"><Monitor className="h-4 w-4 text-primary" />Tagged Assets</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Monitor className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Assets can be assigned after the employee is onboarded.</p>
-                <p className="text-xs text-muted-foreground mt-1">Go to Asset Management to assign devices and equipment.</p>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Monitor className="h-4 w-4 text-primary" />
+                  Assign Assets {isEditMode ? "" : "(optional)"}
+                </CardTitle>
+                <Badge variant="secondary">{filteredAvailableAssets.length} available</Badge>
               </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {isEditMode ? (
+                <p className="text-sm text-muted-foreground">Manage assets from the Asset Management module.</p>
+              ) : (
+                <>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by name, tag, or category..."
+                        value={assetSearch}
+                        onChange={(e) => setAssetSearch(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                    </div>
+                    <Select value={assetCategoryFilter} onValueChange={setAssetCategoryFilter}>
+                      <SelectTrigger className="w-full sm:w-56 h-9">
+                        <SelectValue placeholder="All categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All categories</SelectItem>
+                        {(assetCategoriesList as any[]).map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {filteredAvailableAssets.length === 0 ? (
+                    <div className="text-center py-8 border rounded-md">
+                      <Monitor className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {(availableAssets as any[]).length === 0
+                          ? "No available assets in inventory."
+                          : "No assets match your filters."}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        You can assign assets later from Asset Management.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="border rounded-md max-h-96 overflow-auto">
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-background">
+                          <TableRow>
+                            <TableHead className="w-10"></TableHead>
+                            <TableHead>Tag</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Condition</TableHead>
+                            <TableHead>Location</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredAvailableAssets.map((a: any) => {
+                            const checked = selectedAssetIds.includes(a.id);
+                            return (
+                              <TableRow
+                                key={a.id}
+                                onClick={() => toggleAsset(a.id)}
+                                className={cn("cursor-pointer", checked && "bg-primary/5")}
+                              >
+                                <TableCell>
+                                  <Checkbox checked={checked} onCheckedChange={() => toggleAsset(a.id)} />
+                                </TableCell>
+                                <TableCell className="font-mono text-xs">{a.asset_tag}</TableCell>
+                                <TableCell className="font-medium">{a.name}</TableCell>
+                                <TableCell className="text-muted-foreground">{a.asset_categories?.name ?? "—"}</TableCell>
+                                <TableCell className="text-muted-foreground">{a.asset_conditions?.name ?? "—"}</TableCell>
+                                <TableCell className="text-muted-foreground">{a.asset_locations?.name ?? "—"}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+
+                  <div className="rounded-md border bg-muted/30 p-3">
+                    <p className="text-sm font-medium mb-1">
+                      Assets to assign ({selectedAssetIds.length})
+                    </p>
+                    {selectedAssetIds.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        No assets selected. You can assign assets now or later from Asset Management.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedAssetIds.map((id) => {
+                          const a = (availableAssets as any[]).find((x) => x.id === id);
+                          if (!a) return null;
+                          return (
+                            <Badge key={id} variant="secondary" className="gap-1">
+                              {a.asset_tag} · {a.name}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
