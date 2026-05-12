@@ -764,7 +764,7 @@ function PolicyDialog({
             <Select value={category} onValueChange={(v: PolicyCategory) => setCategory(v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((c) => (
+                {visibleCategories.map((c) => (
                   <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
                 ))}
               </SelectContent>
