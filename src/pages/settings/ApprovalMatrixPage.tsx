@@ -686,7 +686,7 @@ function PoliciesTab({
 }
 
 function PolicyDialog({
-  open, onOpenChange, editing, defaultCategory, groups, clientId,
+  open, onOpenChange, editing, defaultCategory, groups, clientId, visibleCategories,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -694,6 +694,7 @@ function PolicyDialog({
   defaultCategory: PolicyCategory;
   groups: ApprovalGroup[];
   clientId: string | null;
+  visibleCategories: typeof CATEGORIES;
 }) {
   const upsert = useUpsertApprovalPolicy();
 
