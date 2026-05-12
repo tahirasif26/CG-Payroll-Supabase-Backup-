@@ -691,7 +691,7 @@ export default function MyProfilePage() {
             <Row icon={MapPin} label="Work location">
               <span>{[employee.work_location_city, employee.work_location_country].filter(Boolean).join(", ") || "—"}</span>
             </Row>
-            <Row icon={UserIcon} label="Type of hire"><span className="capitalize">{employee.category || "—"}</span></Row>
+            <Row icon={UserIcon} label="Type of hire"><span className="capitalize">{getTypeName(employee.category) || "—"}</span></Row>
             <Row icon={UsersIcon} label="Reports to">
               <span>{managerEmp ? `${managerEmp.firstName} ${managerEmp.lastName}` : managerName}</span>
             </Row>
