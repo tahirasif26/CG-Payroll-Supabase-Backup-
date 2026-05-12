@@ -100,7 +100,7 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
     label: "Timesheets",
     features: [
       { key: "timesheets.submit", label: "Submit Timesheets" },
-      { key: "timesheets.approve", label: "Approve Timesheets" },
+      // timesheets.approve intentionally removed — timesheets do not route via the Approval Matrix.
     ],
   },
   {
