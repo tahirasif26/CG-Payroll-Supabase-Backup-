@@ -12,6 +12,7 @@ import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useEmployeeProfile, useUpdateEmployeeProfile } from "@/hooks/queries/useEmployeeProfile";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useReporting } from "@/contexts/ReportingContext";
+import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { FileUpload } from "@/components/FileUpload";
 import { getSignedUrl } from "@/lib/storage";
@@ -81,6 +82,7 @@ export default function MyProfilePage() {
   const update = useUpdateEmployeeProfile();
   const { employees } = useEmployees();
   const { getManagerId, getManagerName } = useReporting();
+  const { getTypeName } = useEmployeeTypes();
 
   const employee = data?.employee as any | undefined;
 
@@ -312,7 +314,7 @@ export default function MyProfilePage() {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Type of Hire</p>
-                  <p className="text-sm font-medium mt-0.5 capitalize">{employee.category || "—"}</p>
+                  <p className="text-sm font-medium mt-0.5 capitalize">{getTypeName(employee.category) || "—"}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tenure</p>
@@ -689,7 +691,7 @@ export default function MyProfilePage() {
             <Row icon={MapPin} label="Work location">
               <span>{[employee.work_location_city, employee.work_location_country].filter(Boolean).join(", ") || "—"}</span>
             </Row>
-            <Row icon={UserIcon} label="Type of hire"><span className="capitalize">{employee.category || "—"}</span></Row>
+            <Row icon={UserIcon} label="Type of hire"><span className="capitalize">{getTypeName(employee.category) || "—"}</span></Row>
             <Row icon={UsersIcon} label="Reports to">
               <span>{managerEmp ? `${managerEmp.firstName} ${managerEmp.lastName}` : managerName}</span>
             </Row>
