@@ -36,6 +36,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { ApprovalTestTab } from "@/components/approvalMatrix/ApprovalTestTab";
+import { CATEGORY_DEFS, enabledCategoryDefs, isCategoryEnabled, type CategoryDef } from "@/lib/approvalCategories";
 
 const APPROVAL_TYPE_LABELS: Record<ApprovalType, string> = {
   any_one: "Any one member",
@@ -43,15 +44,9 @@ const APPROVAL_TYPE_LABELS: Record<ApprovalType, string> = {
   majority: "Majority (51%)",
 };
 
-const CATEGORIES: { key: PolicyCategory; label: string; unit: "money" | "days" }[] = [
-  { key: "expenses_travel", label: "Expenses — Travel", unit: "money" },
-  { key: "expenses_meals", label: "Expenses — Meals", unit: "money" },
-  { key: "expenses_other", label: "Expenses — Other", unit: "money" },
-  { key: "leave", label: "Leave", unit: "days" },
-  { key: "loans", label: "Loans", unit: "money" },
-  { key: "advances", label: "Advances", unit: "money" },
-  { key: "assets", label: "Assets", unit: "money" },
-];
+// Categories visible in the Approval Matrix. Payroll & Timesheets are
+// intentionally excluded — they do not flow through this matrix.
+const CATEGORIES = CATEGORY_DEFS;
 
 // Stored as halalas (smallest unit). UI uses SAR.
 const toHalalas = (sar: string): number | null => {
