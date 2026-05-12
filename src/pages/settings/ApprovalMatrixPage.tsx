@@ -594,60 +594,35 @@ function GroupDialog({
 
           <div>
             <Label>Members</Label>
-            {(() => {
-              if (!category) {
-                return (
-                  <p className="text-xs text-muted-foreground py-2">
-                    Select a category above to see eligible approvers.
-                  </p>
-                );
-              }
-              const featureForCategory = (cat: PolicyCategory): string => {
-                if (cat.startsWith("expenses")) return "expenses.approve";
-                if (cat === "leave") return "leave.approve";
-                if (cat === "advances") return "advances.approve";
-                if (cat === "loans") return "loans.approve";
-                if (cat === "assets") return "assets.approve_requests";
-                return "";
-              };
-              const requiredFeature = featureForCategory(category as PolicyCategory);
-              const eligible = approvers.filter((a) =>
-                a.capabilities.includes(requiredFeature),
-              );
-              if (eligible.length === 0) {
-                return (
-                  <p className="text-xs text-muted-foreground py-2">
-                    No employees have approval rights for this category. Grant a role
-                    "{requiredFeature}" with people-level access in User Permissions.
-                  </p>
-                );
-              }
-              return (
-                <ScrollArea className="h-48 border rounded-md p-2">
-                  <div className="space-y-1">
-                    {eligible.map((a) => (
-                      <label
-                        key={a.id}
-                        className="flex items-center gap-2 p-1.5 rounded hover:bg-muted cursor-pointer"
-                      >
-                        <Checkbox
-                          checked={members.includes(a.id)}
-                          onCheckedChange={(checked) => {
-                            setMembers((prev) =>
-                              checked ? [...prev, a.id] : prev.filter((x) => x !== a.id),
-                            );
-                          }}
-                        />
-                        <span className="text-sm">
-                          {a.first_name} {a.last_name}
-                          <span className="text-xs text-muted-foreground ml-2">({a.role_name})</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </ScrollArea>
-              );
-            })()}
+            {approvers.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">
+                No approvers available. Admins are auto-included; otherwise grant a role any "*.approve" feature in User Permissions.
+              </p>
+            ) : (
+              <ScrollArea className="h-48 border rounded-md p-2">
+                <div className="space-y-1">
+                  {approvers.map((a) => (
+                    <label
+                      key={a.id}
+                      className="flex items-center gap-2 p-1.5 rounded hover:bg-muted cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={members.includes(a.id)}
+                        onCheckedChange={(checked) => {
+                          setMembers((prev) =>
+                            checked ? [...prev, a.id] : prev.filter((x) => x !== a.id),
+                          );
+                        }}
+                      />
+                      <span className="text-sm">
+                        {a.first_name} {a.last_name}
+                        <span className="text-xs text-muted-foreground ml-2">({a.role_name})</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </div>
         </div>
 
