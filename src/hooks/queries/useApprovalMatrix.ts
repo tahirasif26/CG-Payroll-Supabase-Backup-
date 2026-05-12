@@ -241,6 +241,8 @@ export function useUpdateApprovalGroup() {
     mutationFn: async (input: {
       id: string;
       name: string;
+      category: PolicyCategory | null;
+      min_limit_halalas: number | null;
       max_limit_halalas: number | null;
       approval_type: ApprovalType;
       escalate_after_days: number | null;
