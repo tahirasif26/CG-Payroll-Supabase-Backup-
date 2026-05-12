@@ -43,15 +43,22 @@ const APPROVAL_TYPE_LABELS: Record<ApprovalType, string> = {
   majority: "Majority (51%)",
 };
 
-const CATEGORIES: { key: PolicyCategory; label: string; unit: "money" | "days" }[] = [
-  { key: "expenses_travel", label: "Expenses — Travel", unit: "money" },
-  { key: "expenses_meals", label: "Expenses — Meals", unit: "money" },
-  { key: "expenses_other", label: "Expenses — Other", unit: "money" },
-  { key: "leave", label: "Leave", unit: "days" },
-  { key: "loans", label: "Loans", unit: "money" },
-  { key: "advances", label: "Advances", unit: "money" },
-  { key: "assets", label: "Assets", unit: "money" },
+const CATEGORIES: { key: PolicyCategory; label: string; unit: "money" | "days"; module: string }[] = [
+  { key: "expenses_travel", label: "Expenses — Travel", unit: "money", module: "expenses" },
+  { key: "expenses_meals", label: "Expenses — Meals", unit: "money", module: "expenses" },
+  { key: "expenses_other", label: "Expenses — Other", unit: "money", module: "expenses" },
+  { key: "leave", label: "Leave", unit: "days", module: "employees" },
+  { key: "loans", label: "Loans", unit: "money", module: "payroll" },
+  { key: "advances", label: "Advances", unit: "money", module: "expenses" },
+  { key: "assets", label: "Assets", unit: "money", module: "assets" },
 ];
+
+// Filter categories to only those whose module is enabled for the client.
+// An empty enabledModules array means "all modules enabled" (matches client_has_module).
+function filterCategoriesByModules(enabledModules: string[] | null | undefined) {
+  if (!enabledModules || enabledModules.length === 0) return CATEGORIES;
+  return CATEGORIES.filter((c) => enabledModules.includes(c.module));
+}
 
 // Stored as halalas (smallest unit). UI uses SAR.
 const toHalalas = (sar: string): number | null => {
