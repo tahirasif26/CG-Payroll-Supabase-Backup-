@@ -82,6 +82,7 @@ export default function MyProfilePage() {
   const update = useUpdateEmployeeProfile();
   const { employees } = useEmployees();
   const { getManagerId, getManagerName } = useReporting();
+  const { getTypeName } = useEmployeeTypes();
 
   const employee = data?.employee as any | undefined;
 
