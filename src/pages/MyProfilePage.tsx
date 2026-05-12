@@ -314,7 +314,7 @@ export default function MyProfilePage() {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Type of Hire</p>
-                  <p className="text-sm font-medium mt-0.5 capitalize">{employee.category || "—"}</p>
+                  <p className="text-sm font-medium mt-0.5 capitalize">{getTypeName(employee.category) || "—"}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tenure</p>
