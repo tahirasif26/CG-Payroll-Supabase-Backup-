@@ -1108,7 +1108,105 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
           </CardContent>
         </Card>
       )}
+
+      {selectedSetup && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calculator className="h-4 w-4 text-primary" />Salary Breakdown
+              {baseForBreakdown > 0 && <Badge variant="outline" className="ml-2 text-xs">Live</Badge>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {salaryBreakdown ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">Basic Salary</span>
+                    <Badge variant="outline" className="text-[10px] h-5">Base</Badge>
+                  </div>
+                  <span className="text-sm font-semibold">{salaryBreakdown.baseSalary.toLocaleString()} {selectedSetup.currency}</span>
+                </div>
+                {salaryBreakdown.additions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Earnings</p>
+                    <div className="bg-muted/30 rounded-lg overflow-hidden">
+                      {salaryBreakdown.additions.map((item) => (
+                        <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
+                          <span className="text-sm col-span-4 truncate">{item.name}</span>
+                          <div className="col-span-3 flex items-center gap-1">
+                            <Input type="number" className="h-7 text-xs" value={item.percentage || 0} disabled={!editing}
+                              onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
+                          <div className="col-span-4">
+                            <Input type="number" className="h-7 text-xs" value={item.amount} disabled={!editing}
+                              onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
+                          </div>
+                          <span className="text-xs font-semibold text-emerald-600 col-span-1 text-right">{selectedSetup.currency}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-500/10 font-semibold">
+                        <span className="text-sm">Total Earnings</span>
+                        <span className="text-sm text-emerald-600">+{salaryBreakdown.totalAdditions.toLocaleString()} {selectedSetup.currency}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {salaryBreakdown.deductions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Deductions</p>
+                    <div className="bg-muted/30 rounded-lg overflow-hidden">
+                      {salaryBreakdown.deductions.map((item) => (
+                        <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
+                          <span className="text-sm col-span-4 truncate">{item.name}</span>
+                          <div className="col-span-3 flex items-center gap-1">
+                            <Input type="number" className="h-7 text-xs" value={item.percentage || 0} disabled={!editing}
+                              onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
+                          <div className="col-span-4">
+                            <Input type="number" className="h-7 text-xs" value={item.amount} disabled={!editing}
+                              onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
+                          </div>
+                          <span className="text-xs font-semibold text-destructive col-span-1 text-right">{selectedSetup.currency}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between px-4 py-2.5 bg-destructive/10 font-semibold">
+                        <span className="text-sm">Total Deductions</span>
+                        <span className="text-sm text-destructive">-{salaryBreakdown.totalDeductions.toLocaleString()} {selectedSetup.currency}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {salaryBreakdown.taxAmount > 0 && (
+                  <div className="bg-muted/30 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2.5">
+                      <span className="text-sm">Tax Deduction</span>
+                      <span className="text-sm font-semibold text-destructive">-{salaryBreakdown.taxAmount.toLocaleString()} {selectedSetup.currency}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3 font-semibold">
+                  <span className="text-sm">Gross Salary</span>
+                  <span className="text-sm">{salaryBreakdown.grossTotal.toLocaleString()} {selectedSetup.currency}</span>
+                </div>
+                <div className="flex items-center justify-between bg-primary/10 rounded-lg px-4 py-3.5 font-bold">
+                  <span className="text-base">Net Salary</span>
+                  <span className="text-base text-primary">{salaryBreakdown.netSalary.toLocaleString()} {selectedSetup.currency}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Calculator className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Set a base salary to see the breakdown</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
+
   );
 }
 
