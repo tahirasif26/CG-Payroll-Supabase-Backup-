@@ -679,6 +679,7 @@ function PoliciesTab({
         defaultCategory={defaultCategory}
         groups={groups}
         clientId={clientId}
+        visibleCategories={visibleCategories}
       />
     </div>
   );
