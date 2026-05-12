@@ -1929,7 +1929,6 @@ function EmployeesDirectory() {
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
           <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} readOnly={isOwnProfile || profileViewOnly} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
-          <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={openUploadDialog} documents={allDocs[selectedEmployee.id] || []} onReupload={openReuploadDialog} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>
