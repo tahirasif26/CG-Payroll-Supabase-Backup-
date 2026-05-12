@@ -317,8 +317,8 @@ function downloadCSV(content: string, filename: string) {
 export default function PayrollPage() {
   const { employees } = useEmployees();
   const { activeTypes, getTypeName } = useEmployeeTypes();
-  const canApprovePayroll = useCanApprove("payroll");
-  const { currentEmployeeId, clientId } = useRole();
+  const { currentEmployeeId, clientId, appRole, isSuperAdmin } = useRole();
+  const canApprovePayroll = isSuperAdmin || appRole === "admin";
   const queryClient = useQueryClient();
   const { advances } = useAdvances();
   const { setups, getSetupById } = usePayrollSetups();
