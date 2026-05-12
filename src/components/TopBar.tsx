@@ -131,7 +131,7 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
           <Menu className="h-4 w-4" />
         </button>
 
-        {!isSuperAdmin && (
+        {!isSuperAdmin && hasPeopleAccess && (
           <div className="inline-flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
             <button
               onClick={() => setScope("me")}
