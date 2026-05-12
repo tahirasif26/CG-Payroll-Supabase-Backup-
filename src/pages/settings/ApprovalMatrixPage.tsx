@@ -43,15 +43,22 @@ const APPROVAL_TYPE_LABELS: Record<ApprovalType, string> = {
   majority: "Majority (51%)",
 };
 
-const CATEGORIES: { key: PolicyCategory; label: string; unit: "money" | "days" }[] = [
-  { key: "expenses_travel", label: "Expenses — Travel", unit: "money" },
-  { key: "expenses_meals", label: "Expenses — Meals", unit: "money" },
-  { key: "expenses_other", label: "Expenses — Other", unit: "money" },
-  { key: "leave", label: "Leave", unit: "days" },
-  { key: "loans", label: "Loans", unit: "money" },
-  { key: "advances", label: "Advances", unit: "money" },
-  { key: "assets", label: "Assets", unit: "money" },
+const CATEGORIES: { key: PolicyCategory; label: string; unit: "money" | "days"; module: string }[] = [
+  { key: "expenses_travel", label: "Expenses — Travel", unit: "money", module: "expenses" },
+  { key: "expenses_meals", label: "Expenses — Meals", unit: "money", module: "expenses" },
+  { key: "expenses_other", label: "Expenses — Other", unit: "money", module: "expenses" },
+  { key: "leave", label: "Leave", unit: "days", module: "employees" },
+  { key: "loans", label: "Loans", unit: "money", module: "payroll" },
+  { key: "advances", label: "Advances", unit: "money", module: "expenses" },
+  { key: "assets", label: "Assets", unit: "money", module: "assets" },
 ];
+
+// Filter categories to only those whose module is enabled for the client.
+// An empty enabledModules array means "all modules enabled" (matches client_has_module).
+function filterCategoriesByModules(enabledModules: string[] | null | undefined) {
+  if (!enabledModules || enabledModules.length === 0) return CATEGORIES;
+  return CATEGORIES.filter((c) => enabledModules.includes(c.module));
+}
 
 // Stored as halalas (smallest unit). UI uses SAR.
 const toHalalas = (sar: string): number | null => {
@@ -69,7 +76,7 @@ const initials = (a?: string | null, b?: string | null) =>
   `${(a ?? "").charAt(0)}${(b ?? "").charAt(0)}`.toUpperCase() || "?";
 
 export default function ApprovalMatrixPage() {
-  const { clientId } = useRole();
+  const { clientId, enabledModules } = useRole();
   const { data: approvers = [] } = useApprovers(clientId);
   const { data: groups = [] } = useApprovalGroups(clientId);
   const { data: policies = [] } = useApprovalPolicies(clientId);
@@ -124,7 +131,7 @@ export default function ApprovalMatrixPage() {
         </TabsContent>
 
         <TabsContent value="policies">
-          <PoliciesTab policies={policies} groups={groups} clientId={clientId} />
+          <PoliciesTab policies={policies} groups={groups} clientId={clientId} enabledModules={enabledModules} />
         </TabsContent>
 
         <TabsContent value="settings">
@@ -545,12 +552,17 @@ function GroupDialog({
 // POLICIES TAB
 // ═══════════════════════════════════════════════════════════════════════
 function PoliciesTab({
-  policies, groups, clientId,
+  policies, groups, clientId, enabledModules,
 }: {
   policies: ApprovalPolicy[];
   groups: ApprovalGroup[];
   clientId: string | null;
+  enabledModules: string[];
 }) {
+  const visibleCategories = useMemo(
+    () => filterCategoriesByModules(enabledModules),
+    [enabledModules],
+  );
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ApprovalPolicy | null>(null);
   const [defaultCategory, setDefaultCategory] = useState<PolicyCategory>("expenses_travel");
@@ -582,7 +594,14 @@ function PoliciesTab({
 
   return (
     <div className="space-y-4">
-      {CATEGORIES.map((c) => {
+      {visibleCategories.length === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            No approval-eligible modules are enabled for this client.
+          </CardContent>
+        </Card>
+      )}
+      {visibleCategories.map((c) => {
         const rows = byCategory.get(c.key) ?? [];
         return (
           <Card key={c.key}>
@@ -660,13 +679,14 @@ function PoliciesTab({
         defaultCategory={defaultCategory}
         groups={groups}
         clientId={clientId}
+        visibleCategories={visibleCategories}
       />
     </div>
   );
 }
 
 function PolicyDialog({
-  open, onOpenChange, editing, defaultCategory, groups, clientId,
+  open, onOpenChange, editing, defaultCategory, groups, clientId, visibleCategories,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -674,6 +694,7 @@ function PolicyDialog({
   defaultCategory: PolicyCategory;
   groups: ApprovalGroup[];
   clientId: string | null;
+  visibleCategories: typeof CATEGORIES;
 }) {
   const upsert = useUpsertApprovalPolicy();
 
@@ -743,7 +764,7 @@ function PolicyDialog({
             <Select value={category} onValueChange={(v: PolicyCategory) => setCategory(v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((c) => (
+                {visibleCategories.map((c) => (
                   <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
                 ))}
               </SelectContent>
