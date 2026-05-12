@@ -138,6 +138,29 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const [sendInvite, setSendInvite] = useState(true);
   const [inviting, setInviting] = useState(false);
   const [resending, setResending] = useState(false);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [assetSearch, setAssetSearch] = useState("");
+  const [assetCategoryFilter, setAssetCategoryFilter] = useState<string>("all");
+  const { data: availableAssets = [] } = useAssets({ status: "available" });
+  const { data: assetCategoriesList = [] } = useAssetCategories();
+  const qc = useQueryClient();
+
+  const filteredAvailableAssets = useMemo(() => {
+    const q = assetSearch.trim().toLowerCase();
+    return (availableAssets as any[]).filter((a) => {
+      if (a.employee_id) return false;
+      if (assetCategoryFilter !== "all" && a.category_id !== assetCategoryFilter) return false;
+      if (!q) return true;
+      return (
+        (a.name ?? "").toLowerCase().includes(q) ||
+        (a.asset_tag ?? "").toLowerCase().includes(q) ||
+        (a.asset_categories?.name ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [availableAssets, assetSearch, assetCategoryFilter]);
+
+  const toggleAsset = (id: string) =>
+    setSelectedAssetIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   // Prefill form when editing an existing employee.
   useEffect(() => {
