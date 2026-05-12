@@ -65,7 +65,9 @@ const APPROVE_FEATURE_KEYS = [
   "leave.approve",
   "advances.approve",
   "assets.approve_requests",
+  "payroll.approve_run",
   "performance.calibration",
+  "timesheets.approve",
 ];
 
 export function useApprovers(clientId: string | null) {

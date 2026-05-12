@@ -57,7 +57,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
-
+import { useCanApprove } from "@/hooks/useCanApprove";
 import { useRole } from "@/contexts/RoleContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
@@ -317,8 +317,8 @@ function downloadCSV(content: string, filename: string) {
 export default function PayrollPage() {
   const { employees } = useEmployees();
   const { activeTypes, getTypeName } = useEmployeeTypes();
-  const { currentEmployeeId, clientId, appRole, isSuperAdmin } = useRole();
-  const canApprovePayroll = isSuperAdmin || appRole === "admin";
+  const canApprovePayroll = useCanApprove("payroll");
+  const { currentEmployeeId, clientId } = useRole();
   const queryClient = useQueryClient();
   const { advances } = useAdvances();
   const { setups, getSetupById } = usePayrollSetups();

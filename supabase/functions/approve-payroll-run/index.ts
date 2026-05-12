@@ -116,14 +116,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Verify approval permission — only admins (or super admins) can approve payroll runs.
+    // 3. Verify approval permission via approval_roles join
     if (!isSuper) {
-      const { data: isAdmin, error: aErr } = await admin.rpc("has_role", {
-        _user_id: user.id,
-        _role: "admin",
-      });
+      const { data: assignments, error: aErr } = await admin
+        .from("user_approval_role_assignments")
+        .select("role_id, approval_roles!inner(can_approve_payroll, client_id)")
+        .eq("user_id", user.id)
+        .eq("client_id", run.client_id);
       if (aErr) throw aErr;
-      if (isAdmin !== true) {
+      const allowed = (assignments ?? []).some(
+        (a: { approval_roles: { can_approve_payroll: boolean } | null }) =>
+          a.approval_roles?.can_approve_payroll === true
+      );
+      if (!allowed) {
         return new Response(
           JSON.stringify({
             error: "You do not have permission to approve payroll",

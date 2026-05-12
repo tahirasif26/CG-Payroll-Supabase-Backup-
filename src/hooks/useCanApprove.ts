@@ -8,6 +8,7 @@ import { useApprovalGroups } from "@/hooks/queries/useApprovalMatrix";
  * approval group configured for the tenant.
  */
 const FEATURE_BY_CATEGORY: Record<string, string | undefined> = {
+  payroll: "payroll.approve_run",
   expenses: "expenses.approve",
   loans: "loans.approve",
   leave: "leave.approve",
@@ -15,7 +16,7 @@ const FEATURE_BY_CATEGORY: Record<string, string | undefined> = {
 };
 
 export function useCanApprove(
-  category: "expenses" | "loans" | "leave" | "advances"
+  category: "expenses" | "loans" | "payroll" | "leave" | "advances"
 ) {
   const { appRole, clientId, isSuperAdmin, hasFeature } = useRole();
   const { data: employee } = useCurrentEmployee();
