@@ -152,9 +152,11 @@ export default function ApprovalMatrixPage() {
 function ApproversTab({
   approvers,
   groups,
+  enabledModules,
 }: {
   approvers: ReturnType<typeof useApprovers>["data"];
   groups: ApprovalGroup[];
+  enabledModules: string[] | null;
 }) {
   const [search, setSearch] = useState("");
   const list = approvers ?? [];
@@ -172,9 +174,17 @@ function ApproversTab({
   const groupForApprover = (empId: string) =>
     groups.find((g) => g.member_ids.includes(empId));
 
+  // Map capability feature_keys → module names, then keep only those modules
+  // the client has enabled (so "Assets" doesn't appear if Asset Tracking is off).
+  const allowedModules = new Set(
+    CATEGORY_DEFS.filter((c) => isCategoryEnabled(c.key, enabledModules)).map((c) => c.module),
+  );
   const capabilityModules = (caps: string[]) => {
     const modules = new Set<string>();
-    caps.forEach((k) => modules.add(k.split(".")[0]));
+    caps.forEach((k) => {
+      const def = CATEGORY_DEFS.find((c) => c.approveFeature === k);
+      if (def && allowedModules.has(def.module)) modules.add(def.module);
+    });
     return Array.from(modules);
   };
 
