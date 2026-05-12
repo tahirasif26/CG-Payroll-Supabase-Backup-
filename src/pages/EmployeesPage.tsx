@@ -963,7 +963,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
   const { toast } = useToast();
 
   const selectedSetup = useMemo(() => setups.find(s => s.id === emp.payrollSetupId), [setups, emp.payrollSetupId]);
-  const activeSetups = useMemo(() => setups.filter(s => s.isActive !== false), [setups]);
+  const activeSetups = useMemo(() => setups, [setups]);
 
   const [editing, setEditing] = useState(false);
   const [salary, setSalary] = useState<number>(emp.salary || 0);
