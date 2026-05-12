@@ -169,6 +169,12 @@ Deno.serve(async (req) => {
           { client_id: clientId, name: "Damaged", status: "active" },
           { client_id: clientId, name: "Under Maintenance", status: "active" },
         ]),
+        adminClient.from("asset_locations").insert([
+          { client_id: clientId, name: "Head Office", status: "active" },
+          { client_id: clientId, name: "Warehouse", status: "active" },
+          { client_id: clientId, name: "Branch Office", status: "active" },
+          { client_id: clientId, name: "Remote", status: "active" },
+        ]),
         adminClient.from("expense_categories").insert([
           { client_id: clientId, name: "Travel", code: "TRAVEL", is_active: true },
           { client_id: clientId, name: "Meals", code: "MEALS", is_active: true },
