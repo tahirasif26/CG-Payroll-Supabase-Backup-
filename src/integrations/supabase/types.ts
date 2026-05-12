@@ -226,34 +226,40 @@ export type Database = {
       approval_groups: {
         Row: {
           approval_type: string
+          category: string | null
           client_id: string
           created_at: string
           escalate_after_days: number | null
           escalate_to_group_id: string | null
           id: string
           max_limit_halalas: number | null
+          min_limit_halalas: number | null
           name: string
           updated_at: string
         }
         Insert: {
           approval_type?: string
+          category?: string | null
           client_id: string
           created_at?: string
           escalate_after_days?: number | null
           escalate_to_group_id?: string | null
           id?: string
           max_limit_halalas?: number | null
+          min_limit_halalas?: number | null
           name: string
           updated_at?: string
         }
         Update: {
           approval_type?: string
+          category?: string | null
           client_id?: string
           created_at?: string
           escalate_after_days?: number | null
           escalate_to_group_id?: string | null
           id?: string
           max_limit_halalas?: number | null
+          min_limit_halalas?: number | null
           name?: string
           updated_at?: string
         }
