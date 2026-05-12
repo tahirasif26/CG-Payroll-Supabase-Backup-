@@ -12,6 +12,7 @@ import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useEmployeeProfile, useUpdateEmployeeProfile } from "@/hooks/queries/useEmployeeProfile";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useReporting } from "@/contexts/ReportingContext";
+import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { FileUpload } from "@/components/FileUpload";
 import { getSignedUrl } from "@/lib/storage";
