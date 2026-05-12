@@ -2,8 +2,12 @@
 // Resolves the approval group for a request via DB policy (Step 9 schema),
 // then notifies all active approvers (with delegation resolution).
 // Falls back to notifying all client admins if no policy matches.
+//
+// Module gating: payroll & timesheets do NOT route through the matrix.
+// Other categories are skipped if their backing module is disabled for the client.
 import { supabase } from "@/integrations/supabase/client";
 import { notifyUser, notifyClientAdmins, type NotifyCategory, type NotifySeverity } from "@/lib/notify";
+import { moduleForCategory } from "@/lib/approvalCategories";
 
 export interface RouteApprovalArgs {
   clientId: string | null | undefined;
@@ -26,9 +30,35 @@ export interface RouteApprovalResult {
   approverCount: number;
 }
 
+const UNSUPPORTED_CATEGORIES = new Set(["payroll", "timesheets", "payroll.approve_run", "timesheets.approve"]);
+
 export async function routeApprovalRequest(args: RouteApprovalArgs): Promise<RouteApprovalResult> {
   const { clientId, category, value, notification } = args;
   if (!clientId) return { routedTo: "none", groupId: null, approverCount: 0 };
+
+  // Hard-block payroll & timesheets — these are NOT handled by the approval matrix.
+  if (UNSUPPORTED_CATEGORIES.has(category)) {
+    return { routedTo: "none", groupId: null, approverCount: 0 };
+  }
+
+  // Module gating — skip routing entirely if the backing module isn't enabled.
+  const moduleKey = moduleForCategory(category);
+  if (moduleKey) {
+    try {
+      const { data: client } = await (supabase as any)
+        .from("clients")
+        .select("enabled_modules")
+        .eq("id", clientId)
+        .maybeSingle();
+      const enabled: string[] = Array.isArray(client?.enabled_modules) ? client.enabled_modules : [];
+      // Empty array → no gate (mirrors useModuleEnabled).
+      if (enabled.length > 0 && !enabled.includes(moduleKey)) {
+        return { routedTo: "none", groupId: null, approverCount: 0 };
+      }
+    } catch (e) {
+      console.warn("[approval routing] module gate check failed:", e);
+    }
+  }
 
   let groupId: string | null = null;
   try {
