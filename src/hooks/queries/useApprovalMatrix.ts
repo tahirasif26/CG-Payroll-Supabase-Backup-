@@ -16,8 +16,6 @@ export interface ApprovalGroup {
   id: string;
   client_id: string;
   name: string;
-  category: PolicyCategory | null;
-  min_limit_halalas: number | null;
   max_limit_halalas: number | null;
   approval_type: ApprovalType;
   escalate_after_days: number | null;
@@ -61,13 +59,15 @@ export interface ApproverRow {
 }
 
 // Any feature_key that grants approval rights → makes the holder an approver.
-// Note: payroll & timesheets approvals are NOT routed via the Approval Matrix.
 const APPROVE_FEATURE_KEYS = [
   "expenses.approve",
   "loans.approve",
   "leave.approve",
   "advances.approve",
   "assets.approve_requests",
+  "payroll.approve_run",
+  "performance.calibration",
+  "timesheets.approve",
 ];
 
 export function useApprovers(clientId: string | null) {
@@ -204,8 +204,6 @@ export function useCreateApprovalGroup() {
     mutationFn: async (input: {
       client_id: string;
       name: string;
-      category: PolicyCategory | null;
-      min_limit_halalas: number | null;
       max_limit_halalas: number | null;
       approval_type: ApprovalType;
       escalate_after_days: number | null;
@@ -241,8 +239,6 @@ export function useUpdateApprovalGroup() {
     mutationFn: async (input: {
       id: string;
       name: string;
-      category: PolicyCategory | null;
-      min_limit_halalas: number | null;
       max_limit_halalas: number | null;
       approval_type: ApprovalType;
       escalate_after_days: number | null;
