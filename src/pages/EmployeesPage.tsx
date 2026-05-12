@@ -956,147 +956,111 @@ function WorkInfoTab({ emp, readOnly = false }: { emp: Employee; readOnly?: bool
 }
 
 function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: Employee; onUpdatePayCurrency?: (empId: string, currency: string) => void; readOnly?: boolean }) {
-  const ext = getExtData(emp.id);
-  const { addLogs, addLog } = useAudit();
+  const { setups } = usePayrollSetups();
+  const { updateEmployee } = useEmployees();
+  const { addLog } = useAudit();
   const empName = `${emp.firstName} ${emp.lastName}`;
-  const activeSettings = compensationSettings.filter(s => s.isActive);
-  const existingComponents = emp.compensation || [];
-  const initialCompData = activeSettings.map(s => {
-    const existing = existingComponents.find(c => c.name === s.name);
-    return { name: s.name, type: existing?.type || "other" as const, amount: existing?.amount || 0 };
-  });
-  const [editing, setEditing] = useState(false);
-  const [compData, setCompData] = useState(initialCompData);
-  const [prevCompData, setPrevCompData] = useState(initialCompData.map(c => ({ ...c })));
-  const [editingPayCurrency, setEditingPayCurrency] = useState(false);
-  const [payCurrency, setPayCurrency] = useState(emp.payCurrency || "SAR");
-  const [showAddChange, setShowAddChange] = useState(false);
-  const [newChange, setNewChange] = useState({ effectiveDate: "", reason: "", components: initialCompData.map(c => ({ name: c.name, amount: c.amount })) });
   const { toast } = useToast();
 
-  // Sync from prop when emp changes (e.g. tab switch)
-  const currentPayCurrency = emp.payCurrency || "SAR";
+  const selectedSetup = useMemo(() => setups.find(s => s.id === emp.payrollSetupId), [setups, emp.payrollSetupId]);
+  const activeSetups = useMemo(() => setups, [setups]);
 
-  const currentTotal = compData.reduce((s, c) => s + c.amount, 0);
-  const displayCurrency = editingPayCurrency ? payCurrency : currentPayCurrency;
-  const currInfo = availableCurrencies.find(c => c.code === displayCurrency);
+  const [editing, setEditing] = useState(false);
+  const [salary, setSalary] = useState<number>(emp.salary || 0);
+  const [payrollSetupId, setPayrollSetupId] = useState<string>(emp.payrollSetupId || "");
+
+  const currency = selectedSetup?.currency || emp.payCurrency || "SAR";
 
   return (
     <div className="space-y-4">
-      {/* Pay Currency */}
       <SectionCard
-        title="Pay Currency"
+        title="Compensation Information"
         icon={DollarSign}
-        editing={editingPayCurrency}
-        onEdit={readOnly ? undefined : () => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(true); }}
-        onSave={() => { if (payCurrency !== currentPayCurrency) { addLog({ employeeId: emp.id, employeeName: empName, section: "Compensation > Pay Currency", field: "payCurrency", oldValue: currentPayCurrency, newValue: payCurrency }); } onUpdatePayCurrency?.(emp.id, payCurrency); setEditingPayCurrency(false); toast({ title: "Pay Currency Saved", description: `Pay currency set to ${payCurrency}.` }); }}
-        onCancel={() => { setPayCurrency(currentPayCurrency); setEditingPayCurrency(false); }}
+        editing={editing}
+        onEdit={readOnly ? undefined : () => { setSalary(emp.salary || 0); setPayrollSetupId(emp.payrollSetupId || ""); setEditing(true); }}
+        onSave={() => {
+          const changes: Array<{ field: string; oldValue: string; newValue: string }> = [];
+          if (salary !== emp.salary) changes.push({ field: "Base Salary", oldValue: String(emp.salary), newValue: String(salary) });
+          if (payrollSetupId !== (emp.payrollSetupId || "")) changes.push({ field: "Payroll Setup", oldValue: emp.payrollSetupId || "", newValue: payrollSetupId });
+          updateEmployee(emp.id, { salary, payrollSetupId: payrollSetupId || undefined });
+          changes.forEach(c => addLog({ employeeId: emp.id, employeeName: empName, section: "Compensation", ...c }));
+          setEditing(false);
+          toast({ title: "Saved", description: "Compensation updated." });
+        }}
+        onCancel={() => setEditing(false)}
       >
-        <p className="text-xs text-muted-foreground mb-2">All compensation and payslip values for this employee are in their pay currency.</p>
-        {editingPayCurrency ? (
-          <div className="max-w-xs">
-            <Select value={payCurrency} onValueChange={setPayCurrency}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {availableCurrencies.map(c => (
-                  <SelectItem key={c.code} value={c.code}>{c.symbol} — {c.name} ({c.code})</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Base Salary</p>
+            {editing ? (
+              <Input type="number" value={salary} onChange={e => setSalary(Number(e.target.value))} className="h-8 text-sm" />
+            ) : (
+              <p className="text-sm font-medium">{(emp.salary || 0).toLocaleString()} {currency}</p>
+            )}
           </div>
-        ) : (
-          <p className="text-sm font-medium">{currInfo ? `${currInfo.symbol} — ${currInfo.name} (${currInfo.code})` : currentPayCurrency}</p>
-        )}
-      </SectionCard>
-
-      <SectionCard title="Current Compensation" icon={DollarSign} editing={editing} onEdit={readOnly ? undefined : () => setEditing(true)} onSave={() => { const changes = compData.filter((c, i) => c.amount !== prevCompData[i]?.amount).map(c => ({ employeeId: emp.id, employeeName: empName, section: "Compensation > Current", field: c.name, oldValue: String(prevCompData.find(p => p.name === c.name)?.amount || 0), newValue: String(c.amount) })); if (changes.length > 0) addLogs(changes); setPrevCompData(compData.map(c => ({ ...c }))); setEditing(false); toast({ title: "Saved", description: "Compensation updated." }); }} onCancel={() => setEditing(false)}>
-        <div className="space-y-3">
-          {compData.map((c, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-              <p className="text-sm">{c.name}</p>
-              {editing ? (
-                <Input type="number" value={c.amount} onChange={e => { const u = [...compData]; u[i] = { ...u[i], amount: Number(e.target.value) }; setCompData(u); }} className="w-32 h-8 text-sm text-right" />
-              ) : (
-                <p className="text-sm font-semibold">{c.amount.toLocaleString()} {displayCurrency}</p>
-              )}
-            </div>
-          ))}
-          <div className="flex items-center justify-between pt-3 border-t-2">
-            <p className="text-sm font-bold">Total Package</p>
-            <p className="text-sm font-bold text-primary">{currentTotal.toLocaleString()} {displayCurrency}</p>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Payroll Setup</p>
+            {editing ? (
+              <Select value={payrollSetupId} onValueChange={setPayrollSetupId}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select payroll setup" /></SelectTrigger>
+                <SelectContent>{activeSetups.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.country})</SelectItem>)}</SelectContent>
+              </Select>
+            ) : (
+              <p className="text-sm font-medium">{selectedSetup ? `${selectedSetup.name} (${selectedSetup.country})` : "—"}</p>
+            )}
           </div>
         </div>
       </SectionCard>
 
-      {/* Compensation Change */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" />Compensation History</CardTitle>
-          {!readOnly && <Button size="sm" variant="outline" onClick={() => setShowAddChange(true)}><Plus className="h-4 w-4 mr-1" />New Change</Button>}
-        </CardHeader>
-        <CardContent>
-          {ext.compensationHistory.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Effective Date</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead className="text-right">Total ({displayCurrency})</TableHead>
-                  <TableHead>Components</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ext.compensationHistory.map((h, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="text-sm font-medium">{h.effectiveDate}</TableCell>
-                    <TableCell className="text-sm">{h.reason}</TableCell>
-                    <TableCell className="text-sm text-right font-semibold">{h.components.reduce((s, c) => s + c.amount, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{h.components.map(c => `${c.name}: ${c.amount.toLocaleString()}`).join(" · ")}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">No compensation history available.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* New Compensation Change Dialog */}
-      <Dialog open={showAddChange} onOpenChange={setShowAddChange}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>New Compensation Change</DialogTitle>
-            <DialogDescription>Set new compensation effective from a specific date.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Effective Date</Label><Input type="date" value={newChange.effectiveDate} onChange={e => setNewChange({ ...newChange, effectiveDate: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Reason</Label><Input placeholder="e.g. Promotion" value={newChange.reason} onChange={e => setNewChange({ ...newChange, reason: e.target.value })} /></div>
-            </div>
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Component Amounts</p>
-              {newChange.components.map((c, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <span className="text-sm">{c.name}</span>
-                  <Input type="number" value={c.amount} onChange={e => { const u = [...newChange.components]; u[i] = { ...u[i], amount: Number(e.target.value) }; setNewChange({ ...newChange, components: u }); }} className="w-32 h-8 text-sm text-right" />
-                </div>
-              ))}
-              <div className="flex justify-between pt-2 border-t">
-                <span className="text-sm font-bold">New Total</span>
-                <span className="text-sm font-bold text-primary">{newChange.components.reduce((s, c) => s + c.amount, 0).toLocaleString()} {displayCurrency}</span>
+      {selectedSetup && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Settings className="h-4 w-4 text-primary" />{selectedSetup.name} — Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">Country</p>
+                <p className="text-sm font-medium">{selectedSetup.country}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">Currency</p>
+                <p className="text-sm font-medium">{selectedSetup.currency}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">Pay Frequency</p>
+                <p className="text-sm font-medium capitalize">{selectedSetup.paySchedule?.payFrequency}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">Pay Date</p>
+                <p className="text-sm font-medium">{selectedSetup.paySchedule?.payDate}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">Overtime</p>
+                <p className="text-sm font-medium">{selectedSetup.overtime?.enabled ? `${selectedSetup.overtime.rateMultiplier}x` : "Disabled"}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">Tax</p>
+                <p className="text-sm font-medium">{selectedSetup.options?.enableTaxCalculation ? "Enabled" : "Disabled"}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">Salary Type</p>
+                <p className="text-sm font-medium capitalize">{selectedSetup.salaryRules?.salaryType}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">Proration</p>
+                <p className="text-sm font-medium capitalize">{selectedSetup.salaryRules?.prorationRule?.replace("-", " ")}</p>
               </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddChange(false)}>Cancel</Button>
-            <Button onClick={() => { addLog({ employeeId: emp.id, employeeName: empName, section: "Compensation > History", field: "New Change", oldValue: "", newValue: `${newChange.reason} effective ${newChange.effectiveDate}, total ${newChange.components.reduce((s, c) => s + c.amount, 0).toLocaleString()}` }); setShowAddChange(false); toast({ title: "Change Scheduled", description: `Compensation change effective ${newChange.effectiveDate} recorded.` }); }}>Save Change</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
+
 
 function TimeOffTab({ emp, readOnly = false }: { emp: Employee; readOnly?: boolean }) {
   const { data: empLeavesDb = [] } = useQuery({
@@ -1922,7 +1886,6 @@ function EmployeesDirectory() {
             <TabsTrigger value="personal"><User className="h-3.5 w-3.5 mr-1.5" />Personal</TabsTrigger>
             <TabsTrigger value="work"><Briefcase className="h-3.5 w-3.5 mr-1.5" />Work</TabsTrigger>
             <TabsTrigger value="compensation"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Compensation</TabsTrigger>
-            <TabsTrigger value="timeoff"><Calendar className="h-3.5 w-3.5 mr-1.5" />Time Off</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-3.5 w-3.5 mr-1.5" />Documents</TabsTrigger>
             <TabsTrigger value="assets"><Monitor className="h-3.5 w-3.5 mr-1.5" />Assets</TabsTrigger>
             {!isOwnProfile && <TabsTrigger value="audit"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Audit Trail</TabsTrigger>}
@@ -1930,7 +1893,6 @@ function EmployeesDirectory() {
           <TabsContent value="personal" className="mt-4"><PersonalInfoTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
           <TabsContent value="work" className="mt-4"><WorkInfoTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
           <TabsContent value="compensation" className="mt-4"><CompensationTab emp={selectedEmployee} readOnly={isOwnProfile || profileViewOnly} onUpdatePayCurrency={(empId, currency) => { updateEmployee(empId, { payCurrency: currency }); setSelectedEmployee(prev => prev && prev.id === empId ? { ...prev, payCurrency: currency } : prev); }} /></TabsContent>
-          <TabsContent value="timeoff" className="mt-4"><TimeOffTab emp={selectedEmployee} readOnly={profileViewOnly} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><DocumentsTab emp={selectedEmployee} onUpload={openUploadDialog} documents={allDocs[selectedEmployee.id] || []} onReupload={openReuploadDialog} /></TabsContent>
           <TabsContent value="assets" className="mt-4"><AssetsTab emp={selectedEmployee} /></TabsContent>
           <TabsContent value="audit" className="mt-4"><AuditTrailTab emp={selectedEmployee} /></TabsContent>
