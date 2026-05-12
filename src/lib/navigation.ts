@@ -80,7 +80,7 @@ export const navigationGroups: NavGroup[] = [
         requiredFeature: "employees.view_id_cards",
       },
       {
-        label: "⚙ HR Settings",
+        label: "HR Settings",
         path: "/employees/settings",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "employees.edit",
