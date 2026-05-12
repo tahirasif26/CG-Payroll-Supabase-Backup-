@@ -131,7 +131,7 @@ export default function ApprovalMatrixPage() {
         </TabsContent>
 
         <TabsContent value="policies">
-          <PoliciesTab policies={policies} groups={groups} clientId={clientId} />
+          <PoliciesTab policies={policies} groups={groups} clientId={clientId} enabledModules={enabledModules} />
         </TabsContent>
 
         <TabsContent value="settings">
