@@ -127,6 +127,7 @@ export default function ApprovalMatrixPage() {
             empMap={empMap}
             groupMap={groupMap}
             clientId={clientId}
+            enabledModules={enabledModules}
           />
         </TabsContent>
 
