@@ -385,6 +385,7 @@ function GroupsTab({
         approvers={approvers ?? []}
         groups={groups}
         clientId={clientId}
+        visibleCategories={visibleCategories}
       />
     </div>
   );
