@@ -468,6 +468,21 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             effective_from: new Date().toISOString().split("T")[0],
           });
         }
+        if (newEmpId && selectedAssetIds.length > 0) {
+          const { error: assetErr } = await (supabase as any)
+            .from("assets")
+            .update({
+              employee_id: newEmpId,
+              assigned_date: new Date().toISOString().split("T")[0],
+              status: "assigned",
+            })
+            .in("id", selectedAssetIds);
+          if (assetErr) {
+            toast({ title: "Asset assignment failed", description: assetErr.message, variant: "destructive" });
+          } else {
+            qc.invalidateQueries({ queryKey: ["assets"] });
+          }
+        }
         addEmployee(newEmp);
         resetAndClose();
       }
@@ -484,6 +499,9 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     setErrors({});
     setEducation([]);
     setDependants([]);
+    setSelectedAssetIds([]);
+    setAssetSearch("");
+    setAssetCategoryFilter("all");
     onOpenChange(false);
   };
 
