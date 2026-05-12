@@ -594,7 +594,14 @@ function PoliciesTab({
 
   return (
     <div className="space-y-4">
-      {CATEGORIES.map((c) => {
+      {visibleCategories.length === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            No approval-eligible modules are enabled for this client.
+          </CardContent>
+        </Card>
+      )}
+      {visibleCategories.map((c) => {
         const rows = byCategory.get(c.key) ?? [];
         return (
           <Card key={c.key}>
