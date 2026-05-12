@@ -13,7 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp, Trash2, Send, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp, Trash2, Send, Loader2, CheckCircle2, Calculator } from "lucide-react";
+import { calcMonthlyTax } from "@/lib/taxSlabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -971,6 +972,56 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
 
   const currency = selectedSetup?.currency || emp.payCurrency || "SAR";
 
+  // Per-component overrides (mirrors AddEmployeeWizard breakdown logic)
+  type CompOverride = { mode: "percent" | "value"; percent: number; value: number };
+  const [overrides, setOverrides] = useState<Record<string, CompOverride>>({});
+  const isBasicComp = (c: any) => c.id === "comp-basic-salary" || c.name === "Basic Salary";
+  const getEffective = (comp: any, baseSalary: number): { percent: number; value: number } => {
+    const o = overrides[comp.id];
+    if (o) {
+      if (o.mode === "percent") return { percent: o.percent, value: Math.round(baseSalary * o.percent / 100) };
+      return { percent: baseSalary > 0 ? Number((o.value / baseSalary * 100).toFixed(2)) : 0, value: o.value };
+    }
+    if (comp.calculationType === "percentage") {
+      return { percent: comp.value, value: Math.round(baseSalary * comp.value / 100) };
+    }
+    return { percent: baseSalary > 0 ? Number((comp.value / baseSalary * 100).toFixed(2)) : 0, value: comp.value };
+  };
+  const setOverridePercent = (compId: string, percent: number, baseSalary: number) =>
+    setOverrides(prev => ({ ...prev, [compId]: { mode: "percent", percent, value: Math.round(baseSalary * percent / 100) } }));
+  const setOverrideValue = (compId: string, value: number, baseSalary: number) =>
+    setOverrides(prev => ({ ...prev, [compId]: { mode: "value", percent: baseSalary > 0 ? Number((value / baseSalary * 100).toFixed(2)) : 0, value } }));
+
+  const baseForBreakdown = editing ? salary : (emp.salary || 0);
+  const salaryBreakdown = useMemo(() => {
+    if (!selectedSetup || !baseForBreakdown || Number(baseForBreakdown) <= 0) return null;
+    const baseSalary = Number(baseForBreakdown);
+    const additions = (selectedSetup.payslipComponents ?? [])
+      .filter((c: any) => c.type === "earning" && c.status === "active" && !isBasicComp(c))
+      .map((comp: any) => {
+        const { percent, value } = getEffective(comp, baseSalary);
+        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
+      });
+    const deductions = (selectedSetup.payslipComponents ?? [])
+      .filter((c: any) => c.type === "deduction" && c.status === "active")
+      .map((comp: any) => {
+        const { percent, value } = getEffective(comp, baseSalary);
+        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
+      });
+    const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
+    const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
+    const grossBeforeTax = baseSalary + totalAdditions;
+    const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
+    const taxAmount = calcMonthlyTax(selectedSetup as any, taxBaseMonthly);
+    return {
+      baseSalary, additions, deductions,
+      totalAdditions, totalDeductions, taxAmount,
+      grossTotal: grossBeforeTax,
+      netSalary: grossBeforeTax - totalDeductions - taxAmount,
+    };
+  }, [selectedSetup, baseForBreakdown, overrides]);
+
+
   return (
     <div className="space-y-4">
       <SectionCard
@@ -1057,7 +1108,105 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
           </CardContent>
         </Card>
       )}
+
+      {selectedSetup && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calculator className="h-4 w-4 text-primary" />Salary Breakdown
+              {baseForBreakdown > 0 && <Badge variant="outline" className="ml-2 text-xs">Live</Badge>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {salaryBreakdown ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">Basic Salary</span>
+                    <Badge variant="outline" className="text-[10px] h-5">Base</Badge>
+                  </div>
+                  <span className="text-sm font-semibold">{salaryBreakdown.baseSalary.toLocaleString()} {selectedSetup.currency}</span>
+                </div>
+                {salaryBreakdown.additions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Earnings</p>
+                    <div className="bg-muted/30 rounded-lg overflow-hidden">
+                      {salaryBreakdown.additions.map((item) => (
+                        <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
+                          <span className="text-sm col-span-4 truncate">{item.name}</span>
+                          <div className="col-span-3 flex items-center gap-1">
+                            <Input type="number" className="h-7 text-xs" value={item.percentage || 0} disabled={!editing}
+                              onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
+                          <div className="col-span-4">
+                            <Input type="number" className="h-7 text-xs" value={item.amount} disabled={!editing}
+                              onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
+                          </div>
+                          <span className="text-xs font-semibold text-emerald-600 col-span-1 text-right">{selectedSetup.currency}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-500/10 font-semibold">
+                        <span className="text-sm">Total Earnings</span>
+                        <span className="text-sm text-emerald-600">+{salaryBreakdown.totalAdditions.toLocaleString()} {selectedSetup.currency}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {salaryBreakdown.deductions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Deductions</p>
+                    <div className="bg-muted/30 rounded-lg overflow-hidden">
+                      {salaryBreakdown.deductions.map((item) => (
+                        <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
+                          <span className="text-sm col-span-4 truncate">{item.name}</span>
+                          <div className="col-span-3 flex items-center gap-1">
+                            <Input type="number" className="h-7 text-xs" value={item.percentage || 0} disabled={!editing}
+                              onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
+                          <div className="col-span-4">
+                            <Input type="number" className="h-7 text-xs" value={item.amount} disabled={!editing}
+                              onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
+                          </div>
+                          <span className="text-xs font-semibold text-destructive col-span-1 text-right">{selectedSetup.currency}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between px-4 py-2.5 bg-destructive/10 font-semibold">
+                        <span className="text-sm">Total Deductions</span>
+                        <span className="text-sm text-destructive">-{salaryBreakdown.totalDeductions.toLocaleString()} {selectedSetup.currency}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {salaryBreakdown.taxAmount > 0 && (
+                  <div className="bg-muted/30 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2.5">
+                      <span className="text-sm">Tax Deduction</span>
+                      <span className="text-sm font-semibold text-destructive">-{salaryBreakdown.taxAmount.toLocaleString()} {selectedSetup.currency}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3 font-semibold">
+                  <span className="text-sm">Gross Salary</span>
+                  <span className="text-sm">{salaryBreakdown.grossTotal.toLocaleString()} {selectedSetup.currency}</span>
+                </div>
+                <div className="flex items-center justify-between bg-primary/10 rounded-lg px-4 py-3.5 font-bold">
+                  <span className="text-base">Net Salary</span>
+                  <span className="text-base text-primary">{salaryBreakdown.netSalary.toLocaleString()} {selectedSetup.currency}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Calculator className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Set a base salary to see the breakdown</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
+
   );
 }
 
