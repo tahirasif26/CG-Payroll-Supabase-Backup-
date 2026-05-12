@@ -245,7 +245,6 @@ export const navigationGroups: NavGroup[] = [
     children: [
       { label: "Company Profile", path: "/settings/company", requiredFeature: "settings.company_profile" },
       { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"] },
-      { label: "Module Access", path: "/settings/module-access", requiredRoles: ["admin"] },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
       { label: "Policies", path: "/settings/company-policies", requiredRoles: ["admin", "hr"] },
       { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"], requiredFeature: "audit.view" },
@@ -257,6 +256,7 @@ export const navigationGroups: NavGroup[] = [
 export const superAdminGroups: NavGroup[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, basePath: "/" },
   { key: "clients", label: "Client Management", icon: Building2, basePath: "/manage/clients" },
+  { key: "module-access", label: "Module Access", icon: ToggleLeft, basePath: "/manage/module-access" },
   { key: "features", label: "Feature Definitions", icon: ToggleLeft, basePath: "/manage/features" },
   { key: "sysusers", label: "System Users", icon: Shield, basePath: "/manage/users" },
   { key: "account", label: "My Account", icon: UserCog, basePath: "/account" },

@@ -208,8 +208,8 @@ function AppRoutes() {
           <Route path="/settings/user-permissions" element={
             <ProtectedRoute requiredRole={["super_admin","admin","hr"]}><UserPermissionsPage /></ProtectedRoute>
           } />
-          <Route path="/settings/module-access" element={
-            <ProtectedRoute requiredRole={["admin"]}><ModuleAccessPage /></ProtectedRoute>
+          <Route path="/manage/module-access" element={
+            <ProtectedRoute requiredRole={["super_admin"]}><ModuleAccessPage /></ProtectedRoute>
           } />
 
           {/* Employees — admin/hr */}
