@@ -972,6 +972,56 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
 
   const currency = selectedSetup?.currency || emp.payCurrency || "SAR";
 
+  // Per-component overrides (mirrors AddEmployeeWizard breakdown logic)
+  type CompOverride = { mode: "percent" | "value"; percent: number; value: number };
+  const [overrides, setOverrides] = useState<Record<string, CompOverride>>({});
+  const isBasicComp = (c: any) => c.id === "comp-basic-salary" || c.name === "Basic Salary";
+  const getEffective = (comp: any, baseSalary: number): { percent: number; value: number } => {
+    const o = overrides[comp.id];
+    if (o) {
+      if (o.mode === "percent") return { percent: o.percent, value: Math.round(baseSalary * o.percent / 100) };
+      return { percent: baseSalary > 0 ? Number((o.value / baseSalary * 100).toFixed(2)) : 0, value: o.value };
+    }
+    if (comp.calculationType === "percentage") {
+      return { percent: comp.value, value: Math.round(baseSalary * comp.value / 100) };
+    }
+    return { percent: baseSalary > 0 ? Number((comp.value / baseSalary * 100).toFixed(2)) : 0, value: comp.value };
+  };
+  const setOverridePercent = (compId: string, percent: number, baseSalary: number) =>
+    setOverrides(prev => ({ ...prev, [compId]: { mode: "percent", percent, value: Math.round(baseSalary * percent / 100) } }));
+  const setOverrideValue = (compId: string, value: number, baseSalary: number) =>
+    setOverrides(prev => ({ ...prev, [compId]: { mode: "value", percent: baseSalary > 0 ? Number((value / baseSalary * 100).toFixed(2)) : 0, value } }));
+
+  const baseForBreakdown = editing ? salary : (emp.salary || 0);
+  const salaryBreakdown = useMemo(() => {
+    if (!selectedSetup || !baseForBreakdown || Number(baseForBreakdown) <= 0) return null;
+    const baseSalary = Number(baseForBreakdown);
+    const additions = (selectedSetup.payslipComponents ?? [])
+      .filter((c: any) => c.type === "earning" && c.status === "active" && !isBasicComp(c))
+      .map((comp: any) => {
+        const { percent, value } = getEffective(comp, baseSalary);
+        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
+      });
+    const deductions = (selectedSetup.payslipComponents ?? [])
+      .filter((c: any) => c.type === "deduction" && c.status === "active")
+      .map((comp: any) => {
+        const { percent, value } = getEffective(comp, baseSalary);
+        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
+      });
+    const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
+    const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
+    const grossBeforeTax = baseSalary + totalAdditions;
+    const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
+    const taxAmount = calcMonthlyTax(selectedSetup as any, taxBaseMonthly);
+    return {
+      baseSalary, additions, deductions,
+      totalAdditions, totalDeductions, taxAmount,
+      grossTotal: grossBeforeTax,
+      netSalary: grossBeforeTax - totalDeductions - taxAmount,
+    };
+  }, [selectedSetup, baseForBreakdown, overrides]);
+
+
   return (
     <div className="space-y-4">
       <SectionCard
