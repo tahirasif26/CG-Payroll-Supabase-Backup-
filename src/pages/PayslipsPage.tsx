@@ -132,6 +132,8 @@ export default function PayslipsPage() {
   }));
   const [viewPayslip, setViewPayslip] = useState<PayslipDetail | null>(null);
   const [search, setSearch] = useState("");
+  const [setupFilter, setSetupFilter] = useState<string>("all");
+  const [periodFilter, setPeriodFilter] = useState<string>("all");
   const { toast } = useToast();
   const { download: downloadPayslip, loading: downloadingKey } = useDownloadPayslip();
 
