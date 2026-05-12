@@ -99,7 +99,6 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
     label: "Timesheets",
     features: [
       { key: "timesheets.submit", label: "Submit Timesheets" },
-      { key: "timesheets.approve", label: "Approve Timesheets" },
     ],
   },
   {
