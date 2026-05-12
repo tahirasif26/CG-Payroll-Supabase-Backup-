@@ -105,7 +105,7 @@ export default function ApprovalMatrixPage() {
         </TabsList>
 
         <TabsContent value="approvers">
-          <ApproversTab approvers={approvers} groups={groups} />
+          <ApproversTab approvers={approvers} groups={groups} enabledModules={enabledModules} />
         </TabsContent>
 
         <TabsContent value="groups">
@@ -115,11 +115,12 @@ export default function ApprovalMatrixPage() {
             empMap={empMap}
             groupMap={groupMap}
             clientId={clientId}
+            enabledModules={enabledModules}
           />
         </TabsContent>
 
         <TabsContent value="policies">
-          <PoliciesTab policies={policies} groups={groups} clientId={clientId} />
+          <PoliciesTab policies={policies} groups={groups} clientId={clientId} enabledModules={enabledModules} />
         </TabsContent>
 
         <TabsContent value="settings">
