@@ -147,7 +147,7 @@ export const navigationGroups: NavGroup[] = [
         requiredFeature: "expenses.view_all",
       },
       {
-        label: "⚙ Expense Settings",
+        label: "Expense Settings",
         path: "/expenses/settings",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "expenses.approve",
@@ -167,17 +167,17 @@ export const navigationGroups: NavGroup[] = [
         requiredFeature: "assets.view_inventory",
       },
       { label: "Asset Inventory", path: "/assets/inventory", requiredFeature: "assets.view_inventory" },
-      {
-        label: "Asset Settings",
-        path: "/assets/master-data",
-        requiredRoles: ["admin", "hr"],
-        requiredFeature: "assets.manage",
-      },
       { label: "Asset Store", path: "/assets/store", requiredFeature: "assets.request_new" },
       { label: "Asset Requests", path: "/assets/requests", requiredFeature: "assets.approve_requests" },
       {
         label: "Asset Audits",
         path: "/assets/audits",
+        requiredRoles: ["admin", "hr"],
+        requiredFeature: "assets.manage",
+      },
+      {
+        label: "Asset Settings",
+        path: "/assets/master-data",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "assets.manage",
       },
