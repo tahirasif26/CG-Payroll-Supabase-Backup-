@@ -57,7 +57,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
-import { useCanApprove } from "@/hooks/useCanApprove";
+
 import { useRole } from "@/contexts/RoleContext";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
