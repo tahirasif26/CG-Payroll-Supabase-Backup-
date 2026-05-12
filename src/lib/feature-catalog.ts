@@ -40,7 +40,6 @@ export const MODULE_CATALOG: ModuleCatalog[] = [
     features: [
       { key: "payroll.create_run", label: "Create Payroll Run" },
       { key: "payroll.view_all_runs", label: "View All Payroll Runs" },
-      { key: "payroll.approve_run", label: "Approve Payroll Run" },
       { key: "payroll.view_own_payslip", label: "View Own Payslip" },
       { key: "payroll.download_payslip", label: "Download Payslip" },
       { key: "payroll.view_salary_breakdown", label: "View Salary Breakdown" },
