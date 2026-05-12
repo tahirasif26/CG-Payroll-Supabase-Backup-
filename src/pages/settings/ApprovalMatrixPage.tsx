@@ -399,7 +399,7 @@ function GroupsTab({
 }
 
 function GroupDialog({
-  open, onOpenChange, editing, approvers, groups, clientId,
+  open, onOpenChange, editing, approvers, groups, clientId, visibleCategories,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -407,38 +407,64 @@ function GroupDialog({
   approvers: NonNullable<ReturnType<typeof useApprovers>["data"]>;
   groups: ApprovalGroup[];
   clientId: string | null;
+  visibleCategories: typeof CATEGORIES;
 }) {
   const create = useCreateApprovalGroup();
   const update = useUpdateApprovalGroup();
 
   const [name, setName] = useState("");
-  const [limit, setLimit] = useState("");
+  const [category, setCategory] = useState<PolicyCategory | "">("");
+  const [minVal, setMinVal] = useState("");
+  const [maxVal, setMaxVal] = useState("");
   const [type, setType] = useState<ApprovalType>("any_one");
   const [escDays, setEscDays] = useState("");
   const [escTo, setEscTo] = useState<string>("admin");
   const [members, setMembers] = useState<string[]>([]);
 
+  const selectedCat = visibleCategories.find((c) => c.key === category);
+  const unit = selectedCat?.unit ?? "money";
+  // For "days" categories we store the integer day count directly in the
+  // *_halalas columns (no SAR↔halala conversion).
+  const toStored = (s: string): number | null => {
+    const n = s.trim();
+    if (!n) return null;
+    const v = Number(n);
+    if (isNaN(v)) return null;
+    return unit === "money" ? Math.round(v * 100) : Math.round(v);
+  };
+  const fromStored = (n: number | null | undefined, u: "money" | "days"): string =>
+    n == null ? "" : u === "money" ? (n / 100).toLocaleString() : n.toString();
+
   // Initialize when editing changes
   useMemo(() => {
     if (open) {
       if (editing) {
+        const editCat = (editing.category ?? "") as PolicyCategory | "";
+        const editUnit =
+          visibleCategories.find((c) => c.key === editCat)?.unit ?? "money";
         setName(editing.name);
-        setLimit(toSAR(editing.max_limit_halalas));
+        setCategory(editCat);
+        setMinVal(fromStored(editing.min_limit_halalas, editUnit));
+        setMaxVal(fromStored(editing.max_limit_halalas, editUnit));
         setType(editing.approval_type);
         setEscDays(editing.escalate_after_days?.toString() ?? "");
         setEscTo(editing.escalate_to_group_id ?? "admin");
         setMembers(editing.member_ids);
       } else {
-        setName(""); setLimit(""); setType("any_one"); setEscDays(""); setEscTo("admin"); setMembers([]);
+        setName(""); setCategory(""); setMinVal(""); setMaxVal("");
+        setType("any_one"); setEscDays(""); setEscTo("admin"); setMembers([]);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
 
   const handleSave = () => {
     if (!clientId || !name.trim()) return;
     const payload = {
       name: name.trim(),
-      max_limit_halalas: toHalalas(limit),
+      category: category ? (category as PolicyCategory) : null,
+      min_limit_halalas: toStored(minVal),
+      max_limit_halalas: toStored(maxVal),
       approval_type: type,
       escalate_after_days: escDays.trim() ? Number(escDays) : null,
       escalate_to_group_id: escTo === "admin" ? null : escTo,
@@ -451,6 +477,8 @@ function GroupDialog({
     }
   };
 
+  const unitLabel = unit === "money" ? "SAR" : "days";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
@@ -461,30 +489,66 @@ function GroupDialog({
 
         <div className="space-y-3">
           <div>
+            <Label>Category</Label>
+            <Select
+              value={category || undefined}
+              onValueChange={(v) => setCategory(v as PolicyCategory)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {visibleCategories.length === 0 ? (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                    No modules enabled
+                  </div>
+                ) : (
+                  visibleCategories.map((c) => (
+                    <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label>Group name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Senior Approvers" />
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Max limit (SAR)</Label>
+              <Label>Min ({unitLabel})</Label>
               <Input
-                value={limit}
-                onChange={(e) => setLimit(e.target.value)}
-                placeholder="Empty = unlimited"
+                value={minVal}
+                onChange={(e) => setMinVal(e.target.value)}
+                placeholder="0"
                 type="number"
+                disabled={!category}
               />
             </div>
             <div>
-              <Label>Approval type</Label>
-              <Select value={type} onValueChange={(v: ApprovalType) => setType(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(APPROVAL_TYPE_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Max ({unitLabel})</Label>
+              <Input
+                value={maxVal}
+                onChange={(e) => setMaxVal(e.target.value)}
+                placeholder={unit === "money" ? "Empty = unlimited" : "Empty = unlimited"}
+                type="number"
+                disabled={!category}
+              />
             </div>
+          </div>
+
+          <div>
+            <Label>Approval type</Label>
+            <Select value={type} onValueChange={(v: ApprovalType) => setType(v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(APPROVAL_TYPE_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
