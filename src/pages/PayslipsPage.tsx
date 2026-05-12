@@ -242,7 +242,9 @@ export default function PayslipsPage() {
     ? allPayslips.filter(({ emp }) => emp.id === currentEmployeeId)
     : allPayslips;
 
-  const filtered = scopeFiltered.filter(({ emp, run }) => {
+  const filtered = scopeFiltered.filter(({ emp, run, setup }) => {
+    if (setupFilter !== "all" && (setup?.id || run.payrollSetupId) !== setupFilter) return false;
+    if (periodFilter !== "all" && `${run.month} ${run.year}` !== periodFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(q) ||
@@ -251,12 +253,39 @@ export default function PayslipsPage() {
       `${run.month} ${run.year}`.toLowerCase().includes(q);
   });
 
+  const monthOrder = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const periodOptions = Array.from(new Set(completedRuns.map(r => `${r.month} ${r.year}`)))
+    .sort((a, b) => {
+      const [ma, ya] = a.split(" "); const [mb, yb] = b.split(" ");
+      return Number(yb) - Number(ya) || monthOrder.indexOf(mb) - monthOrder.indexOf(ma);
+    });
+  const setupOptions = setups.filter(s => completedRuns.some(r => r.payrollSetupId === s.id));
+
   return (
     <div className="space-y-6">
       <PageHeader title={scope === "me" ? "My Payslips" : "Payslips"} description={scope === "me" ? "Your personal payslips for completed payroll runs." : "View and manage employee payslips for completed payroll runs."} />
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search by name, ID, period..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative max-w-sm flex-1 min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name, ID, period..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={setupFilter} onValueChange={setSetupFilter}>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Payroll Setup" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Payroll Setups</SelectItem>
+            {setupOptions.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={periodFilter} onValueChange={setPeriodFilter}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Month / Year" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Periods</SelectItem>
+            {periodOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {(setupFilter !== "all" || periodFilter !== "all" || search) && (
+          <Button variant="ghost" size="sm" onClick={() => { setSetupFilter("all"); setPeriodFilter("all"); setSearch(""); }}>Clear</Button>
+        )}
       </div>
       <div className="bg-card rounded-xl border overflow-hidden">
         <Table>
