@@ -552,12 +552,17 @@ function GroupDialog({
 // POLICIES TAB
 // ═══════════════════════════════════════════════════════════════════════
 function PoliciesTab({
-  policies, groups, clientId,
+  policies, groups, clientId, enabledModules,
 }: {
   policies: ApprovalPolicy[];
   groups: ApprovalGroup[];
   clientId: string | null;
+  enabledModules: string[];
 }) {
+  const visibleCategories = useMemo(
+    () => filterCategoriesByModules(enabledModules),
+    [enabledModules],
+  );
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ApprovalPolicy | null>(null);
   const [defaultCategory, setDefaultCategory] = useState<PolicyCategory>("expenses_travel");
