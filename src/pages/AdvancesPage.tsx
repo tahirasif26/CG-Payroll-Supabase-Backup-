@@ -316,7 +316,6 @@ export default function AdvancesPage() {
                 <EmptyTableRow colSpan={8} icon={Wallet} title="No advances yet" description="Request a cash advance or adjust filters." />
               ) : filtered.map(adv => {
                 const remaining = adv.amount - adv.amountUsed;
-                const isPending = adv.status === "pending";
                 return (
                   <TableRow key={adv.id}>
                     <TableCell className="font-medium">{adv.advanceName}</TableCell>
@@ -339,8 +338,6 @@ export default function AdvancesPage() {
                             else if (action === "rejected") handleReject(adv.id, adv.advanceName);
                           }}
                         />
-                        {/* keep isPending lint happy */}
-                        {isPending ? null : null}
                       </div>
                     </TableCell>
                   </TableRow>
