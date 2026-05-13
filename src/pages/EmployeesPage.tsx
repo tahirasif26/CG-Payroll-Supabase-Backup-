@@ -171,10 +171,19 @@ type SortDir = "asc" | "desc";
 
 const ITEMS_PER_PAGE = 10;
 
+import { useRoles, type Role } from "@/hooks/queries/useRoles";
+
 function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; onEdit?: (emp: Employee) => void; isEmployee?: boolean }) {
   const { getTypeName } = useEmployeeTypes();
   const { removeEmployee } = useEmployees();
   const { toast } = useToast();
+  const { clientId } = useRole();
+  const { data: roles } = useRoles(clientId);
+  const roleMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (roles ?? []).forEach((r: Role) => m.set(r.id, r.name));
+    return m;
+  }, [roles]);
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -185,7 +194,6 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
-  const { clientId } = useRole();
 
   // Invite/verification status keyed by emp_id. Backed by employees.is_verified
   // (updated instantly via the mark_self_verified RPC after password setup).
