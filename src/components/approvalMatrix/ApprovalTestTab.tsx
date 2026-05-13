@@ -44,7 +44,7 @@ const initials = (name: string) =>
   name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase() || "?";
 
 export function ApprovalTestTab({ clientId, groups, policies, empMap }: Props) {
-  const [category, setCategory] = useState<PolicyCategory>("expenses_travel");
+  const [category, setCategory] = useState<PolicyCategory>("expenses");
   const [valueInput, setValueInput] = useState("");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
