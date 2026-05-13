@@ -1035,22 +1035,26 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
         const { percent, value } = getEffective(comp, baseSalary);
         return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
       });
+    const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
+    const grossBeforeTax = baseSalary + totalAdditions;
+    const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
     const deductions = (selectedSetup.payslipComponents ?? [])
       .filter((c: any) => c.type === "deduction" && c.status === "active")
       .map((comp: any) => {
+        if (comp.formula === "tax_slabs") {
+          const amt = calcMonthlyTax(selectedSetup as any, taxBaseMonthly);
+          const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
+          return { id: comp.id, name: comp.name, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
+        }
         const { percent, value } = getEffective(comp, baseSalary);
-        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
+        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value, isTax: false };
       });
-    const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
-    const grossBeforeTax = baseSalary + totalAdditions;
-    const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
-    const taxAmount = calcMonthlyTax(selectedSetup as any, taxBaseMonthly);
     return {
       baseSalary, additions, deductions,
-      totalAdditions, totalDeductions, taxAmount,
+      totalAdditions, totalDeductions, taxAmount: 0,
       grossTotal: grossBeforeTax,
-      netSalary: grossBeforeTax - totalDeductions - taxAmount,
+      netSalary: grossBeforeTax - totalDeductions,
     };
   }, [selectedSetup, baseForBreakdown, overrides]);
 
