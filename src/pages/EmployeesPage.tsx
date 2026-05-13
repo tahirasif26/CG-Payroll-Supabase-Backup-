@@ -171,10 +171,19 @@ type SortDir = "asc" | "desc";
 
 const ITEMS_PER_PAGE = 10;
 
+import { useRoles, type Role } from "@/hooks/queries/useRoles";
+
 function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; onEdit?: (emp: Employee) => void; isEmployee?: boolean }) {
   const { getTypeName } = useEmployeeTypes();
   const { removeEmployee } = useEmployees();
   const { toast } = useToast();
+  const { clientId } = useRole();
+  const { data: roles } = useRoles(clientId);
+  const roleMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (roles ?? []).forEach((r: Role) => m.set(r.id, r.name));
+    return m;
+  }, [roles]);
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -185,7 +194,6 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
-  const { clientId } = useRole();
 
   // Invite/verification status keyed by emp_id. Backed by employees.is_verified
   // (updated instantly via the mark_self_verified RPC after password setup).
@@ -432,6 +440,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
               <SortHeader field="empId">Employee ID</SortHeader>
               <SortHeader field="department">Department</SortHeader>
               <SortHeader field="designation">Designation</SortHeader>
+              <TableHead className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Role</TableHead>
               {!isEmployee && <SortHeader field="salary" className="hidden lg:table-cell">Work Location</SortHeader>}
               <TableHead className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
               {!isEmployee && <TableHead className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground text-right pr-4">Actions</TableHead>}
@@ -464,6 +473,11 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
                 <TableCell className="text-sm font-mono text-muted-foreground">{emp.empId}</TableCell>
                 <TableCell className="text-sm">{emp.department}</TableCell>
                 <TableCell className="text-sm">{emp.designation}</TableCell>
+                <TableCell className="text-sm">
+                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {roleMap.get(emp.roleId ?? "") || "—"}
+                  </span>
+                </TableCell>
                 {!isEmployee && (
                   <TableCell className="text-sm hidden lg:table-cell">
                     <div className="flex items-center gap-1.5">
