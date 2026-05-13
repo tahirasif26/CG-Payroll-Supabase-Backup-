@@ -279,12 +279,12 @@ export default function ExpensesPage() {
             entityId: created?.id,
             clientId: clientId!,
             requesterEmployeeId: payload.employee_id,
-            value: payload.amount,
+            value: Math.round(payload.amount * 100), // policies stored in halalas
             valueUnit: "halalas",
             category: "expenses",
             notification: {
               title: "New expense approval request",
-              body: `${submitterName} submitted an expense of ${payload.currency} ${(payload.amount / 100).toLocaleString()}`,
+              body: `${submitterName} submitted an expense of ${payload.currency} ${payload.amount.toLocaleString()}`,
               category: "expense",
               severity: "warning",
               entityType: "expense",
