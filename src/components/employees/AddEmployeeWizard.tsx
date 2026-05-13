@@ -121,6 +121,12 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const empPrefix = computeEmpPrefix(clientInfo?.company_name);
   const activeSetups = setups.filter(s => s.status === "active");
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
+  const { data: roles = [] } = useRoles(clientId ?? null);
+  const assignRole = useAssignEmployeeRole();
+  const defaultEmployeeRole = useMemo(
+    () => roles.find(r => r.is_system && r.name.toLowerCase() === "employee"),
+    [roles]
+  );
 
   const { client } = useClient();
   const defaultCountry = client.country ?? "";
