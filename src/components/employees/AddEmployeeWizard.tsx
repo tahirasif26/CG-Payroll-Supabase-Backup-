@@ -41,7 +41,7 @@ import {
   Plus, Trash2, Upload, ArrowRight, ArrowLeft, SkipForward
 } from "lucide-react";
 import type { Employee } from "@/types/hcm";
-import { calcMonthlyTax } from "@/lib/taxSlabs";
+import { matchTaxSlab } from "@/lib/taxSlabs";
 
 interface AddEmployeeWizardProps {
   open: boolean;
@@ -282,37 +282,40 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
     const grossBeforeTax = baseSalary + totalAdditions;
     const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
-    const taxNameRaw = ((selectedSetup as any).taxComponentName ?? "").trim();
-    const taxName = taxNameRaw.toLowerCase();
-    const taxEnabled = !!selectedSetup.options?.enableTaxCalculation
-      && (selectedSetup.taxRules?.length ?? 0) > 0
-      && !!taxNameRaw;
-    const slabTax = taxEnabled ? calcMonthlyTax(selectedSetup, taxBaseMonthly) : 0;
+    const matched = matchTaxSlab(selectedSetup, taxBaseMonthly);
+    const legacyTaxName = ((selectedSetup as any).taxComponentName ?? "").trim().toLowerCase();
 
     const rawDeductions = selectedSetup.payslipComponents
       .filter(c => c.type === "deduction" && c.status === "active");
-    const taxRowId = rawDeductions.find((c: any) => c.formula === "tax_slabs")?.id
-      ?? (taxName ? rawDeductions.find(c => (c.name ?? "").trim().toLowerCase() === taxName)?.id : undefined);
+    const slabNameLower = (matched?.slabName ?? "").trim().toLowerCase();
+    const isTaxRow = (c: any) => {
+      if (c.formula === "tax_slabs") return true;
+      const n = (c.name ?? "").trim().toLowerCase();
+      return !!n && (n === legacyTaxName || (slabNameLower && n === slabNameLower));
+    };
+    const taxRowId = rawDeductions.find(isTaxRow)?.id;
 
     let taxRowEmitted = false;
-    const deductions = rawDeductions
-      .filter(c => !(taxEnabled && c.id !== taxRowId && taxName && (c.name ?? "").trim().toLowerCase() === taxName))
+    const deductions = (rawDeductions
+      .filter(c => !(isTaxRow(c) && c.id !== taxRowId))
       .map(comp => {
-        if (taxEnabled && comp.id === taxRowId) {
+        if (comp.id === taxRowId) {
+          if (!matched) { taxRowEmitted = true; return null; }
           taxRowEmitted = true;
           const o = overrides[comp.id];
-          const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
+          const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : matched.amount;
           const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-          return { id: comp.id, name: taxNameRaw || comp.name, calculationType: "formula" as const, percentage: pct, amount: amt };
+          return { id: comp.id, name: matched.slabName, calculationType: "formula" as const, percentage: pct, amount: amt };
         }
         const { percent, value } = getEffective(comp, baseSalary);
         return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
-      });
-    if (taxEnabled && !taxRowEmitted) {
+      })
+      .filter(Boolean) as Array<{ id: string; name: string; calculationType: any; percentage: number; amount: number }>);
+    if (matched && !taxRowEmitted) {
       const o = overrides["__income_tax__"];
-      const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
+      const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : matched.amount;
       const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-      deductions.push({ id: "__income_tax__", name: taxNameRaw, calculationType: "formula" as const, percentage: pct, amount: amt });
+      deductions.push({ id: "__income_tax__", name: matched.slabName, calculationType: "formula" as const, percentage: pct, amount: amt });
     }
 
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);

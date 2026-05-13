@@ -1,93 +1,70 @@
-# Unified Request & Approval Workflow
+## Goal
 
-Overhaul Expenses, Advances, Loans, Leave, and Asset Requests to share one approval engine, Me/People views, hierarchy-aware visibility, and a strict authorization model where creators never see approve/reject buttons unless they are real approvers.
+Replace progressive accumulation with **single-slab match**: find the one slab whose `incomeFrom..incomeTo` contains the employee's gross monthly salary, apply that slab's % to the full salary, and label the deduction line with that slab's name. Multiple slabs may exist in the setup, but only the matched one is applied. If nothing matches (or tax is disabled), no tax line is shown anywhere.
 
-## 1. Database (single migration)
+## Changes
 
-New normalized tables (multi-tenant, realtime-enabled):
+### 1. `src/lib/taxSlabs.ts`
 
-- `request_approvals` — one row per request as it enters the workflow
-  - `id, client_id, module ('expense'|'advance'|'loan'|'leave'|'asset'), entity_id, requester_employee_id, current_level, current_group_id, status ('pending'|'approved'|'rejected'|'paid'|'unpaid'|'delivered'), policy_id, value_amount, value_unit, created_at, updated_at`
-- `request_approval_history` — append-only timeline
-  - `id, request_approval_id, level_order, action ('submitted'|'approved'|'rejected'|'delegated'|'escalated'|'paid'|'delivered'|'reassigned'), actor_employee_id, actor_user_id, on_behalf_of_employee_id, group_id, comment, created_at`
-- `request_assignments` — current pending assignees (resolved through delegation)
-  - `id, request_approval_id, level_order, group_id, employee_id, status ('pending'|'acted'|'skipped'), acted_at`
-- `payroll_payment_status` — link approved financial requests to payroll
-  - `id, client_id, request_approval_id, module, payroll_run_id, paid_at, paid_by, amount`
+Add slab matcher; rewrite `calcMonthlyTax` to use it.
 
-Helper SQL:
-- `fn_start_request_workflow(_module, _entity_id, _client_id, _requester_emp, _value)` → resolves policy + first level (uses existing `resolve_approval_group`/policy_levels), creates `request_approvals` + initial `request_assignments` + history row.
-- `fn_act_on_request(_request_approval_id, _action, _comment)` → validates the caller is in `request_assignments` (or admin/super_admin), advances level or finalizes status, writes history, expands delegation chain via existing `get_active_approvers`.
-- `fn_can_act_on_request(_user_id, _request_approval_id) returns boolean` (security definer) — used by RLS + UI.
-- View `v_my_pending_approvals` for fast inbox queries.
+```ts
+export interface MatchedTax {
+  slabId: string;
+  slabName: string;
+  percentage: number;
+  amount: number; // monthly tax, 2dp
+}
 
-RLS:
-- Requester sees own row (`requester_employee_id` mapped to user).
-- Admin/HR in client sees all.
-- Approvers see rows where `fn_can_act_on_request(auth.uid(), id)` is true.
-- Hierarchy/People view uses existing `is_admin_or_hr_in_client` + manager chain (already in `useActiveEmployees` patterns).
+export function matchTaxSlab(setup, monthlyBase): MatchedTax | null {
+  if (!setup.options?.enableTaxCalculation) return null;
+  const slabs = setup.taxRules ?? [];
+  if (!slabs.length || monthlyBase <= 0) return null;
+  const slab = slabs.find(s => monthlyBase >= s.incomeFrom && monthlyBase <= s.incomeTo);
+  if (!slab) return null;
+  const amount = Math.round(monthlyBase * (slab.percentage || 0)) / 100;
+  return { slabId: slab.id, slabName: slab.name, percentage: slab.percentage || 0, amount };
+}
 
-Realtime: add all four tables to `supabase_realtime`.
+// Back-compat: returns 0 when no slab matches
+export function calcMonthlyTax(setup, monthlyBase): number {
+  return matchTaxSlab(setup, monthlyBase)?.amount ?? 0;
+}
+```
 
-## 2. Backend orchestration (`src/lib/workflow/`)
+(Removes the previous loop that summed across slabs and the `fixedAmount` adder — out of scope per spec.)
 
-- `startWorkflow({ module, entityId, value, requesterEmployeeId })` — calls `fn_start_request_workflow`, then notifies current assignees (reuses `routeApprovalRequest` notification logic, but driven from assignments table).
-- `actOnRequest({ requestApprovalId, action, comment })` — RPC to `fn_act_on_request`; on terminal state, updates the source row (`expenses.status`, etc.) and, for financial modules approved, creates `payroll_payment_status` stub with `paid=false`.
-- `markPaid({ requestApprovalId, payrollRunId })` — used by Payroll to mark Paid/Unpaid.
-- Refactor `useCreateExpense / useCreateLeaveRequest / useCreateAdvance / useCreateLoan / asset request create` to call `startWorkflow` instead of the ad-hoc `routeApprovalRequest`.
+### 2. Display sites — use slab name, hide row when no match
 
-Status vocabularies enforced server-side:
-- expense/advance/loan: `pending → approved|rejected → paid|unpaid`
-- leave: `pending → approved|rejected`
-- asset: `pending → approved|rejected → delivered`
+Files: `src/pages/EmployeesPage.tsx`, `src/components/employees/AddEmployeeWizard.tsx`, `src/pages/PayslipsPage.tsx`, `src/pages/PayrollPage.tsx`.
 
-## 3. Authorization fix (creator must not see Approve/Reject)
+In each, replace the current pattern:
+```
+const slabTax = taxEnabled ? calcMonthlyTax(setup, taxBaseMonthly) : 0;
+// pushes tax row using setup.taxComponentName / "Income Tax"
+```
+with:
+```
+const matched = taxEnabled ? matchTaxSlab(setup, taxBaseMonthly) : null;
+```
 
-New hook `useCanActOnRequest(requestApprovalId)` → checks `request_assignments` membership for current employee (admin/super_admin always true). Replaces the broad `useCanApprove(category)` checks on per-row action buttons in:
-- `ExpensesPage`, `AdvancesPage`, `LoansPage`, `LeavePage`, `AssetRequestsPage`.
+Behavior:
+- `matched === null` → do **not** push any tax row, and filter out any pre-existing `formula === "tax_slabs"` row from the displayed deductions.
+- `matched` exists → push/replace a single tax row with `name = matched.slabName`, `percentage = matched.percentage`, `amount = matched.amount`. Slab name overrides `setup.taxComponentName` for the label.
+- Keep the existing dedup (drop other rows whose name matches the old tax label or whose `formula === "tax_slabs"`) so only one tax line ever shows.
 
-Action buttons render only when `canAct && row.status === 'pending' && requesterEmployeeId !== currentEmployeeId`. The category-level `useCanApprove` is still used to show the "People/Inbox" tab, but never to authorize a specific row.
+### 3. Untouched
 
-## 4. Frontend: Me / People tabs & timeline
+- `TaxRulesTab.tsx` UI (slab CRUD).
+- `TaxSlab` type, storage, options toggle wiring.
+- `src/lib/payroll/calculator.ts` server engine (not used by the affected screens).
 
-New shared component `src/components/requests/RequestListShell.tsx`:
-- Header tabs: **Me** (always) | **People** (only if `useCanApprove(category)` or admin/HR or has hierarchy reports).
-- Hierarchy filter (All my reports / Direct reports / Department) when in People.
-- Row actions resolved through `useCanActOnRequest`.
-- "Requested To" cell: current group/assignee names from `request_assignments` join.
-- Side `ApprovalTimelineDrawer` showing `request_approval_history` with avatars, timestamps, comments, delegation/escalation badges, current step indicator.
+## Verification
 
-Apply to: Expenses, Advances, Loans, Leave, Asset Requests pages. Each page keeps its module-specific columns; the shell handles tabs, visibility, actions, and drawer.
-
-Status badges extended: add `paid`, `unpaid`, `delivered` variants in `StatusBadge`.
-
-## 5. Payroll integration
-
-In `PayrollPage` payroll-run detail:
-- Pull approved-but-unpaid financial requests via `payroll_payment_status` where `paid_at IS NULL`.
-- Allow including in run; on run approval, mark `paid_at`, write history `action='paid'`, and update the source row's status to `paid`.
-- Manual "Mark Unpaid" available to admins.
-
-## 6. Realtime sync
-
-Single `useRequestsRealtime(clientId)` hook subscribes to `request_approvals`, `request_assignments`, `request_approval_history`, and the underlying module tables; invalidates the relevant React Query keys so Me/People views, timelines, and dashboards update instantly.
-
-## 7. Files touched
-
-New:
-- `supabase/migrations/<ts>_request_workflow.sql`
-- `src/lib/workflow/index.ts`, `src/lib/workflow/types.ts`
-- `src/hooks/queries/useRequestWorkflow.ts`, `src/hooks/useCanActOnRequest.ts`, `src/hooks/useRequestsRealtime.ts`
-- `src/components/requests/RequestListShell.tsx`, `src/components/requests/ApprovalTimelineDrawer.tsx`, `src/components/requests/RequestedToCell.tsx`
-
-Edited:
-- `src/hooks/queries/useExpenses.ts`, `useAdvances.ts`, `useLoans.ts`, `useLeave.ts`, asset request hook
-- `src/pages/ExpensesPage.tsx`, `AdvancesPage.tsx`, `LoansPage.tsx`, `LeavePage.tsx`, `assets/AssetRequestsPage.tsx`
-- `src/components/StatusBadge.tsx` (new variants)
-- `src/pages/PayrollPage.tsx` (payment linkage UI)
-- `src/lib/approvalRouting.ts` (delegate to new engine)
-
-## Out of scope for this pass
-- Visual redesign of dashboards beyond the shell + drawer.
-- Mobile push notifications (in-app notifications already handled via existing `notify` lib).
-- Migrating historical rows (existing requests stay as-is; new requests use the engine).
+1. Slabs: "Basic Tax" 0–50000 @8%, "Mid Tax" 50001–100000 @15%.
+   - Salary 30000 → row "Basic Tax" = 2400.
+   - Salary 60000 → row "Mid Tax" = 9000.
+   - Salary 120000 → no tax row anywhere.
+2. Slab renamed "Pakistan Standard Tax" → that exact label shows on payslip + compensation.
+3. `enableTaxCalculation` off → no tax row regardless of salary or slabs.
+4. Only one tax line ever appears (no duplicate "Tax Deduction" / "Income Tax").

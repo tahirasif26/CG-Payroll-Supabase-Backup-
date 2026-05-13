@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { calcMonthlyTax } from "@/lib/taxSlabs";
+import { matchTaxSlab } from "@/lib/taxSlabs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -233,24 +233,26 @@ function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup |
     const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
 
     // Deductions from setup components — % is of basic
-    // Deductions from setup components — % is of basic. Skip the synced
-    // tax-slabs component AND any legacy duplicate sharing its name; tax is
-    // computed below from taxRules to avoid double-counting.
-    const taxNameLower = ((setup as any)?.taxComponentName ?? "").trim().toLowerCase();
-    const hasFormulaTax = activeDeductionComponents.some((c: any) => c.formula === "tax_slabs");
+    // Tax via single-slab match (null when no slab contains the salary or tax disabled)
+    const taxBaseMonthly = (setup as any)?.taxBasis === "basic" ? basic : gross;
+    const matched = setup ? matchTaxSlab(setup, taxBaseMonthly) : null;
+    const taxDeductions = matched?.amount ?? 0;
+
+    // Deductions from setup components — % is of basic. Skip every tax-like
+    // row (formula marker, legacy tax name, or matched slab name) so we don't
+    // double-count; the slab-derived amount above is the single source of truth.
+    const legacyTaxName = ((setup as any)?.taxComponentName ?? "").trim().toLowerCase();
+    const slabNameLower = (matched?.slabName ?? "").trim().toLowerCase();
+    const isTaxRow = (c: any) => {
+      if (c.formula === "tax_slabs") return true;
+      const n = (c.name ?? "").trim().toLowerCase();
+      return !!n && (n === legacyTaxName || (slabNameLower && n === slabNameLower));
+    };
     let setupDeductions = 0;
     activeDeductionComponents.forEach(comp => {
-      if ((comp as any).formula === "tax_slabs") return;
-      if (hasFormulaTax && taxNameLower && (comp.name ?? "").trim().toLowerCase() === taxNameLower) return;
+      if (isTaxRow(comp)) return;
       setupDeductions += comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
     });
-
-    // Tax from setup's taxRules
-    let taxDeductions = 0;
-    if (setup?.options.enableTaxCalculation && setup.taxRules.length > 0) {
-      const taxBaseMonthly = (setup as any).taxBasis === "basic" ? basic : gross;
-      taxDeductions = calcMonthlyTax(setup, taxBaseMonthly);
-    }
 
     // Auto deductions from setup
     let autoDeductions = 0;
