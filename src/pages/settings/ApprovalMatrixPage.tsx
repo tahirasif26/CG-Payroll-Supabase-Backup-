@@ -60,9 +60,7 @@ interface CategoryDef {
 
 const ALL_CATEGORIES: CategoryDef[] = [
   { key: "leave",            label: "Leave Approvals",         unit: "days",  module: "employees", type: "fixed" },
-  { key: "expenses_travel",  label: "Expense — Travel",        unit: "money", module: "expenses",  type: "range" },
-  { key: "expenses_meals",   label: "Expense — Meals",         unit: "money", module: "expenses",  type: "range" },
-  { key: "expenses_other",   label: "Expense — Other",         unit: "money", module: "expenses",  type: "range" },
+  { key: "expenses",         label: "Expense Approvals",       unit: "money", module: "expenses",  type: "range" },
   { key: "advances",         label: "Advance Approvals",       unit: "money", module: "expenses",  type: "range" },
   { key: "loans",            label: "Loan Approvals",          unit: "money", module: "payroll",   type: "range" },
   { key: "assets",           label: "Asset Request Approvals", unit: "money", module: "assets",    type: "fixed" },

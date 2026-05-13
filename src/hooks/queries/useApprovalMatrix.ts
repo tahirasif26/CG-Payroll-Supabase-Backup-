@@ -4,9 +4,7 @@ import { toast } from "sonner";
 
 export type ApprovalType = "any_one" | "all_must" | "majority";
 export type PolicyCategory =
-  | "expenses_travel"
-  | "expenses_meals"
-  | "expenses_other"
+  | "expenses"
   | "leave"
   | "loans"
   | "advances"

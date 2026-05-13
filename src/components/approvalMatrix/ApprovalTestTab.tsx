@@ -17,9 +17,7 @@ import type {
 } from "@/hooks/queries/useApprovalMatrix";
 
 const CATEGORIES: { key: PolicyCategory; label: string; unit: "money" | "days" }[] = [
-  { key: "expenses_travel", label: "Expenses — Travel", unit: "money" },
-  { key: "expenses_meals", label: "Expenses — Meals", unit: "money" },
-  { key: "expenses_other", label: "Expenses — Other", unit: "money" },
+  { key: "expenses", label: "Expenses", unit: "money" },
   { key: "leave", label: "Leave", unit: "days" },
   { key: "loans", label: "Loans", unit: "money" },
   { key: "advances", label: "Advances", unit: "money" },
@@ -46,7 +44,7 @@ const initials = (name: string) =>
   name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase() || "?";
 
 export function ApprovalTestTab({ clientId, groups, policies, empMap }: Props) {
-  const [category, setCategory] = useState<PolicyCategory>("expenses_travel");
+  const [category, setCategory] = useState<PolicyCategory>("expenses");
   const [valueInput, setValueInput] = useState("");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
