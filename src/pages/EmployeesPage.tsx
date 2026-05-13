@@ -187,15 +187,17 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
   const [resendingId, setResendingId] = useState<string | null>(null);
   const { clientId } = useRole();
 
-  // Invite/verification status keyed by emp_id (matches profiles.employee_id)
+  // Invite/verification status keyed by emp_id. Backed by employees.is_verified
+  // (updated instantly via the mark_self_verified RPC after password setup).
+  const queryClient = (require("@tanstack/react-query") as any).useQueryClient();
   const { data: inviteStatusList } = useQuery({
     queryKey: ["employee-invite-status", clientId],
     enabled: !!clientId,
     staleTime: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("employee_id, last_login_at")
+      const { data, error } = await (supabase as any)
+        .from("employees")
+        .select("emp_id, is_verified, verified_at")
         .eq("client_id", clientId!);
       if (error) throw error;
       return data ?? [];
@@ -204,10 +206,27 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
   const inviteStatusMap = useMemo(() => {
     const m = new Map<string, string | null>();
     (inviteStatusList ?? []).forEach((p: any) => {
-      if (p.employee_id) m.set(p.employee_id, p.last_login_at ?? null);
+      if (p.emp_id) m.set(p.emp_id, p.is_verified ? (p.verified_at ?? new Date().toISOString()) : null);
     });
     return m;
   }, [inviteStatusList]);
+
+  // Live updates: refresh the badge the moment an invitee activates their account.
+  useEffect(() => {
+    if (!clientId) return;
+    const channel = supabase
+      .channel(`employees-verify-${clientId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "employees", filter: `client_id=eq.${clientId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["employee-invite-status", clientId] });
+          queryClient.invalidateQueries({ queryKey: ["verified-emp-ids", clientId] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [clientId, queryClient]);
 
   const handleResendInvite = async (emp: Employee) => {
     if (!clientId) return;
