@@ -1038,25 +1038,45 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
     const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
     const grossBeforeTax = baseSalary + totalAdditions;
     const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
-    const taxName = ((selectedSetup as any).taxComponentName ?? "").trim().toLowerCase();
+    const taxNameRaw = ((selectedSetup as any).taxComponentName ?? "").trim();
+    const taxName = taxNameRaw.toLowerCase();
+    const taxEnabled = !!(selectedSetup as any).options?.enableTaxCalculation
+      && ((selectedSetup as any).taxRules?.length ?? 0) > 0
+      && !!taxNameRaw;
+    const slabTax = taxEnabled ? calcMonthlyTax(selectedSetup as any, taxBaseMonthly) : 0;
+
     const rawDeductions = (selectedSetup.payslipComponents ?? [])
       .filter((c: any) => c.type === "deduction" && c.status === "active");
-    const hasFormulaTax = rawDeductions.some((c: any) => c.formula === "tax_slabs");
+
+    // Identify the tax row: prefer the synced formula component, else any
+    // existing deduction whose name matches the tax component name.
+    const taxRowId = (rawDeductions.find((c: any) => c.formula === "tax_slabs")?.id)
+      ?? (taxName ? rawDeductions.find((c: any) => (c.name ?? "").trim().toLowerCase() === taxName)?.id : undefined);
+
+    let taxRowEmitted = false;
     const deductions = rawDeductions
-      // Drop legacy/manual deductions whose name matches the tax component name
-      // when the slab-driven row exists, so only one tax row is shown.
-      .filter((c: any) => !(hasFormulaTax && c.formula !== "tax_slabs" && taxName && (c.name ?? "").trim().toLowerCase() === taxName))
+      // When tax is enabled, drop ALL non-tax-row duplicates that share the tax name.
+      .filter((c: any) => !(taxEnabled && c.id !== taxRowId && taxName && (c.name ?? "").trim().toLowerCase() === taxName))
       .map((comp: any) => {
-        if (comp.formula === "tax_slabs") {
+        if (taxEnabled && comp.id === taxRowId) {
+          taxRowEmitted = true;
           const o = overrides[comp.id];
-          const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100))
-                        : calcMonthlyTax(selectedSetup as any, taxBaseMonthly);
+          const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
           const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-          return { id: comp.id, name: comp.name, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
+          return { id: comp.id, name: taxNameRaw || comp.name, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
         }
         const { percent, value } = getEffective(comp, baseSalary);
         return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value, isTax: false };
       });
+
+    // Inject a tax row when none exists in payslipComponents yet (e.g. setup
+    // saved before the auto-sync was wired).
+    if (taxEnabled && !taxRowEmitted) {
+      const o = overrides["__income_tax__"];
+      const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
+      const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
+      deductions.push({ id: "__income_tax__", name: taxNameRaw, calculationType: "formula", percentage: pct, amount: amt, isTax: true });
+    }
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
     return {
       baseSalary, additions, deductions,
