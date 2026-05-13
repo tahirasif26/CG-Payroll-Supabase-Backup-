@@ -1206,12 +1206,12 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
                         <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
                           <span className="text-sm col-span-4 truncate">{item.name}{(item as any).isTax && <span className="ml-2 text-[10px] text-muted-foreground">(from tax slabs)</span>}</span>
                           <div className="col-span-3 flex items-center gap-1">
-                            <Input type="number" className="h-7 text-xs" value={item.percentage || 0} disabled={!editing || (item as any).isTax}
+                            <Input type="number" className="h-7 text-xs" value={item.percentage || 0} disabled={!editing}
                               onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
                             <span className="text-xs text-muted-foreground">%</span>
                           </div>
                           <div className="col-span-4">
-                            <Input type="number" className="h-7 text-xs" value={item.amount} disabled={!editing || (item as any).isTax}
+                            <Input type="number" className="h-7 text-xs" value={item.amount} disabled={!editing}
                               onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
                           </div>
                           <span className="text-xs font-semibold text-destructive col-span-1 text-right">{selectedSetup.currency}</span>
