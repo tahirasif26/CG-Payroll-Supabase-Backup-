@@ -2,8 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRole } from "@/contexts/RoleContext";
-import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
-import { routeApprovalRequest } from "@/lib/approvalRouting";
+import { notifyUser, getEmployeeUserId } from "@/lib/notify";
 
 type ExpenseRow = any;
 
@@ -35,33 +34,15 @@ export function useExpense(id: string | undefined) {
 
 export function useCreateExpense() {
   const qc = useQueryClient();
-  const { clientId, profile } = useRole();
   return useMutation({
     mutationFn: async (payload: Partial<ExpenseRow>) => {
       const { data, error } = await (supabase as any).from("expenses").insert(payload).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: async (data: any) => {
+    onSuccess: async () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
       toast.success("Expense submitted");
-      if (data?.status && data.status !== "draft") {
-        const amt = `${data.currency ?? ""} ${(Number(data.amount ?? 0) / 100).toLocaleString()}`;
-        await routeApprovalRequest({
-          clientId,
-          category: "expenses",
-          value: Number(data.amount ?? 0),
-          notification: {
-            title: "New expense submitted",
-            body: `${profile?.full_name ?? "An employee"} submitted an expense — ${amt}`,
-            category: "expense",
-            severity: "info",
-            entityType: "expense",
-            entityId: data.id,
-            actionUrl: "/expenses",
-          },
-        });
-      }
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to submit"),
   });
@@ -79,23 +60,7 @@ export function useUpdateExpense() {
     onSuccess: async ({ data, patch }: any) => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
       qc.invalidateQueries({ queryKey: ["expense"] });
-      if (patch.status === "submitted") {
-        const amt = `${data.currency ?? ""} ${(Number(data.amount ?? 0) / 100).toLocaleString()}`;
-        await routeApprovalRequest({
-          clientId,
-          category: "expenses",
-          value: Number(data.amount ?? 0),
-          notification: {
-            title: "New expense submitted",
-            body: `Expense submitted for review — ${amt}`,
-            category: "expense",
-            severity: "info",
-            entityType: "expense",
-            entityId: data.id,
-            actionUrl: "/expenses",
-          },
-        });
-      } else if (patch.status === "approved" || patch.status === "rejected") {
+      if (patch.status === "approved" || patch.status === "rejected") {
         const recipient = await getEmployeeUserId(data.employee_id);
         if (recipient) {
           await notifyUser(recipient, {
