@@ -949,6 +949,17 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                   </Select>
                 </div>
                 <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Permission Role</p>
+                  <Select value={form.roleId} onValueChange={v => updateField("roleId", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select role..." /></SelectTrigger>
+                    <SelectContent>
+                      {roles.map(r => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Joining Date</p>
                   <Input type="date" value={form.joiningDate} onChange={e => updateField("joiningDate", e.target.value)} className="h-8 text-sm" />
                 </div>
