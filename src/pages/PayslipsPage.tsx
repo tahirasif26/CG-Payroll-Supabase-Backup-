@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { calcMonthlyTax } from "@/lib/taxSlabs";
+import { calcMonthlyTax, findApplicableSlab } from "@/lib/taxSlabs";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
