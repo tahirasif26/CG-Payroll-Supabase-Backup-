@@ -440,6 +440,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
               <SortHeader field="empId">Employee ID</SortHeader>
               <SortHeader field="department">Department</SortHeader>
               <SortHeader field="designation">Designation</SortHeader>
+              <TableHead className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Role</TableHead>
               {!isEmployee && <SortHeader field="salary" className="hidden lg:table-cell">Work Location</SortHeader>}
               <TableHead className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
               {!isEmployee && <TableHead className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground text-right pr-4">Actions</TableHead>}
