@@ -20,7 +20,6 @@ export function useCanActOnRequest(module: RequestModule, entityId: string | und
   const { data: emp } = useCurrentEmployee();
   const { data: req } = useRequestApproval(module, entityId);
 
-  const isAdmin = isSuperAdmin || appRole === "admin" || appRole === "hr";
   if (!entityId) return { canAct: false, isCreator: false, request: null };
   if (!req) return { canAct: false, isCreator: false, request: null };
 
@@ -29,9 +28,12 @@ export function useCanActOnRequest(module: RequestModule, entityId: string | und
     (a: any) => a.employee_id === emp.id && a.status === "pending"
   );
 
-  // Admins/HR can always act — but if they ARE the creator, hide actions to
-  // enforce separation of duties (matches user requirement).
-  const canAct = !isCreator && (isAdmin || isAssignee) && req.status === "pending"
+  // Strict: only super admins or explicit pending assignees may act.
+  // Creators are always blocked (self-approval prevention) — matches server-side
+  // can_act_on_request() and act_on_request() guards.
+  const canAct = !isCreator
+    && (isSuperAdmin || isAssignee)
+    && req.status === "pending"
     && !!clientId && req.client_id === clientId;
 
   return { canAct, isCreator, isAssignee, request: req };
