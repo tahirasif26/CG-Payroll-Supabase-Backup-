@@ -106,9 +106,14 @@ export default function ExpensesPage() {
   const deleteExpense = useDeleteExpense();
   const createMileage = useCreateMileageEntry();
 
-  // Map DB rows -> UI shape
+  // Map DB rows -> UI shape.
+  // People scope = approval inbox: hide requests created by the current user
+  // (those belong in their own "Me" tab). Me scope already filters by employee_id.
   const expenseList: UiExpense[] = useMemo(() => {
-    return (rawExpenses as any[]).map((r) => {
+    const rows = (rawExpenses as any[]).filter((r) =>
+      scope === "people" && currentEmpRow?.id ? r.employee_id !== currentEmpRow.id : true
+    );
+    return rows.map((r) => {
       const emp = employees.find((e) => e.id === r.employee_id);
       const empName = emp ? `${emp.firstName} ${emp.lastName}` : "Unknown";
       return {
@@ -132,7 +137,7 @@ export default function ExpensesPage() {
         paymentMethod: r.payment_method ?? undefined,
       };
     });
-  }, [rawExpenses, employees]);
+  }, [rawExpenses, employees, scope, currentEmpRow?.id]);
 
   // Mileage handoff from GPS page (creates a mileage_entries row)
   useEffect(() => {

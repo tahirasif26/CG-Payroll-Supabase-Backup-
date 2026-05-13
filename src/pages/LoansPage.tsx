@@ -300,6 +300,8 @@ export default function LoansPage() {
   };
 
   const filtered = loanList.filter((loan) => {
+    // People = approval inbox: hide loans this user created (those live in Me).
+    if (scope === "people" && currentEmpRow?.id && loan.employee_id === currentEmpRow.id) return false;
     if (filter !== "all" && loan.status !== filter) return false;
     if (!search) return true;
     const q = search.toLowerCase();

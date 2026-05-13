@@ -167,8 +167,9 @@ export default function LeavePage() {
   }, [leaveTypes]);
 
   const filteredLeaves = dbRequests.filter(l => {
-    // Scope filter: "me" → only show requests for the current employee
+    // Me = own requests only; People = approval inbox (exclude own-created).
     if (scope === "me" && currentEmpRow?.id && l.employee_id !== currentEmpRow.id) return false;
+    if (scope === "people" && currentEmpRow?.id && l.employee_id === currentEmpRow.id) return false;
     const empName = empMap.get(l.employee_id) || "";
     const typeName = ltMap.get(l.leave_type_id) || "";
     const q = search.toLowerCase();

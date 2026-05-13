@@ -159,6 +159,12 @@ export default function AdvancesPage() {
 
   const filtered = advances
     .filter(a => {
+      // Me = own only; People = approval inbox (exclude own-created)
+      if (scope === "me" && currentEmpData?.id) {
+        if (a.employeeId !== currentEmpData.id) return false;
+      } else if (scope === "people" && currentEmpData?.id) {
+        if (a.employeeId === currentEmpData.id) return false;
+      }
       const matchesSearch = !search || a.advanceName.toLowerCase().includes(search.toLowerCase()) ||
         a.employeeName.toLowerCase().includes(search.toLowerCase()) ||
         a.purpose.toLowerCase().includes(search.toLowerCase());

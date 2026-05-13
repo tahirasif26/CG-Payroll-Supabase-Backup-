@@ -13,18 +13,25 @@ import { RequestRowActions } from "@/components/requests/RequestRowActions";
 import { RequestedToCell } from "@/components/requests/RequestedToCell";
 import { useRequestsRealtime } from "@/hooks/queries/useRequestWorkflow";
 import { useAuth } from "@/hooks/useAuth";
+import { useViewScope } from "@/contexts/ViewScopeContext";
 
 export default function AssetRequestsPage() {
   const { hasFeature } = useRole();
   const { clientId } = useAuth();
   const { data: currentEmp } = useCurrentEmployee();
+  const { scope } = useViewScope();
   const navigate = useNavigate();
   const { assetRequests, approveRequest, rejectRequest, getEmployeeRequests } = useAssets();
   const { toast } = useToast();
   useRequestsRealtime(clientId);
 
   const canApprove = hasFeature("assets.approve_requests");
-  const displayRequests = canApprove ? assetRequests : (currentEmp?.id ? getEmployeeRequests(currentEmp.id) : []);
+  // Me = own requests only; People = approval inbox (exclude own-created).
+  const displayRequests = scope === "me"
+    ? (currentEmp?.id ? getEmployeeRequests(currentEmp.id) : [])
+    : (canApprove
+        ? assetRequests.filter(r => !currentEmp?.id || r.employeeId !== currentEmp.id)
+        : []);
 
   return (
     <div className="space-y-6">
