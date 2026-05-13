@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useCallback, useMemo } from "react";
 import { useEmployees } from "@/contexts/EmployeeContext";
 
 interface ReportMapping {
@@ -14,25 +14,25 @@ interface ReportingContextType {
 
 const ReportingContext = createContext<ReportingContextType | undefined>(undefined);
 
-// Initialize default mappings from extendedData conventions
-const defaultMap: ReportMapping = {};
-// Default: employees 1-6 report to emp 7 (Layla Qasim, Partner)
-["1", "2", "3", "4", "5", "6", "8"].forEach(id => {
-  if (id !== "7") defaultMap[id] = "7";
-});
-
 export function ReportingProvider({ children }: { children: ReactNode }) {
-  const [reportMap, setReportMap] = useState<ReportMapping>(defaultMap);
   const { employees } = useEmployees();
+  // Local overrides applied on top of the DB-derived map (used by mock UI flows).
+  const [overrides, setOverrides] = useState<ReportMapping>({});
+
+  // Derive base mapping from real employee rows (reports_to from the DB).
+  const reportMap = useMemo<ReportMapping>(() => {
+    const m: ReportMapping = {};
+    employees.forEach((e) => {
+      if (e.reportsTo) m[e.id] = e.reportsTo;
+    });
+    return { ...m, ...overrides };
+  }, [employees, overrides]);
 
   const setReportTo = useCallback((empId: string, managerId: string | null) => {
-    setReportMap(prev => {
+    setOverrides((prev) => {
       const next = { ...prev };
-      if (!managerId) {
-        delete next[empId];
-      } else {
-        next[empId] = managerId;
-      }
+      if (!managerId) delete next[empId];
+      else next[empId] = managerId;
       return next;
     });
   }, []);
@@ -40,7 +40,7 @@ export function ReportingProvider({ children }: { children: ReactNode }) {
   const getManagerName = useCallback((empId: string): string | null => {
     const managerId = reportMap[empId];
     if (!managerId) return null;
-    const mgr = employees.find(e => e.id === managerId);
+    const mgr = employees.find((e) => e.id === managerId);
     return mgr ? `${mgr.firstName} ${mgr.lastName}` : null;
   }, [reportMap, employees]);
 
