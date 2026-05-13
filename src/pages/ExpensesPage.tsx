@@ -43,7 +43,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { routeApprovalRequest } from "@/lib/approvalRouting";
+import { startWorkflow } from "@/lib/workflow";
+import { RequestRowActions } from "@/components/requests/RequestRowActions";
+import { useRequestsRealtime } from "@/hooks/queries/useRequestWorkflow";
 
 // ----- Helpers -----
 function getEmployeePayCurrency(employeeId: string, emps: Employee[]): string {
@@ -92,6 +94,7 @@ export default function ExpensesPage() {
   const { getEmployeeAdvances, useAdvanceAmount } = useAdvances();
   const { toast } = useToast();
   const navigate = useNavigate();
+  useRequestsRealtime(clientId);
 
   // Scope-based filtering: "me" → only current user's expenses; "people" → all
   const scopeEmployeeId = scope === "me" ? currentEmpRow?.id : undefined;
@@ -263,15 +266,17 @@ export default function ExpensesPage() {
         setNewOpen(false);
         resetForm();
 
-        // Route approval request to configured approvers (Step 11)
+        // Start unified approval workflow
         try {
-          const cat = categories.find((c) => c.id === payload.category_id);
-          const catKey = `expenses_${(cat?.name ?? "other").toLowerCase().replace(/\s+/g, "_")}`;
           const submitterName = [currentEmpRow?.first_name, currentEmpRow?.last_name].filter(Boolean).join(" ") || "An employee";
-          const result = await routeApprovalRequest({
-            clientId,
-            category: catKey,
-            value: payload.amount, // already in halalas
+          await startWorkflow({
+            module: "expense",
+            entityId: created?.id,
+            clientId: clientId!,
+            requesterEmployeeId: payload.employee_id,
+            value: payload.amount,
+            valueUnit: "halalas",
+            category: "expenses",
             notification: {
               title: "New expense approval request",
               body: `${submitterName} submitted an expense of ${payload.currency} ${(payload.amount / 100).toLocaleString()}`,
@@ -282,11 +287,8 @@ export default function ExpensesPage() {
               actionUrl: "/expenses",
             },
           });
-          if (result.routedTo === "admins") {
-            toast({ title: "Routed to company admin for approval" });
-          }
         } catch (err) {
-          console.warn("[expense] approval routing failed:", err);
+          console.warn("[expense] workflow start failed:", err);
         }
       },
     });
@@ -539,36 +541,26 @@ export default function ExpensesPage() {
                               onClick={() => { setSelectedExp(exp); setDetailOpen(true); }} title="View Details">
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
-                            {isPending && (
+                            {isPending && exp.employeeId === currentEmpRow?.id && !isMileage && (
                               <>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-success hover:text-success"
-                                  onClick={() => handleApprove(exp)} title="Approve">
-                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7"
+                                  onClick={() => openEdit(exp)} title="Edit">
+                                  <Pencil className="h-3.5 w-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                                  onClick={() => handleReject(exp)} title="Reject">
-                                  <XCircle className="h-3.5 w-3.5" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                                  onClick={() => { setSelectedExp(exp); setDeleteOpen(true); }} title="Delete">
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
-                                {!isMileage && (
-                                  <>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7"
-                                      onClick={() => openEdit(exp)} title="Edit">
-                                      <Pencil className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-                                      onClick={() => { setSelectedExp(exp); setDeleteOpen(true); }} title="Delete">
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </>
-                                )}
                               </>
                             )}
-                            {exp.status === "approved" && !isInCompletedRun && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                                onClick={() => handleReject(exp)} title="Reject">
-                                <XCircle className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
+                            <RequestRowActions
+                              module="expense"
+                              entityId={exp.id}
+                              onActed={(action) => {
+                                if (action === "approved") handleApprove(exp);
+                                else if (action === "rejected") handleReject(exp);
+                              }}
+                            />
                           </div>
                         </TableCell>
                       </TableRow>

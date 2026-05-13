@@ -24,7 +24,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { routeApprovalRequest } from "@/lib/approvalRouting";
+import { startWorkflow } from "@/lib/workflow";
+import { RequestRowActions } from "@/components/requests/RequestRowActions";
+import { useRequestsRealtime } from "@/hooks/queries/useRequestWorkflow";
 
 function getCurrentFiscalYear(yearEndDate?: string): string {
   if (!yearEndDate) return `${new Date().getFullYear()}`;
@@ -61,6 +63,7 @@ export default function LeavePage() {
   const activeLeaveTypes = leaveTypes.filter(lt => lt.isActive);
   const qc = useQueryClient();
   const { toast } = useToast();
+  useRequestsRealtime(clientId);
 
   const location = useLocation();
   const view = new URLSearchParams(location.search).get("view") === "balances" ? "balances" : "requests";
@@ -192,10 +195,14 @@ export default function LeavePage() {
       onSuccess: async (created: any) => {
         const submitterName = [currentEmpRow?.first_name, currentEmpRow?.last_name].filter(Boolean).join(" ") || "An employee";
         try {
-          const result = await routeApprovalRequest({
-            clientId,
-            category: "leave",
+          await startWorkflow({
+            module: "leave",
+            entityId: created?.id,
+            clientId: clientId!,
+            requesterEmployeeId: newEmployee,
             value: days,
+            valueUnit: "days",
+            category: "leave",
             notification: {
               title: "New leave approval request",
               body: `${submitterName} requested ${days} day(s) of leave`,
@@ -206,11 +213,8 @@ export default function LeavePage() {
               actionUrl: "/leave",
             },
           });
-          if (result.routedTo === "admins") {
-            toast({ title: "Routed to company admin for approval" });
-          }
         } catch (err) {
-          console.warn("[leave] approval routing failed:", err);
+          console.warn("[leave] workflow start failed:", err);
         }
       },
     });
@@ -376,16 +380,14 @@ export default function LeavePage() {
                     <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{leave.reason}</TableCell>
                     <TableCell><StatusBadge status={leave.status as any} /></TableCell>
                     <TableCell>
-                      {leave.status === "pending" && (
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-success hover:bg-success/10" onClick={() => { setSelectedLeave(leave.id); setApproveOpen(true); }}>
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={() => { setSelectedLeave(leave.id); setRejectOpen(true); }}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
+                      <RequestRowActions
+                        module="leave"
+                        entityId={leave.id}
+                        onActed={(action) => {
+                          if (action === "approved") { setSelectedLeave(leave.id); handleApprove(); }
+                          else if (action === "rejected") { setSelectedLeave(leave.id); handleReject(); }
+                        }}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
