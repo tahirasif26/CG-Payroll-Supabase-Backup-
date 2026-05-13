@@ -41,7 +41,7 @@ import {
   Plus, Trash2, Upload, ArrowRight, ArrowLeft, SkipForward
 } from "lucide-react";
 import type { Employee } from "@/types/hcm";
-import { calcMonthlyTax } from "@/lib/taxSlabs";
+import { calcMonthlyTax, findApplicableSlab } from "@/lib/taxSlabs";
 
 interface AddEmployeeWizardProps {
   open: boolean;
@@ -288,6 +288,10 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
       && (selectedSetup.taxRules?.length ?? 0) > 0
       && !!taxNameRaw;
     const slabTax = taxEnabled ? calcMonthlyTax(selectedSetup, taxBaseMonthly) : 0;
+    const appliedSlab = taxEnabled ? findApplicableSlab(selectedSetup, taxBaseMonthly) : undefined;
+    const taxLabel = appliedSlab
+      ? `${taxNameRaw || "Income Tax"} (${appliedSlab.percentage}%)`
+      : (taxNameRaw || "Income Tax");
 
     const rawDeductions = selectedSetup.payslipComponents
       .filter(c => c.type === "deduction" && c.status === "active");
@@ -303,7 +307,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           const o = overrides[comp.id];
           const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
           const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-          return { id: comp.id, name: taxNameRaw || comp.name, calculationType: "formula" as const, percentage: pct, amount: amt };
+          return { id: comp.id, name: taxLabel, calculationType: "formula" as const, percentage: pct, amount: amt };
         }
         const { percent, value } = getEffective(comp, baseSalary);
         return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
@@ -312,7 +316,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
       const o = overrides["__income_tax__"];
       const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
       const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-      deductions.push({ id: "__income_tax__", name: taxNameRaw, calculationType: "formula" as const, percentage: pct, amount: amt });
+      deductions.push({ id: "__income_tax__", name: taxLabel, calculationType: "formula" as const, percentage: pct, amount: amt });
     }
 
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);

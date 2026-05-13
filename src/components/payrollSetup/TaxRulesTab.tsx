@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Calculator } from "lucide-react";
+import { calcMonthlyTax, findApplicableSlab } from "@/lib/taxSlabs";
+import type { PayrollSetup } from "@/types/payrollSetup";
 
 const TAX_COMPONENT_ID = "__income_tax__";
 
@@ -64,6 +66,16 @@ const empty: TaxSlab = { id: "", name: "", incomeFrom: 0, incomeTo: 0, percentag
 export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true, onEnabledChange, basis = "gross", onBasisChange, bracketBasis = "annual", onBracketBasisChange }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TaxSlab>(empty);
+  const [simSalary, setSimSalary] = useState<string>("");
+
+  const simSetup = {
+    options: { enableTaxCalculation: enabled },
+    taxRules: data,
+  } as unknown as PayrollSetup;
+  const simBase = Number(simSalary) || 0;
+  const simTax = simBase > 0 ? calcMonthlyTax(simSetup, simBase) : 0;
+  const simSlab = simBase > 0 ? findApplicableSlab(simSetup, simBase) : undefined;
+  const simIdx = simSlab ? data.findIndex(s => s.id === simSlab.id) + 1 : 0;
 
   const save = () => {
     if (!editing.name) return;
@@ -138,6 +150,43 @@ export default function TaxRulesTab({ data, onChange, componentName, onComponent
           <p className="text-xs text-muted-foreground">
             Monthly {basis === "basic" ? "basic salary" : "gross pay"} is matched against the slab brackets.
           </p>
+        </div>
+      )}
+
+      {data.length > 0 && (
+        <div className="space-y-2 rounded-lg border p-4 bg-muted/30">
+          <Label className="flex items-center gap-2">
+            <Calculator className="h-4 w-4" /> Salary Simulator
+          </Label>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs text-muted-foreground">Sample monthly {basis === "basic" ? "basic salary" : "gross pay"}</Label>
+              <Input
+                type="number"
+                placeholder="e.g. 60000"
+                value={simSalary}
+                onChange={e => setSimSalary(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 rounded-md border bg-background p-3 text-sm">
+              {simBase <= 0 ? (
+                <span className="text-muted-foreground">Enter a salary to preview tax</span>
+              ) : !enabled ? (
+                <span className="text-muted-foreground">Tax calculation is disabled</span>
+              ) : !simSlab ? (
+                <span>No applicable slab — <strong>0</strong> tax</span>
+              ) : (
+                <div className="space-y-1">
+                  <div>
+                    Slab {simIdx}: <strong>{simSlab.name}</strong> ({simSlab.percentage}%)
+                  </div>
+                  <div>
+                    Monthly tax: <strong>{simTax.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

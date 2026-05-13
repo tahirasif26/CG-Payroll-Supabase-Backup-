@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { calcMonthlyTax } from "@/lib/taxSlabs";
+import { calcMonthlyTax, findApplicableSlab } from "@/lib/taxSlabs";
 import { PageHeader } from "@/components/PageHeader";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
@@ -70,12 +70,16 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
     const taxNameRaw = ((setup as any).taxComponentName ?? "").trim();
     const taxName = taxNameRaw.toLowerCase();
     const taxEnabled = !!setup.options.enableTaxCalculation && setup.taxRules.length > 0 && !!taxNameRaw;
+    const appliedSlab = taxEnabled ? findApplicableSlab(setup, taxBaseMonthly) : undefined;
+    const taxLabel = appliedSlab
+      ? `${taxNameRaw || "Income Tax"} (${appliedSlab.percentage}%)`
+      : (taxNameRaw || "Income Tax");
     const taxRowId = activeDeductions.find(c => (c as any).formula === "tax_slabs")?.id
       ?? (taxName ? activeDeductions.find(c => (c.name ?? "").trim().toLowerCase() === taxName)?.id : undefined);
     let taxRowEmitted = false;
     activeDeductions.forEach(comp => {
       if (taxEnabled && comp.id === taxRowId) {
-        if (slabTax > 0) deductions.push({ label: taxNameRaw || comp.name, amount: slabTax });
+        if (slabTax > 0) deductions.push({ label: taxLabel, amount: slabTax });
         taxRowEmitted = true;
         return;
       }
@@ -86,13 +90,9 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
     });
     // Inject tax row if no matching component exists yet
     if (taxEnabled && !taxRowEmitted && slabTax > 0) {
-      deductions.push({ label: taxNameRaw, amount: slabTax });
+      deductions.push({ label: taxLabel, amount: slabTax });
     }
 
-    // Fallback: tax enabled with slabs but no synced component → show standalone
-    if (slabTax > 0 && !activeDeductions.some(c => (c as any).formula === "tax_slabs")) {
-      deductions.push({ label: (setup as any).taxComponentName || "Income Tax", amount: slabTax });
-    }
 
     // Auto deductions custom rules
     setup.autoDeductions.customRules.forEach(rule => {

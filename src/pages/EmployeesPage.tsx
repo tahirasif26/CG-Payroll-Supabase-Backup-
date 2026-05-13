@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp, Trash2, Send, Loader2, CheckCircle2, Calculator } from "lucide-react";
-import { calcMonthlyTax } from "@/lib/taxSlabs";
+import { calcMonthlyTax, findApplicableSlab } from "@/lib/taxSlabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1044,6 +1044,10 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
       && ((selectedSetup as any).taxRules?.length ?? 0) > 0
       && !!taxNameRaw;
     const slabTax = taxEnabled ? calcMonthlyTax(selectedSetup as any, taxBaseMonthly) : 0;
+    const appliedSlab = taxEnabled ? findApplicableSlab(selectedSetup as any, taxBaseMonthly) : undefined;
+    const taxLabel = appliedSlab
+      ? `${taxNameRaw || "Income Tax"} (${appliedSlab.percentage}%)`
+      : (taxNameRaw || "Income Tax");
 
     const rawDeductions = (selectedSetup.payslipComponents ?? [])
       .filter((c: any) => c.type === "deduction" && c.status === "active");
@@ -1063,7 +1067,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
           const o = overrides[comp.id];
           const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
           const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-          return { id: comp.id, name: taxNameRaw || comp.name, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
+          return { id: comp.id, name: taxLabel, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
         }
         const { percent, value } = getEffective(comp, baseSalary);
         return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value, isTax: false };
@@ -1075,7 +1079,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
       const o = overrides["__income_tax__"];
       const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
       const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-      deductions.push({ id: "__income_tax__", name: taxNameRaw, calculationType: "formula", percentage: pct, amount: amt, isTax: true });
+      deductions.push({ id: "__income_tax__", name: taxLabel, calculationType: "formula", percentage: pct, amount: amt, isTax: true });
     }
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
     return {
