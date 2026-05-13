@@ -67,11 +67,15 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
       ? calcMonthlyTax(setup, taxBaseMonthly)
       : 0;
 
+    const taxName = ((setup as any).taxComponentName ?? "").trim().toLowerCase();
+    const hasFormulaTax = activeDeductions.some(c => (c as any).formula === "tax_slabs");
     activeDeductions.forEach(comp => {
       if ((comp as any).formula === "tax_slabs") {
         if (slabTax > 0) deductions.push({ label: comp.name, amount: slabTax });
         return;
       }
+      // Skip legacy duplicates with the same name as the slab-driven tax row
+      if (hasFormulaTax && taxName && (comp.name ?? "").trim().toLowerCase() === taxName) return;
       const val = comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
       deductions.push({ label: comp.name, amount: val });
     });
