@@ -68,6 +68,7 @@ interface FormData {
   department: string; designation: string; category: string; division: string;
   workEmail: string; workLocationCity: string; workLocationCountry: string; joiningDate: string;
   reportsTo: string;
+  roleId: string;
   // Compensation
   salary: string; payrollSetupId: string; bonus: string; allowances: string;
 }
