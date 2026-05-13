@@ -1038,11 +1038,19 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
     const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
     const grossBeforeTax = baseSalary + totalAdditions;
     const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
-    const deductions = (selectedSetup.payslipComponents ?? [])
-      .filter((c: any) => c.type === "deduction" && c.status === "active")
+    const taxName = ((selectedSetup as any).taxComponentName ?? "").trim().toLowerCase();
+    const rawDeductions = (selectedSetup.payslipComponents ?? [])
+      .filter((c: any) => c.type === "deduction" && c.status === "active");
+    const hasFormulaTax = rawDeductions.some((c: any) => c.formula === "tax_slabs");
+    const deductions = rawDeductions
+      // Drop legacy/manual deductions whose name matches the tax component name
+      // when the slab-driven row exists, so only one tax row is shown.
+      .filter((c: any) => !(hasFormulaTax && c.formula !== "tax_slabs" && taxName && (c.name ?? "").trim().toLowerCase() === taxName))
       .map((comp: any) => {
         if (comp.formula === "tax_slabs") {
-          const amt = calcMonthlyTax(selectedSetup as any, taxBaseMonthly);
+          const o = overrides[comp.id];
+          const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100))
+                        : calcMonthlyTax(selectedSetup as any, taxBaseMonthly);
           const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
           return { id: comp.id, name: comp.name, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
         }
