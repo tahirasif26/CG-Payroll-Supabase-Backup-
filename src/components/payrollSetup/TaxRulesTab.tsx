@@ -66,6 +66,16 @@ const empty: TaxSlab = { id: "", name: "", incomeFrom: 0, incomeTo: 0, percentag
 export default function TaxRulesTab({ data, onChange, componentName, onComponentNameChange, enabled = true, onEnabledChange, basis = "gross", onBasisChange, bracketBasis = "annual", onBracketBasisChange }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TaxSlab>(empty);
+  const [simSalary, setSimSalary] = useState<string>("");
+
+  const simSetup = {
+    options: { enableTaxCalculation: enabled },
+    taxRules: data,
+  } as unknown as PayrollSetup;
+  const simBase = Number(simSalary) || 0;
+  const simTax = simBase > 0 ? calcMonthlyTax(simSetup, simBase) : 0;
+  const simSlab = simBase > 0 ? findApplicableSlab(simSetup, simBase) : undefined;
+  const simIdx = simSlab ? data.findIndex(s => s.id === simSlab.id) + 1 : 0;
 
   const save = () => {
     if (!editing.name) return;
