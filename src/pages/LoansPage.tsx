@@ -23,7 +23,7 @@ import { useViewScope } from "@/contexts/ViewScopeContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useLoans, useLoanTransactions, useCreateLoan, useUpdateLoan, useAddLoanTransaction, type DbLoan } from "@/hooks/queries/useLoans";
 import { useEmployees } from "@/hooks/queries/useEmployees";
-import { routeApprovalRequest } from "@/lib/approvalRouting";
+import { startWorkflow } from "@/lib/workflow";
 
 type FilterTab = "all" | "active" | "completed" | "defaulted";
 
@@ -152,28 +152,32 @@ export default function LoansPage() {
     setNewReason(""); setNewLoanType("Personal"); setNewAck(false);
     toast({ title: "Loan Created", description: "The loan has been successfully created." });
 
-    // Route approval request (Step 11)
+    // Start unified approval workflow
     try {
       const submitterName = [currentEmpRow?.first_name, currentEmpRow?.last_name].filter(Boolean).join(" ") || "An employee";
-      const result = await routeApprovalRequest({
-        clientId: (created as any)?.client_id ?? null,
-        category: "loans",
-        value: Math.round(principal * 100), // halalas
-        notification: {
-          title: "New loan approval request",
-          body: `${submitterName} requested a loan of SAR ${principal.toLocaleString()}`,
-          category: "loan",
-          severity: "warning",
-          entityType: "loan",
-          entityId: (created as any)?.id,
-          actionUrl: "/loans",
-        },
-      });
-      if (result.routedTo === "admins") {
-        toast({ title: "Routed to company admin for approval" });
+      const createdClientId = (created as any)?.client_id ?? null;
+      if (createdClientId && (created as any)?.id) {
+        await startWorkflow({
+          clientId: createdClientId,
+          module: "loan",
+          entityId: (created as any).id,
+          requesterEmployeeId: emp.id,
+          value: Math.round(principal * 100), // halalas
+          valueUnit: "halalas",
+          category: "loans",
+          notification: {
+            title: "New loan approval request",
+            body: `${submitterName} requested a loan of SAR ${principal.toLocaleString()}`,
+            category: "loan",
+            severity: "warning",
+            entityType: "loan",
+            entityId: (created as any).id,
+            actionUrl: "/loans",
+          },
+        });
       }
     } catch (err) {
-      console.warn("[loan] approval routing failed:", err);
+      console.warn("[loan] workflow start failed:", err);
     }
   };
 

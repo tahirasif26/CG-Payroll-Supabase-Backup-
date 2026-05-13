@@ -540,26 +540,30 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     if (error) { showDbError("submit asset request", error); return; }
     qc.invalidateQueries({ queryKey: ["asset_requests"] });
 
-    // Route through approval matrix (assets category)
-    if (req.status === "pending") {
+    // Start unified approval workflow (assets category)
+    if (req.status === "pending" && inserted?.id) {
       try {
-        const { routeApprovalRequest } = await import("@/lib/approvalRouting");
-        await routeApprovalRequest({
+        const { startWorkflow } = await import("@/lib/workflow");
+        await startWorkflow({
+          module: "asset",
+          entityId: inserted.id,
           clientId,
-          category: "assets",
+          requesterEmployeeId: req.employeeId,
           value: 0,
+          valueUnit: "halalas",
+          category: "assets",
           notification: {
             title: "New asset request",
             body: req.reason || "An employee has requested an asset.",
             category: "asset",
             severity: "info",
             entityType: "asset_request",
-            entityId: inserted?.id,
+            entityId: inserted.id,
             actionUrl: "/assets/requests",
           },
         });
       } catch (e) {
-        console.warn("[asset request] approval routing failed", e);
+        console.warn("[asset request] workflow start failed", e);
       }
     }
   };
