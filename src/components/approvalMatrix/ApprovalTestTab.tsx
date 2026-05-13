@@ -17,9 +17,7 @@ import type {
 } from "@/hooks/queries/useApprovalMatrix";
 
 const CATEGORIES: { key: PolicyCategory; label: string; unit: "money" | "days" }[] = [
-  { key: "expenses_travel", label: "Expenses — Travel", unit: "money" },
-  { key: "expenses_meals", label: "Expenses — Meals", unit: "money" },
-  { key: "expenses_other", label: "Expenses — Other", unit: "money" },
+  { key: "expenses", label: "Expenses", unit: "money" },
   { key: "leave", label: "Leave", unit: "days" },
   { key: "loans", label: "Loans", unit: "money" },
   { key: "advances", label: "Advances", unit: "money" },
