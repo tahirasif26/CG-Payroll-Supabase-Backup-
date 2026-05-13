@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAudit } from "@/contexts/AuditContext";
 import { format, differenceInDays, isPast, parseISO } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar, Monitor, ChevronLeft, Edit2, Save, X, GraduationCap, Heart, Phone, MapPin, Building, CreditCard, ArrowUpDown, Search, Filter, UserMinus, ClipboardList, RefreshCw, History, Settings, Bell, ChevronDown, ChevronUp, Trash2, Send, Loader2, CheckCircle2, Calculator } from "lucide-react";
 import { calcMonthlyTax } from "@/lib/taxSlabs";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -187,15 +187,17 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
   const [resendingId, setResendingId] = useState<string | null>(null);
   const { clientId } = useRole();
 
-  // Invite/verification status keyed by emp_id (matches profiles.employee_id)
+  // Invite/verification status keyed by emp_id. Backed by employees.is_verified
+  // (updated instantly via the mark_self_verified RPC after password setup).
+  const queryClient = useQueryClient();
   const { data: inviteStatusList } = useQuery({
     queryKey: ["employee-invite-status", clientId],
     enabled: !!clientId,
     staleTime: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("employee_id, last_login_at")
+      const { data, error } = await (supabase as any)
+        .from("employees")
+        .select("emp_id, is_verified, verified_at")
         .eq("client_id", clientId!);
       if (error) throw error;
       return data ?? [];
@@ -204,10 +206,27 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
   const inviteStatusMap = useMemo(() => {
     const m = new Map<string, string | null>();
     (inviteStatusList ?? []).forEach((p: any) => {
-      if (p.employee_id) m.set(p.employee_id, p.last_login_at ?? null);
+      if (p.emp_id) m.set(p.emp_id, p.is_verified ? (p.verified_at ?? new Date().toISOString()) : null);
     });
     return m;
   }, [inviteStatusList]);
+
+  // Live updates: refresh the badge the moment an invitee activates their account.
+  useEffect(() => {
+    if (!clientId) return;
+    const channel = supabase
+      .channel(`employees-verify-${clientId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "employees", filter: `client_id=eq.${clientId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["employee-invite-status", clientId] });
+          queryClient.invalidateQueries({ queryKey: ["verified-emp-ids", clientId] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [clientId, queryClient]);
 
   const handleResendInvite = async (emp: Employee) => {
     if (!clientId) return;

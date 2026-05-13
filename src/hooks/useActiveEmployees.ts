@@ -21,13 +21,13 @@ export function useActiveEmployees() {
     enabled: !!clientId,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("employee_id, last_login_at")
+      const { data, error } = await (supabase as any)
+        .from("employees")
+        .select("emp_id, is_verified")
         .eq("client_id", clientId!)
-        .not("last_login_at", "is", null);
+        .eq("is_verified", true);
       if (error) throw error;
-      return new Set((data ?? []).map((p: any) => p.employee_id).filter(Boolean));
+      return new Set((data ?? []).map((e: any) => e.emp_id).filter(Boolean));
     },
   });
 
