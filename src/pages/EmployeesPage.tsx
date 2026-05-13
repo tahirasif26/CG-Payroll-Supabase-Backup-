@@ -473,6 +473,11 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
                 <TableCell className="text-sm font-mono text-muted-foreground">{emp.empId}</TableCell>
                 <TableCell className="text-sm">{emp.department}</TableCell>
                 <TableCell className="text-sm">{emp.designation}</TableCell>
+                <TableCell className="text-sm">
+                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {roleMap.get(emp.roleId ?? "") || "—"}
+                  </span>
+                </TableCell>
                 {!isEmployee && (
                   <TableCell className="text-sm hidden lg:table-cell">
                     <div className="flex items-center gap-1.5">
