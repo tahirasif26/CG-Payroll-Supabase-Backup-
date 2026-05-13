@@ -106,7 +106,17 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    toast({ title: "Password set successfully!", description: "Welcome to HRConnect. Redirecting…" });
+    // Mark this employee as verified (writes employees.is_verified + verified_at).
+    // Non-fatal: if this fails the user is still logged in; useAuth will still
+    // stamp profiles.last_login_at as a safety net.
+    try {
+      const { error: rpcErr } = await (supabase as any).rpc("mark_self_verified");
+      if (rpcErr) console.warn("[ResetPassword] mark_self_verified failed:", rpcErr);
+    } catch (e) {
+      console.warn("[ResetPassword] mark_self_verified threw:", e);
+    }
+
+    toast({ title: isInvite ? "Account activated!" : "Password updated!", description: "Welcome to HRConnect. Redirecting…" });
     window.history.replaceState(null, "", window.location.pathname);
     setTimeout(() => navigate("/", { replace: true }), 1000);
     setLoading(false);
