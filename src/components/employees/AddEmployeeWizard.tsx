@@ -41,7 +41,7 @@ import {
   Plus, Trash2, Upload, ArrowRight, ArrowLeft, SkipForward
 } from "lucide-react";
 import type { Employee } from "@/types/hcm";
-import { calcMonthlyTax } from "@/lib/taxSlabs";
+import { calcMonthlyTax, findApplicableSlab } from "@/lib/taxSlabs";
 
 interface AddEmployeeWizardProps {
   open: boolean;
