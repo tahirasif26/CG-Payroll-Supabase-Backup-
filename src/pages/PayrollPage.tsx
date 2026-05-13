@@ -233,8 +233,11 @@ function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup |
     const loanDeduction = activeLoan ? activeLoan.monthlyDeduction : 0;
 
     // Deductions from setup components — % is of basic
+    // Deductions from setup components — % is of basic. Skip the synced
+    // tax-slabs component; tax is computed below from taxRules to avoid double-counting.
     let setupDeductions = 0;
     activeDeductionComponents.forEach(comp => {
+      if ((comp as any).formula === "tax_slabs") return;
       setupDeductions += comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
     });
 

@@ -61,20 +61,24 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
       earnings.push({ label: comp.name, amount: val });
     });
 
+    const totalEarningsForGross = basic + activeEarnings.reduce((s, c) => s + (c.calculationType === "percentage" ? Math.round(basic * c.value / 100) : c.value), 0);
+    const taxBaseMonthly = (setup as any).taxBasis === "basic" ? basic : totalEarningsForGross;
+    const slabTax = setup.options.enableTaxCalculation && setup.taxRules.length > 0
+      ? calcMonthlyTax(setup, taxBaseMonthly)
+      : 0;
+
     activeDeductions.forEach(comp => {
+      if ((comp as any).formula === "tax_slabs") {
+        if (slabTax > 0) deductions.push({ label: comp.name, amount: slabTax });
+        return;
+      }
       const val = comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
       deductions.push({ label: comp.name, amount: val });
     });
 
-    const totalEarningsForGross = earnings.reduce((s, e) => s + e.amount, 0);
-
-    // Tax from setup's taxRules
-    if (setup.options.enableTaxCalculation && setup.taxRules.length > 0) {
-      const taxBaseMonthly = (setup as any).taxBasis === "basic" ? basic : totalEarningsForGross;
-      const totalTax = calcMonthlyTax(setup, taxBaseMonthly);
-      if (totalTax > 0) {
-        deductions.push({ label: "Income Tax", amount: totalTax });
-      }
+    // Fallback: tax enabled with slabs but no synced component → show standalone
+    if (slabTax > 0 && !activeDeductions.some(c => (c as any).formula === "tax_slabs")) {
+      deductions.push({ label: (setup as any).taxComponentName || "Income Tax", amount: slabTax });
     }
 
     // Auto deductions custom rules

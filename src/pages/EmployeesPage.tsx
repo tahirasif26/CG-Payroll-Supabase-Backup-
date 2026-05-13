@@ -1035,22 +1035,26 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
         const { percent, value } = getEffective(comp, baseSalary);
         return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
       });
+    const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
+    const grossBeforeTax = baseSalary + totalAdditions;
+    const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
     const deductions = (selectedSetup.payslipComponents ?? [])
       .filter((c: any) => c.type === "deduction" && c.status === "active")
       .map((comp: any) => {
+        if (comp.formula === "tax_slabs") {
+          const amt = calcMonthlyTax(selectedSetup as any, taxBaseMonthly);
+          const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
+          return { id: comp.id, name: comp.name, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
+        }
         const { percent, value } = getEffective(comp, baseSalary);
-        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
+        return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value, isTax: false };
       });
-    const totalAdditions = additions.reduce((s, c) => s + c.amount, 0);
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
-    const grossBeforeTax = baseSalary + totalAdditions;
-    const taxBaseMonthly = (selectedSetup as any).taxBasis === "basic" ? baseSalary : grossBeforeTax;
-    const taxAmount = calcMonthlyTax(selectedSetup as any, taxBaseMonthly);
     return {
       baseSalary, additions, deductions,
-      totalAdditions, totalDeductions, taxAmount,
+      totalAdditions, totalDeductions, taxAmount: 0,
       grossTotal: grossBeforeTax,
-      netSalary: grossBeforeTax - totalDeductions - taxAmount,
+      netSalary: grossBeforeTax - totalDeductions,
     };
   }, [selectedSetup, baseForBreakdown, overrides]);
 
@@ -1192,14 +1196,14 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
                     <div className="bg-muted/30 rounded-lg overflow-hidden">
                       {salaryBreakdown.deductions.map((item) => (
                         <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
-                          <span className="text-sm col-span-4 truncate">{item.name}</span>
+                          <span className="text-sm col-span-4 truncate">{item.name}{(item as any).isTax && <span className="ml-2 text-[10px] text-muted-foreground">(from tax slabs)</span>}</span>
                           <div className="col-span-3 flex items-center gap-1">
-                            <Input type="number" className="h-7 text-xs" value={item.percentage || 0} disabled={!editing}
+                            <Input type="number" className="h-7 text-xs" value={item.percentage || 0} disabled={!editing || (item as any).isTax}
                               onChange={e => setOverridePercent(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
                             <span className="text-xs text-muted-foreground">%</span>
                           </div>
                           <div className="col-span-4">
-                            <Input type="number" className="h-7 text-xs" value={item.amount} disabled={!editing}
+                            <Input type="number" className="h-7 text-xs" value={item.amount} disabled={!editing || (item as any).isTax}
                               onChange={e => setOverrideValue(item.id, Number(e.target.value), salaryBreakdown.baseSalary)} />
                           </div>
                           <span className="text-xs font-semibold text-destructive col-span-1 text-right">{selectedSetup.currency}</span>
@@ -1209,14 +1213,6 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
                         <span className="text-sm">Total Deductions</span>
                         <span className="text-sm text-destructive">-{salaryBreakdown.totalDeductions.toLocaleString()} {selectedSetup.currency}</span>
                       </div>
-                    </div>
-                  </div>
-                )}
-                {salaryBreakdown.taxAmount > 0 && (
-                  <div className="bg-muted/30 rounded-lg overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-2.5">
-                      <span className="text-sm">Tax Deduction</span>
-                      <span className="text-sm font-semibold text-destructive">-{salaryBreakdown.taxAmount.toLocaleString()} {selectedSetup.currency}</span>
                     </div>
                   </div>
                 )}
