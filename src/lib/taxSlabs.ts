@@ -23,3 +23,30 @@ export function calcMonthlyTax(setup: PayrollSetup, monthlyBase: number): number
   return Math.round(tax * 100) / 100;
 }
 
+/**
+ * Find the slab that the monthly base falls into (the highest applicable
+ * bracket). Returns undefined if none applies.
+ */
+export function findApplicableSlab(
+  setup: PayrollSetup,
+  monthlyBase: number,
+): TaxSlab | undefined {
+  if (!setup.options?.enableTaxCalculation) return undefined;
+  const slabs: TaxSlab[] = setup.taxRules ?? [];
+  if (slabs.length === 0 || monthlyBase <= 0) return undefined;
+  let match: TaxSlab | undefined;
+  for (const s of slabs) {
+    if (monthlyBase > s.incomeFrom && monthlyBase <= s.incomeTo) {
+      match = s;
+    }
+  }
+  // If above all slab ceilings, take the slab with the highest incomeTo that
+  // monthlyBase still exceeds incomeFrom for.
+  if (!match) {
+    const above = slabs
+      .filter(s => monthlyBase > s.incomeFrom)
+      .sort((a, b) => b.incomeTo - a.incomeTo)[0];
+    match = above;
+  }
+  return match;
+}
