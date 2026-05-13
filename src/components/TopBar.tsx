@@ -27,7 +27,7 @@ interface SearchResult {
 
 export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
   const { profile, signOut, role, isSuperAdmin, appRole, customRoleName, clientId } = useRole();
-  const { scope, setScope, hasPeopleAccess } = useViewScope();
+  const { scope, setScope } = useViewScope();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
