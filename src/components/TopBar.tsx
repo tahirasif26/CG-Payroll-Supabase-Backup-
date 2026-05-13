@@ -27,7 +27,7 @@ interface SearchResult {
 
 export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
   const { profile, signOut, role, isSuperAdmin, appRole, customRoleName, clientId } = useRole();
-  const { scope, setScope, hasPeopleAccess } = useViewScope();
+  const { scope, setScope } = useViewScope();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -131,7 +131,7 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
           <Menu className="h-4 w-4" />
         </button>
 
-        {!isSuperAdmin && hasPeopleAccess && (
+        {appRole !== "employee" && (
           <div className="inline-flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
             <button
               onClick={() => setScope("me")}
@@ -144,19 +144,17 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
             >
               Me
             </button>
-            {hasPeopleAccess && (
-              <button
-                onClick={() => setScope("people")}
-                className={cn(
-                  "px-4 py-1.5 rounded-md text-xs font-medium transition-all",
-                  scope === "people"
-                    ? "bg-background shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                People
-              </button>
-            )}
+            <button
+              onClick={() => setScope("people")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-medium transition-all",
+                scope === "people"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              People
+            </button>
           </div>
         )}
 
