@@ -1,78 +1,80 @@
+## Approval Matrix Management — Complete Overhaul
 
+A scalable, multi-tenant approval system with dynamic module-based policies, delegation, and RBAC.
 
-# Two Changes: Remove Currency from Company Profile + Employee Email Invite System
+### 1. Database changes (migration)
 
-## 1. Remove Currency Tab from Company Profile
+**New / updated tables:**
+- `approval_groups` — already exists; add `description`, `is_active`, `deleted_at` (soft delete).
+- `approval_group_members` — already exists; **remove any max-member constraint** (none in DB; remove client-side cap).
+- `approval_policies` — already exists; extend with `policy_type` ('range' | 'fixed'), `is_active`, `deleted_at`.
+- `approval_policy_levels` — **new**: `policy_id`, `level_order`, `group_id`, `mode` ('sequential' | 'parallel'), `sla_hours`.
+- `approval_ranges` — **new**: `policy_id`, `min_value`, `max_value`, `currency` — for Expense / Advance / Loan tiers.
+- `approval_delegations` — already exists; add `fallback_employee_id`, `reason`, auto-expiry trigger.
+- `workflow_logs` — **new**: append-only audit (`entity_type`, `entity_id`, `action`, `actor_user_id`, `from_state`, `to_state`, `metadata`, `created_at`).
+- `role_permissions` — **new**: `role_id`, `permission_key` (granular feature flags per custom role).
+- `module_permissions` — **new**: catalog of module → permission keys mapping.
+- `tenant_module_configurations` — use existing `clients.enabled_modules` + new `clients.module_config jsonb` for per-module settings.
 
-Currency is already managed per Payroll Setup, so it's redundant in Company Profile.
+**Functions / triggers:**
+- `resolve_approval_chain(_client_id, _category, _value)` → returns ordered list of `{level, group_id, mode}`.
+- `get_active_approvers_with_delegation(_group_id)` → existing extended with fallback.
+- `expire_delegations()` cron-callable function.
+- `log_workflow_event()` trigger on approval state changes.
+- RLS: admin/super_admin full access; custom roles gated by `role_permissions.permission_key IN ('approval.manage', 'approval.view')`.
 
-**Changes:**
-- `src/pages/settings/CompanyProfilePage.tsx` — Remove the "Currency" tab and `CurrencySection` import. Keep only: Company Details, GL Code Mapping, Visual Preference (3 tabs).
-- `src/components/TopNavLayout.tsx` — Remove `/settings/currency` from Settings matchPaths if present.
-- `src/App.tsx` — Remove or redirect the `/settings/currency` route (currently points to CompanyProfilePage).
+**Realtime:** add `approval_groups`, `approval_policies`, `approval_policy_levels`, `approval_delegations`, `workflow_logs` to `supabase_realtime` publication.
 
----
+### 2. Frontend — Approval Matrix page redesign
 
-## 2. Employee Invite System (World-Class Email Onboarding)
-
-When an admin creates a new employee, the system will send an invite email to their personal email. The employee clicks the link, sets their password, and logs in — seeing only their own data.
-
-### Flow
+`src/pages/settings/ApprovalMatrixPage.tsx` becomes a 4-tab shell:
 
 ```text
-Admin creates employee (AddEmployeeWizard)
-  ↓
-System calls supabase.auth.admin.inviteUserByEmail()
-  (via a secure Edge Function — client can't call admin APIs)
-  ↓
-Employee receives email with magic link
-  ↓
-Employee clicks link → lands on /reset-password
-  ↓
-Sets password → logged in as "employee" role
-  ↓
-Profile auto-created via existing trigger (handle_new_user)
-  ↓
-Employee sees: Dashboard, My Payslips, My Leave, My Expenses, etc.
+┌─ Groups ─┬─ Policies ─┬─ Delegations ─┬─ Audit Log ─┐
 ```
 
-### What Gets Built
+**Groups tab** (`src/components/approvalMatrix/GroupsTab.tsx`)
+- List: name, description, member count, status, actions.
+- Create/Edit modal: name, description, **unlimited member multi-select** (remove cap).
+- Member picker is filtered to: admins + employees with role permission `approval.member`.
 
-1. **Edge Function: `invite-employee`**
-   - Accepts: `{ email, full_name, employee_id }` 
-   - Uses `SUPABASE_SERVICE_ROLE_KEY` to call `supabase.auth.admin.inviteUserByEmail()`
-   - Sets `user_metadata` with `full_name` so the profile trigger picks it up
-   - Links the new auth user to the employee record via `employee_id` in profiles
-   - Returns success/error
+**Policies tab** (`src/components/approvalMatrix/PoliciesTab.tsx`)
+- Sub-tabs rendered **dynamically from `enabledModules`**:
+  - `employees` → Leave Approvals (fixed, multi-level).
+  - `expenses` → Expense Approvals (range), Advance Approvals (range).
+  - `payroll` → Loan Approvals (range).
+  - `assets` → Asset Request Approvals (fixed, multi-level).
+- Range editor: rows of `min – max → group` with auto-fill of next `min`.
+- Multi-level builder: ordered levels, each with group + sequential/parallel toggle + SLA hours. Visual chain renderer.
 
-2. **Update `AddEmployeeWizard.tsx`**
-   - After successfully creating the employee record, call the `invite-employee` edge function
-   - Show a toast: "Invite email sent to [email]"
-   - Add a toggle/checkbox: "Send login invite to employee" (checked by default)
-   - Show the work email field prominently with a note: "This email will receive the login invite"
+**Delegations tab** (`src/components/approvalMatrix/DelegationsTab.tsx`)
+- From-employee, to-employee, fallback, start/end date, reason, status.
+- Auto-expiry indicator; revoke action.
 
-3. **Update `profiles` table trigger** 
-   - The existing `handle_new_user` trigger already creates a profile with `full_name` from metadata
-   - Add a migration to also set `employee_id` from `raw_user_meta_data->>'employee_id'` if present
+**Audit Log tab** (`src/components/approvalMatrix/AuditLogTab.tsx`)
+- Filterable list of `workflow_logs` entries.
 
-4. **Employee email field clarity**
-   - Ensure the wizard has both "Personal Email" and "Work Email" 
-   - The invite goes to the **Work Email** (or personal if no work email)
-   - Add helper text: "An invite link will be sent to this email for the employee to set up their account"
+### 3. Backend services
 
-### Technical Details
+- `src/lib/approvalRouting.ts` — extend `routeApprovalRequest` to walk multi-level chains, respect ranges, and write `workflow_logs`.
+- `src/hooks/queries/useApprovalMatrix.ts` — extend with `usePolicyLevels`, `useApprovalRanges`, `useDelegations`, `useWorkflowLogs`. All subscribe to realtime.
+- `src/hooks/useCanApprove.ts` — already category-aware; extend to consider delegation + level position.
 
-| Item | Detail |
-|------|--------|
-| Edge Function | `supabase/functions/invite-employee/index.ts` |
-| Auth method | `supabase.auth.admin.inviteUserByEmail()` via service role key |
-| Secret needed | `SUPABASE_SERVICE_ROLE_KEY` (already configured) |
-| Redirect URL | `window.location.origin/reset-password` (existing page handles password set) |
-| Role assignment | Existing `handle_new_user` trigger assigns `employee` role by default |
-| Profile linking | `employee_id` passed via `user_metadata` and set in profile via updated trigger |
+### 4. RBAC
 
-### Security
-- Edge function validates JWT to ensure only admin/hr users can send invites
-- Input validation with Zod (email format, required fields)
-- Service role key never exposed to client
+- `src/lib/feature-catalog.ts` — add granular keys: `approval.groups.manage`, `approval.policies.manage`, `approval.delegations.manage`, `approval.audit.view`, `approval.member`.
+- Default mapping: `admin` → all; `employee` → none.
+- Module Access (super-admin) and Role editor (admin) consume these keys.
 
+### 5. Verification
+
+- Admin: full access; can create unlimited-member groups; range/fixed editors render per enabled module.
+- Employee with no custom role: Approval Matrix hidden.
+- Custom role with `approval.policies.manage`: can edit policies, not groups.
+- Delegation: configured today → from-user removed from approver list, to-user (or fallback if expired) appears, log entry written.
+- Realtime: open two tabs; change in one reflects without refresh.
+
+### Out of scope for this iteration
+
+- Push/email notifications already use `notifyUser` / `routeApprovalRequest`; no new transport added.
+- Existing approval-consuming pages (Expenses, Loans, Leave) are left wired to `routeApprovalRequest`; only its internals change.
