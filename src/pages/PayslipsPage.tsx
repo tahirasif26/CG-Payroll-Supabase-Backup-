@@ -67,18 +67,27 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
       ? calcMonthlyTax(setup, taxBaseMonthly)
       : 0;
 
-    const taxName = ((setup as any).taxComponentName ?? "").trim().toLowerCase();
-    const hasFormulaTax = activeDeductions.some(c => (c as any).formula === "tax_slabs");
+    const taxNameRaw = ((setup as any).taxComponentName ?? "").trim();
+    const taxName = taxNameRaw.toLowerCase();
+    const taxEnabled = !!setup.options.enableTaxCalculation && setup.taxRules.length > 0 && !!taxNameRaw;
+    const taxRowId = activeDeductions.find(c => (c as any).formula === "tax_slabs")?.id
+      ?? (taxName ? activeDeductions.find(c => (c.name ?? "").trim().toLowerCase() === taxName)?.id : undefined);
+    let taxRowEmitted = false;
     activeDeductions.forEach(comp => {
-      if ((comp as any).formula === "tax_slabs") {
-        if (slabTax > 0) deductions.push({ label: comp.name, amount: slabTax });
+      if (taxEnabled && comp.id === taxRowId) {
+        if (slabTax > 0) deductions.push({ label: taxNameRaw || comp.name, amount: slabTax });
+        taxRowEmitted = true;
         return;
       }
-      // Skip legacy duplicates with the same name as the slab-driven tax row
-      if (hasFormulaTax && taxName && (comp.name ?? "").trim().toLowerCase() === taxName) return;
+      // Drop other duplicates sharing the tax name
+      if (taxEnabled && taxName && (comp.name ?? "").trim().toLowerCase() === taxName) return;
       const val = comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
       deductions.push({ label: comp.name, amount: val });
     });
+    // Inject tax row if no matching component exists yet
+    if (taxEnabled && !taxRowEmitted && slabTax > 0) {
+      deductions.push({ label: taxNameRaw, amount: slabTax });
+    }
 
     // Fallback: tax enabled with slabs but no synced component → show standalone
     if (slabTax > 0 && !activeDeductions.some(c => (c as any).formula === "tax_slabs")) {
