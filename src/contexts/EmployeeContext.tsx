@@ -45,6 +45,7 @@ function adaptEmployee(row: any, comp: any[] = []): Employee {
     payrollSetupId: row.payroll_setup_id ?? undefined,
     userId: row.user_id ?? undefined,
     roleId: row.role_id ?? undefined,
+    reportsTo: row.reports_to ?? undefined,
     compensation: mappedComp.length ? mappedComp : undefined,
   };
 }

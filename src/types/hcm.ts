@@ -21,6 +21,7 @@ export interface Employee {
   userId?: string;
   roleId?: string;
   roleName?: string;
+  reportsTo?: string;
   compensation?: SalaryComponent[];
 }
 
