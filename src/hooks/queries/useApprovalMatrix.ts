@@ -383,7 +383,10 @@ export function useApprovalDelegations(clientId: string | null) {
 export function useCreateDelegation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<ApprovalDelegation, "id">) => {
+    mutationFn: async (input: Omit<ApprovalDelegation, "id" | "fallback_employee_id" | "reason"> & {
+      fallback_employee_id?: string | null;
+      reason?: string | null;
+    }) => {
       const { error } = await (supabase as any).from("approval_delegations").insert(input);
       if (error) throw error;
     },
