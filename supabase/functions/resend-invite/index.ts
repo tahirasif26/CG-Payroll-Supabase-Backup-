@@ -83,14 +83,14 @@ Deno.serve(async (req) => {
     if (targetUserId) {
       const { data: existing } = await adminClient.auth.admin.getUserById(targetUserId);
       if (existing?.user?.last_sign_in_at) {
-        return json({ error: "User already verified — no need to resend invite", verified: true }, 409);
+        return json({ message: "User already verified — no need to resend invite", verified: true, success: true }, 200);
       }
     } else {
       // Look up by email
       const { data: list } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
       const existing = list?.users?.find((u) => u.email?.toLowerCase() === targetEmail);
       if (existing?.last_sign_in_at) {
-        return json({ error: "User already verified — no need to resend invite", verified: true }, 409);
+        return json({ message: "User already verified — no need to resend invite", verified: true, success: true }, 200);
       }
       targetUserId = existing?.id ?? null;
     }
