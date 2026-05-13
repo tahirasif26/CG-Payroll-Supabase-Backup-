@@ -432,6 +432,22 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           }
         }
 
+        // Sync permission role (employees.role_id + user_roles).
+        if (form.roleId && clientId) {
+          const targetRole = roles.find(r => r.id === form.roleId);
+          if (targetRole) {
+            try {
+              await assignRole.mutateAsync({
+                employee_id: editEmployeeId,
+                role_id: targetRole.id,
+                client_id: clientId,
+                role_name: targetRole.name,
+                user_id: (editProfile?.employee as any)?.user_id ?? null,
+              });
+            } catch { /* toast handled in hook */ }
+          }
+        }
+
         toast({ title: "Employee updated", description: "Changes saved successfully." });
         resetAndClose();
       } else {
