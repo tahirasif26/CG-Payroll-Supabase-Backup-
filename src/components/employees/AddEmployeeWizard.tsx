@@ -517,6 +517,22 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             qc.invalidateQueries({ queryKey: ["assets"] });
           }
         }
+        // Sync permission role for the newly created employee.
+        if (newEmpId && form.roleId && clientId) {
+          const targetRole = roles.find(r => r.id === form.roleId);
+          if (targetRole) {
+            const newUserId = (createResult as any)?.employee?.user_id ?? null;
+            try {
+              await assignRole.mutateAsync({
+                employee_id: newEmpId,
+                role_id: targetRole.id,
+                client_id: clientId,
+                role_name: targetRole.name,
+                user_id: newUserId,
+              });
+            } catch { /* toast handled in hook */ }
+          }
+        }
         addEmployee(newEmp);
         resetAndClose();
       }
