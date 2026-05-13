@@ -1067,7 +1067,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
           const o = overrides[comp.id];
           const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
           const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-          return { id: comp.id, name: taxNameRaw || comp.name, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
+          return { id: comp.id, name: taxLabel, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
         }
         const { percent, value } = getEffective(comp, baseSalary);
         return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value, isTax: false };
