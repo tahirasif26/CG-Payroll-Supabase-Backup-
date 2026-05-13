@@ -9,7 +9,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useModuleEnabled } from "@/hooks/useModuleEnabled";
 import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
-import { routeApprovalRequest } from "@/lib/approvalRouting";
+import { startWorkflow } from "@/lib/workflow";
 
 export interface ReminderEntry {
   sentAt: string;
@@ -153,17 +153,22 @@ export function AdvanceProvider({ children }: { children: React.ReactNode }) {
     },
     onSuccess: async ({ row, adv }) => {
       invalidate();
-      await routeApprovalRequest({
+      if (!clientId || !row?.id) return;
+      await startWorkflow({
+        module: "advance",
+        entityId: row.id,
         clientId,
+        requesterEmployeeId: adv.employeeId,
+        value: Math.round(Number(adv.amount ?? 0) * 100),
+        valueUnit: "halalas",
         category: "advances",
-        value: Number(adv.amount ?? 0),
         notification: {
           title: "New advance request",
           body: `${adv.employeeName} requested ${adv.currency} ${adv.amount.toLocaleString()}${adv.purpose ? ` — ${adv.purpose}` : ""}`,
           category: "advance",
           severity: "info",
           entityType: "advance",
-          entityId: row?.id,
+          entityId: row.id,
           actionUrl: "/advances",
         },
       });

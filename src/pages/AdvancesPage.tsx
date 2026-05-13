@@ -7,7 +7,8 @@ import { useAdvances } from "@/contexts/AdvanceContext";
 import { usePayrollRuns } from "@/hooks/queries/usePayroll";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, X, FilterX, Wallet } from "lucide-react";
+import { Plus, Search, Eye, ArrowUpRight, ArrowDownRight, X, FilterX, Wallet } from "lucide-react";
+import { RequestRowActions } from "@/components/requests/RequestRowActions";
 import { EmptyTableRow } from "@/components/EmptyState";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -315,7 +316,6 @@ export default function AdvancesPage() {
                 <EmptyTableRow colSpan={8} icon={Wallet} title="No advances yet" description="Request a cash advance or adjust filters." />
               ) : filtered.map(adv => {
                 const remaining = adv.amount - adv.amountUsed;
-                const isPending = adv.status === "pending";
                 return (
                   <TableRow key={adv.id}>
                     <TableCell className="font-medium">{adv.advanceName}</TableCell>
@@ -330,16 +330,14 @@ export default function AdvancesPage() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setViewAdv(adv); setViewOpen(true); }}>
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
-                        {isPending && role === "employer" && (
-                          <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-success" onClick={() => handleApprove(adv.id, adv.advanceName)}>
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleReject(adv.id, adv.advanceName)}>
-                              <XCircle className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
-                        )}
+                        <RequestRowActions
+                          module="advance"
+                          entityId={adv.id}
+                          onActed={(action) => {
+                            if (action === "approved") handleApprove(adv.id, adv.advanceName);
+                            else if (action === "rejected") handleReject(adv.id, adv.advanceName);
+                          }}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>

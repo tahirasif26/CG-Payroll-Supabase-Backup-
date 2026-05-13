@@ -6,18 +6,22 @@ import { useAssets } from "@/contexts/AssetContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyTableRow } from "@/components/EmptyState";
 import { ClipboardList } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { RequestRowActions } from "@/components/requests/RequestRowActions";
+import { RequestedToCell } from "@/components/requests/RequestedToCell";
+import { useRequestsRealtime } from "@/hooks/queries/useRequestWorkflow";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AssetRequestsPage() {
   const { hasFeature } = useRole();
+  const { clientId } = useAuth();
   const { data: currentEmp } = useCurrentEmployee();
   const navigate = useNavigate();
   const { assetRequests, approveRequest, rejectRequest, getEmployeeRequests } = useAssets();
   const { toast } = useToast();
+  useRequestsRealtime(clientId);
 
   const canApprove = hasFeature("assets.approve_requests");
   const displayRequests = canApprove ? assetRequests : (currentEmp?.id ? getEmployeeRequests(currentEmp.id) : []);
@@ -40,7 +44,8 @@ export default function AssetRequestsPage() {
               <TableHead className="font-semibold">Reason</TableHead>
               <TableHead className="font-semibold">Priority</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
-              {canApprove && <TableHead className="font-semibold text-right">Actions</TableHead>}
+              <TableHead className="font-semibold">Requested To</TableHead>
+              <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -67,21 +72,21 @@ export default function AssetRequestsPage() {
                 <TableCell className="max-w-[200px] truncate" title={req.reason}>{req.reason}</TableCell>
                 <TableCell><Badge variant={req.priority === "high" ? "destructive" : req.priority === "medium" ? "default" : "secondary"}>{req.priority.charAt(0).toUpperCase() + req.priority.slice(1)}</Badge></TableCell>
                 <TableCell><StatusBadge status={req.status} /></TableCell>
-                {canApprove && (
-                  <TableCell className="text-right">
-                    {req.status === "pending" ? (
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => { approveRequest(req.id); toast({ title: "Request Approved" }); }}><CheckCircle className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { rejectRequest(req.id); toast({ title: "Request Rejected" }); }}><XCircle className="h-4 w-4" /></Button>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                )}
+                <TableCell><RequestedToCell module="asset" entityId={req.id} /></TableCell>
+                <TableCell className="text-right">
+                  <RequestRowActions
+                    module="asset"
+                    entityId={req.id}
+                    supportsDelivered
+                    onActed={(action) => {
+                      if (action === "approved") { approveRequest(req.id); toast({ title: "Request Approved" }); }
+                      else if (action === "rejected") { rejectRequest(req.id); toast({ title: "Request Rejected" }); }
+                    }}
+                  />
+                </TableCell>
               </TableRow>
             )) : (
-              <EmptyTableRow colSpan={canApprove ? 8 : 6} icon={ClipboardList} title="No requests yet" description="Asset requests will appear here." />
+              <EmptyTableRow colSpan={9} icon={ClipboardList} title="No requests yet" description="Asset requests will appear here." />
             )}
           </TableBody>
         </Table>
