@@ -3253,6 +3253,59 @@ export type Database = {
           },
         ]
       }
+      payroll_payment_status: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          currency: string
+          entity_id: string
+          id: string
+          module: string
+          paid_at: string | null
+          paid_by: string | null
+          payroll_run_id: string | null
+          request_approval_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          client_id: string
+          created_at?: string
+          currency?: string
+          entity_id: string
+          id?: string
+          module: string
+          paid_at?: string | null
+          paid_by?: string | null
+          payroll_run_id?: string | null
+          request_approval_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          currency?: string
+          entity_id?: string
+          id?: string
+          module?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          payroll_run_id?: string | null
+          request_approval_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_payment_status_request_approval_id_fkey"
+            columns: ["request_approval_id"]
+            isOneToOne: true
+            referencedRelation: "request_approvals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_runs: {
         Row: {
           approved_at: string | null
@@ -4237,6 +4290,148 @@ export type Database = {
           },
         ]
       }
+      request_approval_history: {
+        Row: {
+          action: string
+          actor_employee_id: string | null
+          actor_user_id: string | null
+          comment: string | null
+          created_at: string
+          group_id: string | null
+          id: string
+          level_order: number | null
+          on_behalf_of_employee_id: string | null
+          request_approval_id: string
+        }
+        Insert: {
+          action: string
+          actor_employee_id?: string | null
+          actor_user_id?: string | null
+          comment?: string | null
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          level_order?: number | null
+          on_behalf_of_employee_id?: string | null
+          request_approval_id: string
+        }
+        Update: {
+          action?: string
+          actor_employee_id?: string | null
+          actor_user_id?: string | null
+          comment?: string | null
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          level_order?: number | null
+          on_behalf_of_employee_id?: string | null
+          request_approval_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_approval_history_request_approval_id_fkey"
+            columns: ["request_approval_id"]
+            isOneToOne: false
+            referencedRelation: "request_approvals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      request_approvals: {
+        Row: {
+          client_id: string
+          created_at: string
+          current_group_id: string | null
+          current_level: number
+          entity_id: string
+          finalized_at: string | null
+          id: string
+          module: string
+          policy_id: string | null
+          requester_employee_id: string
+          status: string
+          updated_at: string
+          value_amount: number
+          value_unit: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          current_group_id?: string | null
+          current_level?: number
+          entity_id: string
+          finalized_at?: string | null
+          id?: string
+          module: string
+          policy_id?: string | null
+          requester_employee_id: string
+          status?: string
+          updated_at?: string
+          value_amount?: number
+          value_unit?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          current_group_id?: string | null
+          current_level?: number
+          entity_id?: string
+          finalized_at?: string | null
+          id?: string
+          module?: string
+          policy_id?: string | null
+          requester_employee_id?: string
+          status?: string
+          updated_at?: string
+          value_amount?: number
+          value_unit?: string
+        }
+        Relationships: []
+      }
+      request_assignments: {
+        Row: {
+          acted_at: string | null
+          created_at: string
+          employee_id: string
+          group_id: string | null
+          id: string
+          level_order: number
+          request_approval_id: string
+          status: string
+          via_delegation: boolean
+        }
+        Insert: {
+          acted_at?: string | null
+          created_at?: string
+          employee_id: string
+          group_id?: string | null
+          id?: string
+          level_order?: number
+          request_approval_id: string
+          status?: string
+          via_delegation?: boolean
+        }
+        Update: {
+          acted_at?: string | null
+          created_at?: string
+          employee_id?: string
+          group_id?: string | null
+          id?: string
+          level_order?: number
+          request_approval_id?: string
+          status?: string
+          via_delegation?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_assignments_request_approval_id_fkey"
+            columns: ["request_approval_id"]
+            isOneToOne: false
+            referencedRelation: "request_approvals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_features: {
         Row: {
           created_at: string
@@ -4696,6 +4891,39 @@ export type Database = {
       }
     }
     Functions: {
+      act_on_request: {
+        Args: {
+          _action: string
+          _comment?: string
+          _request_approval_id: string
+        }
+        Returns: {
+          client_id: string
+          created_at: string
+          current_group_id: string | null
+          current_level: number
+          entity_id: string
+          finalized_at: string | null
+          id: string
+          module: string
+          policy_id: string | null
+          requester_employee_id: string
+          status: string
+          updated_at: string
+          value_amount: number
+          value_unit: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "request_approvals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      can_act_on_request: {
+        Args: { _request_approval_id: string; _user_id: string }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: { _key: string; _max: number; _window_seconds: number }
         Returns: boolean
@@ -4792,6 +5020,14 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      mark_request_paid: {
+        Args: {
+          _paid?: boolean
+          _payroll_run_id?: string
+          _request_approval_id: string
+        }
+        Returns: undefined
+      }
       mark_self_verified: {
         Args: never
         Returns: {
@@ -4854,6 +5090,18 @@ export type Database = {
       }
       resolve_approval_group: {
         Args: { _category: string; _client_id: string; _value?: number }
+        Returns: string
+      }
+      start_request_workflow: {
+        Args: {
+          _category?: string
+          _client_id: string
+          _entity_id: string
+          _module: string
+          _requester_employee_id: string
+          _value?: number
+          _value_unit?: string
+        }
         Returns: string
       }
     }
