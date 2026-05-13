@@ -209,6 +209,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
       workLocationCountry: e.work_location_country ?? "",
       joiningDate: e.joining_date ?? "",
       reportsTo: e.reports_to ?? "",
+      roleId: e.role_id ?? "",
       salary: editProfile?.baseSalary ? String(editProfile.baseSalary) : "",
       payrollSetupId: e.payroll_setup_id ?? "",
       bonus: "",
