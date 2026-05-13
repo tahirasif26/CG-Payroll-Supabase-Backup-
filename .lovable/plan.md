@@ -1,80 +1,93 @@
-## Approval Matrix Management — Complete Overhaul
+# Unified Request & Approval Workflow
 
-A scalable, multi-tenant approval system with dynamic module-based policies, delegation, and RBAC.
+Overhaul Expenses, Advances, Loans, Leave, and Asset Requests to share one approval engine, Me/People views, hierarchy-aware visibility, and a strict authorization model where creators never see approve/reject buttons unless they are real approvers.
 
-### 1. Database changes (migration)
+## 1. Database (single migration)
 
-**New / updated tables:**
-- `approval_groups` — already exists; add `description`, `is_active`, `deleted_at` (soft delete).
-- `approval_group_members` — already exists; **remove any max-member constraint** (none in DB; remove client-side cap).
-- `approval_policies` — already exists; extend with `policy_type` ('range' | 'fixed'), `is_active`, `deleted_at`.
-- `approval_policy_levels` — **new**: `policy_id`, `level_order`, `group_id`, `mode` ('sequential' | 'parallel'), `sla_hours`.
-- `approval_ranges` — **new**: `policy_id`, `min_value`, `max_value`, `currency` — for Expense / Advance / Loan tiers.
-- `approval_delegations` — already exists; add `fallback_employee_id`, `reason`, auto-expiry trigger.
-- `workflow_logs` — **new**: append-only audit (`entity_type`, `entity_id`, `action`, `actor_user_id`, `from_state`, `to_state`, `metadata`, `created_at`).
-- `role_permissions` — **new**: `role_id`, `permission_key` (granular feature flags per custom role).
-- `module_permissions` — **new**: catalog of module → permission keys mapping.
-- `tenant_module_configurations` — use existing `clients.enabled_modules` + new `clients.module_config jsonb` for per-module settings.
+New normalized tables (multi-tenant, realtime-enabled):
 
-**Functions / triggers:**
-- `resolve_approval_chain(_client_id, _category, _value)` → returns ordered list of `{level, group_id, mode}`.
-- `get_active_approvers_with_delegation(_group_id)` → existing extended with fallback.
-- `expire_delegations()` cron-callable function.
-- `log_workflow_event()` trigger on approval state changes.
-- RLS: admin/super_admin full access; custom roles gated by `role_permissions.permission_key IN ('approval.manage', 'approval.view')`.
+- `request_approvals` — one row per request as it enters the workflow
+  - `id, client_id, module ('expense'|'advance'|'loan'|'leave'|'asset'), entity_id, requester_employee_id, current_level, current_group_id, status ('pending'|'approved'|'rejected'|'paid'|'unpaid'|'delivered'), policy_id, value_amount, value_unit, created_at, updated_at`
+- `request_approval_history` — append-only timeline
+  - `id, request_approval_id, level_order, action ('submitted'|'approved'|'rejected'|'delegated'|'escalated'|'paid'|'delivered'|'reassigned'), actor_employee_id, actor_user_id, on_behalf_of_employee_id, group_id, comment, created_at`
+- `request_assignments` — current pending assignees (resolved through delegation)
+  - `id, request_approval_id, level_order, group_id, employee_id, status ('pending'|'acted'|'skipped'), acted_at`
+- `payroll_payment_status` — link approved financial requests to payroll
+  - `id, client_id, request_approval_id, module, payroll_run_id, paid_at, paid_by, amount`
 
-**Realtime:** add `approval_groups`, `approval_policies`, `approval_policy_levels`, `approval_delegations`, `workflow_logs` to `supabase_realtime` publication.
+Helper SQL:
+- `fn_start_request_workflow(_module, _entity_id, _client_id, _requester_emp, _value)` → resolves policy + first level (uses existing `resolve_approval_group`/policy_levels), creates `request_approvals` + initial `request_assignments` + history row.
+- `fn_act_on_request(_request_approval_id, _action, _comment)` → validates the caller is in `request_assignments` (or admin/super_admin), advances level or finalizes status, writes history, expands delegation chain via existing `get_active_approvers`.
+- `fn_can_act_on_request(_user_id, _request_approval_id) returns boolean` (security definer) — used by RLS + UI.
+- View `v_my_pending_approvals` for fast inbox queries.
 
-### 2. Frontend — Approval Matrix page redesign
+RLS:
+- Requester sees own row (`requester_employee_id` mapped to user).
+- Admin/HR in client sees all.
+- Approvers see rows where `fn_can_act_on_request(auth.uid(), id)` is true.
+- Hierarchy/People view uses existing `is_admin_or_hr_in_client` + manager chain (already in `useActiveEmployees` patterns).
 
-`src/pages/settings/ApprovalMatrixPage.tsx` becomes a 4-tab shell:
+Realtime: add all four tables to `supabase_realtime`.
 
-```text
-┌─ Groups ─┬─ Policies ─┬─ Delegations ─┬─ Audit Log ─┐
-```
+## 2. Backend orchestration (`src/lib/workflow/`)
 
-**Groups tab** (`src/components/approvalMatrix/GroupsTab.tsx`)
-- List: name, description, member count, status, actions.
-- Create/Edit modal: name, description, **unlimited member multi-select** (remove cap).
-- Member picker is filtered to: admins + employees with role permission `approval.member`.
+- `startWorkflow({ module, entityId, value, requesterEmployeeId })` — calls `fn_start_request_workflow`, then notifies current assignees (reuses `routeApprovalRequest` notification logic, but driven from assignments table).
+- `actOnRequest({ requestApprovalId, action, comment })` — RPC to `fn_act_on_request`; on terminal state, updates the source row (`expenses.status`, etc.) and, for financial modules approved, creates `payroll_payment_status` stub with `paid=false`.
+- `markPaid({ requestApprovalId, payrollRunId })` — used by Payroll to mark Paid/Unpaid.
+- Refactor `useCreateExpense / useCreateLeaveRequest / useCreateAdvance / useCreateLoan / asset request create` to call `startWorkflow` instead of the ad-hoc `routeApprovalRequest`.
 
-**Policies tab** (`src/components/approvalMatrix/PoliciesTab.tsx`)
-- Sub-tabs rendered **dynamically from `enabledModules`**:
-  - `employees` → Leave Approvals (fixed, multi-level).
-  - `expenses` → Expense Approvals (range), Advance Approvals (range).
-  - `payroll` → Loan Approvals (range).
-  - `assets` → Asset Request Approvals (fixed, multi-level).
-- Range editor: rows of `min – max → group` with auto-fill of next `min`.
-- Multi-level builder: ordered levels, each with group + sequential/parallel toggle + SLA hours. Visual chain renderer.
+Status vocabularies enforced server-side:
+- expense/advance/loan: `pending → approved|rejected → paid|unpaid`
+- leave: `pending → approved|rejected`
+- asset: `pending → approved|rejected → delivered`
 
-**Delegations tab** (`src/components/approvalMatrix/DelegationsTab.tsx`)
-- From-employee, to-employee, fallback, start/end date, reason, status.
-- Auto-expiry indicator; revoke action.
+## 3. Authorization fix (creator must not see Approve/Reject)
 
-**Audit Log tab** (`src/components/approvalMatrix/AuditLogTab.tsx`)
-- Filterable list of `workflow_logs` entries.
+New hook `useCanActOnRequest(requestApprovalId)` → checks `request_assignments` membership for current employee (admin/super_admin always true). Replaces the broad `useCanApprove(category)` checks on per-row action buttons in:
+- `ExpensesPage`, `AdvancesPage`, `LoansPage`, `LeavePage`, `AssetRequestsPage`.
 
-### 3. Backend services
+Action buttons render only when `canAct && row.status === 'pending' && requesterEmployeeId !== currentEmployeeId`. The category-level `useCanApprove` is still used to show the "People/Inbox" tab, but never to authorize a specific row.
 
-- `src/lib/approvalRouting.ts` — extend `routeApprovalRequest` to walk multi-level chains, respect ranges, and write `workflow_logs`.
-- `src/hooks/queries/useApprovalMatrix.ts` — extend with `usePolicyLevels`, `useApprovalRanges`, `useDelegations`, `useWorkflowLogs`. All subscribe to realtime.
-- `src/hooks/useCanApprove.ts` — already category-aware; extend to consider delegation + level position.
+## 4. Frontend: Me / People tabs & timeline
 
-### 4. RBAC
+New shared component `src/components/requests/RequestListShell.tsx`:
+- Header tabs: **Me** (always) | **People** (only if `useCanApprove(category)` or admin/HR or has hierarchy reports).
+- Hierarchy filter (All my reports / Direct reports / Department) when in People.
+- Row actions resolved through `useCanActOnRequest`.
+- "Requested To" cell: current group/assignee names from `request_assignments` join.
+- Side `ApprovalTimelineDrawer` showing `request_approval_history` with avatars, timestamps, comments, delegation/escalation badges, current step indicator.
 
-- `src/lib/feature-catalog.ts` — add granular keys: `approval.groups.manage`, `approval.policies.manage`, `approval.delegations.manage`, `approval.audit.view`, `approval.member`.
-- Default mapping: `admin` → all; `employee` → none.
-- Module Access (super-admin) and Role editor (admin) consume these keys.
+Apply to: Expenses, Advances, Loans, Leave, Asset Requests pages. Each page keeps its module-specific columns; the shell handles tabs, visibility, actions, and drawer.
 
-### 5. Verification
+Status badges extended: add `paid`, `unpaid`, `delivered` variants in `StatusBadge`.
 
-- Admin: full access; can create unlimited-member groups; range/fixed editors render per enabled module.
-- Employee with no custom role: Approval Matrix hidden.
-- Custom role with `approval.policies.manage`: can edit policies, not groups.
-- Delegation: configured today → from-user removed from approver list, to-user (or fallback if expired) appears, log entry written.
-- Realtime: open two tabs; change in one reflects without refresh.
+## 5. Payroll integration
 
-### Out of scope for this iteration
+In `PayrollPage` payroll-run detail:
+- Pull approved-but-unpaid financial requests via `payroll_payment_status` where `paid_at IS NULL`.
+- Allow including in run; on run approval, mark `paid_at`, write history `action='paid'`, and update the source row's status to `paid`.
+- Manual "Mark Unpaid" available to admins.
 
-- Push/email notifications already use `notifyUser` / `routeApprovalRequest`; no new transport added.
-- Existing approval-consuming pages (Expenses, Loans, Leave) are left wired to `routeApprovalRequest`; only its internals change.
+## 6. Realtime sync
+
+Single `useRequestsRealtime(clientId)` hook subscribes to `request_approvals`, `request_assignments`, `request_approval_history`, and the underlying module tables; invalidates the relevant React Query keys so Me/People views, timelines, and dashboards update instantly.
+
+## 7. Files touched
+
+New:
+- `supabase/migrations/<ts>_request_workflow.sql`
+- `src/lib/workflow/index.ts`, `src/lib/workflow/types.ts`
+- `src/hooks/queries/useRequestWorkflow.ts`, `src/hooks/useCanActOnRequest.ts`, `src/hooks/useRequestsRealtime.ts`
+- `src/components/requests/RequestListShell.tsx`, `src/components/requests/ApprovalTimelineDrawer.tsx`, `src/components/requests/RequestedToCell.tsx`
+
+Edited:
+- `src/hooks/queries/useExpenses.ts`, `useAdvances.ts`, `useLoans.ts`, `useLeave.ts`, asset request hook
+- `src/pages/ExpensesPage.tsx`, `AdvancesPage.tsx`, `LoansPage.tsx`, `LeavePage.tsx`, `assets/AssetRequestsPage.tsx`
+- `src/components/StatusBadge.tsx` (new variants)
+- `src/pages/PayrollPage.tsx` (payment linkage UI)
+- `src/lib/approvalRouting.ts` (delegate to new engine)
+
+## Out of scope for this pass
+- Visual redesign of dashboards beyond the shell + drawer.
+- Mobile push notifications (in-app notifications already handled via existing `notify` lib).
+- Migrating historical rows (existing requests stay as-is; new requests use the engine).
