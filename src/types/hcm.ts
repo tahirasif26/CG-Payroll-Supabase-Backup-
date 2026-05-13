@@ -19,6 +19,8 @@ export interface Employee {
   payCurrency?: string;
   payrollSetupId?: string;
   userId?: string;
+  roleId?: string;
+  roleName?: string;
   compensation?: SalaryComponent[];
 }
 
