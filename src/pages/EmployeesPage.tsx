@@ -1079,7 +1079,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
       const o = overrides["__income_tax__"];
       const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : slabTax;
       const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-      deductions.push({ id: "__income_tax__", name: taxNameRaw, calculationType: "formula", percentage: pct, amount: amt, isTax: true });
+      deductions.push({ id: "__income_tax__", name: taxLabel, calculationType: "formula", percentage: pct, amount: amt, isTax: true });
     }
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
     return {
