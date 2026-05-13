@@ -137,7 +137,7 @@ export default function ExpensesPage() {
         paymentMethod: r.payment_method ?? undefined,
       };
     });
-  }, [rawExpenses, employees]);
+  }, [rawExpenses, employees, scope, currentEmpRow?.id]);
 
   // Mileage handoff from GPS page (creates a mileage_entries row)
   useEffect(() => {
