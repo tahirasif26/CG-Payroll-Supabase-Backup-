@@ -412,3 +412,40 @@ export function useDeleteDelegation() {
     onError: (e: any) => toast.error(e.message ?? "Failed to remove delegation"),
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// Workflow Logs (audit trail)
+// ─────────────────────────────────────────────────────────────────────
+export function useWorkflowLogs(clientId: string | null, limit = 200) {
+  return useQuery({
+    enabled: !!clientId,
+    queryKey: ["workflow_logs", clientId, limit],
+    queryFn: async (): Promise<WorkflowLog[]> => {
+      const { data, error } = await (supabase as any)
+        .from("workflow_logs")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []) as WorkflowLog[];
+    },
+  });
+}
+
+export async function logWorkflowEvent(input: {
+  client_id: string;
+  entity_type: string;
+  entity_id?: string | null;
+  action: string;
+  from_state?: string | null;
+  to_state?: string | null;
+  metadata?: Record<string, any>;
+}) {
+  const { data: { user } } = await supabase.auth.getUser();
+  await (supabase as any).from("workflow_logs").insert({
+    ...input,
+    actor_user_id: user?.id ?? null,
+    metadata: input.metadata ?? {},
+  });
+}
