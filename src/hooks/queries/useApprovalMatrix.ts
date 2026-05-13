@@ -16,6 +16,8 @@ export interface ApprovalGroup {
   id: string;
   client_id: string;
   name: string;
+  description: string | null;
+  is_active: boolean;
   max_limit_halalas: number | null;
   approval_type: ApprovalType;
   escalate_after_days: number | null;
@@ -27,6 +29,8 @@ export interface ApprovalPolicy {
   id: string;
   client_id: string;
   category: PolicyCategory;
+  policy_type: "range" | "fixed";
+  is_active: boolean;
   min_value: number;
   max_value: number | null;
   group_id: string | null;
@@ -39,9 +43,24 @@ export interface ApprovalDelegation {
   client_id: string;
   from_employee_id: string;
   to_employee_id: string;
+  fallback_employee_id: string | null;
+  reason: string | null;
   start_date: string;
   end_date: string;
   is_active: boolean;
+}
+
+export interface WorkflowLog {
+  id: string;
+  client_id: string;
+  entity_type: string;
+  entity_id: string | null;
+  action: string;
+  actor_user_id: string | null;
+  from_state: string | null;
+  to_state: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────
