@@ -136,7 +136,7 @@ export default function TaxRulesTab({ data, onChange, componentName, onComponent
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Annualized {basis === "basic" ? "basic salary" : "gross pay"} is matched against the slab brackets.
+            Monthly {basis === "basic" ? "basic salary" : "gross pay"} is matched against the slab brackets.
           </p>
         </div>
       )}
