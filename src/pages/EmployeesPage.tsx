@@ -189,7 +189,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
 
   // Invite/verification status keyed by emp_id. Backed by employees.is_verified
   // (updated instantly via the mark_self_verified RPC after password setup).
-  const queryClient = (require("@tanstack/react-query") as any).useQueryClient();
+  const queryClient = useQueryClient();
   const { data: inviteStatusList } = useQuery({
     queryKey: ["employee-invite-status", clientId],
     enabled: !!clientId,
