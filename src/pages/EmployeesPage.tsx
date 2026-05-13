@@ -1044,6 +1044,10 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
       && ((selectedSetup as any).taxRules?.length ?? 0) > 0
       && !!taxNameRaw;
     const slabTax = taxEnabled ? calcMonthlyTax(selectedSetup as any, taxBaseMonthly) : 0;
+    const appliedSlab = taxEnabled ? findApplicableSlab(selectedSetup as any, taxBaseMonthly) : undefined;
+    const taxLabel = appliedSlab
+      ? `${taxNameRaw || "Income Tax"} (${appliedSlab.percentage}%)`
+      : (taxNameRaw || "Income Tax");
 
     const rawDeductions = (selectedSetup.payslipComponents ?? [])
       .filter((c: any) => c.type === "deduction" && c.status === "active");
