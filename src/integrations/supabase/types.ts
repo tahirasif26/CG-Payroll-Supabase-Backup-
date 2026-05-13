@@ -1928,6 +1928,7 @@ export type Database = {
           first_name: string | null
           gender: string | null
           id: string
+          is_verified: boolean
           joining_date: string | null
           last_name: string | null
           marital_status: string | null
@@ -1946,6 +1947,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string | null
+          verified_at: string | null
           work_location_city: string | null
           work_location_country: string | null
         }
@@ -1964,6 +1966,7 @@ export type Database = {
           first_name?: string | null
           gender?: string | null
           id?: string
+          is_verified?: boolean
           joining_date?: string | null
           last_name?: string | null
           marital_status?: string | null
@@ -1982,6 +1985,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string | null
+          verified_at?: string | null
           work_location_city?: string | null
           work_location_country?: string | null
         }
@@ -2000,6 +2004,7 @@ export type Database = {
           first_name?: string | null
           gender?: string | null
           id?: string
+          is_verified?: boolean
           joining_date?: string | null
           last_name?: string | null
           marital_status?: string | null
@@ -2018,6 +2023,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string | null
+          verified_at?: string | null
           work_location_city?: string | null
           work_location_country?: string | null
         }
@@ -4661,6 +4667,53 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      mark_self_verified: {
+        Args: never
+        Returns: {
+          avatar_url: string | null
+          category: string | null
+          client_id: string
+          created_at: string
+          date_of_birth: string | null
+          department: string | null
+          designation: string | null
+          division: string | null
+          email: string | null
+          emp_id: string
+          enabled_features: string[] | null
+          first_name: string | null
+          gender: string | null
+          id: string
+          is_verified: boolean
+          joining_date: string | null
+          last_name: string | null
+          marital_status: string | null
+          middle_name: string | null
+          nationality: string | null
+          pay_currency: string | null
+          payroll_setup_id: string | null
+          personal_email: string | null
+          personal_phone: string | null
+          phone: string | null
+          probation_end_date: string | null
+          religion: string | null
+          reports_to: string | null
+          role_id: string | null
+          separation_date: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          verified_at: string | null
+          work_location_city: string | null
+          work_location_country: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employees"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       notify_client_admins: {
         Args: {
           _action_url?: string
