@@ -16,6 +16,8 @@ export interface ApprovalGroup {
   id: string;
   client_id: string;
   name: string;
+  description: string | null;
+  is_active: boolean;
   max_limit_halalas: number | null;
   approval_type: ApprovalType;
   escalate_after_days: number | null;
@@ -27,6 +29,8 @@ export interface ApprovalPolicy {
   id: string;
   client_id: string;
   category: PolicyCategory;
+  policy_type: "range" | "fixed";
+  is_active: boolean;
   min_value: number;
   max_value: number | null;
   group_id: string | null;
@@ -39,9 +43,24 @@ export interface ApprovalDelegation {
   client_id: string;
   from_employee_id: string;
   to_employee_id: string;
+  fallback_employee_id: string | null;
+  reason: string | null;
   start_date: string;
   end_date: string;
   is_active: boolean;
+}
+
+export interface WorkflowLog {
+  id: string;
+  client_id: string;
+  entity_type: string;
+  entity_id: string | null;
+  action: string;
+  actor_user_id: string | null;
+  from_state: string | null;
+  to_state: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -364,7 +383,10 @@ export function useApprovalDelegations(clientId: string | null) {
 export function useCreateDelegation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<ApprovalDelegation, "id">) => {
+    mutationFn: async (input: Omit<ApprovalDelegation, "id" | "fallback_employee_id" | "reason"> & {
+      fallback_employee_id?: string | null;
+      reason?: string | null;
+    }) => {
       const { error } = await (supabase as any).from("approval_delegations").insert(input);
       if (error) throw error;
     },
@@ -388,5 +410,42 @@ export function useDeleteDelegation() {
       toast.success("Delegation removed");
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to remove delegation"),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Workflow Logs (audit trail)
+// ─────────────────────────────────────────────────────────────────────
+export function useWorkflowLogs(clientId: string | null, limit = 200) {
+  return useQuery({
+    enabled: !!clientId,
+    queryKey: ["workflow_logs", clientId, limit],
+    queryFn: async (): Promise<WorkflowLog[]> => {
+      const { data, error } = await (supabase as any)
+        .from("workflow_logs")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []) as WorkflowLog[];
+    },
+  });
+}
+
+export async function logWorkflowEvent(input: {
+  client_id: string;
+  entity_type: string;
+  entity_id?: string | null;
+  action: string;
+  from_state?: string | null;
+  to_state?: string | null;
+  metadata?: Record<string, any>;
+}) {
+  const { data: { user } } = await supabase.auth.getUser();
+  await (supabase as any).from("workflow_logs").insert({
+    ...input,
+    actor_user_id: user?.id ?? null,
+    metadata: input.metadata ?? {},
   });
 }

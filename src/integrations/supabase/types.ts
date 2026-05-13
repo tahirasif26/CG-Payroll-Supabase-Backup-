@@ -124,9 +124,11 @@ export type Database = {
           created_at: string
           created_by: string | null
           end_date: string
+          fallback_employee_id: string | null
           from_employee_id: string
           id: string
           is_active: boolean
+          reason: string | null
           start_date: string
           to_employee_id: string
         }
@@ -135,9 +137,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           end_date: string
+          fallback_employee_id?: string | null
           from_employee_id: string
           id?: string
           is_active?: boolean
+          reason?: string | null
           start_date: string
           to_employee_id: string
         }
@@ -146,9 +150,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           end_date?: string
+          fallback_employee_id?: string | null
           from_employee_id?: string
           id?: string
           is_active?: boolean
+          reason?: string | null
           start_date?: string
           to_employee_id?: string
         }
@@ -172,6 +178,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_delegations_fallback_employee_id_fkey"
+            columns: ["fallback_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
@@ -229,9 +242,11 @@ export type Database = {
           category: string | null
           client_id: string
           created_at: string
+          description: string | null
           escalate_after_days: number | null
           escalate_to_group_id: string | null
           id: string
+          is_active: boolean
           max_limit_halalas: number | null
           min_limit_halalas: number | null
           name: string
@@ -242,9 +257,11 @@ export type Database = {
           category?: string | null
           client_id: string
           created_at?: string
+          description?: string | null
           escalate_after_days?: number | null
           escalate_to_group_id?: string | null
           id?: string
+          is_active?: boolean
           max_limit_halalas?: number | null
           min_limit_halalas?: number | null
           name: string
@@ -255,9 +272,11 @@ export type Database = {
           category?: string | null
           client_id?: string
           created_at?: string
+          description?: string | null
           escalate_after_days?: number | null
           escalate_to_group_id?: string | null
           id?: string
+          is_active?: boolean
           max_limit_halalas?: number | null
           min_limit_halalas?: number | null
           name?: string
@@ -295,8 +314,10 @@ export type Database = {
           created_at: string
           group_id: string | null
           id: string
+          is_active: boolean
           max_value: number | null
           min_value: number
+          policy_type: string
           sort_order: number
         }
         Insert: {
@@ -306,8 +327,10 @@ export type Database = {
           created_at?: string
           group_id?: string | null
           id?: string
+          is_active?: boolean
           max_value?: number | null
           min_value?: number
+          policy_type?: string
           sort_order?: number
         }
         Update: {
@@ -317,8 +340,10 @@ export type Database = {
           created_at?: string
           group_id?: string | null
           id?: string
+          is_active?: boolean
           max_value?: number | null
           min_value?: number
+          policy_type?: string
           sort_order?: number
         }
         Relationships: [
@@ -341,6 +366,51 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "approval_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_policy_levels: {
+        Row: {
+          created_at: string
+          group_id: string | null
+          id: string
+          level_order: number
+          mode: string
+          policy_id: string
+          sla_hours: number | null
+        }
+        Insert: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          level_order: number
+          mode?: string
+          policy_id: string
+          sla_hours?: number | null
+        }
+        Update: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          level_order?: number
+          mode?: string
+          policy_id?: string
+          sla_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_policy_levels_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "approval_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_policy_levels_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "approval_policies"
             referencedColumns: ["id"]
           },
         ]
@@ -4546,6 +4616,60 @@ export type Database = {
           },
         ]
       }
+      workflow_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          client_id: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          from_state: string | null
+          id: string
+          metadata: Json
+          to_state: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          client_id: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          from_state?: string | null
+          id?: string
+          metadata?: Json
+          to_state?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          client_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          from_state?: string | null
+          id?: string
+          metadata?: Json
+          to_state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       client_stats: {
@@ -4598,6 +4722,7 @@ export type Database = {
         }
         Returns: string
       }
+      expire_approval_delegations: { Args: never; Returns: number }
       generate_emp_id: { Args: { _client_id: string }; Returns: string }
       generate_emp_id_prefix: {
         Args: { _company_name: string }
