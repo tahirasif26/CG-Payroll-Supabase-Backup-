@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Calculator } from "lucide-react";
+import { calcMonthlyTax, findApplicableSlab } from "@/lib/taxSlabs";
+import type { PayrollSetup } from "@/types/payrollSetup";
 
 const TAX_COMPONENT_ID = "__income_tax__";
 
