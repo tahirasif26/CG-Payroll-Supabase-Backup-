@@ -295,6 +295,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     };
     const taxRowId = rawDeductions.find(isTaxRow)?.id;
 
+    const taxComponentName = ((selectedSetup as any).taxComponentName ?? "").trim();
     let taxRowEmitted = false;
     const deductions = (rawDeductions
       .filter(c => !(isTaxRow(c) && c.id !== taxRowId))
@@ -304,8 +305,9 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           taxRowEmitted = true;
           const o = overrides[comp.id];
           const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : matched.amount;
-          const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-          return { id: comp.id, name: matched.slabName, calculationType: "formula" as const, percentage: pct, amount: amt };
+          const pct = o && o.mode === "percent" ? o.percent : matched.percentage;
+          const label = (comp.name && comp.name.trim()) || taxComponentName || matched.slabName;
+          return { id: comp.id, name: label, calculationType: "formula" as const, percentage: pct, amount: amt };
         }
         const { percent, value } = getEffective(comp, baseSalary);
         return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value };
@@ -314,8 +316,9 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     if (matched && !taxRowEmitted) {
       const o = overrides["__income_tax__"];
       const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : matched.amount;
-      const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-      deductions.push({ id: "__income_tax__", name: matched.slabName, calculationType: "formula" as const, percentage: pct, amount: amt });
+      const pct = o && o.mode === "percent" ? o.percent : matched.percentage;
+      const label = taxComponentName || matched.slabName;
+      deductions.push({ id: "__income_tax__", name: label, calculationType: "formula" as const, percentage: pct, amount: amt });
     }
 
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);

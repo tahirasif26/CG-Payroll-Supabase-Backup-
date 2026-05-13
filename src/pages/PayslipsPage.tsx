@@ -74,11 +74,15 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
     };
     const taxRowId = activeDeductions.find(isTaxRow)?.id;
 
+    const taxComponentName = ((setup as any).taxComponentName ?? "").trim();
     let taxRowEmitted = false;
     activeDeductions.forEach(comp => {
       if (comp.id === taxRowId) {
         taxRowEmitted = true;
-        if (matched) deductions.push({ label: matched.slabName, amount: matched.amount });
+        if (matched) {
+          const label = (comp.name && comp.name.trim()) || taxComponentName || matched.slabName;
+          deductions.push({ label, amount: matched.amount });
+        }
         return;
       }
       // Drop any other tax-like duplicates entirely
@@ -88,7 +92,7 @@ function buildPayslipFromSetup(emp: Employee, setup: PayrollSetup | undefined) {
     });
     // Inject tax row when no tax-like component exists yet
     if (matched && !taxRowEmitted) {
-      deductions.push({ label: matched.slabName, amount: matched.amount });
+      deductions.push({ label: taxComponentName || matched.slabName, amount: matched.amount });
     }
 
     // Auto deductions custom rules

@@ -1054,6 +1054,7 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
     };
     const taxRowId = rawDeductions.find(isTaxRow)?.id;
 
+    const taxComponentName = ((selectedSetup as any).taxComponentName ?? "").trim();
     let taxRowEmitted = false;
     const deductions = rawDeductions
       // Drop every tax-like row except the canonical one (avoids duplicates).
@@ -1065,8 +1066,10 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
           taxRowEmitted = true;
           const o = overrides[comp.id];
           const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : matched.amount;
-          const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-          return { id: comp.id, name: matched.slabName, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
+          // Show the slab's configured percentage in the % field (not derived from amount).
+          const pct = o && o.mode === "percent" ? o.percent : matched.percentage;
+          const label = (comp.name && comp.name.trim()) || taxComponentName || matched.slabName;
+          return { id: comp.id, name: label, calculationType: "formula", percentage: pct, amount: amt, isTax: true };
         }
         const { percent, value } = getEffective(comp, baseSalary);
         return { id: comp.id, name: comp.name, calculationType: comp.calculationType, percentage: percent, amount: value, isTax: false };
@@ -1077,8 +1080,9 @@ function CompensationTab({ emp, onUpdatePayCurrency, readOnly = false }: { emp: 
     if (matched && !taxRowEmitted) {
       const o = overrides["__income_tax__"];
       const amt = o ? (o.mode === "value" ? o.value : Math.round(baseSalary * o.percent / 100)) : matched.amount;
-      const pct = baseSalary > 0 ? Number((amt / baseSalary * 100).toFixed(2)) : 0;
-      deductions.push({ id: "__income_tax__", name: matched.slabName, calculationType: "formula", percentage: pct, amount: amt, isTax: true });
+      const pct = o && o.mode === "percent" ? o.percent : matched.percentage;
+      const label = taxComponentName || matched.slabName;
+      deductions.push({ id: "__income_tax__", name: label, calculationType: "formula", percentage: pct, amount: amt, isTax: true });
     }
     const totalDeductions = deductions.reduce((s, c) => s + c.amount, 0);
     return {
