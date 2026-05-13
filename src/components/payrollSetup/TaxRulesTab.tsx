@@ -22,8 +22,15 @@ export function syncTaxComponent(
   enabled: boolean,
   hasSlabs: boolean,
 ): PayslipComponent[] {
-  const others = components.filter(c => c.id !== TAX_COMPONENT_ID);
   const name = (taxComponentName ?? "").trim();
+  const nameLower = name.toLowerCase();
+  // Drop the previous synced row AND any other deduction with the same name
+  // (case-insensitive) so the slab-driven row is the single source of truth.
+  const others = components.filter(c => {
+    if (c.id === TAX_COMPONENT_ID) return false;
+    if (nameLower && c.type === "deduction" && (c.name ?? "").trim().toLowerCase() === nameLower) return false;
+    return true;
+  });
   if (!enabled || !name || !hasSlabs) return others;
   return [
     ...others,
