@@ -4964,6 +4964,13 @@ export type Database = {
           via_delegation: boolean
         }[]
       }
+      get_eligible_approvers: {
+        Args: { _exclude_employee_id?: string; _group_id: string }
+        Returns: {
+          employee_id: string
+          via_delegation: boolean
+        }[]
+      }
       get_employee_role_id: { Args: { _user_id: string }; Returns: string }
       get_role_features: {
         Args: { _user_id: string }
