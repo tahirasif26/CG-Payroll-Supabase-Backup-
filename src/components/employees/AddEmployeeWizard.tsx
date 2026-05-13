@@ -16,6 +16,7 @@ import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useCreateEmployee, useUpdateEmployee } from "@/hooks/queries/useEmployees";
 import { useEmployeeProfile, useUpdateEmployeeProfile } from "@/hooks/queries/useEmployeeProfile";
+import { useRoles, useAssignEmployeeRole } from "@/hooks/queries/useRoles";
 import { useToast } from "@/hooks/use-toast";
 
 import { useAuth } from "@/hooks/useAuth";
