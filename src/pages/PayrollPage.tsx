@@ -234,10 +234,14 @@ function buildBreakdownFromSetup(allEmployees: Employee[], setup: PayrollSetup |
 
     // Deductions from setup components — % is of basic
     // Deductions from setup components — % is of basic. Skip the synced
-    // tax-slabs component; tax is computed below from taxRules to avoid double-counting.
+    // tax-slabs component AND any legacy duplicate sharing its name; tax is
+    // computed below from taxRules to avoid double-counting.
+    const taxNameLower = ((setup as any)?.taxComponentName ?? "").trim().toLowerCase();
+    const hasFormulaTax = activeDeductionComponents.some((c: any) => c.formula === "tax_slabs");
     let setupDeductions = 0;
     activeDeductionComponents.forEach(comp => {
       if ((comp as any).formula === "tax_slabs") return;
+      if (hasFormulaTax && taxNameLower && (comp.name ?? "").trim().toLowerCase() === taxNameLower) return;
       setupDeductions += comp.calculationType === "percentage" ? Math.round(basic * comp.value / 100) : comp.value;
     });
 
