@@ -533,7 +533,11 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             } catch { /* toast handled in hook */ }
           }
         }
-        addEmployee(newEmp);
+        // NOTE: do NOT call addEmployee(newEmp) here — createEmployee.mutateAsync above
+        // already inserts the employee row in the DB and invalidates the employees query.
+        // Calling addEmployee would insert a SECOND row using form.email (personal),
+        // creating a duplicate when work/personal emails differ.
+        qc.invalidateQueries({ queryKey: ["employees-ctx"] });
         resetAndClose();
       }
     } catch (err) {
