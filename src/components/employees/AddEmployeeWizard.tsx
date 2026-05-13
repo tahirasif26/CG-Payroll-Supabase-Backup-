@@ -16,6 +16,7 @@ import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useCreateEmployee, useUpdateEmployee } from "@/hooks/queries/useEmployees";
 import { useEmployeeProfile, useUpdateEmployeeProfile } from "@/hooks/queries/useEmployeeProfile";
+import { useRoles, useAssignEmployeeRole } from "@/hooks/queries/useRoles";
 import { useToast } from "@/hooks/use-toast";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -67,6 +68,7 @@ interface FormData {
   department: string; designation: string; category: string; division: string;
   workEmail: string; workLocationCity: string; workLocationCountry: string; joiningDate: string;
   reportsTo: string;
+  roleId: string;
   // Compensation
   salary: string; payrollSetupId: string; bonus: string; allowances: string;
 }
@@ -81,6 +83,7 @@ const INITIAL_FORM: FormData = {
   department: "", designation: "", category: "", division: "",
   workEmail: "", workLocationCity: "", workLocationCountry: "", joiningDate: "",
   reportsTo: "",
+  roleId: "",
   salary: "", payrollSetupId: "", bonus: "", allowances: "",
 };
 
@@ -118,6 +121,12 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const empPrefix = computeEmpPrefix(clientInfo?.company_name);
   const activeSetups = setups.filter(s => s.status === "active");
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
+  const { data: roles = [] } = useRoles(clientId ?? null);
+  const assignRole = useAssignEmployeeRole();
+  const defaultEmployeeRole = useMemo(
+    () => roles.find(r => r.is_system && r.name.toLowerCase() === "employee"),
+    [roles]
+  );
 
   const { client } = useClient();
   const defaultCountry = client.country ?? "";
@@ -206,6 +215,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
       workLocationCountry: e.work_location_country ?? "",
       joiningDate: e.joining_date ?? "",
       reportsTo: e.reports_to ?? "",
+      roleId: e.role_id ?? "",
       salary: editProfile?.baseSalary ? String(editProfile.baseSalary) : "",
       payrollSetupId: e.payroll_setup_id ?? "",
       bonus: "",
@@ -220,6 +230,14 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
       }))
     );
   }, [isEditMode, editProfile]);
+
+  // Default new employees to the system "Employee" role once roles load.
+  useEffect(() => {
+    if (isEditMode) return;
+    if (!form.roleId && defaultEmployeeRole) {
+      setForm(f => ({ ...f, roleId: defaultEmployeeRole.id }));
+    }
+  }, [isEditMode, defaultEmployeeRole, form.roleId]);
 
   const selectedSetup = useMemo(() => activeSetups.find(s => s.id === form.payrollSetupId), [form.payrollSetupId, activeSetups]);
 
@@ -414,6 +432,22 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           }
         }
 
+        // Sync permission role (employees.role_id + user_roles).
+        if (form.roleId && clientId) {
+          const targetRole = roles.find(r => r.id === form.roleId);
+          if (targetRole) {
+            try {
+              await assignRole.mutateAsync({
+                employee_id: editEmployeeId,
+                role_id: targetRole.id,
+                client_id: clientId,
+                role_name: targetRole.name,
+                user_id: (editProfile?.employee as any)?.user_id ?? null,
+              });
+            } catch { /* toast handled in hook */ }
+          }
+        }
+
         toast({ title: "Employee updated", description: "Changes saved successfully." });
         resetAndClose();
       } else {
@@ -481,6 +515,22 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             toast({ title: "Asset assignment failed", description: assetErr.message, variant: "destructive" });
           } else {
             qc.invalidateQueries({ queryKey: ["assets"] });
+          }
+        }
+        // Sync permission role for the newly created employee.
+        if (newEmpId && form.roleId && clientId) {
+          const targetRole = roles.find(r => r.id === form.roleId);
+          if (targetRole) {
+            const newUserId = (createResult as any)?.employee?.user_id ?? null;
+            try {
+              await assignRole.mutateAsync({
+                employee_id: newEmpId,
+                role_id: targetRole.id,
+                client_id: clientId,
+                role_name: targetRole.name,
+                user_id: newUserId,
+              });
+            } catch { /* toast handled in hook */ }
           }
         }
         addEmployee(newEmp);
@@ -926,6 +976,17 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                       <SelectItem value="__none__">No Manager</SelectItem>
                       {activeEmps.map(e => (
                         <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName} — {e.designation}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Permission Role</p>
+                  <Select value={form.roleId} onValueChange={v => updateField("roleId", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select role..." /></SelectTrigger>
+                    <SelectContent>
+                      {roles.map(r => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
