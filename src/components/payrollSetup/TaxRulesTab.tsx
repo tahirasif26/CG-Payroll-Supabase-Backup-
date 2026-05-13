@@ -141,20 +141,6 @@ export default function TaxRulesTab({ data, onChange, componentName, onComponent
         </div>
       )}
 
-      {onBracketBasisChange && (
-        <div className="space-y-2 rounded-lg border p-4">
-          <Label>Slab brackets are in</Label>
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant={bracketBasis === "monthly" ? "default" : "outline"} onClick={() => onBracketBasisChange("monthly")}>Monthly amounts</Button>
-            <Button type="button" size="sm" variant={bracketBasis === "annual" ? "default" : "outline"} onClick={() => onBracketBasisChange("annual")}>Annual amounts</Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {bracketBasis === "monthly"
-              ? "Income From / Income To are matched against the employee's monthly pay."
-              : "Income From / Income To are matched against the employee's annualised pay (monthly × 12)."}
-          </p>
-        </div>
-      )}
 
       <Table>
         <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Income From</TableHead><TableHead>Income To</TableHead><TableHead>%</TableHead><TableHead>Fixed Amt</TableHead><TableHead className="w-20">Actions</TableHead></TableRow></TableHeader>
