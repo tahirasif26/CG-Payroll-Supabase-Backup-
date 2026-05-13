@@ -231,6 +231,14 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     );
   }, [isEditMode, editProfile]);
 
+  // Default new employees to the system "Employee" role once roles load.
+  useEffect(() => {
+    if (isEditMode) return;
+    if (!form.roleId && defaultEmployeeRole) {
+      setForm(f => ({ ...f, roleId: defaultEmployeeRole.id }));
+    }
+  }, [isEditMode, defaultEmployeeRole, form.roleId]);
+
   const selectedSetup = useMemo(() => activeSetups.find(s => s.id === form.payrollSetupId), [form.payrollSetupId, activeSetups]);
 
   // Per-component overrides for THIS employee. Keyed by component id.
