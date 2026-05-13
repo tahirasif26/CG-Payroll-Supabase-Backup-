@@ -83,6 +83,7 @@ const INITIAL_FORM: FormData = {
   department: "", designation: "", category: "", division: "",
   workEmail: "", workLocationCity: "", workLocationCountry: "", joiningDate: "",
   reportsTo: "",
+  roleId: "",
   salary: "", payrollSetupId: "", bonus: "", allowances: "",
 };
 
