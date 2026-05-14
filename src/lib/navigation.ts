@@ -294,12 +294,35 @@ function moduleAllowedByEnabled(key: string, role: AppRole, enabledModules: stri
   return enabledModules.includes(key);
 }
 
+export interface AccessibleTabInfo {
+  scope: "both" | "people_only";
+  people_enabled: boolean;
+}
+
+/** True if a tab should appear in the given UI scope ("me" or "people"). */
+function isTabAccessible(
+  tabKey: string | undefined,
+  uiScope: "me" | "people",
+  accessibleTabs: Map<string, AccessibleTabInfo> | null,
+): boolean {
+  // No tabKey on this nav item — fall through to other gating.
+  if (!tabKey) return true;
+  // Tab access not yet loaded — be permissive (other gating still applies).
+  if (!accessibleTabs) return true;
+  const info = accessibleTabs.get(tabKey);
+  if (!info) return false;
+  if (uiScope === "people") return info.people_enabled;
+  // Me scope — only personal-scope tabs are visible there.
+  return info.scope === "both";
+}
+
 export function filterNavigation(
   groups: NavGroup[],
   role: AppRole,
   hasFeature: (key: string) => boolean,
   enabledModules: string[] | null,
   roleFeatures?: Set<string>,
+  accessibleTabs?: Map<string, AccessibleTabInfo> | null,
 ): NavGroup[] {
   return groups
     .filter((g) => {
@@ -328,6 +351,10 @@ export function filterNavigation(
         )
           return false;
         if (c.requiredFeature && role !== "super_admin" && !hasFeature(c.requiredFeature)) return false;
+        // Tab-wise permissions gating (admins always pass — they get all tabs anyway)
+        if (role !== "super_admin" && !isTabAccessible(c.tabKey, "people", accessibleTabs ?? null)) {
+          return false;
+        }
         return true;
       });
       return { ...g, children: filteredChildren };
