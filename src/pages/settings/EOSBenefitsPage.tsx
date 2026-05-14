@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,26 +12,20 @@ import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
 import { EmployeeTypeMultiSelect, EmployeeTypeBadges } from "@/components/EmployeeTypeMultiSelect";
+import {
+  useEosBenefitConfigs,
+  useUpsertEosBenefitConfig,
+  useDeleteEosBenefitConfig,
+  calculateEOSBenefit as _calc,
+  type EOSBenefitConfig,
+  type EOSTier,
+} from "@/hooks/queries/useEosBenefitConfigs";
 
-export interface EOSBenefitConfig {
-  id: string;
-  name: string;
-  type: "gratuity" | "provident_fund" | "other";
-  calculationBasis: "basic_salary" | "gross_salary";
-  tiers: EOSTier[];
-  appliesTo: string[];
-  appliesToCountries?: string[];
-  isActive: boolean;
-}
+// Re-exports for backwards compatibility with existing imports.
+export type { EOSBenefitConfig, EOSTier };
+export const calculateEOSBenefit = _calc;
 
-export interface EOSTier {
-  fromYear: number;
-  toYear: number | null;
-  daysPerYear: number;
-  fraction: number;
-}
-
-const defaultConfigs: EOSBenefitConfig[] = [
+const _placeholder: EOSBenefitConfig[] = [
   {
     id: "1",
     name: "Saudi Gratuity (End of Service Award)",
