@@ -54,7 +54,7 @@ import { notifyUser, notifyClientAdmins, getEmployeeUserId } from "@/lib/notify"
 import { useRole } from "@/contexts/RoleContext";
 
 // --- Active Employees EOS Tab ---
-function ActiveEmployeesTab() {
+function ActiveEmployeesTab({ onSeparationCreated }: { onSeparationCreated?: () => void }) {
   const { employees } = useEmployees();
   const { separations, addSeparation } = useSeparations();
   const { toast } = useToast();
@@ -77,8 +77,10 @@ function ActiveEmployeesTab() {
     noticePeriodServed: true,
   });
 
+  // Hide employees with ANY active separation record (pending or approved),
+  // not just approved — otherwise the user sees "nothing happened" after Process.
   const separatedIds = new Set(
-    separations.filter(s => s.status === "approved").map(s => s.employeeId)
+    separations.filter(s => s.status !== "cancelled").map(s => s.employeeId)
   );
   const activeEmployees = employees.filter(e => !separatedIds.has(e.id) && (e.status === "active" || e.status === "on-leave"));
 
@@ -134,7 +136,7 @@ function ActiveEmployeesTab() {
     setSeparationOpen(true);
   };
 
-  const handleConfirmSeparation = () => {
+  const handleConfirmSeparation = async () => {
     if (!separationEmp || !separationData.lastDate) return;
     const emp = separationEmp;
     const yearsOfService = emp.joiningDate
@@ -222,34 +224,38 @@ function ActiveEmployeesTab() {
 
     const run = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
 
-    addSeparation({
-      id: String(Date.now()),
-      employeeId: emp.id,
-      employeeName: `${emp.firstName} ${emp.lastName}`,
-      empId: emp.empId,
-      department: emp.department,
-      designation: emp.designation,
-      lastDate: separationData.lastDate,
-      reason: separationData.reason,
-      noticePeriodDays: separationData.noticePeriodDays,
-      noticePeriodServed: separationData.noticePeriodServed,
-      unpaidSalary,
-      eosAmount: totalEOS,
-      eosBreakdown,
-      leaveEncashment: Math.round(leaveEncashment),
-      noticePeriodPay,
-      noticePeriodRecovery,
-      loanDeduction: totalLoanBalance,
-      totalSettlement,
-      processedDate: new Date().toISOString().split("T")[0],
-      payrollMonth: run?.month || "",
-      payrollYear: run?.year || new Date().getFullYear(),
-      currency,
-      status: "pending",
-    });
+    try {
+      await addSeparation({
+        employeeId: emp.id,
+        employeeName: `${emp.firstName} ${emp.lastName}`,
+        empId: emp.empId,
+        department: emp.department,
+        designation: emp.designation,
+        lastDate: separationData.lastDate,
+        reason: separationData.reason,
+        noticePeriodDays: separationData.noticePeriodDays,
+        noticePeriodServed: separationData.noticePeriodServed,
+        unpaidSalary,
+        eosAmount: totalEOS,
+        eosBreakdown,
+        leaveEncashment: Math.round(leaveEncashment),
+        noticePeriodPay,
+        noticePeriodRecovery,
+        loanDeduction: totalLoanBalance,
+        totalSettlement,
+        processedDate: new Date().toISOString().split("T")[0],
+        payrollMonth: run?.month || "",
+        payrollYear: run?.year || new Date().getFullYear(),
+        currency,
+        status: "pending",
+      });
 
-    setSeparationOpen(false);
-    toast({ title: "Separation Initiated", description: `${emp.firstName} ${emp.lastName}'s separation has been created as pending.` });
+      setSeparationOpen(false);
+      toast({ title: "Separation Initiated", description: `${emp.firstName} ${emp.lastName}'s separation moved to Separated Employees tab as pending.` });
+      onSeparationCreated?.();
+    } catch {
+      // toast already shown by context on error
+    }
   };
 
   return (
@@ -972,16 +978,17 @@ function SeparatedEmployeesTab() {
 
 // --- Main Page ---
 export default function SeparationsPage() {
+  const [tab, setTab] = useState("active");
   return (
     <div className="space-y-6">
       <PageHeader title="End of Service" description="Manage employee end-of-service benefits, separations, and final settlements." />
-      <Tabs defaultValue="active">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="active">Active Employees</TabsTrigger>
           <TabsTrigger value="separated">Separated Employees</TabsTrigger>
         </TabsList>
         <TabsContent value="active">
-          <ActiveEmployeesTab />
+          <ActiveEmployeesTab onSeparationCreated={() => setTab("separated")} />
         </TabsContent>
         <TabsContent value="separated">
           <SeparatedEmployeesTab />
