@@ -49,6 +49,7 @@ import { toMinorUnits, fromMinorUnits } from "@/lib/money";
 import { useBLEAccess } from "@/contexts/BLEAccessContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { calculateLeaveEncashment } from "@/lib/leaveEncashment";
+import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
 // --- Active Employees EOS Tab ---
 function ActiveEmployeesTab() {
@@ -60,6 +61,7 @@ function ActiveEmployeesTab() {
   const { data: loansRaw = [] } = useLoans();
   useEosBenefitConfigs(); // hydrate eosBenefitConfigs snapshot
   const { leaveTypes, balances: leaveBalances } = useLeaveTypes();
+  const { getSetupById } = usePayrollSetups();
   const payrollRuns = useMemo(() => mapPayrollRuns(payrollRunsRaw), [payrollRunsRaw]);
   const leaveRequests = useMemo(() => mapLeaves(leaveRequestsRaw), [leaveRequestsRaw]);
   const loans = useMemo(() => mapLoans(loansRaw), [loansRaw]);
@@ -171,10 +173,26 @@ function ActiveEmployeesTab() {
     const lastDate = new Date(separationData.lastDate);
     const daysWorkedInMonth = lastDate.getDate();
     const unpaidSalary = Math.round(dailySalary * daysWorkedInMonth);
-    const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
+    // Notice period handling:
+    // - Termination (employer-initiated) + notice NOT served → pay-in-lieu to employee.
+    // - Resignation / end_of_contract (employee-initiated) + notice NOT served →
+    //   recover from employee, capped by payroll setup's noticePeriodRecoveryDays.
+    // - Retirement → no adjustment.
+    let noticePeriodPay = 0;
+    let noticePeriodRecovery = 0;
+    if (!separationData.noticePeriodServed) {
+      if (separationData.reason === "termination") {
+        noticePeriodPay = Math.round(dailySalary * separationData.noticePeriodDays);
+      } else if (separationData.reason === "resignation" || separationData.reason === "end_of_contract") {
+        const setup = emp.payrollSetupId ? getSetupById(emp.payrollSetupId) : undefined;
+        const cap = setup?.finalSettlement?.noticePeriodRecoveryDays ?? separationData.noticePeriodDays;
+        const recoverDays = Math.min(separationData.noticePeriodDays, cap);
+        noticePeriodRecovery = Math.round(dailySalary * recoverDays);
+      }
+    }
     const empLoans = loans.filter(l => l.employeeId === emp.id && l.status === "active");
     const totalLoanBalance = empLoans.reduce((s: number, l: any) => s + l.remainingBalance, 0);
-    const totalSettlement = unpaidSalary + totalEOS + leaveEncashment + noticePeriodPay - totalLoanBalance;
+    const totalSettlement = unpaidSalary + totalEOS + leaveEncashment + noticePeriodPay - noticePeriodRecovery - totalLoanBalance;
 
     const run = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
 
@@ -194,6 +212,7 @@ function ActiveEmployeesTab() {
       eosBreakdown,
       leaveEncashment: Math.round(leaveEncashment),
       noticePeriodPay,
+      noticePeriodRecovery,
       loanDeduction: totalLoanBalance,
       totalSettlement,
       processedDate: new Date().toISOString().split("T")[0],
@@ -597,8 +616,14 @@ function SeparatedEmployeesTab() {
                       ))}
                       {detailItem.noticePeriodPay > 0 && (
                         <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
-                          <span className="font-medium">Notice Period Payment</span>
+                          <span className="font-medium">Notice Period Payment (in lieu)</span>
                           <span className="font-semibold">SAR {detailItem.noticePeriodPay.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {(detailItem.noticePeriodRecovery ?? 0) > 0 && (
+                        <div className="flex justify-between px-3 py-2.5 border-b border-border/50 text-destructive">
+                          <span className="font-medium">Notice Period Recovery</span>
+                          <span className="font-semibold">- SAR {detailItem.noticePeriodRecovery!.toLocaleString()}</span>
                         </div>
                       )}
                       {detailItem.loanDeduction > 0 && (
@@ -669,8 +694,14 @@ function SeparatedEmployeesTab() {
                   ))}
                   {editItem.noticePeriodPay > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50">
-                      <span>Notice Period Pay</span>
+                      <span>Notice Period Pay (in lieu)</span>
                       <span className="font-medium">SAR {editItem.noticePeriodPay.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {(editItem.noticePeriodRecovery ?? 0) > 0 && (
+                    <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
+                      <span>Notice Period Recovery</span>
+                      <span className="font-medium">- SAR {editItem.noticePeriodRecovery!.toLocaleString()}</span>
                     </div>
                   )}
                   {editItem.loanDeduction > 0 && (

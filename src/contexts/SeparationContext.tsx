@@ -68,6 +68,7 @@ export interface SeparationRecord {
   eosBreakdown?: { name: string; amount: number }[];
   leaveEncashment?: number;
   noticePeriodPay?: number;
+  noticePeriodRecovery?: number;
   loanDeduction?: number;
   totalSettlement?: number;
   processedDate?: string;
