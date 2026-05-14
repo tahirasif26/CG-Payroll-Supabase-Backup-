@@ -328,6 +328,24 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
       }
     });
 
+  // Export filtered list to CSV when parent triggers exportSignal
+  const exportRef = useRef(exportSignal);
+  useEffect(() => {
+    if (exportSignal === undefined || exportSignal === exportRef.current) return;
+    exportRef.current = exportSignal;
+    const headers = ["Emp ID", "First Name", "Last Name", "Email", "Department", "Designation", "Status", "Joining Date", "Salary"];
+    const rows = filtered.map(e => [e.empId, e.firstName, e.lastName, e.email, e.department, e.designation, e.status, e.joiningDate, String(e.salary)]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `employees-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Exported", description: `${filtered.length} employee(s) exported.` });
+  }, [exportSignal, filtered, toast]);
+
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
