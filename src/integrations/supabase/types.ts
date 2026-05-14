@@ -1209,6 +1209,52 @@ export type Database = {
         }
         Relationships: []
       }
+      client_tab_access: {
+        Row: {
+          client_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          tab_key: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          tab_key: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          tab_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tab_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tab_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tab_access_tab_key_fkey"
+            columns: ["tab_key"]
+            isOneToOne: false
+            referencedRelation: "tab_definitions"
+            referencedColumns: ["tab_key"]
+          },
+        ]
+      }
       clients: {
         Row: {
           base_currency: string
@@ -1220,6 +1266,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           enabled_features: string[] | null
+          enabled_module_keys: string[] | null
           enabled_modules: string[]
           id: string
           setup_completed_at: string | null
@@ -1242,6 +1289,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           enabled_features?: string[] | null
+          enabled_module_keys?: string[] | null
           enabled_modules?: string[]
           id?: string
           setup_completed_at?: string | null
@@ -1264,6 +1312,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           enabled_features?: string[] | null
+          enabled_module_keys?: string[] | null
           enabled_modules?: string[]
           id?: string
           setup_completed_at?: string | null
@@ -4521,6 +4570,45 @@ export type Database = {
           },
         ]
       }
+      role_tab_access: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          role_id: string
+          tab_key: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          role_id: string
+          tab_key: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          role_id?: string
+          tab_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_tab_access_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_tab_access_tab_key_fkey"
+            columns: ["tab_key"]
+            isOneToOne: false
+            referencedRelation: "tab_definitions"
+            referencedColumns: ["tab_key"]
+          },
+        ]
+      }
       roles: {
         Row: {
           client_id: string
@@ -4672,6 +4760,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tab_definitions: {
+        Row: {
+          created_at: string
+          default_for_admin: boolean
+          id: string
+          label: string
+          module_key: string
+          path: string
+          scope: string
+          sort_order: number
+          tab_key: string
+        }
+        Insert: {
+          created_at?: string
+          default_for_admin?: boolean
+          id?: string
+          label: string
+          module_key: string
+          path: string
+          scope: string
+          sort_order?: number
+          tab_key: string
+        }
+        Update: {
+          created_at?: string
+          default_for_admin?: boolean
+          id?: string
+          label?: string
+          module_key?: string
+          path?: string
+          scope?: string
+          sort_order?: number
+          tab_key?: string
+        }
+        Relationships: []
       }
       tax_configs: {
         Row: {
@@ -5039,6 +5163,12 @@ export type Database = {
           people_enabled: boolean
         }[]
       }
+      get_user_accessible_tabs: {
+        Args: { _user_id: string }
+        Returns: {
+          tab_key: string
+        }[]
+      }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
       get_user_enabled_features: {
         Args: { _user_id: string }
@@ -5166,6 +5296,10 @@ export type Database = {
       resolve_approval_group: {
         Args: { _category: string; _client_id: string; _value?: number }
         Returns: string
+      }
+      seed_client_tab_access: {
+        Args: { _client_id: string; _module_keys: string[] }
+        Returns: undefined
       }
       start_request_workflow: {
         Args: {
