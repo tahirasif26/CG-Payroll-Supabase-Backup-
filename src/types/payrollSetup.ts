@@ -45,6 +45,7 @@ export interface OvertimeConfig {
 }
 
 export interface AutoDeductions {
+  enabled?: boolean;
   latePenaltyEnabled: boolean;
   latePenaltyAmount: number;
   absenceDeductionEnabled: boolean;
