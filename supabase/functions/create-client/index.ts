@@ -19,6 +19,7 @@ const BodySchema = z.object({
   admin_email: z.string().trim().email().max(255),
   enabled_modules: z.array(z.string().trim().min(1).max(64)).max(64).optional().default([]),
   enabled_features: z.array(z.string().trim().min(1).max(128)).max(256).optional().default([]),
+  enabled_tab_keys: z.array(z.string().trim().min(1).max(128)).max(256).optional(),
 });
 
 function slugify(s: string): string {
