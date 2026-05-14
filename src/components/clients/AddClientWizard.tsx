@@ -39,6 +39,7 @@ const step2Schema = z.object({
 type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & {
   enabled_modules: string[];
   enabled_features: string[];
+  enabled_tab_keys: string[];
 };
 
 const initialForm: FormState = {
@@ -54,6 +55,7 @@ const initialForm: FormState = {
   status: "trial",
   enabled_modules: [],
   enabled_features: [],
+  enabled_tab_keys: [],
 };
 
 interface Props {
