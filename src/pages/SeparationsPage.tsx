@@ -220,6 +220,7 @@ function ActiveEmployeesTab() {
       processedDate: new Date().toISOString().split("T")[0],
       payrollMonth: run?.month || "",
       payrollYear: run?.year || new Date().getFullYear(),
+      currency,
       status: "pending",
     });
 
