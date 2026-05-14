@@ -70,14 +70,15 @@ export default function OptionsTab({ setup, setSetup }: Props) {
       description: "Late penalties, absence deductions and custom rules.",
       icon: MinusCircle,
       enabled:
-        setup.autoDeductions.latePenaltyEnabled ||
-        setup.autoDeductions.absenceDeductionEnabled ||
-        setup.autoDeductions.customRules.length > 0,
+        setup.autoDeductions.enabled ??
+        (setup.autoDeductions.latePenaltyEnabled ||
+          setup.autoDeductions.absenceDeductionEnabled ||
+          setup.autoDeductions.customRules.length > 0),
       onToggle: (v) => setSetup(s => ({
         ...s,
         autoDeductions: v
-          ? s.autoDeductions
-          : { latePenaltyEnabled: false, latePenaltyAmount: 0, absenceDeductionEnabled: false, absenceDeductionPerDay: 0, customRules: s.autoDeductions.customRules.map(r => ({ ...r, enabled: false })) },
+          ? { ...s.autoDeductions, enabled: true }
+          : { ...s.autoDeductions, enabled: false, latePenaltyEnabled: false, absenceDeductionEnabled: false, customRules: s.autoDeductions.customRules.map(r => ({ ...r, enabled: false })) },
       })),
       content: <AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} />,
     },
