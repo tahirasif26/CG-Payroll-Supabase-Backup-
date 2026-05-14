@@ -841,3 +841,167 @@ function MembersTab({
     </Card>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Role Tab Access Panel — replaces feature toggles with tab toggles
+// ─────────────────────────────────────────────────────────────────
+
+function RoleTabAccessTabPanel({ role, readOnly }: { role: RoleWithRelations; readOnly: boolean }) {
+  const { data: allTabs = [], isLoading: tabsLoading } = useTabDefinitions();
+  const { data: clientAccess = [], isLoading: caLoading } = useClientTabAccess(role.client_id);
+  const { data: roleAccess = [], isLoading: raLoading } = useRoleTabAccess(role.id);
+  const setRoleTabs = useSetRoleTabAccess();
+
+  // Tabs available to THIS client
+  const clientEnabledKeys = useMemo(
+    () => new Set(clientAccess.filter((c) => c.enabled).map((c) => c.tab_key)),
+    [clientAccess],
+  );
+  const visibleTabs = useMemo(
+    () => allTabs.filter((t) => clientEnabledKeys.has(t.tab_key)),
+    [allTabs, clientEnabledKeys],
+  );
+
+  const initialEnabled = useMemo(() => {
+    if (readOnly) return new Set(visibleTabs.map((t) => t.tab_key));
+    const set = new Set<string>();
+    for (const r of roleAccess) if (r.enabled) set.add(r.tab_key);
+    return set;
+  }, [roleAccess, visibleTabs, readOnly]);
+
+  const [enabled, setEnabled] = useState<Set<string>>(initialEnabled);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    setEnabled(initialEnabled);
+    setDirty(false);
+  }, [initialEnabled]);
+
+  const grouped = useMemo(() => {
+    const m: Record<string, typeof visibleTabs> = {};
+    for (const t of visibleTabs) (m[t.module_key] ??= []).push(t);
+    return m;
+  }, [visibleTabs]);
+
+  const moduleKeys = useMemo(() => Object.keys(grouped).sort(), [grouped]);
+
+  const toggleTab = (key: string, on: boolean) => {
+    setEnabled((s) => {
+      const n = new Set(s);
+      if (on) n.add(key); else n.delete(key);
+      return n;
+    });
+    setDirty(true);
+  };
+
+  const toggleModule = (modKey: string, on: boolean) => {
+    setEnabled((s) => {
+      const n = new Set(s);
+      for (const t of grouped[modKey] ?? []) {
+        if (on) n.add(t.tab_key); else n.delete(t.tab_key);
+      }
+      return n;
+    });
+    setDirty(true);
+  };
+
+  const moduleSummary = (modKey: string) => {
+    const items = grouped[modKey] ?? [];
+    const on = items.filter((t) => enabled.has(t.tab_key)).length;
+    return { all: on === items.length && items.length > 0, total: items.length, on };
+  };
+
+  const handleSave = async () => {
+    await setRoleTabs.mutateAsync({
+      role_id: role.id,
+      enabled_tab_keys: Array.from(enabled),
+      all_tab_keys: visibleTabs.map((t) => t.tab_key),
+    });
+    setDirty(false);
+  };
+
+  if (tabsLoading || caLoading || raLoading) {
+    return <Card className="p-4"><LoadingState rows={6} variant="page" /></Card>;
+  }
+
+  if (visibleTabs.length === 0) {
+    return (
+      <Card className="p-6 text-center text-sm text-muted-foreground">
+        No tabs are enabled for this client yet. Enable modules/tabs in Client settings first.
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-4 space-y-2">
+      {readOnly && (
+        <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground mb-2">
+          Admin role automatically has access to all tabs enabled for this client.
+        </div>
+      )}
+
+      {moduleKeys.map((modKey) => {
+        const meta = MODULE_META[modKey] ?? { label: modKey, emoji: "•" };
+        const summary = moduleSummary(modKey);
+        const isExpanded = expanded.has(modKey);
+        return (
+          <div key={modKey} className="border rounded-md">
+            <div className="flex items-center gap-3 p-3">
+              <button
+                className="p-1 rounded hover:bg-muted"
+                onClick={() =>
+                  setExpanded((s) => {
+                    const n = new Set(s);
+                    if (n.has(modKey)) n.delete(modKey); else n.add(modKey);
+                    return n;
+                  })
+                }
+              >
+                <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded ? "" : "-rotate-90")} />
+              </button>
+              <span className="text-lg">{meta.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm">{meta.label}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {summary.on} / {summary.total} tab{summary.total === 1 ? "" : "s"} enabled
+                </div>
+              </div>
+              <Switch
+                checked={readOnly ? true : summary.all}
+                disabled={readOnly}
+                onCheckedChange={(v) => toggleModule(modKey, v)}
+              />
+            </div>
+
+            {isExpanded && (
+              <div className="border-t divide-y">
+                {(grouped[modKey] ?? []).map((t) => (
+                  <div key={t.tab_key} className="flex items-center gap-3 px-4 py-2.5 pl-12">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm">{t.label}</div>
+                      <div className="text-[11px] text-muted-foreground truncate font-mono">{t.path}</div>
+                    </div>
+                    <Switch
+                      checked={readOnly ? true : enabled.has(t.tab_key)}
+                      disabled={readOnly}
+                      onCheckedChange={(v) => toggleTab(t.tab_key, v)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {!readOnly && (
+        <div className="flex justify-end pt-2">
+          <Button onClick={handleSave} disabled={!dirty || setRoleTabs.isPending}>
+            {setRoleTabs.isPending ? "Saving…" : "Save Tab Access"}
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
