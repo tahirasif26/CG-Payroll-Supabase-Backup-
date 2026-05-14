@@ -36,6 +36,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
   const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin, roleFeatures, customRoleName } = useRole();
   const { scope } = useViewScope();
+  const { data: accessibleTabs } = useAccessibleTabs();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -44,18 +45,16 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
     if (isSuperAdmin) {
       return filterNavigation(superAdminGroups, appRole, hasFeature, enabledModules);
     }
-    // If an "employee" role-row user is assigned a custom role with role_features,
-    // treat them as "hr" for navigation purposes.
     const hasCustomRoleFeatures = roleFeatures.size > 0;
     const effectiveRole =
       appRole === "employee" && hasCustomRoleFeatures ? ("hr" as typeof appRole) : appRole;
 
     const useMeNav = effectiveRole === "employee" || scope === "me";
     if (useMeNav) {
-      return filterMeNavigation(hasFeature, enabledModules);
+      return filterMeNavigation(hasFeature, enabledModules, accessibleTabs ?? null);
     }
-    return filterNavigation(navigationGroups, effectiveRole, hasFeature, enabledModules, roleFeatures);
-  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, roleFeatures]);
+    return filterNavigation(navigationGroups, effectiveRole, hasFeature, enabledModules, roleFeatures, accessibleTabs ?? null);
+  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, roleFeatures, accessibleTabs]);
 
   const handleNav = (path: string) => {
     navigate(path);
