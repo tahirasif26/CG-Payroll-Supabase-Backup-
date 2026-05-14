@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useAudit } from "@/contexts/AuditContext";
 import { format, differenceInDays, isPast, parseISO } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
@@ -173,7 +173,7 @@ const ITEMS_PER_PAGE = 10;
 
 import { useRoles, type Role } from "@/hooks/queries/useRoles";
 
-function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; onEdit?: (emp: Employee) => void; isEmployee?: boolean }) {
+function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmployee = false, search: searchProp, onSearchChange, deptFilter: deptProp, onDeptFilterChange, statusFilter: statusProp, onStatusFilterChange, exportSignal }: { employees: Employee[]; onSelect: (emp: Employee) => void; onEdit?: (emp: Employee) => void; isEmployee?: boolean; search?: string; onSearchChange?: (v: string) => void; deptFilter?: string; onDeptFilterChange?: (v: string) => void; statusFilter?: string; onStatusFilterChange?: (v: string) => void; exportSignal?: number }) {
   const { getTypeName } = useEmployeeTypes();
   const { removeEmployee } = useEmployees();
   const { toast } = useToast();
@@ -184,9 +184,15 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
     (roles ?? []).forEach((r: Role) => m.set(r.id, r.name));
     return m;
   }, [roles]);
-  const [search, setSearch] = useState("");
-  const [deptFilter, setDeptFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchInner, setSearchInner] = useState("");
+  const [deptInner, setDeptInner] = useState("all");
+  const [statusInner, setStatusInner] = useState("all");
+  const search = searchProp !== undefined ? searchProp : searchInner;
+  const setSearch = (v: string) => { onSearchChange ? onSearchChange(v) : setSearchInner(v); };
+  const deptFilter = deptProp !== undefined ? deptProp : deptInner;
+  const setDeptFilter = (v: string) => { onDeptFilterChange ? onDeptFilterChange(v) : setDeptInner(v); };
+  const statusFilter = statusProp !== undefined ? statusProp : statusInner;
+  const setStatusFilter = (v: string) => { onStatusFilterChange ? onStatusFilterChange(v) : setStatusInner(v); };
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -321,6 +327,24 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
         default: return 0;
       }
     });
+
+  // Export filtered list to CSV when parent triggers exportSignal
+  const exportRef = useRef(exportSignal);
+  useEffect(() => {
+    if (exportSignal === undefined || exportSignal === exportRef.current) return;
+    exportRef.current = exportSignal;
+    const headers = ["Emp ID", "First Name", "Last Name", "Email", "Department", "Designation", "Status", "Joining Date", "Salary"];
+    const rows = filtered.map(e => [e.empId, e.firstName, e.lastName, e.email, e.department, e.designation, e.status, e.joiningDate, String(e.salary)]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `employees-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Exported", description: `${filtered.length} employee(s) exported.` });
+  }, [exportSignal, filtered, toast]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -1794,6 +1818,10 @@ function EmployeesDirectory() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [profileViewOnly, setProfileViewOnly] = useState(true);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
+  const [headerSearch, setHeaderSearch] = useState("");
+  const [headerDept, setHeaderDept] = useState("all");
+  const [headerStatus, setHeaderStatus] = useState("all");
+  const [exportTick, setExportTick] = useState(0);
   const [editEmpId, setEditEmpId] = useState<string | null>(null);
   
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
@@ -2279,18 +2307,43 @@ function EmployeesDirectory() {
             <>
               <div className="relative min-w-[220px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by name, ID or department..." className="pl-9 h-9 text-sm" />
+                <Input
+                  placeholder="Search by name, ID or department..."
+                  className="pl-9 h-9 text-sm"
+                  value={headerSearch}
+                  onChange={(e) => setHeaderSearch(e.target.value)}
+                />
               </div>
-              <Select defaultValue="all">
+              <Select value={headerStatus} onValueChange={setHeaderStatus}>
                 <SelectTrigger className="w-auto h-9 gap-1.5">
                   <Filter className="h-3.5 w-3.5" />
-                  <SelectValue placeholder="Filters" />
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Filters</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="on-leave">On Leave</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" className="h-9"><Download className="h-4 w-4 mr-2" />Export</Button>
+              {(() => {
+                const depts = Array.from(new Set(localEmployees.filter(e => e.status !== "separated").map(e => e.department).filter(Boolean)));
+                return (
+                  <Select value={headerDept} onValueChange={setHeaderDept}>
+                    <SelectTrigger className="w-auto h-9 gap-1.5">
+                      <Filter className="h-3.5 w-3.5" />
+                      <SelectValue placeholder="Department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {depts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
+              <Button variant="outline" size="sm" className="h-9" onClick={() => setExportTick(t => t + 1)}>
+                <Download className="h-4 w-4 mr-2" />Export
+              </Button>
               <Button size="sm" className="gradient-ey text-primary-foreground font-semibold h-9" onClick={() => setAddEmpOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />Add Employee
               </Button>
@@ -2304,6 +2357,13 @@ function EmployeesDirectory() {
         employees={localEmployees.filter(e => e.status !== "separated")}
         onSelect={(emp) => { setProfileViewOnly(true); setSelectedEmployee(emp); }}
         onEdit={isEmployee ? undefined : (emp) => setEditEmpId(emp.id)}
+        search={headerSearch}
+        onSearchChange={setHeaderSearch}
+        deptFilter={headerDept}
+        onDeptFilterChange={setHeaderDept}
+        statusFilter={headerStatus}
+        onStatusFilterChange={setHeaderStatus}
+        exportSignal={exportTick}
         isEmployee={isEmployee}
       />
     </div>
