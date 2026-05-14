@@ -636,6 +636,7 @@ function MembersTab({
   role, allRoles,
 }: { role: RoleWithRelations; allRoles: RoleWithRelations[] }) {
   const { data: employees = [] } = useEmployees({ status: "active" });
+  const { user } = useRole();
   const assign = useAssignEmployeeRole();
   const employeeRole = allRoles.find(
     (r) => r.is_system && r.name.toLowerCase() === "employee",
@@ -791,14 +792,25 @@ function MembersTab({
                   {m.emp_id}{m.department ? ` · ${m.department}` : ""}{m.designation ? ` · ${m.designation}` : ""}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRemove(m.id)}
-                disabled={assign.isPending}
-              >
-                <X className="h-4 w-4 mr-1" /> Remove
-              </Button>
+              {m.user_id && user?.id === m.user_id ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled
+                  title="You cannot remove yourself from a role"
+                >
+                  <X className="h-4 w-4 mr-1" /> Remove
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemove(m.id)}
+                  disabled={assign.isPending}
+                >
+                  <X className="h-4 w-4 mr-1" /> Remove
+                </Button>
+              )}
             </div>
           ))}
         </div>
