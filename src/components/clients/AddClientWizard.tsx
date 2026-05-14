@@ -346,28 +346,49 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
                     </div>
 
                     {isExpanded && (
-                      <div className="bg-background border-t border-border divide-y divide-border">
-                        {m.features.map((f) => {
-                          const checked = form.enabled_features.includes(f.key);
-                          return (
-                            <label
-                              key={f.key}
-                              className="flex items-start gap-3 px-4 py-2.5 pl-12 hover:bg-muted/30 cursor-pointer"
-                            >
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(v) => toggleFeature(f.key, m.key, Boolean(v))}
-                                className="mt-0.5"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm text-foreground">{f.label}</div>
-                                {f.description && (
-                                  <div className="text-xs text-muted-foreground">{f.description}</div>
-                                )}
-                              </div>
-                            </label>
-                          );
-                        })}
+                      <div className="bg-background border-t border-border">
+                        {(tabsByModule[m.key] ?? []).length > 0 && (
+                          <div className="px-4 py-2 pl-12 bg-muted/10 border-b border-border">
+                            <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Tabs (visible in nav)</div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {(tabsByModule[m.key] ?? []).map((t) => {
+                                const checked = form.enabled_tab_keys.includes(t.tab_key);
+                                return (
+                                  <label key={t.tab_key} className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={(v) => toggleTab(t.tab_key, m.key, Boolean(v))}
+                                    />
+                                    <span>{t.label}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        <div className="divide-y divide-border">
+                          {m.features.map((f) => {
+                            const checked = form.enabled_features.includes(f.key);
+                            return (
+                              <label
+                                key={f.key}
+                                className="flex items-start gap-3 px-4 py-2.5 pl-12 hover:bg-muted/30 cursor-pointer"
+                              >
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => toggleFeature(f.key, m.key, Boolean(v))}
+                                  className="mt-0.5"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm text-foreground">{f.label}</div>
+                                  {f.description && (
+                                    <div className="text-xs text-muted-foreground">{f.description}</div>
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
