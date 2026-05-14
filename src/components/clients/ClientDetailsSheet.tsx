@@ -174,6 +174,10 @@ export function ClientDetailsSheet({ client, open, onOpenChange }: Props) {
             )}
           </TabsContent>
 
+          <TabsContent value="tabs" className="pt-4">
+            <ClientTabAccessEditor clientId={client.id} />
+          </TabsContent>
+
           <TabsContent value="activity" className="pt-4">
             <div className="text-center py-12 text-muted-foreground">
               <Activity className="h-10 w-10 mx-auto mb-2 opacity-30" />
