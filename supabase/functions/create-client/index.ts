@@ -19,7 +19,6 @@ const BodySchema = z.object({
   admin_email: z.string().trim().email().max(255),
   enabled_modules: z.array(z.string().trim().min(1).max(64)).max(64).optional().default([]),
   enabled_features: z.array(z.string().trim().min(1).max(128)).max(256).optional().default([]),
-  enabled_tab_keys: z.array(z.string().trim().min(1).max(128)).max(256).optional(),
 });
 
 function slugify(s: string): string {
@@ -146,36 +145,6 @@ Deno.serve(async (req) => {
 
     const clientId = clientRow.id;
     const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || "";
-
-    // Seed per-client tab access from enabled modules.
-    try {
-      if (input.enabled_modules.length > 0) {
-        await adminClient.rpc("seed_client_tab_access", {
-          _client_id: clientId,
-          _module_keys: input.enabled_modules,
-        });
-      }
-      // If a curated tab list was passed, disable any tabs not in that list.
-      if (Array.isArray(input.enabled_tab_keys)) {
-        const allowed = new Set(input.enabled_tab_keys);
-        const { data: rows } = await adminClient
-          .from("client_tab_access")
-          .select("tab_key")
-          .eq("client_id", clientId);
-        const toDisable = (rows ?? [])
-          .map((r: { tab_key: string }) => r.tab_key)
-          .filter((k: string) => !allowed.has(k));
-        if (toDisable.length > 0) {
-          await adminClient
-            .from("client_tab_access")
-            .update({ enabled: false })
-            .eq("client_id", clientId)
-            .in("tab_key", toDisable);
-        }
-      }
-    } catch (tabErr) {
-      console.error("[create-client] seed tab access (non-fatal):", tabErr);
-    }
 
     // Seed per-client defaults (best-effort; failures are logged but don't block client creation).
     // approval_roles + default feature_preset are seeded automatically by DB triggers.
