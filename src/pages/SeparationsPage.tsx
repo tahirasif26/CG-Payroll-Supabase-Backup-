@@ -486,6 +486,35 @@ function SeparatedEmployeesTab() {
       payrollYear: processingRun.year,
     });
 
+    // Notify employee + client admins (non-blocking)
+    const sep = checklistSep;
+    const ccy = sep.currency || "SAR";
+    const amount = sep.totalSettlement?.toLocaleString() ?? "0";
+    (async () => {
+      const userId = await getEmployeeUserId(sep.employeeId);
+      if (userId) {
+        await notifyUser(userId, {
+          title: "Your separation has been approved",
+          body: `Final settlement of ${ccy} ${amount} will be processed in ${processingRun.month} ${processingRun.year} payroll.`,
+          category: "payroll",
+          severity: "info",
+          entityType: "separation",
+          entityId: sep.id,
+          actionUrl: "/separations",
+          clientId,
+        });
+      }
+      await notifyClientAdmins(clientId, {
+        title: `Separation approved: ${sep.employeeName}`,
+        body: `${sep.empId} • ${sep.department} • Settlement ${ccy} ${amount} → ${processingRun.month} ${processingRun.year}`,
+        category: "payroll",
+        severity: "info",
+        entityType: "separation",
+        entityId: sep.id,
+        actionUrl: "/separations",
+      });
+    })();
+
     setChecklistOpen(false);
     setChecklistSep(null);
     toast({ title: "Separation Approved", description: `${checklistSep.employeeName}'s separation linked to ${processingRun.month} ${processingRun.year} payroll.` });
