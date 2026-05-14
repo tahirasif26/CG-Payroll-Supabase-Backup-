@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
+import { useTabDefinitions } from "@/hooks/queries/useTabs";
 import { MODULE_CATALOG } from "@/lib/feature-catalog";
 
 import { COUNTRIES, TIMEZONES, CURRENCIES } from "@/lib/countries";
