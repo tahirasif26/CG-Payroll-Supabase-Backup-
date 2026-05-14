@@ -145,12 +145,12 @@ function ActiveEmployeesTab() {
     let totalEOS: number;
     if (country && emp.joiningDate) {
       const res = calculateEosb(country, {
-        lastBasic: toMinorUnits(basicSalary, "SAR"),
+        lastBasic: toMinorUnits(basicSalary, currency),
         joiningDate: emp.joiningDate,
         lastWorkingDate: separationData.lastDate,
         reason: reasonForEngine,
       });
-      totalEOS = Math.round(fromMinorUnits(res.amount, "SAR"));
+      totalEOS = Math.round(fromMinorUnits(res.amount, currency));
       eosBreakdown = [{ name: country === "SA" ? "KSA Statutory Gratuity" : "UAE Statutory Gratuity", amount: totalEOS }];
     } else {
       const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
