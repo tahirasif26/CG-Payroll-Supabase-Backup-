@@ -1,19 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ChevronDown, Lock, Pencil, Plus, Search, Shield, Trash2, Users, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { useEmployees } from "@/hooks/queries/useEmployees";
 import {
   useRoles,
-  useRoleFeatures,
   useCreateRole,
   useUpdateRole,
   useDeleteRole,
-  useSetRoleFeatures,
   useAssignEmployeeRole,
   type RoleWithRelations,
 } from "@/hooks/queries/useRoles";
+import {
+  useTabDefinitions,
+  useClientTabAccess,
+  useRoleTabAccess,
+  useSetRoleTabAccess,
+  type TabDefinition,
+} from "@/hooks/queries/useTabAccess";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,23 +45,15 @@ import { cn } from "@/lib/utils";
 // Types & utils
 // ─────────────────────────────────────────────────────────────────
 
-interface FeatureDef {
-  feature_key: string;
-  module_key: string;
-  name: string;
-  description: string | null;
-}
-
-const MODULE_META: Record<string, { label: string; emoji: string }> = {
-  employees: { label: "Employees", emoji: "👥" },
-  payroll: { label: "Payroll", emoji: "💰" },
-  expenses: { label: "Expenses", emoji: "🧾" },
-  leave: { label: "Leave", emoji: "🌴" },
-  loans: { label: "Loans & Advances", emoji: "💳" },
-  assets: { label: "Assets", emoji: "📦" },
-  performance: { label: "Performance", emoji: "⭐" },
-  policies: { label: "Policies", emoji: "📜" },
-  timesheets: { label: "Timesheets", emoji: "⏱" },
+const MODULE_META: Record<string, { label: string; emoji: string; order: number }> = {
+  employees:   { label: "Employees",       emoji: "👥", order: 1 },
+  payroll:     { label: "Payroll",         emoji: "💰", order: 2 },
+  expenses:    { label: "Expense Tracking", emoji: "🧾", order: 3 },
+  assets:      { label: "Assets",          emoji: "📦", order: 4 },
+  performance: { label: "Performance",     emoji: "⭐", order: 5 },
+  projects:    { label: "Projects",        emoji: "📂", order: 6 },
+  reports:     { label: "Reports",         emoji: "📊", order: 7 },
+  settings:    { label: "Settings",        emoji: "⚙️", order: 8 },
 };
 
 const initials = (first?: string | null, last?: string | null) =>
@@ -65,21 +61,6 @@ const initials = (first?: string | null, last?: string | null) =>
 
 const fullName = (first?: string | null, last?: string | null) =>
   [first, last].filter(Boolean).join(" ") || "—";
-
-function useFeatureDefinitions() {
-  return useQuery({
-    queryKey: ["feature_definitions_simple"],
-    queryFn: async (): Promise<FeatureDef[]> => {
-      const { data, error } = await supabase
-        .from("feature_definitions")
-        .select("feature_key, module_key, name, description")
-        .order("module_key")
-        .order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-}
 
 // ─────────────────────────────────────────────────────────────────
 // Page
