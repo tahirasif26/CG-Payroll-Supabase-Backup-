@@ -55,7 +55,7 @@ function isGroupActive(pathname: string, g: NavGroup): boolean {
 }
 
 export function ModuleTabs() {
-  const { appRole, hasFeature, enabledModules, isSuperAdmin, roleFeatures, hasTabPath } = useRole();
+  const { appRole, hasFeature, enabledModules, isSuperAdmin, roleFeatures } = useRole();
   const { scope } = useViewScope();
   const location = useLocation();
   const navigate = useNavigate();
@@ -68,11 +68,11 @@ export function ModuleTabs() {
     } else {
       const useMeNav = appRole === "employee" || scope === "me";
       groups = useMeNav
-        ? filterMeNavigation(hasFeature, enabledModules, hasTabPath)
-        : filterNavigation(navigationGroups, appRole, hasFeature, enabledModules, roleFeatures, hasTabPath);
+        ? filterMeNavigation(hasFeature, enabledModules)
+        : filterNavigation(navigationGroups, appRole, hasFeature, enabledModules, roleFeatures);
     }
     return groups.find((g) => isGroupActive(location.pathname, g)) ?? null;
-  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, location.pathname, roleFeatures, hasTabPath]);
+  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, location.pathname, roleFeatures]);
 
   if (!activeGroup || !activeGroup.children || activeGroup.children.length === 0) {
     return null;

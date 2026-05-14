@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
 import type { AppRole } from "@/hooks/useAuth";
@@ -9,10 +9,6 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: AppRole | AppRole[];
   requiredFeature?: string;
-  /** If set, also check tab access for this path. Defaults to current pathname. */
-  requiredTabPath?: string;
-  /** If true, disables automatic tab-path check based on current pathname. */
-  skipTabCheck?: boolean;
   fallback?: "redirect" | "denied";
   redirectTo?: string;
 }
@@ -21,14 +17,11 @@ export function ProtectedRoute({
   children,
   requiredRole,
   requiredFeature,
-  requiredTabPath,
-  skipTabCheck,
   fallback = "denied",
   redirectTo = "/",
 }: ProtectedRouteProps) {
-  const { appRole, isSuperAdmin, isOrphan, hasFeature, hasPeopleFeature, hasTabPath, tabsLoading, session, loading } = useRole();
+  const { appRole, isSuperAdmin, isOrphan, hasFeature, hasPeopleFeature, session, loading } = useRole();
   const { scope } = useViewScope();
-  const location = useLocation();
 
   if (loading) {
     return (
@@ -79,14 +72,6 @@ export function ProtectedRoute({
   // Custom People-side routes must respect the People toggle, not just personal Me defaults.
   if (!isSuperAdmin && appRole === "hr" && scope === "people" && requiredFeature && !hasPeopleFeature(requiredFeature)) {
     return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
-  }
-
-  // Tab access check (skip super_admin and while still loading tab data)
-  if (!isSuperAdmin && !skipTabCheck && !tabsLoading) {
-    const path = requiredTabPath ?? location.pathname;
-    if (!hasTabPath(path)) {
-      return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
-    }
   }
 
   return <>{children}</>;

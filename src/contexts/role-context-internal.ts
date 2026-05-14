@@ -26,11 +26,6 @@ export interface RoleContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   currentEmployeeId: string;
-  accessibleTabKeys: Set<string>;
-  accessibleTabPaths: Set<string>;
-  hasTab: (tabKey: string) => boolean;
-  hasTabPath: (path: string) => boolean;
-  tabsLoading: boolean;
 }
 
 export const RoleContext = createContext<RoleContextType | undefined>(undefined);
