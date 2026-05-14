@@ -190,6 +190,7 @@ export function aggregateRunTotals(lines: PayrollLineResult[]): {
   total_gross: bigint;
   total_deductions: bigint;
   total_net: bigint;
+  total_eos_accrual: bigint;
   employee_count: number;
 } {
   return lines.reduce(
@@ -197,12 +198,14 @@ export function aggregateRunTotals(lines: PayrollLineResult[]): {
       total_gross: addMoney(acc.total_gross, l.gross),
       total_deductions: addMoney(acc.total_deductions, l.totalDeductions),
       total_net: addMoney(acc.total_net, l.netPay),
+      total_eos_accrual: addMoney(acc.total_eos_accrual, l.eosAccrual),
       employee_count: acc.employee_count + 1,
     }),
     {
       total_gross: 0n,
       total_deductions: 0n,
       total_net: 0n,
+      total_eos_accrual: 0n,
       employee_count: 0,
     }
   );
