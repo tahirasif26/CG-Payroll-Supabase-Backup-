@@ -42,6 +42,10 @@ function mapExpenses(rows: any[]): any[] {
 }
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
+import { useEosBenefitConfigs } from "@/hooks/queries/useEosBenefitConfigs";
+import { calculateEosb } from "@/lib/eosb";
+import { mapToEosbCountry } from "@/lib/eosb/country";
+import { toMinorUnits, fromMinorUnits } from "@/lib/money";
 import { useBLEAccess } from "@/contexts/BLEAccessContext";
 
 // --- Active Employees EOS Tab ---
