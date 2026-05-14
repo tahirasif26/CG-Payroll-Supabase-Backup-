@@ -527,15 +527,21 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
                           )}
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(emp); }}
-                        title="Delete employee"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {(() => {
+                        const isSelf = !!user?.id && !!emp.userId && emp.userId === user.id;
+                        return (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40"
+                            onClick={(e) => { e.stopPropagation(); if (!isSelf) setDeleteTarget(emp); }}
+                            disabled={isSelf}
+                            title={isSelf ? "You cannot delete your own account" : "Delete employee"}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        );
+                      })()}
                     </div>
                   </TableCell>
                 )}
