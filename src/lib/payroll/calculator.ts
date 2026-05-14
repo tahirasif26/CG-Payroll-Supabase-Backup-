@@ -18,6 +18,7 @@ import type {
   PayrollLineResult,
   PayrollTaxRule,
 } from "./types";
+import { calculateMonthlyEosAccrual } from "./eosAccrual";
 
 /** Resolve a single component to a bigint amount in minor units. */
 function resolveComponent(
