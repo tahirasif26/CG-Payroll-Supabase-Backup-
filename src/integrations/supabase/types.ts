@@ -5030,6 +5030,10 @@ export type Database = {
         Args: { _entity_id: string; _module: string; _user_id: string }
         Returns: boolean
       }
+      is_request_assignee: {
+        Args: { _entity_id: string; _module: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       mark_request_paid: {
         Args: {
