@@ -140,6 +140,15 @@ export function calculateEmployeePayroll(
 
   const netPay = addMoney(subtractMoney(gross, totalDeductions), additions);
 
+  const eosAccrual = ctx.eosAccrual
+    ? calculateMonthlyEosAccrual({
+        country: ctx.eosAccrual.country ?? null,
+        gratuityBasis: ctx.eosAccrual.gratuityBasis,
+        joiningDate: ctx.eosAccrual.joiningDate,
+        periodEndDate: ctx.eosAccrual.periodEndDate,
+      })
+    : 0n;
+
   return {
     basic,
     allowances,
@@ -154,6 +163,7 @@ export function calculateEmployeePayroll(
     oneOffBenefits,
     oneOffDeductions,
     separationSettlement: ctx.separation?.settlement ?? 0n,
+    eosAccrual,
     netPay,
     payCurrency: currency,
     snapshot: {
@@ -166,6 +176,7 @@ export function calculateEmployeePayroll(
       loanCount: ctx.loans.length,
       oneOffCount: ctx.oneOffAdjustments.length,
       hasSeparation: !!ctx.separation,
+      eosAccrued: eosAccrual.toString(),
       calculatedAt: new Date().toISOString(),
     },
   };
