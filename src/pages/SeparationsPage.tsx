@@ -54,7 +54,7 @@ import { notifyUser, notifyClientAdmins, getEmployeeUserId } from "@/lib/notify"
 import { useRole } from "@/contexts/RoleContext";
 
 // --- Active Employees EOS Tab ---
-function ActiveEmployeesTab() {
+function ActiveEmployeesTab({ onSeparationCreated }: { onSeparationCreated?: () => void }) {
   const { employees } = useEmployees();
   const { separations, addSeparation } = useSeparations();
   const { toast } = useToast();
