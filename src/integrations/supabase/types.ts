@@ -4573,22 +4573,22 @@ export type Database = {
       role_tab_access: {
         Row: {
           created_at: string
-          enabled: boolean
           id: string
+          people_enabled: boolean
           role_id: string
           tab_key: string
         }
         Insert: {
           created_at?: string
-          enabled?: boolean
           id?: string
+          people_enabled?: boolean
           role_id: string
           tab_key: string
         }
         Update: {
           created_at?: string
-          enabled?: boolean
           id?: string
+          people_enabled?: boolean
           role_id?: string
           tab_key?: string
         }
@@ -5166,6 +5166,8 @@ export type Database = {
       get_user_accessible_tabs: {
         Args: { _user_id: string }
         Returns: {
+          people_enabled: boolean
+          scope: string
           tab_key: string
         }[]
       }

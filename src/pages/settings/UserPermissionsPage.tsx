@@ -1,19 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ChevronDown, Lock, Pencil, Plus, Search, Shield, Trash2, Users, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { useEmployees } from "@/hooks/queries/useEmployees";
 import {
   useRoles,
-  useRoleFeatures,
   useCreateRole,
   useUpdateRole,
   useDeleteRole,
-  useSetRoleFeatures,
   useAssignEmployeeRole,
   type RoleWithRelations,
 } from "@/hooks/queries/useRoles";
+import {
+  useTabDefinitions,
+  useClientTabAccess,
+  useRoleTabAccess,
+  useSetRoleTabAccess,
+  type TabDefinition,
+} from "@/hooks/queries/useTabAccess";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,23 +45,15 @@ import { cn } from "@/lib/utils";
 // Types & utils
 // ─────────────────────────────────────────────────────────────────
 
-interface FeatureDef {
-  feature_key: string;
-  module_key: string;
-  name: string;
-  description: string | null;
-}
-
-const MODULE_META: Record<string, { label: string; emoji: string }> = {
-  employees: { label: "Employees", emoji: "👥" },
-  payroll: { label: "Payroll", emoji: "💰" },
-  expenses: { label: "Expenses", emoji: "🧾" },
-  leave: { label: "Leave", emoji: "🌴" },
-  loans: { label: "Loans & Advances", emoji: "💳" },
-  assets: { label: "Assets", emoji: "📦" },
-  performance: { label: "Performance", emoji: "⭐" },
-  policies: { label: "Policies", emoji: "📜" },
-  timesheets: { label: "Timesheets", emoji: "⏱" },
+const MODULE_META: Record<string, { label: string; emoji: string; order: number }> = {
+  employees:   { label: "Employees",       emoji: "👥", order: 1 },
+  payroll:     { label: "Payroll",         emoji: "💰", order: 2 },
+  expenses:    { label: "Expense Tracking", emoji: "🧾", order: 3 },
+  assets:      { label: "Assets",          emoji: "📦", order: 4 },
+  performance: { label: "Performance",     emoji: "⭐", order: 5 },
+  projects:    { label: "Projects",        emoji: "📂", order: 6 },
+  reports:     { label: "Reports",         emoji: "📊", order: 7 },
+  settings:    { label: "Settings",        emoji: "⚙️", order: 8 },
 };
 
 const initials = (first?: string | null, last?: string | null) =>
@@ -65,21 +61,6 @@ const initials = (first?: string | null, last?: string | null) =>
 
 const fullName = (first?: string | null, last?: string | null) =>
   [first, last].filter(Boolean).join(" ") || "—";
-
-function useFeatureDefinitions() {
-  return useQuery({
-    queryKey: ["feature_definitions_simple"],
-    queryFn: async (): Promise<FeatureDef[]> => {
-      const { data, error } = await supabase
-        .from("feature_definitions")
-        .select("feature_key, module_key, name, description")
-        .order("module_key")
-        .order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-}
 
 // ─────────────────────────────────────────────────────────────────
 // Page
@@ -460,92 +441,58 @@ function RoleDetailView({
 // Features tab
 // ─────────────────────────────────────────────────────────────────
 
-interface FeatureState {
-  enabled: boolean;
-  people: boolean;
-}
+interface TabState { [k: string]: boolean }
 
 function FeaturesTab({ role, readOnly }: { role: RoleWithRelations; readOnly: boolean }) {
-  const { data: defs = [], isLoading: defsLoading } = useFeatureDefinitions();
-  const { data: existing = [], isLoading: rfLoading } = useRoleFeatures(role.id);
-  const setFeatures = useSetRoleFeatures();
+  const { data: tabDefs = [], isLoading: defsLoading } = useTabDefinitions();
+  const { data: clientAccess = [], isLoading: cLoading } = useClientTabAccess(role.client_id);
+  const { data: roleAccess = [], isLoading: rLoading } = useRoleTabAccess(role.id);
+  const setRoleTabs = useSetRoleTabAccess();
+
+  const clientEnabled = useMemo(
+    () => new Set(clientAccess.filter((c) => c.enabled).map((c) => c.tab_key)),
+    [clientAccess],
+  );
 
   const initialState = useMemo(() => {
-    const map: Record<string, FeatureState> = {};
-    // All features are always enabled for the role (like default Employee).
-    // Only the "People" scope flag is configurable per feature.
-    for (const d of defs) {
-      map[d.feature_key] = { enabled: true, people: false };
-    }
-    for (const ef of existing) {
-      map[ef.feature_key] = { enabled: true, people: ef.people_enabled };
-    }
+    const map: TabState = {};
+    for (const t of tabDefs) map[t.tab_key] = false;
+    for (const r of roleAccess) map[r.tab_key] = r.people_enabled;
     return map;
-  }, [defs, existing]);
+  }, [tabDefs, roleAccess]);
 
-  const [state, setState] = useState<Record<string, FeatureState>>(initialState);
+  const [state, setState] = useState<TabState>(initialState);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [dirty, setDirty] = useState(false);
 
-  // Re-sync when source data changes (e.g. after save invalidation)
-  useEffect(() => {
-    setState(initialState);
-    setDirty(false);
-  }, [initialState]);
+  useEffect(() => { setState(initialState); setDirty(false); }, [initialState]);
 
   const grouped = useMemo(() => {
-    const m: Record<string, FeatureDef[]> = {};
-    for (const d of defs) {
-      (m[d.module_key] ??= []).push(d);
-    }
+    const m: Record<string, TabDefinition[]> = {};
+    for (const t of tabDefs) (m[t.module_key] ??= []).push(t);
+    for (const k of Object.keys(m)) m[k].sort((a, b) => a.sort_order - b.sort_order);
     return m;
-  }, [defs]);
+  }, [tabDefs]);
 
-  const moduleKeys = useMemo(() => Object.keys(grouped).sort(), [grouped]);
+  const moduleKeys = useMemo(
+    () => Object.keys(grouped).sort((a, b) => (MODULE_META[a]?.order ?? 99) - (MODULE_META[b]?.order ?? 99)),
+    [grouped],
+  );
 
-  const toggleModule = (modKey: string, on: boolean) => {
-    setState((s) => {
-      const next = { ...s };
-      for (const f of grouped[modKey] ?? []) {
-        next[f.feature_key] = { enabled: on, people: on ? next[f.feature_key]?.people ?? false : false };
-      }
-      return next;
-    });
+  const togglePeople = (tabKey: string, on: boolean) => {
+    setState((s) => ({ ...s, [tabKey]: on }));
     setDirty(true);
-  };
-
-  const toggleFeature = (key: string, on: boolean) => {
-    setState((s) => ({ ...s, [key]: { enabled: on, people: on ? s[key]?.people ?? false : false } }));
-    setDirty(true);
-  };
-
-  const togglePeople = (key: string, on: boolean) => {
-    setState((s) => ({ ...s, [key]: { enabled: s[key]?.enabled ?? false, people: on } }));
-    setDirty(true);
-  };
-
-  const moduleSummary = (modKey: string): { all: boolean; some: boolean; total: number; on: number } => {
-    const items = grouped[modKey] ?? [];
-    let on = 0;
-    for (const it of items) if (state[it.feature_key]?.enabled) on++;
-    return { all: on === items.length && items.length > 0, some: on > 0 && on < items.length, total: items.length, on };
   };
 
   const handleSave = async () => {
-    // Only persist features the admin explicitly granted "People" access to.
-    // Personal "Me" features remain available to the user via employee defaults.
-    const features = Object.entries(state)
-      .filter(([, v]) => v.people)
-      .map(([feature_key]) => ({ feature_key, people_enabled: true }));
-    await setFeatures.mutateAsync({
-      role_id: role.id,
-      client_id: role.client_id,
-      features,
-    });
+    const tabs = tabDefs
+      .filter((t) => clientEnabled.has(t.tab_key))
+      .map((t) => ({ tab_key: t.tab_key, people_enabled: !!state[t.tab_key] }));
+    await setRoleTabs.mutateAsync({ role_id: role.id, client_id: role.client_id, tabs });
     setDirty(false);
   };
 
-  if (defsLoading || rfLoading) {
+  if (defsLoading || cLoading || rLoading) {
     return <Card className="p-4"><LoadingState rows={6} variant="page" /></Card>;
   }
 
@@ -553,57 +500,67 @@ function FeaturesTab({ role, readOnly }: { role: RoleWithRelations; readOnly: bo
     <Card className="p-4 space-y-2">
       {readOnly && (
         <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground mb-2">
-          Admin role has full access to every feature. This is read-only.
+          Admin role has access to every tab. This is read-only.
         </div>
       )}
 
       {moduleKeys.map((modKey) => {
-        const meta = MODULE_META[modKey] ?? { label: modKey, emoji: "•" };
-        const summary = moduleSummary(modKey);
+        const meta = MODULE_META[modKey] ?? { label: modKey, emoji: "•", order: 99 };
+        const items = grouped[modKey] ?? [];
+        const enabledCount = items.filter(
+          (t) => clientEnabled.has(t.tab_key) && (readOnly || state[t.tab_key]),
+        ).length;
         const isExpanded = expanded.has(modKey);
-        const moduleOn = readOnly ? true : summary.all;
         return (
           <div key={modKey} className="border rounded-md">
-            <div className="flex items-center gap-3 p-3">
-              <button
-                className="p-1 rounded hover:bg-muted"
-                onClick={() =>
-                  setExpanded((s) => {
-                    const n = new Set(s);
-                    if (n.has(modKey)) n.delete(modKey); else n.add(modKey);
-                    return n;
-                  })
-                }
-                aria-label={isExpanded ? "Collapse" : "Expand"}
-              >
-                <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded ? "" : "-rotate-90")} />
-              </button>
+            <button
+              type="button"
+              onClick={() => setExpanded((s) => {
+                const n = new Set(s);
+                if (n.has(modKey)) n.delete(modKey); else n.add(modKey);
+                return n;
+              })}
+              className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/40"
+            >
+              <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded ? "" : "-rotate-90")} />
               <span className="text-lg">{meta.emoji}</span>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm">{meta.label}</div>
                 <div className="text-[11px] text-muted-foreground">
-                  {summary.total} feature{summary.total === 1 ? "" : "s"}
+                  {enabledCount} of {items.length} tab{items.length === 1 ? "" : "s"} enabled
                 </div>
               </div>
-            </div>
+            </button>
 
             {isExpanded && (
               <div className="border-t divide-y">
-                {(grouped[modKey] ?? []).map((f) => {
-                  const cur = state[f.feature_key] ?? { enabled: true, people: false };
+                {items.map((t) => {
+                  const isClientEnabled = clientEnabled.has(t.tab_key);
+                  const isPersonal = t.scope === "both";
+                  const checked = readOnly ? true : !!state[t.tab_key];
+                  const disabled = readOnly || !isClientEnabled;
                   return (
-                    <div key={f.feature_key} className="flex items-center gap-3 px-4 py-2.5 pl-12">
+                    <div
+                      key={t.tab_key}
+                      className={cn("flex items-center gap-3 px-4 py-2.5 pl-12", !isClientEnabled && "opacity-50")}
+                    >
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm">{f.name}</div>
-                        {f.description && (
-                          <div className="text-[11px] text-muted-foreground truncate">{f.description}</div>
-                        )}
+                        <div className="text-sm flex items-center gap-2 flex-wrap">
+                          {t.label}
+                          {isPersonal && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0">Personal</Badge>
+                          )}
+                          {!isClientEnabled && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0">Disabled by Super Admin</Badge>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground truncate">{t.path}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Switch
-                          checked={readOnly ? true : cur.people}
-                          disabled={readOnly}
-                          onCheckedChange={(v) => togglePeople(f.feature_key, v)}
+                          checked={checked}
+                          disabled={disabled}
+                          onCheckedChange={(v) => togglePeople(t.tab_key, v)}
                           className="data-[state=checked]:bg-rose-500"
                         />
                         <span className="text-xs text-muted-foreground">People</span>
@@ -619,8 +576,8 @@ function FeaturesTab({ role, readOnly }: { role: RoleWithRelations; readOnly: bo
 
       {!readOnly && (
         <div className="flex justify-end pt-2">
-          <Button onClick={handleSave} disabled={!dirty || setFeatures.isPending}>
-            {setFeatures.isPending ? "Saving…" : "Save Permissions"}
+          <Button onClick={handleSave} disabled={!dirty || setRoleTabs.isPending}>
+            {setRoleTabs.isPending ? "Saving…" : "Save Tab Permissions"}
           </Button>
         </div>
       )}

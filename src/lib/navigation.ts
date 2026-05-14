@@ -28,6 +28,8 @@ export interface NavChild {
   requiredRoles?: AppRole[];
   hideForRoles?: AppRole[];
   labelsByRole?: Partial<Record<AppRole, string>>;
+  /** Tab key from public.tab_definitions used for tab-wise permission gating. */
+  tabKey?: string;
 }
 
 export interface NavGroup {
@@ -64,26 +66,30 @@ export const navigationGroups: NavGroup[] = [
         path: "/employees",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "employees.view_directory",
+        tabKey: "employees.directory",
       },
-      { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
-      { label: "Imp Dates", path: "/birthdays", requiredFeature: "employees.view_birthdays" },
+      { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart", tabKey: "employees.org_chart" },
+      { label: "Imp Dates", path: "/birthdays", requiredFeature: "employees.view_birthdays", tabKey: "employees.imp_dates" },
       {
         label: "Leave Management",
         path: "/leave",
         requiredFeature: "leave.view_balance",
         labelsByRole: { employee: "My Leave" },
+        tabKey: "employees.leave_mgmt",
       },
       {
         label: "Employee Cards",
         path: "/id-cards",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "employees.view_id_cards",
+        tabKey: "employees.id_cards",
       },
       {
         label: "HR Settings",
         path: "/employees/settings",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "employees.edit",
+        tabKey: "employees.hr_settings",
       },
     ],
   },
@@ -98,27 +104,37 @@ export const navigationGroups: NavGroup[] = [
         path: "/payroll/setup",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "payroll.create_run",
+        tabKey: "payroll.setup",
       },
       {
         label: "Payroll Runs",
         path: "/payroll",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "payroll.view_all_runs",
+        tabKey: "payroll.runs",
       },
       {
         label: "Payslips",
         path: "/payslips",
         requiredFeature: "payroll.view_own_payslip",
         labelsByRole: { employee: "My Payslips" },
+        tabKey: "payroll.payslips",
       },
       {
         label: "End of Service",
         path: "/separations",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "payroll.view_all_runs",
+        tabKey: "payroll.eos",
       },
-      { label: "Loans", path: "/loans", requiredFeature: "loans.view_own" },
-      { label: "Analytics", path: "/analytics", requiredRoles: ["admin", "hr"], requiredFeature: "payroll.export_csv" },
+      { label: "Loans", path: "/loans", requiredFeature: "loans.view_own", tabKey: "payroll.loans" },
+      { label: "Analytics", path: "/analytics", requiredRoles: ["admin", "hr"], requiredFeature: "payroll.export_csv", tabKey: "payroll.analytics" },
+      {
+        label: "Payroll Settings",
+        path: "/payroll/settings",
+        requiredRoles: ["admin", "hr"],
+        tabKey: "payroll.settings",
+      },
     ],
   },
   {
@@ -132,25 +148,29 @@ export const navigationGroups: NavGroup[] = [
         path: "/expenses",
         requiredFeature: "expenses.view_own",
         labelsByRole: { employee: "My Expenses" },
+        tabKey: "expenses.claims",
       },
-      { label: "Advances", path: "/advances", requiredFeature: "advances.view_own" },
+      { label: "Advances", path: "/advances", requiredFeature: "advances.view_own", tabKey: "expenses.advances" },
       {
         label: "Outstanding Advances",
         path: "/outstanding-advances",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "advances.approve",
+        tabKey: "expenses.outstanding",
       },
       {
         label: "Expense Analytics",
         path: "/expense-analytics",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "expenses.view_all",
+        tabKey: "expenses.analytics",
       },
       {
         label: "Expense Settings",
         path: "/expenses/settings",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "expenses.approve",
+        tabKey: "expenses.settings",
       },
     ],
   },
@@ -165,21 +185,24 @@ export const navigationGroups: NavGroup[] = [
         path: "/assets/dashboard",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "assets.view_inventory",
+        tabKey: "assets.dashboard",
       },
-      { label: "Asset Inventory", path: "/assets/inventory", requiredFeature: "assets.view_inventory" },
-      { label: "Asset Store", path: "/assets/store", requiredFeature: "assets.request_new" },
-      { label: "Asset Requests", path: "/assets/requests", requiredFeature: "assets.approve_requests" },
+      { label: "Asset Inventory", path: "/assets/inventory", requiredFeature: "assets.view_inventory", tabKey: "assets.inventory" },
+      { label: "Asset Store", path: "/assets/store", requiredFeature: "assets.request_new", tabKey: "assets.store" },
+      { label: "Asset Requests", path: "/assets/requests", requiredFeature: "assets.approve_requests", tabKey: "assets.requests" },
       {
         label: "Asset Audits",
         path: "/assets/audits",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "assets.manage",
+        tabKey: "assets.audits",
       },
       {
         label: "Asset Settings",
         path: "/assets/master-data",
         requiredRoles: ["admin", "hr"],
         requiredFeature: "assets.manage",
+        tabKey: "assets.settings",
       },
     ],
   },
@@ -199,21 +222,23 @@ export const navigationGroups: NavGroup[] = [
     icon: Star,
     moduleFeatureKey: "performance",
     children: [
-      { label: "Ratings Overview", path: "/performance/ratings", requiredRoles: ["admin", "hr"] },
-      { label: "Rating Calibration", path: "/performance/calibration", requiredRoles: ["admin"] },
+      { label: "Ratings Overview", path: "/performance/ratings", requiredRoles: ["admin", "hr"], tabKey: "performance.ratings" },
+      { label: "Rating Calibration", path: "/performance/calibration", requiredRoles: ["admin"], tabKey: "performance.calibration" },
       {
         label: "Self Assessment",
         path: "/performance/self-assessment",
         requiredFeature: "performance.self_assessment",
+        tabKey: "performance.self",
       },
       {
         label: "Peer Assessment",
         path: "/performance/peer-assessment",
         requiredFeature: "performance.peer_assessment",
+        tabKey: "performance.peer",
       },
-      { label: "Manager Assessment", path: "/performance/manager-assessment", requiredRoles: ["admin", "hr"] },
-      { label: "Assessment Ratings", path: "/performance/assessment-ratings", requiredRoles: ["admin", "hr"] },
-      { label: "Questionnaire Settings", path: "/performance/questionnaire", requiredRoles: ["admin"] },
+      { label: "Manager Assessment", path: "/performance/manager-assessment", requiredRoles: ["admin", "hr"], tabKey: "performance.manager" },
+      { label: "Assessment Ratings", path: "/performance/assessment-ratings", requiredRoles: ["admin", "hr"], tabKey: "performance.assessment_ratings" },
+      { label: "Questionnaire Settings", path: "/performance/questionnaire", requiredRoles: ["admin"], tabKey: "performance.questionnaire" },
     ],
   },
   {
@@ -243,12 +268,12 @@ export const navigationGroups: NavGroup[] = [
     icon: Settings,
     requiredRoles: ["admin", "hr"],
     children: [
-      { label: "Company Profile", path: "/settings/company", requiredFeature: "settings.company_profile" },
-      { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"] },
-      { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"] },
-      { label: "Policies", path: "/settings/company-policies", requiredRoles: ["admin", "hr"] },
-      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"], requiredFeature: "audit.view" },
-      { label: "Visual Preferences", path: "/settings/visual", requiredFeature: "settings.visual_preferences" },
+      { label: "Company Profile", path: "/settings/company", requiredFeature: "settings.company_profile", tabKey: "settings.company_profile" },
+      { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"], tabKey: "settings.user_permissions" },
+      { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"], tabKey: "settings.approval_matrix" },
+      { label: "Policies", path: "/settings/company-policies", requiredRoles: ["admin", "hr"], tabKey: "settings.policies" },
+      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"], requiredFeature: "audit.view", tabKey: "settings.audit_trail" },
+      { label: "Visual Preferences", path: "/settings/visual", requiredFeature: "settings.visual_preferences", tabKey: "settings.visual" },
     ],
   },
 ];
@@ -269,12 +294,35 @@ function moduleAllowedByEnabled(key: string, role: AppRole, enabledModules: stri
   return enabledModules.includes(key);
 }
 
+export interface AccessibleTabInfo {
+  scope: "both" | "people_only";
+  people_enabled: boolean;
+}
+
+/** True if a tab should appear in the given UI scope ("me" or "people"). */
+function isTabAccessible(
+  tabKey: string | undefined,
+  uiScope: "me" | "people",
+  accessibleTabs: Map<string, AccessibleTabInfo> | null,
+): boolean {
+  // No tabKey on this nav item — fall through to other gating.
+  if (!tabKey) return true;
+  // Tab access not yet loaded — be permissive (other gating still applies).
+  if (!accessibleTabs) return true;
+  const info = accessibleTabs.get(tabKey);
+  if (!info) return false;
+  if (uiScope === "people") return info.people_enabled;
+  // Me scope — only personal-scope tabs are visible there.
+  return info.scope === "both";
+}
+
 export function filterNavigation(
   groups: NavGroup[],
   role: AppRole,
   hasFeature: (key: string) => boolean,
   enabledModules: string[] | null,
   roleFeatures?: Set<string>,
+  accessibleTabs?: Map<string, AccessibleTabInfo> | null,
 ): NavGroup[] {
   return groups
     .filter((g) => {
@@ -303,6 +351,10 @@ export function filterNavigation(
         )
           return false;
         if (c.requiredFeature && role !== "super_admin" && !hasFeature(c.requiredFeature)) return false;
+        // Tab-wise permissions gating (admins always pass — they get all tabs anyway)
+        if (role !== "super_admin" && !isTabAccessible(c.tabKey, "people", accessibleTabs ?? null)) {
+          return false;
+        }
         return true;
       });
       return { ...g, children: filteredChildren };
@@ -339,7 +391,7 @@ export const meNavigationGroups: NavGroup[] = [
     children: [
       { label: "My Profile", path: "/profile" },
       { label: "My ID Card", path: "/id-cards" },
-      { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
+      { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart", tabKey: "employees.org_chart" },
     ],
   },
   {
@@ -347,8 +399,8 @@ export const meNavigationGroups: NavGroup[] = [
     label: "My Payroll",
     icon: DollarSign,
     children: [
-      { label: "My Payslips", path: "/payslips", requiredFeature: "payroll.view_own_payslip" },
-      { label: "My Loans", path: "/loans", requiredFeature: "loans.view_own" },
+      { label: "My Payslips", path: "/payslips", requiredFeature: "payroll.view_own_payslip", tabKey: "payroll.payslips" },
+      { label: "My Loans", path: "/loans", requiredFeature: "loans.view_own", tabKey: "payroll.loans" },
     ],
   },
   {
@@ -365,8 +417,8 @@ export const meNavigationGroups: NavGroup[] = [
     label: "My Expenses",
     icon: Receipt,
     children: [
-      { label: "My Claims", path: "/expenses", requiredFeature: "expenses.view_own" },
-      { label: "My Advances", path: "/advances", requiredFeature: "advances.view_own" },
+      { label: "My Claims", path: "/expenses", requiredFeature: "expenses.view_own", tabKey: "expenses.claims" },
+      { label: "My Advances", path: "/advances", requiredFeature: "advances.view_own", tabKey: "expenses.advances" },
     ],
   },
   {
@@ -374,8 +426,8 @@ export const meNavigationGroups: NavGroup[] = [
     label: "My Assets",
     icon: Package,
     children: [
-      { label: "Assigned to Me", path: "/assets/mine", requiredFeature: "assets.view_my_assets" },
-      { label: "Request Asset", path: "/assets/store", requiredFeature: "assets.request_new" },
+      { label: "Assigned to Me", path: "/assets/mine", requiredFeature: "assets.view_my_assets", tabKey: "assets.inventory" },
+      { label: "Request Asset", path: "/assets/store", requiredFeature: "assets.request_new", tabKey: "assets.store" },
     ],
   },
   {
@@ -387,11 +439,13 @@ export const meNavigationGroups: NavGroup[] = [
         label: "Self Assessment",
         path: "/performance/self-assessment",
         requiredFeature: "performance.self_assessment",
+        tabKey: "performance.self",
       },
       {
         label: "Peer Assessment",
         path: "/performance/peer-assessment",
         requiredFeature: "performance.peer_assessment",
+        tabKey: "performance.peer",
       },
       { label: "My Ratings", path: "/performance/assessment-ratings", requiredFeature: "performance.view_own_ratings" },
     ],
@@ -414,9 +468,12 @@ const ME_MODULE_MAP: Record<string, string> = {
   "my-performance": "performance",
 };
 
-/** Filter Me navigation by enabled modules + per-feature gating.
- *  `dashboard`, `my-profile`, `policies` are always visible if the user has the role. */
-export function filterMeNavigation(hasFeature: (key: string) => boolean, enabledModules: string[] | null): NavGroup[] {
+/** Filter Me navigation by enabled modules + per-feature gating + tab access. */
+export function filterMeNavigation(
+  hasFeature: (key: string) => boolean,
+  enabledModules: string[] | null,
+  accessibleTabs?: Map<string, AccessibleTabInfo> | null,
+): NavGroup[] {
   return meNavigationGroups
     .filter((g) => {
       const moduleKey = ME_MODULE_MAP[g.key];
@@ -426,7 +483,11 @@ export function filterMeNavigation(hasFeature: (key: string) => boolean, enabled
     })
     .map((g) => {
       if (!g.children) return g;
-      const children = g.children.filter((c) => !c.requiredFeature || hasFeature(c.requiredFeature));
+      const children = g.children.filter((c) => {
+        if (c.requiredFeature && !hasFeature(c.requiredFeature)) return false;
+        if (!isTabAccessible(c.tabKey, "me", accessibleTabs ?? null)) return false;
+        return true;
+      });
       return { ...g, children };
     })
     .filter((g) => {
