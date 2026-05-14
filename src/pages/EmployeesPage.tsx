@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
+import { calculateLeaveEncashment } from "@/lib/leaveEncashment";
 import { useReporting } from "@/contexts/ReportingContext";
 import { useReminderSettings } from "@/contexts/ReminderSettingsContext";
 import { useRole } from "@/contexts/RoleContext";
