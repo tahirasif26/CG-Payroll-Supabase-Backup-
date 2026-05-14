@@ -56,6 +56,7 @@ function ActiveEmployeesTab() {
   const { data: payrollRunsRaw = [] } = usePayrollRuns();
   const { data: leaveRequestsRaw = [] } = useLeaveRequests();
   const { data: loansRaw = [] } = useLoans();
+  useEosBenefitConfigs(); // hydrate eosBenefitConfigs snapshot
   const payrollRuns = useMemo(() => mapPayrollRuns(payrollRunsRaw), [payrollRunsRaw]);
   const leaveRequests = useMemo(() => mapLeaves(leaveRequestsRaw), [leaveRequestsRaw]);
   const loans = useMemo(() => mapLoans(loansRaw), [loansRaw]);
