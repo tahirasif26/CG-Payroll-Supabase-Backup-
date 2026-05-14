@@ -978,16 +978,17 @@ function SeparatedEmployeesTab() {
 
 // --- Main Page ---
 export default function SeparationsPage() {
+  const [tab, setTab] = useState("active");
   return (
     <div className="space-y-6">
       <PageHeader title="End of Service" description="Manage employee end-of-service benefits, separations, and final settlements." />
-      <Tabs defaultValue="active">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="active">Active Employees</TabsTrigger>
           <TabsTrigger value="separated">Separated Employees</TabsTrigger>
         </TabsList>
         <TabsContent value="active">
-          <ActiveEmployeesTab />
+          <ActiveEmployeesTab onSeparationCreated={() => setTab("separated")} />
         </TabsContent>
         <TabsContent value="separated">
           <SeparatedEmployeesTab />
