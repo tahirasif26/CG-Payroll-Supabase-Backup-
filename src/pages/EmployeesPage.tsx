@@ -2307,18 +2307,43 @@ function EmployeesDirectory() {
             <>
               <div className="relative min-w-[220px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by name, ID or department..." className="pl-9 h-9 text-sm" />
+                <Input
+                  placeholder="Search by name, ID or department..."
+                  className="pl-9 h-9 text-sm"
+                  value={headerSearch}
+                  onChange={(e) => setHeaderSearch(e.target.value)}
+                />
               </div>
-              <Select defaultValue="all">
+              <Select value={headerStatus} onValueChange={setHeaderStatus}>
                 <SelectTrigger className="w-auto h-9 gap-1.5">
                   <Filter className="h-3.5 w-3.5" />
-                  <SelectValue placeholder="Filters" />
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Filters</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="on-leave">On Leave</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" className="h-9"><Download className="h-4 w-4 mr-2" />Export</Button>
+              {(() => {
+                const depts = Array.from(new Set(localEmployees.filter(e => e.status !== "separated").map(e => e.department).filter(Boolean)));
+                return (
+                  <Select value={headerDept} onValueChange={setHeaderDept}>
+                    <SelectTrigger className="w-auto h-9 gap-1.5">
+                      <Filter className="h-3.5 w-3.5" />
+                      <SelectValue placeholder="Department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {depts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
+              <Button variant="outline" size="sm" className="h-9" onClick={() => setExportTick(t => t + 1)}>
+                <Download className="h-4 w-4 mr-2" />Export
+              </Button>
               <Button size="sm" className="gradient-ey text-primary-foreground font-semibold h-9" onClick={() => setAddEmpOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />Add Employee
               </Button>
@@ -2332,6 +2357,13 @@ function EmployeesDirectory() {
         employees={localEmployees.filter(e => e.status !== "separated")}
         onSelect={(emp) => { setProfileViewOnly(true); setSelectedEmployee(emp); }}
         onEdit={isEmployee ? undefined : (emp) => setEditEmpId(emp.id)}
+        search={headerSearch}
+        onSearchChange={setHeaderSearch}
+        deptFilter={headerDept}
+        onDeptFilterChange={setHeaderDept}
+        statusFilter={headerStatus}
+        onStatusFilterChange={setHeaderStatus}
+        exportSignal={exportTick}
         isEmployee={isEmployee}
       />
     </div>
