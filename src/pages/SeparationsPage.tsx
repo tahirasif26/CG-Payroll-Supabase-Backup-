@@ -609,35 +609,35 @@ function SeparatedEmployeesTab() {
                     <div className="bg-muted/30 rounded-lg overflow-hidden text-sm">
                       <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
                         <div><span className="font-medium">Unpaid Salary</span><p className="text-xs text-muted-foreground">{new Date(detailItem.lastDate).getDate()} days</p></div>
-                        <span className="font-semibold">SAR {detailItem.unpaidSalary.toLocaleString()}</span>
+                        <span className="font-semibold">{detailItem.currency || "SAR"} {detailItem.unpaidSalary.toLocaleString()}</span>
                       </div>
                       {detailItem.eosBreakdown.map((eos, i) => (
                         <div key={i} className="flex justify-between px-3 py-2.5 border-b border-border/50">
                           <div><span className="font-medium">{eos.name}</span><p className="text-xs text-muted-foreground">End of service benefit</p></div>
-                          <span className="font-semibold">SAR {eos.amount.toLocaleString()}</span>
+                          <span className="font-semibold">{detailItem.currency || "SAR"} {eos.amount.toLocaleString()}</span>
                         </div>
                       ))}
                       {detailItem.noticePeriodPay > 0 && (
                         <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
                           <span className="font-medium">Notice Period Payment (in lieu)</span>
-                          <span className="font-semibold">SAR {detailItem.noticePeriodPay.toLocaleString()}</span>
+                          <span className="font-semibold">{detailItem.currency || "SAR"} {detailItem.noticePeriodPay.toLocaleString()}</span>
                         </div>
                       )}
                       {(detailItem.noticePeriodRecovery ?? 0) > 0 && (
                         <div className="flex justify-between px-3 py-2.5 border-b border-border/50 text-destructive">
                           <span className="font-medium">Notice Period Recovery</span>
-                          <span className="font-semibold">- SAR {detailItem.noticePeriodRecovery!.toLocaleString()}</span>
+                          <span className="font-semibold">- {detailItem.currency || "SAR"} {detailItem.noticePeriodRecovery!.toLocaleString()}</span>
                         </div>
                       )}
                       {detailItem.loanDeduction > 0 && (
                         <div className="flex justify-between px-3 py-2.5 border-b border-border/50 text-destructive">
                           <span className="font-medium">Outstanding Loan Deduction</span>
-                          <span className="font-semibold">- SAR {detailItem.loanDeduction.toLocaleString()}</span>
+                          <span className="font-semibold">- {detailItem.currency || "SAR"} {detailItem.loanDeduction.toLocaleString()}</span>
                         </div>
                       )}
                       <div className="flex justify-between px-4 py-3 font-bold bg-primary/10">
                         <span>Total Final Settlement</span>
-                        <span className="text-primary text-lg">SAR {detailItem.totalSettlement.toLocaleString()}</span>
+                        <span className="text-primary text-lg">{detailItem.currency || "SAR"} {detailItem.totalSettlement.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
