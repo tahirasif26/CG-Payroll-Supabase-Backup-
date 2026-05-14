@@ -28,6 +28,8 @@ export interface NavChild {
   requiredRoles?: AppRole[];
   hideForRoles?: AppRole[];
   labelsByRole?: Partial<Record<AppRole, string>>;
+  /** Tab key from public.tab_definitions used for tab-wise permission gating. */
+  tabKey?: string;
 }
 
 export interface NavGroup {
