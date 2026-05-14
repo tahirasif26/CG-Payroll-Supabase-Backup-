@@ -483,7 +483,11 @@ export function filterMeNavigation(
     })
     .map((g) => {
       if (!g.children) return g;
-      const children = g.children.filter((c) => !c.requiredFeature || hasFeature(c.requiredFeature));
+      const children = g.children.filter((c) => {
+        if (c.requiredFeature && !hasFeature(c.requiredFeature)) return false;
+        if (!isTabAccessible(c.tabKey, "me", accessibleTabs ?? null)) return false;
+        return true;
+      });
       return { ...g, children };
     })
     .filter((g) => {
