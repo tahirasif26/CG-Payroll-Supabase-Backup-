@@ -90,18 +90,25 @@ function ActiveEmployeesTab() {
         ? (Date.now() - new Date(emp.joiningDate).getTime()) / (1000 * 60 * 60 * 24 * 365)
         : 0;
       const basicSalary = emp.compensation?.find(c => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
-      const country = mapToEosbCountry(emp.workLocationCountry);
+      const empSetup = emp.payrollSetupId ? getSetupById(emp.payrollSetupId) : undefined;
+      const ccy = empSetup?.currency || "SAR";
+      const gratuityCfg = empSetup?.gratuity;
+      let country = mapToEosbCountry(emp.workLocationCountry);
+      if (gratuityCfg?.enabled) {
+        if (gratuityCfg.method === "saudi") country = "SA";
+        else if (gratuityCfg.method === "uae") country = "AE";
+        else if (gratuityCfg.method === "custom") country = null;
+      }
+      const gratuityBasis = gratuityCfg?.basis === "total" ? emp.salary : basicSalary;
       let totalEOS = 0;
       if (country && emp.joiningDate) {
-        // Country-aware statutory engine (assumes still employed → today as last day, termination factor)
-        const lastBasicMinor = toMinorUnits(basicSalary, "SAR");
         const res = calculateEosb(country, {
-          lastBasic: lastBasicMinor,
+          lastBasic: toMinorUnits(gratuityBasis, ccy),
           joiningDate: emp.joiningDate,
           lastWorkingDate: new Date().toISOString().slice(0, 10),
           reason: "termination",
         });
-        totalEOS = Math.round(fromMinorUnits(res.amount, "SAR"));
+        totalEOS = Math.round(fromMinorUnits(res.amount, ccy));
       } else {
         const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
         totalEOS = applicableEOS.reduce((sum, config) => {
@@ -111,7 +118,7 @@ function ActiveEmployeesTab() {
       }
       return { emp, yearsOfService, totalEOS };
     });
-  }, [activeEmployees]);
+  }, [activeEmployees, getSetupById]);
 
   const totalEOSOutstanding = eosData.reduce((s, d) => s + d.totalEOS, 0);
 
