@@ -50,6 +50,8 @@ import { useBLEAccess } from "@/contexts/BLEAccessContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { calculateLeaveEncashment } from "@/lib/leaveEncashment";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
+import { notifyUser, notifyClientAdmins, getEmployeeUserId } from "@/lib/notify";
+import { useRole } from "@/contexts/RoleContext";
 
 // --- Active Employees EOS Tab ---
 function ActiveEmployeesTab() {
