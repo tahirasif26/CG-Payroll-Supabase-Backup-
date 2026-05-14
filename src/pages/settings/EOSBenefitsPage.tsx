@@ -25,7 +25,153 @@ import {
 export type { EOSBenefitConfig, EOSTier };
 export const calculateEOSBenefit = _calc;
 
-const _placeholder: EOSBenefitConfig[] = [
+function TierEditor({ tiers, onChange }: { tiers: EOSTier[]; onChange: (t: EOSTier[]) => void }) {
+  const updateTier = (i: number, field: keyof EOSTier, value: string) => {
+    const updated = [...tiers];
+    if (field === "toYear") {
+      updated[i] = { ...updated[i], toYear: value ? Number(value) : null };
+    } else {
+      updated[i] = { ...updated[i], [field]: Number(value) };
+    }
+    onChange(updated);
+  };
+
+  const removeTier = (i: number) => onChange(tiers.filter((_, idx) => idx !== i));
+
+  const addTier = () => {
+    if (tiers.length >= 6) return;
+    const lastTo = tiers.length > 0 ? (tiers[tiers.length - 1].toYear ?? 0) : 0;
+    onChange([...tiers, { fromYear: lastTo, toYear: null, daysPerYear: 30, fraction: 1 }]);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 text-xs text-muted-foreground font-medium">
+        <span>From Year</span><span>To Year</span><span>Days / Year of Service</span><span>Salary Fraction</span><span></span>
+      </div>
+      {tiers.map((tier, i) => (
+        <div key={i} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center">
+          <Input type="number" min={0} value={tier.fromYear} onChange={e => updateTier(i, "fromYear", e.target.value)} className="h-8" />
+          <Input type="number" min={0} value={tier.toYear ?? ""} placeholder="∞" onChange={e => updateTier(i, "toYear", e.target.value)} className="h-8" />
+          <Input type="number" min={0} value={tier.daysPerYear} onChange={e => updateTier(i, "daysPerYear", e.target.value)} className="h-8" />
+          <Input type="number" min={0} step={0.1} value={tier.fraction} onChange={e => updateTier(i, "fraction", e.target.value)} className="h-8" />
+          {tiers.length > 1 && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeTier(i)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      ))}
+      {tiers.length < 6 && (
+        <Button variant="outline" size="sm" onClick={addTier}>
+          <Plus className="h-3 w-3 mr-1" />Add Tier
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export default function EOSBenefitsPage() {
+  const { data: configs = [], isLoading } = useEosBenefitConfigs();
+  const upsert = useUpsertEosBenefitConfig();
+  const del = useDeleteEosBenefitConfig();
+  const [editOpen, setEditOpen] = useState(false);
+  const [editItem, setEditItem] = useState<EOSBenefitConfig | null>(null);
+  const { toast: _toast } = useToast();
+
+  const openAdd = () => {
+    setEditItem({
+      id: "",
+      name: "",
+      type: "gratuity",
+      calculationBasis: "basic_salary",
+      tiers: [
+        { fromYear: 0, toYear: 2, daysPerYear: 10, fraction: 0.5 },
+        { fromYear: 2, toYear: 5, daysPerYear: 15, fraction: 0.5 },
+        { fromYear: 5, toYear: 10, daysPerYear: 30, fraction: 1 },
+        { fromYear: 10, toYear: null, daysPerYear: 30, fraction: 1 },
+      ],
+      appliesTo: [],
+      appliesToCountries: [],
+      isActive: true,
+    });
+    setEditOpen(true);
+  };
+
+  const openEdit = (c: EOSBenefitConfig) => {
+    setEditItem({ ...c, tiers: c.tiers.map(t => ({ ...t })) });
+    setEditOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!editItem || !editItem.name) return;
+    await upsert.mutateAsync(editItem);
+    setEditOpen(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    await del.mutateAsync(id);
+  };
+
+  const handleToggle = async (c: EOSBenefitConfig) => {
+    await upsert.mutateAsync({ ...c, isActive: !c.isActive });
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="End of Service Benefits" description="Configure gratuity, provident fund, and other end-of-service benefit rules.">
+        <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAdd}>
+          <Plus className="h-4 w-4 mr-2" />Add Benefit
+        </Button>
+      </PageHeader>
+
+      <div className="bg-card rounded-xl border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="font-semibold">Benefit Name</TableHead>
+              <TableHead className="font-semibold">Type</TableHead>
+              <TableHead className="font-semibold">Calculation Basis</TableHead>
+              <TableHead className="font-semibold">Applies To</TableHead>
+              <TableHead className="font-semibold">Countries</TableHead>
+              <TableHead className="font-semibold">Tiers</TableHead>
+              <TableHead className="font-semibold">Active</TableHead>
+              <TableHead className="font-semibold text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Loading…</TableCell></TableRow>
+            )}
+            {!isLoading && configs.length === 0 && (
+              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">No EOS benefit configurations yet.</TableCell></TableRow>
+            )}
+            {configs.map(c => (
+              <TableRow key={c.id}>
+                <TableCell className="font-medium">{c.name}</TableCell>
+                <TableCell className="capitalize">{c.type.replace("_", " ")}</TableCell>
+                <TableCell className="capitalize">{c.calculationBasis.replace("_", " ")}</TableCell>
+                <TableCell><EmployeeTypeBadges typeIds={c.appliesTo} /></TableCell>
+                <TableCell><CountryBadges countries={c.appliesToCountries} /></TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {c.tiers.map((t, i) => (
+                    <span key={i}>{t.fromYear}-{t.toYear ?? "∞"}yr: {t.daysPerYear}d × {t.fraction}{i < c.tiers.length - 1 ? " | " : ""}</span>
+                  ))}
+                </TableCell>
+                <TableCell>
+                  <Switch checked={c.isActive} onCheckedChange={() => handleToggle(c)} />
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}><Edit2 className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
   {
     id: "1",
     name: "Saudi Gratuity (End of Service Award)",
