@@ -49,6 +49,13 @@ function toRow(c: Partial<EOSBenefitConfig>) {
   return out;
 }
 
+/**
+ * Live snapshot of the most recent fetched configs. Populated as a side-effect
+ * of `useEosBenefitConfigs` so legacy call sites that import a plain array can
+ * keep working. Reactive consumers should use the hook directly.
+ */
+export const eosBenefitConfigs: EOSBenefitConfig[] = [];
+
 export function useEosBenefitConfigs() {
   const { clientId, isSuperAdmin } = useRole();
   return useQuery({
@@ -61,7 +68,11 @@ export function useEosBenefitConfigs() {
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return ((data ?? []) as any[]).map(fromRow);
+      const mapped = ((data ?? []) as any[]).map(fromRow);
+      // refresh module snapshot
+      eosBenefitConfigs.length = 0;
+      eosBenefitConfigs.push(...mapped);
+      return mapped;
     },
     staleTime: 30_000,
   });
