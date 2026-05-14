@@ -687,35 +687,35 @@ function SeparatedEmployeesTab() {
                 <div className="bg-muted/30 rounded-lg text-sm overflow-hidden">
                   <div className="flex justify-between px-3 py-2 border-b border-border/50">
                     <span>Unpaid Salary</span>
-                    <span className="font-medium">SAR {editItem.unpaidSalary.toLocaleString()}</span>
+                    <span className="font-medium">{editItem.currency || "SAR"} {editItem.unpaidSalary.toLocaleString()}</span>
                   </div>
                   {editItem.eosBreakdown.map((eos, i) => (
                     <div key={i} className="flex justify-between px-3 py-2 border-b border-border/50">
                       <span>{eos.name}</span>
-                      <span className="font-medium">SAR {eos.amount.toLocaleString()}</span>
+                      <span className="font-medium">{editItem.currency || "SAR"} {eos.amount.toLocaleString()}</span>
                     </div>
                   ))}
                   {editItem.noticePeriodPay > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50">
                       <span>Notice Period Pay (in lieu)</span>
-                      <span className="font-medium">SAR {editItem.noticePeriodPay.toLocaleString()}</span>
+                      <span className="font-medium">{editItem.currency || "SAR"} {editItem.noticePeriodPay.toLocaleString()}</span>
                     </div>
                   )}
                   {(editItem.noticePeriodRecovery ?? 0) > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
                       <span>Notice Period Recovery</span>
-                      <span className="font-medium">- SAR {editItem.noticePeriodRecovery!.toLocaleString()}</span>
+                      <span className="font-medium">- {editItem.currency || "SAR"} {editItem.noticePeriodRecovery!.toLocaleString()}</span>
                     </div>
                   )}
                   {editItem.loanDeduction > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
                       <span>Loan Deduction</span>
-                      <span className="font-medium">- SAR {editItem.loanDeduction.toLocaleString()}</span>
+                      <span className="font-medium">- {editItem.currency || "SAR"} {editItem.loanDeduction.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between px-3 py-2 font-bold bg-primary/10">
                     <span>Total Settlement</span>
-                    <span className="text-primary">SAR {editItem.totalSettlement.toLocaleString()}</span>
+                    <span className="text-primary">{editItem.currency || "SAR"} {editItem.totalSettlement.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
