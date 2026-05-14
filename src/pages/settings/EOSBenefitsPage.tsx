@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,99 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { CountryMultiSelect, CountryBadges } from "@/components/CountryMultiSelect";
 import { EmployeeTypeMultiSelect, EmployeeTypeBadges } from "@/components/EmployeeTypeMultiSelect";
+import {
+  useEosBenefitConfigs,
+  useUpsertEosBenefitConfig,
+  useDeleteEosBenefitConfig,
+  calculateEOSBenefit as _calc,
+  eosBenefitConfigs as _eosSnapshot,
+  type EOSBenefitConfig,
+  type EOSTier,
+} from "@/hooks/queries/useEosBenefitConfigs";
 
-export interface EOSBenefitConfig {
-  id: string;
-  name: string;
-  type: "gratuity" | "provident_fund" | "other";
-  calculationBasis: "basic_salary" | "gross_salary";
-  tiers: EOSTier[];
-  appliesTo: string[];
-  appliesToCountries?: string[];
-  isActive: boolean;
-}
-
-export interface EOSTier {
-  fromYear: number;
-  toYear: number | null;
-  daysPerYear: number;
-  fraction: number;
-}
-
-const defaultConfigs: EOSBenefitConfig[] = [
-  {
-    id: "1",
-    name: "Saudi Gratuity (End of Service Award)",
-    type: "gratuity",
-    calculationBasis: "basic_salary",
-    tiers: [
-      { fromYear: 0, toYear: 2, daysPerYear: 10, fraction: 0.5 },
-      { fromYear: 2, toYear: 5, daysPerYear: 15, fraction: 0.5 },
-      { fromYear: 5, toYear: 10, daysPerYear: 30, fraction: 1 },
-      { fromYear: 10, toYear: null, daysPerYear: 30, fraction: 1 },
-    ],
-    appliesTo: ["direct"],
-    appliesToCountries: ["Saudi Arabia"],
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Provident Fund",
-    type: "provident_fund",
-    calculationBasis: "basic_salary",
-    tiers: [{ fromYear: 0, toYear: null, daysPerYear: 30, fraction: 1 }],
-    appliesTo: ["direct", "it_developer"],
-    isActive: false,
-  },
-  {
-    id: "3",
-    name: "Contractor End of Contract Bonus",
-    type: "other",
-    calculationBasis: "gross_salary",
-    tiers: [
-      { fromYear: 0, toYear: 2, daysPerYear: 7, fraction: 0.5 },
-      { fromYear: 2, toYear: null, daysPerYear: 15, fraction: 1 },
-    ],
-    appliesTo: ["contractor"],
-    appliesToCountries: ["Saudi Arabia", "UAE"],
-    isActive: true,
-  },
-  {
-    id: "4",
-    name: "Intern Completion Gratuity",
-    type: "gratuity",
-    calculationBasis: "basic_salary",
-    tiers: [{ fromYear: 0, toYear: null, daysPerYear: 5, fraction: 0.5 }],
-    appliesTo: ["intern"],
-    isActive: true,
-  },
-];
-
-export function calculateEOSBenefit(
-  config: EOSBenefitConfig,
-  yearsOfService: number,
-  monthlySalaryBasis: number
-): number {
-  if (!config.isActive || yearsOfService <= 0) return 0;
-  const dailySalary = monthlySalaryBasis / 30;
-  let total = 0;
-
-  for (const tier of config.tiers) {
-    const from = tier.fromYear;
-    const to = tier.toYear ?? Infinity;
-    if (yearsOfService <= from) break;
-    const yearsInTier = Math.min(yearsOfService, to) - from;
-    if (yearsInTier <= 0) continue;
-    total += dailySalary * tier.daysPerYear * tier.fraction * yearsInTier;
-  }
-
-  return Math.round(total);
-}
-
-export const eosBenefitConfigs = defaultConfigs;
+// Re-exports for backwards compatibility with existing imports.
+export type { EOSBenefitConfig, EOSTier };
+export const calculateEOSBenefit = _calc;
+export const eosBenefitConfigs = _eosSnapshot;
 
 function TierEditor({ tiers, onChange }: { tiers: EOSTier[]; onChange: (t: EOSTier[]) => void }) {
   const updateTier = (i: number, field: keyof EOSTier, value: string) => {
@@ -150,14 +73,15 @@ function TierEditor({ tiers, onChange }: { tiers: EOSTier[]; onChange: (t: EOSTi
 }
 
 export default function EOSBenefitsPage() {
-  const [configs, setConfigs] = useState<EOSBenefitConfig[]>(defaultConfigs);
+  const { data: configs = [], isLoading } = useEosBenefitConfigs();
+  const upsert = useUpsertEosBenefitConfig();
+  const del = useDeleteEosBenefitConfig();
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<EOSBenefitConfig | null>(null);
-  const { toast } = useToast();
 
   const openAdd = () => {
     setEditItem({
-      id: String(Date.now()),
+      id: "",
       name: "",
       type: "gratuity",
       calculationBasis: "basic_salary",
@@ -168,6 +92,7 @@ export default function EOSBenefitsPage() {
         { fromYear: 10, toYear: null, daysPerYear: 30, fraction: 1 },
       ],
       appliesTo: [],
+      appliesToCountries: [],
       isActive: true,
     });
     setEditOpen(true);
@@ -178,24 +103,18 @@ export default function EOSBenefitsPage() {
     setEditOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editItem || !editItem.name) return;
-    setConfigs(prev => {
-      const exists = prev.find(c => c.id === editItem.id);
-      if (exists) return prev.map(c => c.id === editItem.id ? editItem : c);
-      return [...prev, editItem];
-    });
+    await upsert.mutateAsync(editItem);
     setEditOpen(false);
-    toast({ title: "Saved", description: `${editItem.name} configuration saved.` });
   };
 
-  const handleDelete = (id: string) => {
-    setConfigs(prev => prev.filter(c => c.id !== id));
-    toast({ title: "Deleted", description: "EOS benefit configuration removed." });
+  const handleDelete = async (id: string) => {
+    await del.mutateAsync(id);
   };
 
-  const handleToggle = (id: string) => {
-    setConfigs(prev => prev.map(c => c.id === id ? { ...c, isActive: !c.isActive } : c));
+  const handleToggle = async (c: EOSBenefitConfig) => {
+    await upsert.mutateAsync({ ...c, isActive: !c.isActive });
   };
 
   return (
@@ -221,6 +140,12 @@ export default function EOSBenefitsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {isLoading && (
+              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Loading…</TableCell></TableRow>
+            )}
+            {!isLoading && configs.length === 0 && (
+              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">No EOS benefit configurations yet.</TableCell></TableRow>
+            )}
             {configs.map(c => (
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.name}</TableCell>
@@ -234,7 +159,7 @@ export default function EOSBenefitsPage() {
                   ))}
                 </TableCell>
                 <TableCell>
-                  <Switch checked={c.isActive} onCheckedChange={() => handleToggle(c.id)} />
+                  <Switch checked={c.isActive} onCheckedChange={() => handleToggle(c)} />
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -252,7 +177,7 @@ export default function EOSBenefitsPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editItem?.name ? "Edit" : "Add"} EOS Benefit</DialogTitle>
+            <DialogTitle>{editItem?.id ? "Edit" : "Add"} EOS Benefit</DialogTitle>
             <DialogDescription>Configure the end-of-service benefit rules, calculation basis, and tier structure.</DialogDescription>
           </DialogHeader>
           {editItem && (
@@ -290,7 +215,6 @@ export default function EOSBenefitsPage() {
                 <CountryMultiSelect value={editItem.appliesToCountries || []} onChange={c => setEditItem({ ...editItem, appliesToCountries: c })} />
               </div>
 
-              {/* Tier Editor */}
               <div className="space-y-2">
                 <Label>Service Tiers</Label>
                 <p className="text-xs text-muted-foreground">Define how many days of salary per year of service for each bracket. Fraction 1 = full pay, 0.5 = half pay.</p>
@@ -304,7 +228,7 @@ export default function EOSBenefitsPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>Save</Button>
+            <Button onClick={handleSave} disabled={upsert.isPending}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
