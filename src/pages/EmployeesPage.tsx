@@ -1665,11 +1665,18 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
   const totalEOS = eosBreakdown.reduce((s, e) => s + e.amount, 0);
 
   // Leave balance (simplified)
+  // Leave encashment from actual balances
+  const { leaveTypes: ltAll, balances: ltBalances } = useLeaveTypes();
   const empLeaves = leaveRequests.filter(l => l.employeeId === emp.id && l.status === "approved");
   const totalUsedLeave = empLeaves.reduce((s, l) => s + l.days, 0);
   const annualEntitlement = 21;
   const remainingLeave = annualEntitlement - totalUsedLeave;
-  const leaveEncashment = 0;
+  const leaveEncashment = calculateLeaveEncashment({
+    employeeId: emp.id,
+    basicSalary,
+    leaveTypes: ltAll,
+    balances: ltBalances,
+  }).amount;
 
   // Unpaid salary (assume current month partial)
   const lastDate = separationData.lastDate ? new Date(separationData.lastDate) : new Date();
