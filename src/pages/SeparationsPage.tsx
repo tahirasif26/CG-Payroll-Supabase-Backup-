@@ -128,12 +128,31 @@ function ActiveEmployeesTab() {
       : 0;
     const basicSalary = emp.compensation?.find((c: any) => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
     const dailySalary = emp.salary / 30;
-    const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
-    const eosBreakdown = applicableEOS.map((config: any) => {
-      const basis = config.calculationBasis === "basic_salary" ? basicSalary : emp.salary;
-      return { name: config.name, amount: calculateEOSBenefit(config, yearsOfService, basis) };
-    });
-    const totalEOS = eosBreakdown.reduce((s: number, e: any) => s + e.amount, 0);
+    const country = mapToEosbCountry(emp.workLocationCountry);
+    const reasonForEngine: "resignation" | "termination" | "end_of_contract" | "retirement" =
+      separationData.reason === "resignation" || separationData.reason === "termination" ||
+      separationData.reason === "end_of_contract" || separationData.reason === "retirement"
+        ? separationData.reason
+        : "termination";
+    let eosBreakdown: { name: string; amount: number }[];
+    let totalEOS: number;
+    if (country && emp.joiningDate) {
+      const res = calculateEosb(country, {
+        lastBasic: toMinorUnits(basicSalary, "SAR"),
+        joiningDate: emp.joiningDate,
+        lastWorkingDate: separationData.lastDate,
+        reason: reasonForEngine,
+      });
+      totalEOS = Math.round(fromMinorUnits(res.amount, "SAR"));
+      eosBreakdown = [{ name: country === "SA" ? "KSA Statutory Gratuity" : "UAE Statutory Gratuity", amount: totalEOS }];
+    } else {
+      const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
+      eosBreakdown = applicableEOS.map((config: any) => {
+        const basis = config.calculationBasis === "basic_salary" ? basicSalary : emp.salary;
+        return { name: config.name, amount: calculateEOSBenefit(config, yearsOfService, basis) };
+      });
+      totalEOS = eosBreakdown.reduce((s, e) => s + e.amount, 0);
+    }
 
     const empLeaves = leaveRequests.filter(l => l.employeeId === emp.id && l.status === "approved");
     const totalUsedLeave = empLeaves.reduce((s: number, l: any) => s + l.days, 0);
