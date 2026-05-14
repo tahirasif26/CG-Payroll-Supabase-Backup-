@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { eosBenefitConfigs, calculateEOSBenefit } from "@/pages/settings/EOSBenefitsPage";
 import { useSeparations } from "@/contexts/SeparationContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
+import { calculateLeaveEncashment } from "@/lib/leaveEncashment";
 import { useReporting } from "@/contexts/ReportingContext";
 import { useReminderSettings } from "@/contexts/ReminderSettingsContext";
 import { useRole } from "@/contexts/RoleContext";
@@ -1664,11 +1665,18 @@ function SeparationDialog({ open, onOpenChange, emp, separationData, setSeparati
   const totalEOS = eosBreakdown.reduce((s, e) => s + e.amount, 0);
 
   // Leave balance (simplified)
+  // Leave encashment from actual balances
+  const { leaveTypes: ltAll, balances: ltBalances } = useLeaveTypes();
   const empLeaves = leaveRequests.filter(l => l.employeeId === emp.id && l.status === "approved");
   const totalUsedLeave = empLeaves.reduce((s, l) => s + l.days, 0);
   const annualEntitlement = 21;
   const remainingLeave = annualEntitlement - totalUsedLeave;
-  const leaveEncashment = 0;
+  const leaveEncashment = calculateLeaveEncashment({
+    employeeId: emp.id,
+    basicSalary,
+    leaveTypes: ltAll,
+    balances: ltBalances,
+  }).amount;
 
   // Unpaid salary (assume current month partial)
   const lastDate = separationData.lastDate ? new Date(separationData.lastDate) : new Date();
@@ -1835,6 +1843,7 @@ function EmployeesDirectory() {
   });
   const { toast } = useToast();
   const { addSeparation } = useSeparations();
+  const { leaveTypes: directoryLeaveTypes, balances: directoryLeaveBalances } = useLeaveTypes();
 
   // Document state management
   const [allDocs, setAllDocs] = useState<Record<string, EmployeeDoc[]>>(initialEmployeeDocs);
@@ -2230,7 +2239,12 @@ function EmployeesDirectory() {
               const totalEOS = eosBreakdown.reduce((s, e) => s + e.amount, 0);
               const empLeaves = leaveRequests.filter(l => l.employeeId === separationEmp.id && l.status === "approved");
               const remainingLeave = 21 - empLeaves.reduce((s, l) => s + l.days, 0);
-              const leaveEncashment = 0;
+              const leaveEncashment = calculateLeaveEncashment({
+                employeeId: separationEmp.id,
+                basicSalary,
+                leaveTypes: directoryLeaveTypes,
+                balances: directoryLeaveBalances,
+              }).amount;
               const lastDate = separationData.lastDate ? new Date(separationData.lastDate) : new Date();
               const unpaidSalary = Math.round(dailySalary * lastDate.getDate());
               const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
