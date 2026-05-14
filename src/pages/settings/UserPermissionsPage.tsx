@@ -636,6 +636,7 @@ function MembersTab({
   role, allRoles,
 }: { role: RoleWithRelations; allRoles: RoleWithRelations[] }) {
   const { data: employees = [] } = useEmployees({ status: "active" });
+  const { user } = useRole();
   const assign = useAssignEmployeeRole();
   const employeeRole = allRoles.find(
     (r) => r.is_system && r.name.toLowerCase() === "employee",
