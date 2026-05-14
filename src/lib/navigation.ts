@@ -275,6 +275,7 @@ export function filterNavigation(
   hasFeature: (key: string) => boolean,
   enabledModules: string[] | null,
   roleFeatures?: Set<string>,
+  hasTabPath?: (path: string) => boolean,
 ): NavGroup[] {
   return groups
     .filter((g) => {
@@ -303,12 +304,19 @@ export function filterNavigation(
         )
           return false;
         if (c.requiredFeature && role !== "super_admin" && !hasFeature(c.requiredFeature)) return false;
+        if (hasTabPath && role !== "super_admin" && !hasTabPath(c.path)) return false;
         return true;
       });
       return { ...g, children: filteredChildren };
     })
     .filter((g) => {
-      if (g.basePath) return true;
+      if (g.basePath) {
+        if (hasTabPath && role !== "super_admin" && !hasTabPath(g.basePath)) {
+          // Allow always-visible groups regardless of tab access
+          if (!ALWAYS_VISIBLE_GROUPS.has(g.key)) return false;
+        }
+        return true;
+      }
       return !!g.children && g.children.length > 0;
     });
 }
@@ -416,7 +424,11 @@ const ME_MODULE_MAP: Record<string, string> = {
 
 /** Filter Me navigation by enabled modules + per-feature gating.
  *  `dashboard`, `my-profile`, `policies` are always visible if the user has the role. */
-export function filterMeNavigation(hasFeature: (key: string) => boolean, enabledModules: string[] | null): NavGroup[] {
+export function filterMeNavigation(
+  hasFeature: (key: string) => boolean,
+  enabledModules: string[] | null,
+  hasTabPath?: (path: string) => boolean,
+): NavGroup[] {
   return meNavigationGroups
     .filter((g) => {
       const moduleKey = ME_MODULE_MAP[g.key];
@@ -426,11 +438,20 @@ export function filterMeNavigation(hasFeature: (key: string) => boolean, enabled
     })
     .map((g) => {
       if (!g.children) return g;
-      const children = g.children.filter((c) => !c.requiredFeature || hasFeature(c.requiredFeature));
+      const children = g.children.filter((c) => {
+        if (c.requiredFeature && !hasFeature(c.requiredFeature)) return false;
+        if (hasTabPath && !hasTabPath(c.path)) return false;
+        return true;
+      });
       return { ...g, children };
     })
     .filter((g) => {
-      if (g.basePath) return true;
+      if (g.basePath) {
+        if (hasTabPath && !hasTabPath(g.basePath)) {
+          if (g.key !== "dashboard") return false;
+        }
+        return true;
+      }
       return !!g.children && g.children.length > 0;
     });
 }
