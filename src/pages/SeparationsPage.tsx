@@ -133,6 +133,8 @@ function ActiveEmployeesTab() {
       : 0;
     const basicSalary = emp.compensation?.find((c: any) => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
     const dailySalary = emp.salary / 30;
+    const empSetup = emp.payrollSetupId ? getSetupById(emp.payrollSetupId) : undefined;
+    const currency = empSetup?.currency || "SAR";
     const country = mapToEosbCountry(emp.workLocationCountry);
     const reasonForEngine: "resignation" | "termination" | "end_of_contract" | "retirement" =
       separationData.reason === "resignation" || separationData.reason === "termination" ||
