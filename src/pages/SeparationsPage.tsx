@@ -50,6 +50,8 @@ import { useBLEAccess } from "@/contexts/BLEAccessContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { calculateLeaveEncashment } from "@/lib/leaveEncashment";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
+import { notifyUser, notifyClientAdmins, getEmployeeUserId } from "@/lib/notify";
+import { useRole } from "@/contexts/RoleContext";
 
 // --- Active Employees EOS Tab ---
 function ActiveEmployeesTab() {
@@ -133,6 +135,8 @@ function ActiveEmployeesTab() {
       : 0;
     const basicSalary = emp.compensation?.find((c: any) => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
     const dailySalary = emp.salary / 30;
+    const empSetup = emp.payrollSetupId ? getSetupById(emp.payrollSetupId) : undefined;
+    const currency = empSetup?.currency || "SAR";
     const country = mapToEosbCountry(emp.workLocationCountry);
     const reasonForEngine: "resignation" | "termination" | "end_of_contract" | "retirement" =
       separationData.reason === "resignation" || separationData.reason === "termination" ||
@@ -143,12 +147,12 @@ function ActiveEmployeesTab() {
     let totalEOS: number;
     if (country && emp.joiningDate) {
       const res = calculateEosb(country, {
-        lastBasic: toMinorUnits(basicSalary, "SAR"),
+        lastBasic: toMinorUnits(basicSalary, currency),
         joiningDate: emp.joiningDate,
         lastWorkingDate: separationData.lastDate,
         reason: reasonForEngine,
       });
-      totalEOS = Math.round(fromMinorUnits(res.amount, "SAR"));
+      totalEOS = Math.round(fromMinorUnits(res.amount, currency));
       eosBreakdown = [{ name: country === "SA" ? "KSA Statutory Gratuity" : "UAE Statutory Gratuity", amount: totalEOS }];
     } else {
       const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
@@ -218,6 +222,7 @@ function ActiveEmployeesTab() {
       processedDate: new Date().toISOString().split("T")[0],
       payrollMonth: run?.month || "",
       payrollYear: run?.year || new Date().getFullYear(),
+      currency,
       status: "pending",
     });
 
@@ -345,6 +350,7 @@ function ActiveEmployeesTab() {
 // --- Separated Employees Tab (existing functionality) ---
 function SeparatedEmployeesTab() {
   const { separations, updateSeparation, removeSeparation } = useSeparations();
+  const { clientId } = useRole();
   const { employees } = useEmployees();
   const { getAssetsForEmployee, reassignAsset } = useAssets();
   const { data: payrollRunsRaw = [] } = usePayrollRuns();
@@ -480,6 +486,35 @@ function SeparatedEmployeesTab() {
       payrollYear: processingRun.year,
     });
 
+    // Notify employee + client admins (non-blocking)
+    const sep = checklistSep;
+    const ccy = sep.currency || "SAR";
+    const amount = sep.totalSettlement?.toLocaleString() ?? "0";
+    (async () => {
+      const userId = await getEmployeeUserId(sep.employeeId);
+      if (userId) {
+        await notifyUser(userId, {
+          title: "Your separation has been approved",
+          body: `Final settlement of ${ccy} ${amount} will be processed in ${processingRun.month} ${processingRun.year} payroll.`,
+          category: "payroll",
+          severity: "info",
+          entityType: "separation",
+          entityId: sep.id,
+          actionUrl: "/separations",
+          clientId,
+        });
+      }
+      await notifyClientAdmins(clientId, {
+        title: `Separation approved: ${sep.employeeName}`,
+        body: `${sep.empId} • ${sep.department} • Settlement ${ccy} ${amount} → ${processingRun.month} ${processingRun.year}`,
+        category: "payroll",
+        severity: "info",
+        entityType: "separation",
+        entityId: sep.id,
+        actionUrl: "/separations",
+      });
+    })();
+
     setChecklistOpen(false);
     setChecklistSep(null);
     toast({ title: "Separation Approved", description: `${checklistSep.employeeName}'s separation linked to ${processingRun.month} ${processingRun.year} payroll.` });
@@ -606,35 +641,35 @@ function SeparatedEmployeesTab() {
                     <div className="bg-muted/30 rounded-lg overflow-hidden text-sm">
                       <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
                         <div><span className="font-medium">Unpaid Salary</span><p className="text-xs text-muted-foreground">{new Date(detailItem.lastDate).getDate()} days</p></div>
-                        <span className="font-semibold">SAR {detailItem.unpaidSalary.toLocaleString()}</span>
+                        <span className="font-semibold">{detailItem.currency || "SAR"} {detailItem.unpaidSalary.toLocaleString()}</span>
                       </div>
                       {detailItem.eosBreakdown.map((eos, i) => (
                         <div key={i} className="flex justify-between px-3 py-2.5 border-b border-border/50">
                           <div><span className="font-medium">{eos.name}</span><p className="text-xs text-muted-foreground">End of service benefit</p></div>
-                          <span className="font-semibold">SAR {eos.amount.toLocaleString()}</span>
+                          <span className="font-semibold">{detailItem.currency || "SAR"} {eos.amount.toLocaleString()}</span>
                         </div>
                       ))}
                       {detailItem.noticePeriodPay > 0 && (
                         <div className="flex justify-between px-3 py-2.5 border-b border-border/50">
                           <span className="font-medium">Notice Period Payment (in lieu)</span>
-                          <span className="font-semibold">SAR {detailItem.noticePeriodPay.toLocaleString()}</span>
+                          <span className="font-semibold">{detailItem.currency || "SAR"} {detailItem.noticePeriodPay.toLocaleString()}</span>
                         </div>
                       )}
                       {(detailItem.noticePeriodRecovery ?? 0) > 0 && (
                         <div className="flex justify-between px-3 py-2.5 border-b border-border/50 text-destructive">
                           <span className="font-medium">Notice Period Recovery</span>
-                          <span className="font-semibold">- SAR {detailItem.noticePeriodRecovery!.toLocaleString()}</span>
+                          <span className="font-semibold">- {detailItem.currency || "SAR"} {detailItem.noticePeriodRecovery!.toLocaleString()}</span>
                         </div>
                       )}
                       {detailItem.loanDeduction > 0 && (
                         <div className="flex justify-between px-3 py-2.5 border-b border-border/50 text-destructive">
                           <span className="font-medium">Outstanding Loan Deduction</span>
-                          <span className="font-semibold">- SAR {detailItem.loanDeduction.toLocaleString()}</span>
+                          <span className="font-semibold">- {detailItem.currency || "SAR"} {detailItem.loanDeduction.toLocaleString()}</span>
                         </div>
                       )}
                       <div className="flex justify-between px-4 py-3 font-bold bg-primary/10">
                         <span>Total Final Settlement</span>
-                        <span className="text-primary text-lg">SAR {detailItem.totalSettlement.toLocaleString()}</span>
+                        <span className="text-primary text-lg">{detailItem.currency || "SAR"} {detailItem.totalSettlement.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -684,35 +719,35 @@ function SeparatedEmployeesTab() {
                 <div className="bg-muted/30 rounded-lg text-sm overflow-hidden">
                   <div className="flex justify-between px-3 py-2 border-b border-border/50">
                     <span>Unpaid Salary</span>
-                    <span className="font-medium">SAR {editItem.unpaidSalary.toLocaleString()}</span>
+                    <span className="font-medium">{editItem.currency || "SAR"} {editItem.unpaidSalary.toLocaleString()}</span>
                   </div>
                   {editItem.eosBreakdown.map((eos, i) => (
                     <div key={i} className="flex justify-between px-3 py-2 border-b border-border/50">
                       <span>{eos.name}</span>
-                      <span className="font-medium">SAR {eos.amount.toLocaleString()}</span>
+                      <span className="font-medium">{editItem.currency || "SAR"} {eos.amount.toLocaleString()}</span>
                     </div>
                   ))}
                   {editItem.noticePeriodPay > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50">
                       <span>Notice Period Pay (in lieu)</span>
-                      <span className="font-medium">SAR {editItem.noticePeriodPay.toLocaleString()}</span>
+                      <span className="font-medium">{editItem.currency || "SAR"} {editItem.noticePeriodPay.toLocaleString()}</span>
                     </div>
                   )}
                   {(editItem.noticePeriodRecovery ?? 0) > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
                       <span>Notice Period Recovery</span>
-                      <span className="font-medium">- SAR {editItem.noticePeriodRecovery!.toLocaleString()}</span>
+                      <span className="font-medium">- {editItem.currency || "SAR"} {editItem.noticePeriodRecovery!.toLocaleString()}</span>
                     </div>
                   )}
                   {editItem.loanDeduction > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
                       <span>Loan Deduction</span>
-                      <span className="font-medium">- SAR {editItem.loanDeduction.toLocaleString()}</span>
+                      <span className="font-medium">- {editItem.currency || "SAR"} {editItem.loanDeduction.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between px-3 py-2 font-bold bg-primary/10">
                     <span>Total Settlement</span>
-                    <span className="text-primary">SAR {editItem.totalSettlement.toLocaleString()}</span>
+                    <span className="text-primary">{editItem.currency || "SAR"} {editItem.totalSettlement.toLocaleString()}</span>
                   </div>
                 </div>
               </div>

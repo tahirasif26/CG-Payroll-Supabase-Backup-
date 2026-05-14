@@ -75,6 +75,7 @@ export interface SeparationRecord {
   payrollMonth?: string;
   payrollYear?: number;
   payrollRunId?: string;
+  currency?: string;
 }
 
 interface SeparationContextValue {
