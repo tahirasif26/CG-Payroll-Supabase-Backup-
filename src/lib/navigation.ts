@@ -391,7 +391,7 @@ export const meNavigationGroups: NavGroup[] = [
     children: [
       { label: "My Profile", path: "/profile" },
       { label: "My ID Card", path: "/id-cards" },
-      { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart" },
+      { label: "Org Chart", path: "/org-chart", requiredFeature: "employees.view_org_chart", tabKey: "employees.org_chart" },
     ],
   },
   {
@@ -399,8 +399,8 @@ export const meNavigationGroups: NavGroup[] = [
     label: "My Payroll",
     icon: DollarSign,
     children: [
-      { label: "My Payslips", path: "/payslips", requiredFeature: "payroll.view_own_payslip" },
-      { label: "My Loans", path: "/loans", requiredFeature: "loans.view_own" },
+      { label: "My Payslips", path: "/payslips", requiredFeature: "payroll.view_own_payslip", tabKey: "payroll.payslips" },
+      { label: "My Loans", path: "/loans", requiredFeature: "loans.view_own", tabKey: "payroll.loans" },
     ],
   },
   {
@@ -417,8 +417,8 @@ export const meNavigationGroups: NavGroup[] = [
     label: "My Expenses",
     icon: Receipt,
     children: [
-      { label: "My Claims", path: "/expenses", requiredFeature: "expenses.view_own" },
-      { label: "My Advances", path: "/advances", requiredFeature: "advances.view_own" },
+      { label: "My Claims", path: "/expenses", requiredFeature: "expenses.view_own", tabKey: "expenses.claims" },
+      { label: "My Advances", path: "/advances", requiredFeature: "advances.view_own", tabKey: "expenses.advances" },
     ],
   },
   {
@@ -426,8 +426,8 @@ export const meNavigationGroups: NavGroup[] = [
     label: "My Assets",
     icon: Package,
     children: [
-      { label: "Assigned to Me", path: "/assets/mine", requiredFeature: "assets.view_my_assets" },
-      { label: "Request Asset", path: "/assets/store", requiredFeature: "assets.request_new" },
+      { label: "Assigned to Me", path: "/assets/mine", requiredFeature: "assets.view_my_assets", tabKey: "assets.inventory" },
+      { label: "Request Asset", path: "/assets/store", requiredFeature: "assets.request_new", tabKey: "assets.store" },
     ],
   },
   {
@@ -439,11 +439,13 @@ export const meNavigationGroups: NavGroup[] = [
         label: "Self Assessment",
         path: "/performance/self-assessment",
         requiredFeature: "performance.self_assessment",
+        tabKey: "performance.self",
       },
       {
         label: "Peer Assessment",
         path: "/performance/peer-assessment",
         requiredFeature: "performance.peer_assessment",
+        tabKey: "performance.peer",
       },
       { label: "My Ratings", path: "/performance/assessment-ratings", requiredFeature: "performance.view_own_ratings" },
     ],
@@ -466,9 +468,12 @@ const ME_MODULE_MAP: Record<string, string> = {
   "my-performance": "performance",
 };
 
-/** Filter Me navigation by enabled modules + per-feature gating.
- *  `dashboard`, `my-profile`, `policies` are always visible if the user has the role. */
-export function filterMeNavigation(hasFeature: (key: string) => boolean, enabledModules: string[] | null): NavGroup[] {
+/** Filter Me navigation by enabled modules + per-feature gating + tab access. */
+export function filterMeNavigation(
+  hasFeature: (key: string) => boolean,
+  enabledModules: string[] | null,
+  accessibleTabs?: Map<string, AccessibleTabInfo> | null,
+): NavGroup[] {
   return meNavigationGroups
     .filter((g) => {
       const moduleKey = ME_MODULE_MAP[g.key];
