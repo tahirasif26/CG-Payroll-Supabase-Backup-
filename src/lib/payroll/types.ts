@@ -111,6 +111,8 @@ export interface PayrollLineResult {
   oneOffBenefits: bigint;
   oneOffDeductions: bigint;
   separationSettlement: bigint;
+  /** Employer-side EOS accrual booked this period (GL provision, NOT a deduction). */
+  eosAccrual: bigint;
   netPay: bigint;
   payCurrency: string;
   /** Full audit snapshot of inputs used at calculation time. */
