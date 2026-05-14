@@ -4,11 +4,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Mail, Phone, Globe, Clock, DollarSign, CalendarDays, Users, Activity, Send, CheckCircle2, Loader2 } from "lucide-react";
+import { Building2, Mail, Phone, Globe, Clock, DollarSign, CalendarDays, Users, Activity, Send, CheckCircle2, Loader2, LayoutGrid } from "lucide-react";
 import { useClientUsers, type ClientStat } from "@/hooks/queries/useClients";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ClientTabAccessEditor } from "./ClientTabAccessEditor";
 
 const ROLE_COLORS: Record<string, string> = {
   super_admin: "bg-purple-50 text-purple-700 border-purple-200",
