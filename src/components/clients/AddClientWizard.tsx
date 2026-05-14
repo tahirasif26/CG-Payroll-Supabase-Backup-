@@ -68,7 +68,14 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const createClient = useCreateClient();
+  const { data: tabDefs = [] } = useTabDefinitions();
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+
+  const tabsByModule = useMemo(() => {
+    const m: Record<string, typeof tabDefs> = {};
+    for (const t of tabDefs) (m[t.module_key] ??= []).push(t);
+    return m;
+  }, [tabDefs]);
 
   const toggleExpanded = (key: string) => {
     setExpandedModules((prev) => {
@@ -82,19 +89,35 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const toggleModule = (moduleKey: string, enabled: boolean) => {
     const features = MODULE_CATALOG.find((m) => m.key === moduleKey)?.features ?? [];
     const featureKeys = features.map((f) => f.key);
+    const tabKeys = (tabsByModule[moduleKey] ?? []).map((t) => t.tab_key);
     if (enabled) {
       setForm((f) => ({
         ...f,
         enabled_modules: Array.from(new Set([...f.enabled_modules, moduleKey])),
         enabled_features: Array.from(new Set([...f.enabled_features, ...featureKeys])),
+        enabled_tab_keys: Array.from(new Set([...f.enabled_tab_keys, ...tabKeys])),
       }));
     } else {
       setForm((f) => ({
         ...f,
         enabled_modules: f.enabled_modules.filter((m) => m !== moduleKey),
         enabled_features: f.enabled_features.filter((k) => !featureKeys.includes(k)),
+        enabled_tab_keys: f.enabled_tab_keys.filter((k) => !tabKeys.includes(k)),
       }));
     }
+  };
+
+  const toggleTab = (tabKey: string, moduleKey: string, enabled: boolean) => {
+    setForm((f) => ({
+      ...f,
+      enabled_tab_keys: enabled
+        ? Array.from(new Set([...f.enabled_tab_keys, tabKey]))
+        : f.enabled_tab_keys.filter((k) => k !== tabKey),
+      enabled_modules:
+        enabled && !f.enabled_modules.includes(moduleKey)
+          ? [...f.enabled_modules, moduleKey]
+          : f.enabled_modules,
+    }));
   };
 
   const toggleFeature = (featureKey: string, moduleKey: string, enabled: boolean) => {
