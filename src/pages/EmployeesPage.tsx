@@ -1843,6 +1843,7 @@ function EmployeesDirectory() {
   });
   const { toast } = useToast();
   const { addSeparation } = useSeparations();
+  const { leaveTypes: directoryLeaveTypes, balances: directoryLeaveBalances } = useLeaveTypes();
 
   // Document state management
   const [allDocs, setAllDocs] = useState<Record<string, EmployeeDoc[]>>(initialEmployeeDocs);
