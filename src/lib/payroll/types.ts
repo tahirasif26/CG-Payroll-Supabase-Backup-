@@ -71,6 +71,16 @@ export interface SeparationContext {
   settlement: bigint;
 }
 
+export interface EosAccrualContext {
+  /** "SA" | "AE" — null/undefined disables accrual for this employee. */
+  country?: "SA" | "AE" | null;
+  /** Gratuity basis (basic or total per setup) in MINOR units. */
+  gratuityBasis: bigint;
+  joiningDate?: string | null;
+  /** Inclusive end date of the payroll period (ISO yyyy-mm-dd). */
+  periodEndDate: string;
+}
+
 export interface CalculationContext {
   employee: PayrollEmployee;
   setup: PayrollSetupSnapshot;
@@ -83,6 +93,8 @@ export interface CalculationContext {
   approvedAdvances: bigint;
   oneOffAdjustments: OneOffAdjustment[];
   separation?: SeparationContext;
+  /** When provided, engine books a monthly EOS provision for GL purposes. */
+  eosAccrual?: EosAccrualContext;
 }
 
 export interface PayrollLineResult {
@@ -99,6 +111,8 @@ export interface PayrollLineResult {
   oneOffBenefits: bigint;
   oneOffDeductions: bigint;
   separationSettlement: bigint;
+  /** Employer-side EOS accrual booked this period (GL provision, NOT a deduction). */
+  eosAccrual: bigint;
   netPay: bigint;
   payCurrency: string;
   /** Full audit snapshot of inputs used at calculation time. */
