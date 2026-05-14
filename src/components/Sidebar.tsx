@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
+import { useAccessibleTabs } from "@/hooks/queries/useTabAccess";
 import {
   navigationGroups,
   superAdminGroups,
