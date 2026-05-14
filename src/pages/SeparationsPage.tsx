@@ -49,6 +49,7 @@ import { toMinorUnits, fromMinorUnits } from "@/lib/money";
 import { useBLEAccess } from "@/contexts/BLEAccessContext";
 import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
 import { calculateLeaveEncashment } from "@/lib/leaveEncashment";
+import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 
 // --- Active Employees EOS Tab ---
 function ActiveEmployeesTab() {
