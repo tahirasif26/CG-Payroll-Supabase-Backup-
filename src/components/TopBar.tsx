@@ -145,7 +145,7 @@ export function TopBar({ onOpenMobileSidebar }: TopBarProps) {
               Me
             </button>
             <button
-              onClick={() => setScope("people")}
+              onClick={() => { setScope("people"); navigate("/"); }}
               className={cn(
                 "px-4 py-1.5 rounded-md text-xs font-medium transition-all",
                 scope === "people"
