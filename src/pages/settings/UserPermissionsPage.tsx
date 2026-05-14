@@ -14,6 +14,12 @@ import {
   useAssignEmployeeRole,
   type RoleWithRelations,
 } from "@/hooks/queries/useRoles";
+import {
+  useTabDefinitions,
+  useClientTabAccess,
+  useRoleTabAccess,
+  useSetRoleTabAccess,
+} from "@/hooks/queries/useTabs";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
