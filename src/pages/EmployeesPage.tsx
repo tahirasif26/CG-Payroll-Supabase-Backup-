@@ -177,7 +177,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
   const { getTypeName } = useEmployeeTypes();
   const { removeEmployee } = useEmployees();
   const { toast } = useToast();
-  const { clientId } = useRole();
+  const { clientId, user } = useRole();
   const { data: roles } = useRoles(clientId);
   const roleMap = useMemo(() => {
     const m = new Map<string, string>();
