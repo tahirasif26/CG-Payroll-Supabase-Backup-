@@ -1018,19 +1018,28 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Department <span className="text-destructive">*</span></p>
                   <Select value={form.department} onValueChange={v => updateField("department", v)}>
-                    <SelectTrigger className={cn("h-8 text-sm", errors.department && "border-destructive")}><SelectValue placeholder="Select..." /></SelectTrigger>
-                    <SelectContent>{DEPARTMENTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                    <SelectTrigger className={cn("h-8 text-sm", errors.department && "border-destructive")}><SelectValue placeholder={dbDepartments.length ? "Select..." : "Add in HR Settings"} /></SelectTrigger>
+                    <SelectContent>{dbDepartments.map((d: any) => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}</SelectContent>
                   </Select>
                   {renderError("department")}
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Designation <span className="text-destructive">*</span></p>
-                  <Input value={form.designation} onChange={e => updateField("designation", e.target.value)} placeholder="e.g. Associate" className={cn("h-8 text-sm", errors.designation && "border-destructive")} />
+                  <Select value={form.designation} onValueChange={v => updateField("designation", v)}>
+                    <SelectTrigger className={cn("h-8 text-sm", errors.designation && "border-destructive")}><SelectValue placeholder={dbDesignations.length ? "Select..." : "Add in HR Settings"} /></SelectTrigger>
+                    <SelectContent>{dbDesignations.map((d: any) => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}</SelectContent>
+                  </Select>
                   {renderError("designation")}
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Division</p>
-                  <Input value={form.division} onChange={e => updateField("division", e.target.value)} placeholder="e.g. Assurance" className="h-8 text-sm" />
+                  <Select value={form.division || "__none__"} onValueChange={v => updateField("division", v === "__none__" ? "" : v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder={dbDivisions.length ? "Select..." : "Add in HR Settings"} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {dbDivisions.map((d: any) => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Reports To</p>
