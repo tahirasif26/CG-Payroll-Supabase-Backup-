@@ -77,8 +77,10 @@ function ActiveEmployeesTab({ onSeparationCreated }: { onSeparationCreated?: () 
     noticePeriodServed: true,
   });
 
+  // Hide employees with ANY active separation record (pending or approved),
+  // not just approved — otherwise the user sees "nothing happened" after Process.
   const separatedIds = new Set(
-    separations.filter(s => s.status === "approved").map(s => s.employeeId)
+    separations.filter(s => s.status !== "cancelled").map(s => s.employeeId)
   );
   const activeEmployees = employees.filter(e => !separatedIds.has(e.id) && (e.status === "active" || e.status === "on-leave"));
 
