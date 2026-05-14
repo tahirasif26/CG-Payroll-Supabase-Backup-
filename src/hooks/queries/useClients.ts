@@ -52,6 +52,7 @@ export interface CreateClientInput {
   admin_email: string;
   enabled_modules?: string[];
   enabled_features?: string[];
+  enabled_tab_keys?: string[];
 }
 
 export function useClients(filters?: ClientFilters) {
