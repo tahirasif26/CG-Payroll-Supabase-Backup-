@@ -350,6 +350,7 @@ function ActiveEmployeesTab() {
 // --- Separated Employees Tab (existing functionality) ---
 function SeparatedEmployeesTab() {
   const { separations, updateSeparation, removeSeparation } = useSeparations();
+  const { clientId } = useRole();
   const { employees } = useEmployees();
   const { getAssetsForEmployee, reassignAsset } = useAssets();
   const { data: payrollRunsRaw = [] } = usePayrollRuns();
