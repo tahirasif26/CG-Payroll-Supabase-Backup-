@@ -224,34 +224,38 @@ function ActiveEmployeesTab({ onSeparationCreated }: { onSeparationCreated?: () 
 
     const run = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
 
-    addSeparation({
-      id: String(Date.now()),
-      employeeId: emp.id,
-      employeeName: `${emp.firstName} ${emp.lastName}`,
-      empId: emp.empId,
-      department: emp.department,
-      designation: emp.designation,
-      lastDate: separationData.lastDate,
-      reason: separationData.reason,
-      noticePeriodDays: separationData.noticePeriodDays,
-      noticePeriodServed: separationData.noticePeriodServed,
-      unpaidSalary,
-      eosAmount: totalEOS,
-      eosBreakdown,
-      leaveEncashment: Math.round(leaveEncashment),
-      noticePeriodPay,
-      noticePeriodRecovery,
-      loanDeduction: totalLoanBalance,
-      totalSettlement,
-      processedDate: new Date().toISOString().split("T")[0],
-      payrollMonth: run?.month || "",
-      payrollYear: run?.year || new Date().getFullYear(),
-      currency,
-      status: "pending",
-    });
+    try {
+      await addSeparation({
+        employeeId: emp.id,
+        employeeName: `${emp.firstName} ${emp.lastName}`,
+        empId: emp.empId,
+        department: emp.department,
+        designation: emp.designation,
+        lastDate: separationData.lastDate,
+        reason: separationData.reason,
+        noticePeriodDays: separationData.noticePeriodDays,
+        noticePeriodServed: separationData.noticePeriodServed,
+        unpaidSalary,
+        eosAmount: totalEOS,
+        eosBreakdown,
+        leaveEncashment: Math.round(leaveEncashment),
+        noticePeriodPay,
+        noticePeriodRecovery,
+        loanDeduction: totalLoanBalance,
+        totalSettlement,
+        processedDate: new Date().toISOString().split("T")[0],
+        payrollMonth: run?.month || "",
+        payrollYear: run?.year || new Date().getFullYear(),
+        currency,
+        status: "pending",
+      });
 
-    setSeparationOpen(false);
-    toast({ title: "Separation Initiated", description: `${emp.firstName} ${emp.lastName}'s separation has been created as pending.` });
+      setSeparationOpen(false);
+      toast({ title: "Separation Initiated", description: `${emp.firstName} ${emp.lastName}'s separation moved to Separated Employees tab as pending.` });
+      onSeparationCreated?.();
+    } catch {
+      // toast already shown by context on error
+    }
   };
 
   return (
