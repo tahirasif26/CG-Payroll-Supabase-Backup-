@@ -47,6 +47,8 @@ import { calculateEosb } from "@/lib/eosb";
 import { mapToEosbCountry } from "@/lib/eosb/country";
 import { toMinorUnits, fromMinorUnits } from "@/lib/money";
 import { useBLEAccess } from "@/contexts/BLEAccessContext";
+import { useLeaveTypes } from "@/contexts/LeaveTypeContext";
+import { calculateLeaveEncashment } from "@/lib/leaveEncashment";
 
 // --- Active Employees EOS Tab ---
 function ActiveEmployeesTab() {
