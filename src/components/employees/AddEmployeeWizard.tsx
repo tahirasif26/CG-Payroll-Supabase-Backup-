@@ -122,6 +122,34 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const activeSetups = setups.filter(s => s.status === "active");
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
   const { data: roles = [] } = useRoles(clientId ?? null);
+
+  const { data: dbDepartments = [] } = useQuery({
+    queryKey: ["departments", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("departments").select("id, name").eq("client_id", clientId!).order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const { data: dbDesignations = [] } = useQuery({
+    queryKey: ["designations", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("designations").select("id, name").eq("client_id", clientId!).order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const { data: dbDivisions = [] } = useQuery({
+    queryKey: ["divisions", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("divisions").select("id, name, is_active").eq("client_id", clientId!).order("name");
+      if (error) throw error;
+      return (data ?? []).filter((d: any) => d.is_active !== false);
+    },
+  });
   const assignRole = useAssignEmployeeRole();
   const defaultEmployeeRole = useMemo(
     () => roles.find(r => r.is_system && r.name.toLowerCase() === "employee"),
