@@ -452,7 +452,7 @@ function RoleDetailView({
         </TabsList>
 
         <TabsContent value="features" className="mt-4">
-          <FeaturesTab role={role} readOnly={isAdmin} />
+          <RoleTabAccessTabPanel role={role} readOnly={isAdmin} />
         </TabsContent>
         <TabsContent value="members" className="mt-4">
           <MembersTab role={role} allRoles={allRoles} />
