@@ -167,6 +167,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
         ...form,
         enabled_modules: form.enabled_modules,
         enabled_features: form.enabled_features,
+        enabled_tab_keys: form.enabled_tab_keys,
       } as unknown as CreateClientInput;
       await createClient.mutateAsync(payload);
       onOpenChange(false);
