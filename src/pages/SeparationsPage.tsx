@@ -136,7 +136,7 @@ function ActiveEmployeesTab({ onSeparationCreated }: { onSeparationCreated?: () 
     setSeparationOpen(true);
   };
 
-  const handleConfirmSeparation = () => {
+  const handleConfirmSeparation = async () => {
     if (!separationEmp || !separationData.lastDate) return;
     const emp = separationEmp;
     const yearsOfService = emp.joiningDate
