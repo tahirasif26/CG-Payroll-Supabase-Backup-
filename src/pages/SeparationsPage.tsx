@@ -212,6 +212,7 @@ function ActiveEmployeesTab() {
       eosBreakdown,
       leaveEncashment: Math.round(leaveEncashment),
       noticePeriodPay,
+      noticePeriodRecovery,
       loanDeduction: totalLoanBalance,
       totalSettlement,
       processedDate: new Date().toISOString().split("T")[0],
