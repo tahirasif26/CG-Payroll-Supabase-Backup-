@@ -173,7 +173,7 @@ const ITEMS_PER_PAGE = 10;
 
 import { useRoles, type Role } from "@/hooks/queries/useRoles";
 
-function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmployee = false }: { employees: Employee[]; onSelect: (emp: Employee) => void; onEdit?: (emp: Employee) => void; isEmployee?: boolean }) {
+function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmployee = false, search: searchProp, onSearchChange, deptFilter: deptProp, onDeptFilterChange, statusFilter: statusProp, onStatusFilterChange, exportSignal }: { employees: Employee[]; onSelect: (emp: Employee) => void; onEdit?: (emp: Employee) => void; isEmployee?: boolean; search?: string; onSearchChange?: (v: string) => void; deptFilter?: string; onDeptFilterChange?: (v: string) => void; statusFilter?: string; onStatusFilterChange?: (v: string) => void; exportSignal?: number }) {
   const { getTypeName } = useEmployeeTypes();
   const { removeEmployee } = useEmployees();
   const { toast } = useToast();
@@ -184,9 +184,15 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
     (roles ?? []).forEach((r: Role) => m.set(r.id, r.name));
     return m;
   }, [roles]);
-  const [search, setSearch] = useState("");
-  const [deptFilter, setDeptFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchInner, setSearchInner] = useState("");
+  const [deptInner, setDeptInner] = useState("all");
+  const [statusInner, setStatusInner] = useState("all");
+  const search = searchProp !== undefined ? searchProp : searchInner;
+  const setSearch = (v: string) => { onSearchChange ? onSearchChange(v) : setSearchInner(v); };
+  const deptFilter = deptProp !== undefined ? deptProp : deptInner;
+  const setDeptFilter = (v: string) => { onDeptFilterChange ? onDeptFilterChange(v) : setDeptInner(v); };
+  const statusFilter = statusProp !== undefined ? statusProp : statusInner;
+  const setStatusFilter = (v: string) => { onStatusFilterChange ? onStatusFilterChange(v) : setStatusInner(v); };
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
