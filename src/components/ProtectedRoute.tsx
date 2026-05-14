@@ -81,6 +81,14 @@ export function ProtectedRoute({
     return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
   }
 
+  // Tab access check (skip super_admin and while still loading tab data)
+  if (!isSuperAdmin && !skipTabCheck && !tabsLoading) {
+    const path = requiredTabPath ?? location.pathname;
+    if (!hasTabPath(path)) {
+      return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
+    }
+  }
+
   return <>{children}</>;
 }
 
