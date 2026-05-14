@@ -90,18 +90,25 @@ function ActiveEmployeesTab() {
         ? (Date.now() - new Date(emp.joiningDate).getTime()) / (1000 * 60 * 60 * 24 * 365)
         : 0;
       const basicSalary = emp.compensation?.find(c => c.type === "base")?.amount || Math.round(emp.salary * 0.6);
-      const country = mapToEosbCountry(emp.workLocationCountry);
+      const empSetup = emp.payrollSetupId ? getSetupById(emp.payrollSetupId) : undefined;
+      const ccy = empSetup?.currency || "SAR";
+      const gratuityCfg = empSetup?.gratuity;
+      let country = mapToEosbCountry(emp.workLocationCountry);
+      if (gratuityCfg?.enabled) {
+        if (gratuityCfg.method === "saudi") country = "SA";
+        else if (gratuityCfg.method === "uae") country = "AE";
+        else if (gratuityCfg.method === "custom") country = null;
+      }
+      const gratuityBasis = gratuityCfg?.basis === "total" ? emp.salary : basicSalary;
       let totalEOS = 0;
       if (country && emp.joiningDate) {
-        // Country-aware statutory engine (assumes still employed → today as last day, termination factor)
-        const lastBasicMinor = toMinorUnits(basicSalary, "SAR");
         const res = calculateEosb(country, {
-          lastBasic: lastBasicMinor,
+          lastBasic: toMinorUnits(gratuityBasis, ccy),
           joiningDate: emp.joiningDate,
           lastWorkingDate: new Date().toISOString().slice(0, 10),
           reason: "termination",
         });
-        totalEOS = Math.round(fromMinorUnits(res.amount, "SAR"));
+        totalEOS = Math.round(fromMinorUnits(res.amount, ccy));
       } else {
         const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
         totalEOS = applicableEOS.reduce((sum, config) => {
@@ -111,7 +118,7 @@ function ActiveEmployeesTab() {
       }
       return { emp, yearsOfService, totalEOS };
     });
-  }, [activeEmployees]);
+  }, [activeEmployees, getSetupById]);
 
   const totalEOSOutstanding = eosData.reduce((s, d) => s + d.totalEOS, 0);
 
@@ -137,7 +144,20 @@ function ActiveEmployeesTab() {
     const dailySalary = emp.salary / 30;
     const empSetup = emp.payrollSetupId ? getSetupById(emp.payrollSetupId) : undefined;
     const currency = empSetup?.currency || "SAR";
-    const country = mapToEosbCountry(emp.workLocationCountry);
+
+    // Source-of-truth for gratuity method:
+    // 1) Payroll Setup → gratuity.method (admin-controlled)  → routes to bigint engine
+    // 2) Fallback: infer from work-location country
+    // 3) Last resort: per-client EOS benefit configs
+    const gratuityCfg = empSetup?.gratuity;
+    let country = mapToEosbCountry(emp.workLocationCountry);
+    if (gratuityCfg?.enabled) {
+      if (gratuityCfg.method === "saudi") country = "SA";
+      else if (gratuityCfg.method === "uae") country = "AE";
+      else if (gratuityCfg.method === "custom") country = null;
+    }
+    const gratuityBasis = gratuityCfg?.basis === "total" ? emp.salary : basicSalary;
+
     const reasonForEngine: "resignation" | "termination" | "end_of_contract" | "retirement" =
       separationData.reason === "resignation" || separationData.reason === "termination" ||
       separationData.reason === "end_of_contract" || separationData.reason === "retirement"
@@ -147,13 +167,15 @@ function ActiveEmployeesTab() {
     let totalEOS: number;
     if (country && emp.joiningDate) {
       const res = calculateEosb(country, {
-        lastBasic: toMinorUnits(basicSalary, currency),
+        lastBasic: toMinorUnits(gratuityBasis, currency),
         joiningDate: emp.joiningDate,
         lastWorkingDate: separationData.lastDate,
         reason: reasonForEngine,
       });
       totalEOS = Math.round(fromMinorUnits(res.amount, currency));
-      eosBreakdown = [{ name: country === "SA" ? "KSA Statutory Gratuity" : "UAE Statutory Gratuity", amount: totalEOS }];
+      const componentLabel = gratuityCfg?.componentName
+        || (country === "SA" ? "KSA Statutory Gratuity" : "UAE Statutory Gratuity");
+      eosBreakdown = [{ name: componentLabel, amount: totalEOS }];
     } else {
       const applicableEOS = eosBenefitConfigs.filter(c => c.isActive && (c.appliesTo.length === 0 || c.appliesTo.includes(emp.category)));
       eosBreakdown = applicableEOS.map((config: any) => {
