@@ -91,9 +91,10 @@ export function ClientDetailsSheet({ client, open, onOpenChange }: Props) {
         </SheetHeader>
 
         <Tabs defaultValue="overview" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users ({client.user_count})</TabsTrigger>
+            <TabsTrigger value="tabs"><LayoutGrid className="h-3.5 w-3.5 mr-1" /> Tabs</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
