@@ -33,7 +33,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
-  const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin, roleFeatures, customRoleName } = useRole();
+  const { appRole, profile, signOut, role, hasFeature, enabledModules, isSuperAdmin, roleFeatures, customRoleName, hasTabPath } = useRole();
   const { scope } = useViewScope();
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,10 +51,10 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
 
     const useMeNav = effectiveRole === "employee" || scope === "me";
     if (useMeNav) {
-      return filterMeNavigation(hasFeature, enabledModules);
+      return filterMeNavigation(hasFeature, enabledModules, hasTabPath);
     }
-    return filterNavigation(navigationGroups, effectiveRole, hasFeature, enabledModules, roleFeatures);
-  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, roleFeatures]);
+    return filterNavigation(navigationGroups, effectiveRole, hasFeature, enabledModules, roleFeatures, hasTabPath);
+  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, roleFeatures, hasTabPath]);
 
   const handleNav = (path: string) => {
     navigate(path);
