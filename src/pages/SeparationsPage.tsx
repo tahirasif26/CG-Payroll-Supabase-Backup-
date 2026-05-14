@@ -694,8 +694,14 @@ function SeparatedEmployeesTab() {
                   ))}
                   {editItem.noticePeriodPay > 0 && (
                     <div className="flex justify-between px-3 py-2 border-b border-border/50">
-                      <span>Notice Period Pay</span>
+                      <span>Notice Period Pay (in lieu)</span>
                       <span className="font-medium">SAR {editItem.noticePeriodPay.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {(editItem.noticePeriodRecovery ?? 0) > 0 && (
+                    <div className="flex justify-between px-3 py-2 border-b border-border/50 text-destructive">
+                      <span>Notice Period Recovery</span>
+                      <span className="font-medium">- SAR {editItem.noticePeriodRecovery!.toLocaleString()}</span>
                     </div>
                   )}
                   {editItem.loanDeduction > 0 && (
