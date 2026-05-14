@@ -16,6 +16,7 @@ import {
   useUpsertEosBenefitConfig,
   useDeleteEosBenefitConfig,
   calculateEOSBenefit as _calc,
+  eosBenefitConfigs as _eosSnapshot,
   type EOSBenefitConfig,
   type EOSTier,
 } from "@/hooks/queries/useEosBenefitConfigs";
@@ -23,6 +24,7 @@ import {
 // Re-exports for backwards compatibility with existing imports.
 export type { EOSBenefitConfig, EOSTier };
 export const calculateEOSBenefit = _calc;
+export const eosBenefitConfigs = _eosSnapshot;
 
 function TierEditor({ tiers, onChange }: { tiers: EOSTier[]; onChange: (t: EOSTier[]) => void }) {
   const updateTier = (i: number, field: keyof EOSTier, value: string) => {
