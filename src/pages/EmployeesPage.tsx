@@ -1818,6 +1818,10 @@ function EmployeesDirectory() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [profileViewOnly, setProfileViewOnly] = useState(true);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
+  const [headerSearch, setHeaderSearch] = useState("");
+  const [headerDept, setHeaderDept] = useState("all");
+  const [headerStatus, setHeaderStatus] = useState("all");
+  const [exportTick, setExportTick] = useState(0);
   const [editEmpId, setEditEmpId] = useState<string | null>(null);
   
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
