@@ -173,10 +173,26 @@ function ActiveEmployeesTab() {
     const lastDate = new Date(separationData.lastDate);
     const daysWorkedInMonth = lastDate.getDate();
     const unpaidSalary = Math.round(dailySalary * daysWorkedInMonth);
-    const noticePeriodPay = separationData.noticePeriodServed ? 0 : Math.round(dailySalary * separationData.noticePeriodDays);
+    // Notice period handling:
+    // - Termination (employer-initiated) + notice NOT served → pay-in-lieu to employee.
+    // - Resignation / end_of_contract (employee-initiated) + notice NOT served →
+    //   recover from employee, capped by payroll setup's noticePeriodRecoveryDays.
+    // - Retirement → no adjustment.
+    let noticePeriodPay = 0;
+    let noticePeriodRecovery = 0;
+    if (!separationData.noticePeriodServed) {
+      if (separationData.reason === "termination") {
+        noticePeriodPay = Math.round(dailySalary * separationData.noticePeriodDays);
+      } else if (separationData.reason === "resignation" || separationData.reason === "end_of_contract") {
+        const setup = emp.payrollSetupId ? getSetupById(emp.payrollSetupId) : undefined;
+        const cap = setup?.finalSettlement?.noticePeriodRecoveryDays ?? separationData.noticePeriodDays;
+        const recoverDays = Math.min(separationData.noticePeriodDays, cap);
+        noticePeriodRecovery = Math.round(dailySalary * recoverDays);
+      }
+    }
     const empLoans = loans.filter(l => l.employeeId === emp.id && l.status === "active");
     const totalLoanBalance = empLoans.reduce((s: number, l: any) => s + l.remainingBalance, 0);
-    const totalSettlement = unpaidSalary + totalEOS + leaveEncashment + noticePeriodPay - totalLoanBalance;
+    const totalSettlement = unpaidSalary + totalEOS + leaveEncashment + noticePeriodPay - noticePeriodRecovery - totalLoanBalance;
 
     const run = payrollRuns.find(r => r.status === "processing" || r.status === "draft");
 
