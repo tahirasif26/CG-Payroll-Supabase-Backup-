@@ -268,12 +268,12 @@ export const navigationGroups: NavGroup[] = [
     icon: Settings,
     requiredRoles: ["admin", "hr"],
     children: [
-      { label: "Company Profile", path: "/settings/company", requiredFeature: "settings.company_profile", tabKey: "settings.company_profile" },
+      { label: "Company Profile", path: "/settings/company", tabKey: "settings.company_profile" },
       { label: "User Permissions", path: "/settings/user-permissions", requiredRoles: ["admin"], tabKey: "settings.user_permissions" },
       { label: "Approval Matrix", path: "/settings/approval-matrix", requiredRoles: ["admin"], tabKey: "settings.approval_matrix" },
       { label: "Policies", path: "/settings/company-policies", requiredRoles: ["admin", "hr"], tabKey: "settings.policies" },
-      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"], requiredFeature: "audit.view", tabKey: "settings.audit_trail" },
-      { label: "Visual Preferences", path: "/settings/visual", requiredFeature: "settings.visual_preferences", tabKey: "settings.visual" },
+      { label: "Audit Trail", path: "/audit-trail", requiredRoles: ["admin", "hr"], tabKey: "settings.audit_trail" },
+      { label: "Visual Preferences", path: "/settings/visual", tabKey: "settings.visual" },
     ],
   },
 ];
