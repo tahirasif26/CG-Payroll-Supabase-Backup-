@@ -143,10 +143,18 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const handleSubmit = async () => {
     if (!validateStep(2)) return;
     try {
+      // Derive enabled_modules from selected tabs (excludes "settings" — always implicit)
+      const enabledModules = Array.from(
+        new Set(
+          (tabDefs ?? [])
+            .filter((t) => form.enabled_tab_keys.includes(t.tab_key) && t.module_key !== "settings")
+            .map((t) => t.module_key),
+        ),
+      );
       const payload = {
         ...form,
-        enabled_modules: form.enabled_modules,
-        enabled_features: form.enabled_features,
+        enabled_modules: enabledModules,
+        enabled_tab_keys: form.enabled_tab_keys,
       } as unknown as CreateClientInput;
       await createClient.mutateAsync(payload);
       onOpenChange(false);
