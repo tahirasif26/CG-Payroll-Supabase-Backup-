@@ -36,8 +36,7 @@ const step2Schema = z.object({
 });
 
 type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & {
-  enabled_modules: string[];
-  enabled_features: string[];
+  enabled_tab_keys: string[];
 };
 
 const initialForm: FormState = {
@@ -51,8 +50,18 @@ const initialForm: FormState = {
   admin_email: "",
   subscription_plan: "starter",
   status: "trial",
-  enabled_modules: [],
-  enabled_features: [],
+  enabled_tab_keys: [],
+};
+
+const MODULE_META: Record<string, { label: string; emoji: string; order: number }> = {
+  employees:   { label: "Employees",        emoji: "👥", order: 1 },
+  payroll:     { label: "Payroll",          emoji: "💰", order: 2 },
+  expenses:    { label: "Expense Tracking", emoji: "🧾", order: 3 },
+  assets:      { label: "Assets",           emoji: "📦", order: 4 },
+  performance: { label: "Performance",      emoji: "⭐", order: 5 },
+  projects:    { label: "Projects",         emoji: "📂", order: 6 },
+  reports:     { label: "Reports",          emoji: "📊", order: 7 },
+  settings:    { label: "Settings",         emoji: "⚙️", order: 8 },
 };
 
 interface Props {
