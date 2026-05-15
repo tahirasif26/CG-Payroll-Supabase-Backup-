@@ -9,6 +9,8 @@ type ExpenseRow = any;
 export function useExpenses(filters?: { status?: string; employee_id?: string }) {
   return useQuery({
     queryKey: ["expenses", filters],
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
     queryFn: async () => {
       let q = (supabase as any).from("expenses").select("*, expense_categories(name)").order("expense_date", { ascending: false });
       if (filters?.status) q = q.eq("status", filters.status);
