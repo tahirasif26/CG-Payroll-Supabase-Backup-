@@ -473,7 +473,7 @@ export const meNavigationGroups: NavGroup[] = [
     key: "policies",
     label: "Policies",
     icon: FileText,
-    children: [{ label: "Company Policies", path: "/company-policies", requiredFeature: "policies.view" }],
+    children: [{ label: "Company Policies", path: "/company-policies" }],
   },
 ];
 
