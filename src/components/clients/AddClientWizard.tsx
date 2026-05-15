@@ -85,39 +85,36 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
     });
   };
 
-  const toggleModule = (moduleKey: string, enabled: boolean) => {
-    const features = MODULE_CATALOG.find((m) => m.key === moduleKey)?.features ?? [];
-    const featureKeys = features.map((f) => f.key);
-    if (enabled) {
-      setForm((f) => ({
-        ...f,
-        enabled_modules: Array.from(new Set([...f.enabled_modules, moduleKey])),
-        enabled_features: Array.from(new Set([...f.enabled_features, ...featureKeys])),
-      }));
-    } else {
-      setForm((f) => ({
-        ...f,
-        enabled_modules: f.enabled_modules.filter((m) => m !== moduleKey),
-        enabled_features: f.enabled_features.filter((k) => !featureKeys.includes(k)),
-      }));
+  const { data: tabDefs } = useTabDefinitions();
+
+  const tabsByModule = (() => {
+    const map = new Map<string, typeof tabDefs>();
+    for (const td of tabDefs ?? []) {
+      if (!map.has(td.module_key)) map.set(td.module_key, [] as any);
+      (map.get(td.module_key) as any).push(td);
     }
+    return Array.from(map.entries()).sort(
+      (a, b) => (MODULE_META[a[0]]?.order ?? 99) - (MODULE_META[b[0]]?.order ?? 99),
+    );
+  })();
+
+  const toggleTab = (tabKey: string, enabled: boolean) => {
+    setForm((f) => ({
+      ...f,
+      enabled_tab_keys: enabled
+        ? Array.from(new Set([...f.enabled_tab_keys, tabKey]))
+        : f.enabled_tab_keys.filter((k) => k !== tabKey),
+    }));
   };
 
-  const toggleFeature = (featureKey: string, moduleKey: string, enabled: boolean) => {
-    if (enabled) {
-      setForm((f) => ({
-        ...f,
-        enabled_features: Array.from(new Set([...f.enabled_features, featureKey])),
-        enabled_modules: f.enabled_modules.includes(moduleKey)
-          ? f.enabled_modules
-          : [...f.enabled_modules, moduleKey],
-      }));
-    } else {
-      setForm((f) => ({
-        ...f,
-        enabled_features: f.enabled_features.filter((k) => k !== featureKey),
-      }));
-    }
+  const toggleModule = (moduleKey: string, enabled: boolean) => {
+    const keys = (tabDefs ?? []).filter((t) => t.module_key === moduleKey).map((t) => t.tab_key);
+    setForm((f) => ({
+      ...f,
+      enabled_tab_keys: enabled
+        ? Array.from(new Set([...f.enabled_tab_keys, ...keys]))
+        : f.enabled_tab_keys.filter((k) => !keys.includes(k)),
+    }));
   };
 
   const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
