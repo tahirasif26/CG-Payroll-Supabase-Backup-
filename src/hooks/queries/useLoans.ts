@@ -41,6 +41,8 @@ export interface DbLoanTransaction {
 export function useLoans(filters?: { status?: string; employee_id?: string }) {
   return useQuery({
     queryKey: ["loans", filters],
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
     queryFn: async () => {
       let q = (supabase as any)
         .from("loans")
