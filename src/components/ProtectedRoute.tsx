@@ -24,6 +24,22 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { appRole, isSuperAdmin, isOrphan, hasFeature, hasPeopleFeature, session, loading } = useRole();
   const { scope } = useViewScope();
+  const location = useLocation();
+  const { data: accessibleTabs } = useAccessibleTabs();
+  const { data: tabDefs } = useTabDefinitions();
+
+  // Tab-wise access is the source of truth. If the current path matches
+  // an accessible tab for this user, bypass legacy feature gating.
+  const tabGrantsAccess = (() => {
+    if (!tabDefs || !accessibleTabs) return false;
+    const path = location.pathname;
+    // Find tab whose path matches current route (exact or prefix on /segments)
+    const matched = tabDefs.find(
+      (t) => path === t.path || path.startsWith(t.path + "/"),
+    );
+    if (!matched) return false;
+    return accessibleTabs.has(matched.tab_key);
+  })();
 
   if (loading) {
     return (
