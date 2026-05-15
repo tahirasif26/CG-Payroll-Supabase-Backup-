@@ -171,8 +171,8 @@ export default function ModuleAccessPage() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader
-        title="Client Tab Access"
-        description="Pick which sidebar tabs each client can see. Whatever you turn on here is what their admins and employees will see — nothing more."
+        title="Client Module Access"
+        description="Enable or disable modules and their tabs for each client. Settings are also controlled tab-wise. New tabs stay disabled until you turn them on here."
       >
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={reset} disabled={!dirty || save.isPending}>
