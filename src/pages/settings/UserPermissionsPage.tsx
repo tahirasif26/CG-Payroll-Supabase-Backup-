@@ -158,14 +158,26 @@ function RoleCard({
 
   const memberCount = role.employees?.length ?? 0;
 
+  const { data: tabDefs = [] } = useTabDefinitions();
+  const { data: clientAccess = [] } = useClientTabAccess(role.client_id);
+  const { data: roleAccess = [] } = useRoleTabAccess(role.id);
+
   const featureModules = useMemo(() => {
+    if (isAdmin) return [];
+    const clientEnabled = new Set(
+      clientAccess.filter((c) => c.enabled).map((c) => c.tab_key),
+    );
+    const roleEnabled = new Set(
+      roleAccess.filter((r) => r.people_enabled).map((r) => r.tab_key),
+    );
     const set = new Set<string>();
-    for (const f of role.role_features ?? []) {
-      const moduleKey = f.feature_key.split(".")[0];
-      set.add(moduleKey);
+    for (const t of tabDefs) {
+      if (!clientEnabled.has(t.tab_key)) continue;
+      if (!roleEnabled.has(t.tab_key)) continue;
+      set.add(t.module_key);
     }
     return Array.from(set).slice(0, 6);
-  }, [role.role_features]);
+  }, [isAdmin, tabDefs, clientAccess, roleAccess]);
 
   return (
     <Card
