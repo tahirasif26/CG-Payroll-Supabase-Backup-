@@ -343,8 +343,8 @@ export function filterNavigation(
         const prefix = g.moduleFeatureKey + ".";
         const hasModuleFeature = [...roleFeatures].some((fk) => fk.startsWith(prefix));
         const hasModuleTab = accessibleTabs
-          ? [...accessibleTabs.values()].some(
-              (t, i) => [...accessibleTabs.keys()][i].startsWith(prefix) && t.people_enabled,
+          ? [...accessibleTabs.entries()].some(
+              ([key, t]) => key.startsWith(prefix) && t.people_enabled,
             )
           : false;
         if (!hasModuleFeature && !hasModuleTab) return false;
