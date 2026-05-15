@@ -83,12 +83,20 @@ export function ProtectedRoute({
   }
 
   // Feature check (applies to everyone except super_admin, who bypasses features)
-  if (!isSuperAdmin && requiredFeature && !hasFeature(requiredFeature)) {
+  // Skipped when tab-wise access already grants this route.
+  if (!isSuperAdmin && !tabGrantsAccess && requiredFeature && !hasFeature(requiredFeature)) {
     return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
   }
 
   // Custom People-side routes must respect the People toggle, not just personal Me defaults.
-  if (!isSuperAdmin && appRole === "hr" && scope === "people" && requiredFeature && !hasPeopleFeature(requiredFeature)) {
+  if (
+    !isSuperAdmin &&
+    !tabGrantsAccess &&
+    appRole === "hr" &&
+    scope === "people" &&
+    requiredFeature &&
+    !hasPeopleFeature(requiredFeature)
+  ) {
     return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
   }
 
