@@ -140,7 +140,10 @@ export function usePayrollRuns(filters?: { year?: number; status?: string }) {
   return useQuery({
     queryKey: ["payroll_runs", clientId ?? "super", filters],
     queryFn: async () => {
-      let q = supabase.from("payroll_runs").select("*");
+      // Specific columns only — avoids fetching any future heavy/jsonb additions.
+      let q = supabase.from("payroll_runs").select(
+        "id,client_id,payroll_setup_id,month,year,status,total_gross,total_deductions,total_net,employee_count,run_date,approved_by,approved_at,completed_at,locked,locked_by,locked_at,created_by,created_at,updated_at"
+      );
       if (filters?.year) q = q.eq("year", filters.year);
       if (filters?.status) q = q.eq("status", filters.status);
       const { data, error } = await q.order("year", { ascending: false }).order("created_at", { ascending: false });
@@ -148,7 +151,8 @@ export function usePayrollRuns(filters?: { year?: number; status?: string }) {
       return (data ?? []) as PayrollRunRow[];
     },
     enabled: !!clientId || isSuperAdmin,
-    staleTime: 15_000,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 }
 
