@@ -503,8 +503,11 @@ export function filterMeNavigation(
     .map((g) => {
       if (!g.children) return g;
       const children = g.children.filter((c) => {
+        // Tab-wise is authoritative when tabKey is present
+        if (c.tabKey) {
+          return isTabAccessible(c.tabKey, "me", accessibleTabs ?? null);
+        }
         if (c.requiredFeature && !hasFeature(c.requiredFeature)) return false;
-        if (!isTabAccessible(c.tabKey, "me", accessibleTabs ?? null)) return false;
         return true;
       });
       return { ...g, children };
