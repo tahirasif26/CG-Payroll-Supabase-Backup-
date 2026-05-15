@@ -43,6 +43,8 @@ export interface NavGroup {
   labelsByRole?: Partial<Record<AppRole, string>>;
   /** Module key — if set, custom (hr) role must have at least one feature with this prefix */
   moduleFeatureKey?: string;
+  /** Tab key for basePath-only groups (no children) — used for tab-wise gating. */
+  tabKey?: string;
 }
 
 /** Group keys exempt from `enabled_modules` enforcement (always visible if role allows). */
