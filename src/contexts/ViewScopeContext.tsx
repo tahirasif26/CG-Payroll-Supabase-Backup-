@@ -19,25 +19,21 @@ export function ViewScopeProvider({ children }: { children: ReactNode }) {
     isSuperAdmin || appRole === "admin" ||
     (appRole === "hr" && (peopleFeatures?.size ?? 0) > 0);
 
-  // Admin/HR default to "people" (company view); employees default to "me"
-  const defaultScope: ViewScope =
-    appRole === "admin" || appRole === "hr" || isSuperAdmin ? "people" : "me";
-
-  const [scope, setScope] = useState<ViewScope>(defaultScope);
+  // Everyone defaults to "me" on login (personal dashboard).
+  // Super admin keeps "people" since they have no personal ESS view.
+  const [scope, setScope] = useState<ViewScope>(isSuperAdmin ? "people" : "me");
 
   // If user loses people access, reset to "me"
   useEffect(() => {
     if (!hasPeopleAccess && scope !== "me") setScope("me");
   }, [hasPeopleAccess, scope]);
 
-  // When appRole loads (after async auth), set correct default
+  // When auth resolves, force super_admin to "people" and everyone else to "me" once.
   useEffect(() => {
-    if (isSuperAdmin || appRole === "admin" || (appRole === "hr" && hasPeopleAccess)) {
-      setScope("people");
-    } else if (appRole === "employee") {
-      setScope("me");
-    }
-  }, [appRole, isSuperAdmin, hasPeopleAccess]);
+    if (isSuperAdmin) setScope("people");
+    else setScope("me");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSuperAdmin, appRole]);
 
   return (
     <ViewScopeContext.Provider value={{ scope, setScope, hasPeopleAccess }}>
