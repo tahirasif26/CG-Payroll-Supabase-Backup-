@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
+import { useAccessibleTabs } from "@/hooks/queries/useTabAccess";
 import {
   navigationGroups,
   superAdminGroups,
@@ -59,6 +60,7 @@ export function ModuleTabs() {
   const { scope } = useViewScope();
   const location = useLocation();
   const navigate = useNavigate();
+  const { data: accessibleTabs } = useAccessibleTabs();
 
   const activeGroup = useMemo(() => {
     if (!appRole) return null;
@@ -68,11 +70,11 @@ export function ModuleTabs() {
     } else {
       const useMeNav = appRole === "employee" || scope === "me";
       groups = useMeNav
-        ? filterMeNavigation(hasFeature, enabledModules)
-        : filterNavigation(navigationGroups, appRole, hasFeature, enabledModules, roleFeatures);
+        ? filterMeNavigation(hasFeature, enabledModules, accessibleTabs ?? null)
+        : filterNavigation(navigationGroups, appRole, hasFeature, enabledModules, roleFeatures, accessibleTabs ?? null);
     }
     return groups.find((g) => isGroupActive(location.pathname, g)) ?? null;
-  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, location.pathname, roleFeatures]);
+  }, [appRole, hasFeature, enabledModules, isSuperAdmin, scope, location.pathname, roleFeatures, accessibleTabs]);
 
   if (!activeGroup || !activeGroup.children || activeGroup.children.length === 0) {
     return null;
