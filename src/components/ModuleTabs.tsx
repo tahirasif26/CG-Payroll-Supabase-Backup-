@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
+import { useAccessibleTabs } from "@/hooks/queries/useTabAccess";
 import {
   navigationGroups,
   superAdminGroups,
