@@ -1298,9 +1298,7 @@ export default function PayrollPage() {
                 : employees);
           const currency = setup?.currency || runEmps[0]?.payCurrency || REPORTING_CURRENCY;
           const liveBreakdown = localRun.status !== "completed"
-            ? (setup
-                ? buildBreakdownFromSetup(runEmps, setup, oneOffs[localRun.id] || [], getSepMap(localRun.id), processedSeps, localRun.id, approvedAdvances)
-                : buildBreakdown(runEmps, [] as Deduction[], initialTaxConfigs, oneOffs[localRun.id] || [], getSepMap(localRun.id), processedSeps, localRun.id, approvedAdvances))
+            ? (breakdownByRunId.get(r.id) ?? null)
             : null;
           const count = liveBreakdown ? liveBreakdown.length : localRun.employeeCount;
           const gross = liveBreakdown ? Math.round(liveBreakdown.reduce((s, l) => s + l.gross, 0)) : localRun.totalGross;
