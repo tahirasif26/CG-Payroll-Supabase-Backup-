@@ -330,13 +330,24 @@ export function filterNavigation(
   return groups
     .filter((g) => {
       if (g.requiredRoles && !g.requiredRoles.includes(role)) return false;
-      if (g.requiredFeature && role !== "super_admin" && !hasFeature(g.requiredFeature)) return false;
       if (!moduleAllowedByEnabled(g.key, role, enabledModules)) return false;
+      // Group-level tab gating (basePath-only groups like Projects, Reports)
+      if (g.tabKey && role !== "super_admin" && !isTabAccessible(g.tabKey, "people", accessibleTabs ?? null)) {
+        return false;
+      }
+      // Legacy feature gate only applies when no tabKey present
+      if (!g.tabKey && g.requiredFeature && role !== "super_admin" && !hasFeature(g.requiredFeature)) return false;
       // Custom (hr) role: only show modules where role has at least one feature
+      // Skip this check when tab access is the source of truth (any tab in this module enabled)
       if (role === "hr" && g.moduleFeatureKey && roleFeatures && roleFeatures.size > 0) {
         const prefix = g.moduleFeatureKey + ".";
         const hasModuleFeature = [...roleFeatures].some((fk) => fk.startsWith(prefix));
-        if (!hasModuleFeature) return false;
+        const hasModuleTab = accessibleTabs
+          ? [...accessibleTabs.values()].some(
+              (t, i) => [...accessibleTabs.keys()][i].startsWith(prefix) && t.people_enabled,
+            )
+          : false;
+        if (!hasModuleFeature && !hasModuleTab) return false;
       }
       return true;
     })
@@ -345,6 +356,15 @@ export function filterNavigation(
       const filteredChildren = g.children.filter((c) => {
         if (c.hideForRoles?.includes(role)) return false;
         if (c.requiredRoles && !c.requiredRoles.includes(role)) return false;
+        // Tab-wise permissions are AUTHORITATIVE when tabKey is present.
+        // Skip ALL legacy feature checks for tab-gated children.
+        if (c.tabKey) {
+          if (role !== "super_admin" && !isTabAccessible(c.tabKey, "people", accessibleTabs ?? null)) {
+            return false;
+          }
+          return true;
+        }
+        // Legacy gating for children without tabKey
         if (
           role === "hr" &&
           roleFeatures &&
@@ -354,17 +374,13 @@ export function filterNavigation(
         )
           return false;
         if (c.requiredFeature && role !== "super_admin" && !hasFeature(c.requiredFeature)) return false;
-        // Tab-wise permissions gating (admins always pass — they get all tabs anyway)
-        if (role !== "super_admin" && !isTabAccessible(c.tabKey, "people", accessibleTabs ?? null)) {
-          return false;
-        }
         return true;
       });
       return { ...g, children: filteredChildren };
     })
     .filter((g) => {
-      if (g.basePath) return true;
-      return !!g.children && g.children.length > 0;
+      if (g.children) return g.children.length > 0;
+      return true;
     });
 }
 
