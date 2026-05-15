@@ -43,6 +43,8 @@ export interface NavGroup {
   labelsByRole?: Partial<Record<AppRole, string>>;
   /** Module key — if set, custom (hr) role must have at least one feature with this prefix */
   moduleFeatureKey?: string;
+  /** Tab key for basePath-only groups (no children) — used for tab-wise gating. */
+  tabKey?: string;
 }
 
 /** Group keys exempt from `enabled_modules` enforcement (always visible if role allows). */
@@ -247,6 +249,7 @@ export const navigationGroups: NavGroup[] = [
     icon: FolderOpen,
     basePath: "/projects",
     requiredRoles: ["admin", "hr"],
+    tabKey: "projects.list",
   },
   {
     key: "reports",
@@ -254,7 +257,7 @@ export const navigationGroups: NavGroup[] = [
     icon: BarChart3,
     basePath: "/reports",
     requiredRoles: ["admin", "hr"],
-    requiredFeature: "reports.view",
+    tabKey: "reports.all",
   },
   {
     key: "upcoming",
@@ -327,13 +330,24 @@ export function filterNavigation(
   return groups
     .filter((g) => {
       if (g.requiredRoles && !g.requiredRoles.includes(role)) return false;
-      if (g.requiredFeature && role !== "super_admin" && !hasFeature(g.requiredFeature)) return false;
       if (!moduleAllowedByEnabled(g.key, role, enabledModules)) return false;
+      // Group-level tab gating (basePath-only groups like Projects, Reports)
+      if (g.tabKey && role !== "super_admin" && !isTabAccessible(g.tabKey, "people", accessibleTabs ?? null)) {
+        return false;
+      }
+      // Legacy feature gate only applies when no tabKey present
+      if (!g.tabKey && g.requiredFeature && role !== "super_admin" && !hasFeature(g.requiredFeature)) return false;
       // Custom (hr) role: only show modules where role has at least one feature
+      // Skip this check when tab access is the source of truth (any tab in this module enabled)
       if (role === "hr" && g.moduleFeatureKey && roleFeatures && roleFeatures.size > 0) {
         const prefix = g.moduleFeatureKey + ".";
         const hasModuleFeature = [...roleFeatures].some((fk) => fk.startsWith(prefix));
-        if (!hasModuleFeature) return false;
+        const hasModuleTab = accessibleTabs
+          ? [...accessibleTabs.entries()].some(
+              ([key, t]) => key.startsWith(prefix) && t.people_enabled,
+            )
+          : false;
+        if (!hasModuleFeature && !hasModuleTab) return false;
       }
       return true;
     })
@@ -342,6 +356,15 @@ export function filterNavigation(
       const filteredChildren = g.children.filter((c) => {
         if (c.hideForRoles?.includes(role)) return false;
         if (c.requiredRoles && !c.requiredRoles.includes(role)) return false;
+        // Tab-wise permissions are AUTHORITATIVE when tabKey is present.
+        // Skip ALL legacy feature checks for tab-gated children.
+        if (c.tabKey) {
+          if (role !== "super_admin" && !isTabAccessible(c.tabKey, "people", accessibleTabs ?? null)) {
+            return false;
+          }
+          return true;
+        }
+        // Legacy gating for children without tabKey
         if (
           role === "hr" &&
           roleFeatures &&
@@ -351,17 +374,13 @@ export function filterNavigation(
         )
           return false;
         if (c.requiredFeature && role !== "super_admin" && !hasFeature(c.requiredFeature)) return false;
-        // Tab-wise permissions gating (admins always pass — they get all tabs anyway)
-        if (role !== "super_admin" && !isTabAccessible(c.tabKey, "people", accessibleTabs ?? null)) {
-          return false;
-        }
         return true;
       });
       return { ...g, children: filteredChildren };
     })
     .filter((g) => {
-      if (g.basePath) return true;
-      return !!g.children && g.children.length > 0;
+      if (g.children) return g.children.length > 0;
+      return true;
     });
 }
 
@@ -454,7 +473,7 @@ export const meNavigationGroups: NavGroup[] = [
     key: "policies",
     label: "Policies",
     icon: FileText,
-    children: [{ label: "Company Policies", path: "/company-policies", requiredFeature: "policies.view" }],
+    children: [{ label: "Company Policies", path: "/company-policies" }],
   },
 ];
 
@@ -484,8 +503,11 @@ export function filterMeNavigation(
     .map((g) => {
       if (!g.children) return g;
       const children = g.children.filter((c) => {
+        // Tab-wise is authoritative when tabKey is present
+        if (c.tabKey) {
+          return isTabAccessible(c.tabKey, "me", accessibleTabs ?? null);
+        }
         if (c.requiredFeature && !hasFeature(c.requiredFeature)) return false;
-        if (!isTabAccessible(c.tabKey, "me", accessibleTabs ?? null)) return false;
         return true;
       });
       return { ...g, children };
