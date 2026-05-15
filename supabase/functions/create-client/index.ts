@@ -19,6 +19,7 @@ const BodySchema = z.object({
   admin_email: z.string().trim().email().max(255),
   enabled_modules: z.array(z.string().trim().min(1).max(64)).max(64).optional().default([]),
   enabled_features: z.array(z.string().trim().min(1).max(128)).max(256).optional().default([]),
+  enabled_tab_keys: z.array(z.string().trim().min(1).max(128)).max(256).optional().default([]),
 });
 
 function slugify(s: string): string {
@@ -186,6 +187,36 @@ Deno.serve(async (req) => {
       ]);
     } catch (seedErr) {
       console.error("create-client seed defaults error (non-fatal):", seedErr);
+    }
+
+    // Seed tab access. If super admin selected explicit tabs, use those (plus settings tabs auto-on).
+    // Otherwise fall back to module-derived seeding via the SECURITY DEFINER function.
+    try {
+      if (Array.isArray(input.enabled_tab_keys) && input.enabled_tab_keys.length > 0) {
+        // Fetch all tab definitions to know which "settings" tabs to also enable.
+        const { data: defs } = await adminClient
+          .from("tab_definitions")
+          .select("tab_key, module_key");
+        const settingsKeys = (defs ?? [])
+          .filter((d: any) => d.module_key === "settings")
+          .map((d: any) => d.tab_key);
+        const allKeys = Array.from(new Set([...input.enabled_tab_keys, ...settingsKeys]));
+        const rows = allKeys.map((tab_key) => ({ client_id: clientId, tab_key, enabled: true }));
+        if (rows.length > 0) {
+          const { error: ctaErr } = await adminClient
+            .from("client_tab_access")
+            .upsert(rows, { onConflict: "client_id,tab_key" });
+          if (ctaErr) console.error("seed client_tab_access error:", ctaErr);
+        }
+      } else {
+        const moduleKeys = Array.isArray(input.enabled_modules) ? input.enabled_modules : [];
+        await adminClient.rpc("seed_client_tab_access", {
+          _client_id: clientId,
+          _module_keys: moduleKeys,
+        });
+      }
+    } catch (tabErr) {
+      console.error("create-client tab seed error (non-fatal):", tabErr);
     }
 
     // Invite admin

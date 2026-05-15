@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
-import { MODULE_CATALOG } from "@/lib/feature-catalog";
+import { useTabDefinitions } from "@/hooks/queries/useTabAccess";
 
 import { COUNTRIES, TIMEZONES, CURRENCIES } from "@/lib/countries";
 
@@ -36,8 +36,7 @@ const step2Schema = z.object({
 });
 
 type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & {
-  enabled_modules: string[];
-  enabled_features: string[];
+  enabled_tab_keys: string[];
 };
 
 const initialForm: FormState = {
@@ -51,8 +50,18 @@ const initialForm: FormState = {
   admin_email: "",
   subscription_plan: "starter",
   status: "trial",
-  enabled_modules: [],
-  enabled_features: [],
+  enabled_tab_keys: [],
+};
+
+const MODULE_META: Record<string, { label: string; emoji: string; order: number }> = {
+  employees:   { label: "Employees",        emoji: "👥", order: 1 },
+  payroll:     { label: "Payroll",          emoji: "💰", order: 2 },
+  expenses:    { label: "Expense Tracking", emoji: "🧾", order: 3 },
+  assets:      { label: "Assets",           emoji: "📦", order: 4 },
+  performance: { label: "Performance",      emoji: "⭐", order: 5 },
+  projects:    { label: "Projects",         emoji: "📂", order: 6 },
+  reports:     { label: "Reports",          emoji: "📊", order: 7 },
+  settings:    { label: "Settings",         emoji: "⚙️", order: 8 },
 };
 
 interface Props {
@@ -76,39 +85,36 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
     });
   };
 
-  const toggleModule = (moduleKey: string, enabled: boolean) => {
-    const features = MODULE_CATALOG.find((m) => m.key === moduleKey)?.features ?? [];
-    const featureKeys = features.map((f) => f.key);
-    if (enabled) {
-      setForm((f) => ({
-        ...f,
-        enabled_modules: Array.from(new Set([...f.enabled_modules, moduleKey])),
-        enabled_features: Array.from(new Set([...f.enabled_features, ...featureKeys])),
-      }));
-    } else {
-      setForm((f) => ({
-        ...f,
-        enabled_modules: f.enabled_modules.filter((m) => m !== moduleKey),
-        enabled_features: f.enabled_features.filter((k) => !featureKeys.includes(k)),
-      }));
+  const { data: tabDefs } = useTabDefinitions();
+
+  const tabsByModule = (() => {
+    const map = new Map<string, typeof tabDefs>();
+    for (const td of tabDefs ?? []) {
+      if (!map.has(td.module_key)) map.set(td.module_key, [] as any);
+      (map.get(td.module_key) as any).push(td);
     }
+    return Array.from(map.entries()).sort(
+      (a, b) => (MODULE_META[a[0]]?.order ?? 99) - (MODULE_META[b[0]]?.order ?? 99),
+    );
+  })();
+
+  const toggleTab = (tabKey: string, enabled: boolean) => {
+    setForm((f) => ({
+      ...f,
+      enabled_tab_keys: enabled
+        ? Array.from(new Set([...f.enabled_tab_keys, tabKey]))
+        : f.enabled_tab_keys.filter((k) => k !== tabKey),
+    }));
   };
 
-  const toggleFeature = (featureKey: string, moduleKey: string, enabled: boolean) => {
-    if (enabled) {
-      setForm((f) => ({
-        ...f,
-        enabled_features: Array.from(new Set([...f.enabled_features, featureKey])),
-        enabled_modules: f.enabled_modules.includes(moduleKey)
-          ? f.enabled_modules
-          : [...f.enabled_modules, moduleKey],
-      }));
-    } else {
-      setForm((f) => ({
-        ...f,
-        enabled_features: f.enabled_features.filter((k) => k !== featureKey),
-      }));
-    }
+  const toggleModule = (moduleKey: string, enabled: boolean) => {
+    const keys = (tabDefs ?? []).filter((t) => t.module_key === moduleKey).map((t) => t.tab_key);
+    setForm((f) => ({
+      ...f,
+      enabled_tab_keys: enabled
+        ? Array.from(new Set([...f.enabled_tab_keys, ...keys]))
+        : f.enabled_tab_keys.filter((k) => !keys.includes(k)),
+    }));
   };
 
   const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
@@ -137,10 +143,18 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   const handleSubmit = async () => {
     if (!validateStep(2)) return;
     try {
+      // Derive enabled_modules from selected tabs (excludes "settings" — always implicit)
+      const enabledModules = Array.from(
+        new Set(
+          (tabDefs ?? [])
+            .filter((t) => form.enabled_tab_keys.includes(t.tab_key) && t.module_key !== "settings")
+            .map((t) => t.module_key),
+        ),
+      );
       const payload = {
         ...form,
-        enabled_modules: form.enabled_modules,
-        enabled_features: form.enabled_features,
+        enabled_modules: enabledModules,
+        enabled_tab_keys: form.enabled_tab_keys,
       } as unknown as CreateClientInput;
       await createClient.mutateAsync(payload);
       onOpenChange(false);
@@ -277,66 +291,72 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
         {step === 3 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-              <Layers className="h-4 w-4" /> Modules & Features
+              <Layers className="h-4 w-4" /> Tab Access
             </div>
             <p className="text-xs text-muted-foreground">
-              Check a module to enable it. Expand to grant or deny specific features within it.
+              Pick the sidebar tabs this client will have access to. Whatever you grant here is what their
+              admins and employees can see — anything off stays hidden.
             </p>
 
             <div className="space-y-2">
-              {MODULE_CATALOG.map((m) => {
-                const isEnabled = form.enabled_modules.includes(m.key);
-                const isExpanded = expandedModules.has(m.key);
-                const total = m.features.length;
-                const selected = m.features.filter((f) => form.enabled_features.includes(f.key)).length;
+              {tabsByModule.map(([moduleKey, moduleTabs]) => {
+                const meta = MODULE_META[moduleKey] ?? { label: moduleKey, emoji: "📁", order: 99 };
+                const total = moduleTabs?.length ?? 0;
+                const selected = (moduleTabs ?? []).filter((t) =>
+                  form.enabled_tab_keys.includes(t.tab_key),
+                ).length;
+                const allOn = selected === total && total > 0;
+                const isExpanded = expandedModules.has(moduleKey);
 
                 return (
-                  <div key={m.key} className="rounded-lg border border-border overflow-hidden">
+                  <div key={moduleKey} className="rounded-lg border border-border overflow-hidden">
                     <div className="flex items-start gap-2 p-3 bg-muted/20">
                       <button
                         type="button"
-                        onClick={() => toggleExpanded(m.key)}
+                        onClick={() => toggleExpanded(moduleKey)}
                         className="p-1 hover:bg-muted rounded mt-0.5"
                         aria-label={isExpanded ? "Collapse" : "Expand"}
                       >
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </button>
                       <Checkbox
-                        checked={isEnabled}
-                        onCheckedChange={(v) => toggleModule(m.key, Boolean(v))}
+                        checked={allOn}
+                        onCheckedChange={(v) => toggleModule(moduleKey, Boolean(v))}
                         className="mt-1"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-foreground">{m.label}</div>
+                        <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <span>{meta.emoji}</span> {meta.label}
+                        </div>
                         <div className="text-xs text-muted-foreground">
-                          {isEnabled
-                            ? selected === total
-                              ? `All ${total} features enabled`
-                              : `${selected} of ${total} features enabled`
-                            : `${total} features available`}
+                          {selected === 0
+                            ? `${total} tabs available`
+                            : allOn
+                              ? `All ${total} tabs enabled`
+                              : `${selected} of ${total} tabs enabled`}
                         </div>
                       </div>
                     </div>
 
                     {isExpanded && (
                       <div className="bg-background border-t border-border divide-y divide-border">
-                        {m.features.map((f) => {
-                          const checked = form.enabled_features.includes(f.key);
+                        {(moduleTabs ?? []).map((t) => {
+                          const checked = form.enabled_tab_keys.includes(t.tab_key);
                           return (
                             <label
-                              key={f.key}
+                              key={t.tab_key}
                               className="flex items-start gap-3 px-4 py-2.5 pl-12 hover:bg-muted/30 cursor-pointer"
                             >
                               <Checkbox
                                 checked={checked}
-                                onCheckedChange={(v) => toggleFeature(f.key, m.key, Boolean(v))}
+                                onCheckedChange={(v) => toggleTab(t.tab_key, Boolean(v))}
                                 className="mt-0.5"
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm text-foreground">{f.label}</div>
-                                {f.description && (
-                                  <div className="text-xs text-muted-foreground">{f.description}</div>
-                                )}
+                                <div className="text-sm text-foreground">{t.label}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t.scope === "both" ? "Visible in Me + People" : "Visible in People only"}
+                                </div>
                               </div>
                             </label>
                           );
@@ -349,9 +369,9 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
             </div>
 
             <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
-              {form.enabled_modules.length === 0
-                ? "No modules selected — the client will see an empty workspace."
-                : `${form.enabled_modules.length} module${form.enabled_modules.length === 1 ? "" : "s"}, ${form.enabled_features.length} feature${form.enabled_features.length === 1 ? "" : "s"} enabled.`}
+              {form.enabled_tab_keys.length === 0
+                ? "No tabs selected — the client will see an empty workspace."
+                : `${form.enabled_tab_keys.length} tab${form.enabled_tab_keys.length === 1 ? "" : "s"} enabled.`}
             </p>
           </div>
         )}
@@ -375,14 +395,10 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
               <ReviewRow k="Plan" v={form.subscription_plan} className="capitalize" />
               <ReviewRow k="Status" v={form.status} className="capitalize" />
             </ReviewSection>
-            <ReviewSection title="Modules & Features">
+            <ReviewSection title="Tab Access">
               <ReviewRow
-                k="Modules"
-                v={form.enabled_modules.length === 0 ? "None" : `${form.enabled_modules.length} selected`}
-              />
-              <ReviewRow
-                k="Features"
-                v={form.enabled_features.length === 0 ? "None" : `${form.enabled_features.length} selected`}
+                k="Tabs"
+                v={form.enabled_tab_keys.length === 0 ? "None" : `${form.enabled_tab_keys.length} selected`}
               />
             </ReviewSection>
             <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
