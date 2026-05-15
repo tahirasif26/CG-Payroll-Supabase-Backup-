@@ -1,7 +1,9 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
+import { useAccessibleTabs } from "@/hooks/queries/useTabAccess";
+import { useTabDefinitions } from "@/hooks/queries/useTabAccess";
 import type { AppRole } from "@/hooks/useAuth";
 import { AccessDenied } from "./AccessDenied";
 
@@ -22,6 +24,22 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { appRole, isSuperAdmin, isOrphan, hasFeature, hasPeopleFeature, session, loading } = useRole();
   const { scope } = useViewScope();
+  const location = useLocation();
+  const { data: accessibleTabs } = useAccessibleTabs();
+  const { data: tabDefs } = useTabDefinitions();
+
+  // Tab-wise access is the source of truth. If the current path matches
+  // an accessible tab for this user, bypass legacy feature gating.
+  const tabGrantsAccess = (() => {
+    if (!tabDefs || !accessibleTabs) return false;
+    const path = location.pathname;
+    // Find tab whose path matches current route (exact or prefix on /segments)
+    const matched = tabDefs.find(
+      (t) => path === t.path || path.startsWith(t.path + "/"),
+    );
+    if (!matched) return false;
+    return accessibleTabs.has(matched.tab_key);
+  })();
 
   if (loading) {
     return (
@@ -65,12 +83,20 @@ export function ProtectedRoute({
   }
 
   // Feature check (applies to everyone except super_admin, who bypasses features)
-  if (!isSuperAdmin && requiredFeature && !hasFeature(requiredFeature)) {
+  // Skipped when tab-wise access already grants this route.
+  if (!isSuperAdmin && !tabGrantsAccess && requiredFeature && !hasFeature(requiredFeature)) {
     return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
   }
 
   // Custom People-side routes must respect the People toggle, not just personal Me defaults.
-  if (!isSuperAdmin && appRole === "hr" && scope === "people" && requiredFeature && !hasPeopleFeature(requiredFeature)) {
+  if (
+    !isSuperAdmin &&
+    !tabGrantsAccess &&
+    appRole === "hr" &&
+    scope === "people" &&
+    requiredFeature &&
+    !hasPeopleFeature(requiredFeature)
+  ) {
     return fallback === "redirect" ? <Navigate to={redirectTo} replace /> : <AccessDenied />;
   }
 
