@@ -1231,6 +1231,31 @@ export default function PayrollPage() {
     );
   }
 
+  // Memoize per-run live breakdowns so the Live cards/list view doesn't
+  // recompute the full payroll math for every run on every render.
+  const breakdownByRunId = useMemo(() => {
+    const map = new Map<string, EmployeePayrollLine[] | null>();
+    for (const r of dbRuns) {
+      const setup = getSetupById(r.payroll_setup_id ?? "");
+      const localRun = runs.find(x => x.id === r.id) ?? adaptPayrollRun(r);
+      if (localRun.status === "completed") {
+        map.set(r.id, null);
+        continue;
+      }
+      const runEmps = localRun.payrollSetupId
+        ? employees.filter(e => e.payrollSetupId === localRun.payrollSetupId)
+        : (localRun.employeeTypes && localRun.employeeTypes.length > 0
+            ? employees.filter(e => localRun.employeeTypes!.includes(e.category))
+            : employees);
+      const breakdown = setup
+        ? buildBreakdownFromSetup(runEmps, setup, oneOffs[localRun.id] || [], getSepMap(localRun.id), processedSeps, localRun.id, approvedAdvances)
+        : buildBreakdown(runEmps, [] as Deduction[], initialTaxConfigs, oneOffs[localRun.id] || [], getSepMap(localRun.id), processedSeps, localRun.id, approvedAdvances);
+      map.set(r.id, breakdown);
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbRuns, runs, setups, employees, oneOffs, processedSeps, approvedAdvances, separations, dbLoans, dbExpenses]);
+
   return (
     <div className="space-y-6">
       <PageHeader title="Payroll Runs" description="Process and manage monthly payroll." />
