@@ -76,17 +76,19 @@ export interface PayrollLineRow {
 export function usePayrollSetups() {
   const { clientId, isSuperAdmin } = useRole();
   return useQuery({
-    queryKey: ["payroll_setups", clientId ?? "super"],
+    queryKey: ["payroll_setups_list", clientId ?? "super"],
     queryFn: async () => {
+      // List view only — heavy `options` json is fetched per-setup on the editor page.
       const { data, error } = await supabase
         .from("payroll_setups")
-        .select("*")
+        .select("id,client_id,name,description,country,currency,pay_frequency,year_end_date,status,created_by,created_at,updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as PayrollSetupRow[];
     },
     enabled: !!clientId || isSuperAdmin,
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 }
 
