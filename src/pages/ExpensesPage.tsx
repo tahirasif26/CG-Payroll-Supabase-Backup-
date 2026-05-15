@@ -434,6 +434,28 @@ export default function ExpensesPage() {
     }
   };
 
+  // Me-scope without an employee row → don't fall through to a team-wide view.
+  if (scope === "me" && !currentEmpRow?.id) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="My Expenses" description="Submit and track your expense claims." />
+        <Card className="border-dashed">
+          <div className="p-8 text-center space-y-3">
+            <h3 className="text-lg font-semibold">No employee profile yet</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Your account is set up as <span className="font-medium capitalize">{appRole}</span> but
+              doesn't have a matching employee record yet. Add yourself to the directory to start
+              submitting and tracking expense claims here.
+            </p>
+            <Button size="sm" className="mt-2" onClick={() => navigate("/employees")}>
+              Go to Employees Directory
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
