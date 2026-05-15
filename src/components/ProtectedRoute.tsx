@@ -1,7 +1,9 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 import { useViewScope } from "@/contexts/ViewScopeContext";
+import { useAccessibleTabs } from "@/hooks/queries/useTabAccess";
+import { useTabDefinitions } from "@/hooks/queries/useTabAccess";
 import type { AppRole } from "@/hooks/useAuth";
 import { AccessDenied } from "./AccessDenied";
 
