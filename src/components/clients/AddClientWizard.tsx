@@ -291,66 +291,72 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
         {step === 3 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-              <Layers className="h-4 w-4" /> Modules & Features
+              <Layers className="h-4 w-4" /> Tab Access
             </div>
             <p className="text-xs text-muted-foreground">
-              Check a module to enable it. Expand to grant or deny specific features within it.
+              Pick the sidebar tabs this client will have access to. Whatever you grant here is what their
+              admins and employees can see — anything off stays hidden.
             </p>
 
             <div className="space-y-2">
-              {MODULE_CATALOG.map((m) => {
-                const isEnabled = form.enabled_modules.includes(m.key);
-                const isExpanded = expandedModules.has(m.key);
-                const total = m.features.length;
-                const selected = m.features.filter((f) => form.enabled_features.includes(f.key)).length;
+              {tabsByModule.map(([moduleKey, moduleTabs]) => {
+                const meta = MODULE_META[moduleKey] ?? { label: moduleKey, emoji: "📁", order: 99 };
+                const total = moduleTabs?.length ?? 0;
+                const selected = (moduleTabs ?? []).filter((t) =>
+                  form.enabled_tab_keys.includes(t.tab_key),
+                ).length;
+                const allOn = selected === total && total > 0;
+                const isExpanded = expandedModules.has(moduleKey);
 
                 return (
-                  <div key={m.key} className="rounded-lg border border-border overflow-hidden">
+                  <div key={moduleKey} className="rounded-lg border border-border overflow-hidden">
                     <div className="flex items-start gap-2 p-3 bg-muted/20">
                       <button
                         type="button"
-                        onClick={() => toggleExpanded(m.key)}
+                        onClick={() => toggleExpanded(moduleKey)}
                         className="p-1 hover:bg-muted rounded mt-0.5"
                         aria-label={isExpanded ? "Collapse" : "Expand"}
                       >
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </button>
                       <Checkbox
-                        checked={isEnabled}
-                        onCheckedChange={(v) => toggleModule(m.key, Boolean(v))}
+                        checked={allOn}
+                        onCheckedChange={(v) => toggleModule(moduleKey, Boolean(v))}
                         className="mt-1"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-foreground">{m.label}</div>
+                        <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <span>{meta.emoji}</span> {meta.label}
+                        </div>
                         <div className="text-xs text-muted-foreground">
-                          {isEnabled
-                            ? selected === total
-                              ? `All ${total} features enabled`
-                              : `${selected} of ${total} features enabled`
-                            : `${total} features available`}
+                          {selected === 0
+                            ? `${total} tabs available`
+                            : allOn
+                              ? `All ${total} tabs enabled`
+                              : `${selected} of ${total} tabs enabled`}
                         </div>
                       </div>
                     </div>
 
                     {isExpanded && (
                       <div className="bg-background border-t border-border divide-y divide-border">
-                        {m.features.map((f) => {
-                          const checked = form.enabled_features.includes(f.key);
+                        {(moduleTabs ?? []).map((t) => {
+                          const checked = form.enabled_tab_keys.includes(t.tab_key);
                           return (
                             <label
-                              key={f.key}
+                              key={t.tab_key}
                               className="flex items-start gap-3 px-4 py-2.5 pl-12 hover:bg-muted/30 cursor-pointer"
                             >
                               <Checkbox
                                 checked={checked}
-                                onCheckedChange={(v) => toggleFeature(f.key, m.key, Boolean(v))}
+                                onCheckedChange={(v) => toggleTab(t.tab_key, Boolean(v))}
                                 className="mt-0.5"
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm text-foreground">{f.label}</div>
-                                {f.description && (
-                                  <div className="text-xs text-muted-foreground">{f.description}</div>
-                                )}
+                                <div className="text-sm text-foreground">{t.label}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t.scope === "both" ? "Visible in Me + People" : "Visible in People only"}
+                                </div>
                               </div>
                             </label>
                           );
@@ -363,9 +369,9 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
             </div>
 
             <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
-              {form.enabled_modules.length === 0
-                ? "No modules selected — the client will see an empty workspace."
-                : `${form.enabled_modules.length} module${form.enabled_modules.length === 1 ? "" : "s"}, ${form.enabled_features.length} feature${form.enabled_features.length === 1 ? "" : "s"} enabled.`}
+              {form.enabled_tab_keys.length === 0
+                ? "No tabs selected — the client will see an empty workspace."
+                : `${form.enabled_tab_keys.length} tab${form.enabled_tab_keys.length === 1 ? "" : "s"} enabled.`}
             </p>
           </div>
         )}
