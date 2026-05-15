@@ -247,6 +247,7 @@ export const navigationGroups: NavGroup[] = [
     icon: FolderOpen,
     basePath: "/projects",
     requiredRoles: ["admin", "hr"],
+    tabKey: "projects.list",
   },
   {
     key: "reports",
@@ -254,7 +255,7 @@ export const navigationGroups: NavGroup[] = [
     icon: BarChart3,
     basePath: "/reports",
     requiredRoles: ["admin", "hr"],
-    requiredFeature: "reports.view",
+    tabKey: "reports.all",
   },
   {
     key: "upcoming",
