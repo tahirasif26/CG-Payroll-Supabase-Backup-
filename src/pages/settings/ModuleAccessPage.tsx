@@ -11,9 +11,20 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingState } from "@/components/LoadingState";
-import { MODULE_CATALOG } from "@/lib/feature-catalog";
 import { useClients } from "@/hooks/queries/useClients";
+import { useTabDefinitions } from "@/hooks/queries/useTabAccess";
 import { Save, RotateCcw, Info, Building2 } from "lucide-react";
+
+const MODULE_META: Record<string, { label: string; emoji: string; order: number }> = {
+  employees:   { label: "Employees",        emoji: "👥", order: 1 },
+  payroll:     { label: "Payroll",          emoji: "💰", order: 2 },
+  expenses:    { label: "Expense Tracking", emoji: "🧾", order: 3 },
+  assets:      { label: "Assets",           emoji: "📦", order: 4 },
+  performance: { label: "Performance",      emoji: "⭐", order: 5 },
+  projects:    { label: "Projects",         emoji: "📂", order: 6 },
+  reports:     { label: "Reports",          emoji: "📊", order: 7 },
+  settings:    { label: "Settings",         emoji: "⚙️", order: 8 },
+};
 
 export default function ModuleAccessPage() {
   const { isSuperAdmin } = useRole();
@@ -22,85 +33,113 @@ export default function ModuleAccessPage() {
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const { data: clients, isLoading: clientsLoading } = useClients();
+  const { data: tabDefs, isLoading: defsLoading } = useTabDefinitions();
 
-  // Auto-select first client
   useEffect(() => {
     if (!selectedClientId && clients && clients.length > 0) {
       setSelectedClientId(clients[0].id);
     }
   }, [clients, selectedClientId]);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["sa-client-module-access", selectedClientId],
+  // Existing per-client tab access
+  const { data: existing, isLoading } = useQuery({
+    queryKey: ["sa-client-tab-access", selectedClientId],
     enabled: !!selectedClientId,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("clients")
-        .select("enabled_modules, enabled_features")
-        .eq("id", selectedClientId!)
-        .maybeSingle();
+        .from("client_tab_access")
+        .select("tab_key, enabled")
+        .eq("client_id", selectedClientId!);
       if (error) throw error;
-      return {
-        modules: (data?.enabled_modules ?? []) as string[],
-        // Treat null as empty — new features must be opted in explicitly.
-        features: (data?.enabled_features ?? []) as string[],
-      };
+      const map = new Map<string, boolean>();
+      for (const r of (data ?? []) as { tab_key: string; enabled: boolean }[]) {
+        map.set(r.tab_key, r.enabled);
+      }
+      return map;
     },
   });
 
-  const [modules, setModules] = useState<string[]>([]);
-  const [features, setFeatures] = useState<string[]>([]);
+  // Local state: tab_key → enabled
+  const [tabs, setTabs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!data) return;
-    setModules(data.modules ?? []);
-    setFeatures(data.features ?? []);
-  }, [data]);
+    if (!tabDefs || !existing) return;
+    const next: Record<string, boolean> = {};
+    for (const td of tabDefs) {
+      // Settings tabs default-on; others default to whatever DB has (or false)
+      const dbVal = existing.get(td.tab_key);
+      next[td.tab_key] = dbVal ?? (td.module_key === "settings");
+    }
+    setTabs(next);
+  }, [tabDefs, existing]);
 
   const dirty = useMemo(() => {
-    if (!data) return false;
-    const a = JSON.stringify([...modules].sort());
-    const b = JSON.stringify([...(data.modules ?? [])].sort());
-    const c = JSON.stringify([...features].sort());
-    const d = JSON.stringify([...(data.features ?? [])].sort());
-    return a !== b || c !== d;
-  }, [modules, features, data]);
-
-  const toggleModule = (key: string, on: boolean) => {
-    const moduleFeatureKeys = MODULE_CATALOG.find((m) => m.key === key)?.features.map((f) => f.key) ?? [];
-    if (on) {
-      setModules((m) => Array.from(new Set([...m, key])));
-      setFeatures((f) => Array.from(new Set([...f, ...moduleFeatureKeys])));
-    } else {
-      setModules((m) => m.filter((k) => k !== key));
-      setFeatures((f) => f.filter((k) => !moduleFeatureKeys.includes(k)));
+    if (!tabDefs || !existing) return false;
+    for (const td of tabDefs) {
+      const cur = tabs[td.tab_key] ?? false;
+      const orig = existing.get(td.tab_key) ?? (td.module_key === "settings");
+      if (cur !== orig) return true;
     }
-  };
+    return false;
+  }, [tabs, tabDefs, existing]);
 
-  const toggleFeature = (moduleKey: string, featureKey: string, on: boolean) => {
-    if (on) {
-      setFeatures((f) => Array.from(new Set([...f, featureKey])));
-      setModules((m) => (m.includes(moduleKey) ? m : [...m, moduleKey]));
-    } else {
-      setFeatures((f) => f.filter((k) => k !== featureKey));
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof tabDefs>();
+    for (const td of tabDefs ?? []) {
+      if (!map.has(td.module_key)) map.set(td.module_key, [] as any);
+      (map.get(td.module_key) as any).push(td);
     }
+    return Array.from(map.entries())
+      .sort((a, b) => (MODULE_META[a[0]]?.order ?? 99) - (MODULE_META[b[0]]?.order ?? 99));
+  }, [tabDefs]);
+
+  const setTab = (key: string, on: boolean) =>
+    setTabs((t) => ({ ...t, [key]: on }));
+
+  const toggleModule = (moduleKey: string, on: boolean) => {
+    const moduleTabs = (tabDefs ?? []).filter((t) => t.module_key === moduleKey);
+    setTabs((prev) => {
+      const next = { ...prev };
+      for (const t of moduleTabs) next[t.tab_key] = on;
+      return next;
+    });
   };
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!selectedClientId) return;
+      if (!selectedClientId || !tabDefs) return;
+      // Upsert all tab rows
+      const rows = tabDefs.map((td) => ({
+        client_id: selectedClientId,
+        tab_key: td.tab_key,
+        enabled: !!tabs[td.tab_key],
+      }));
       const { error } = await (supabase as any)
-        .from("clients")
-        .update({ enabled_modules: modules, enabled_features: features })
-        .eq("id", selectedClientId);
+        .from("client_tab_access")
+        .upsert(rows, { onConflict: "client_id,tab_key" });
       if (error) throw error;
+
+      // Keep clients.enabled_modules in sync with selected tabs (for module gates)
+      const enabledModules = Array.from(
+        new Set(
+          tabDefs
+            .filter((td) => tabs[td.tab_key] && td.module_key !== "settings")
+            .map((td) => td.module_key),
+        ),
+      );
+      const { error: cErr } = await (supabase as any)
+        .from("clients")
+        .update({ enabled_modules: enabledModules })
+        .eq("id", selectedClientId);
+      if (cErr) throw cErr;
     },
     onSuccess: () => {
       toast({
-        title: "Module access updated",
-        description: "Changes will apply to this client and all of its employees.",
+        title: "Tab access updated",
+        description: "Changes apply immediately to this client and its users.",
       });
-      qc.invalidateQueries({ queryKey: ["sa-client-module-access", selectedClientId] });
+      qc.invalidateQueries({ queryKey: ["sa-client-tab-access", selectedClientId] });
+      qc.invalidateQueries({ queryKey: ["accessible_tabs"] });
       qc.invalidateQueries({ queryKey: ["my_features"] });
     },
     onError: (err: Error) =>
@@ -108,9 +147,12 @@ export default function ModuleAccessPage() {
   });
 
   const reset = () => {
-    if (!data) return;
-    setModules(data.modules ?? []);
-    setFeatures(data.features ?? []);
+    if (!tabDefs || !existing) return;
+    const next: Record<string, boolean> = {};
+    for (const td of tabDefs) {
+      next[td.tab_key] = existing.get(td.tab_key) ?? (td.module_key === "settings");
+    }
+    setTabs(next);
   };
 
   if (!isSuperAdmin) {
@@ -118,7 +160,7 @@ export default function ModuleAccessPage() {
       <div className="p-6 space-y-6">
         <PageHeader title="Module Access" description="Super admins only." />
         <Card className="p-6 text-center text-muted-foreground text-sm">
-          Only super admins can manage module access for clients.
+          Only super admins can manage tab access for clients.
         </Card>
       </div>
     );
@@ -129,8 +171,8 @@ export default function ModuleAccessPage() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader
-        title="Client Module Access"
-        description="Enable or disable modules and features for each client. New features stay disabled until you turn them on here."
+        title="Client Tab Access"
+        description="Pick which sidebar tabs each client can see. Whatever you turn on here is what their admins and employees will see — nothing more."
       >
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={reset} disabled={!dirty || save.isPending}>
@@ -162,7 +204,8 @@ export default function ModuleAccessPage() {
         </Select>
         {selectedClient && (
           <p className="text-xs text-muted-foreground">
-            Editing access for <span className="font-medium text-foreground">{selectedClient.company_name}</span>. Changes apply to this client and all of its employees.
+            Editing tab access for{" "}
+            <span className="font-medium text-foreground">{selectedClient.company_name}</span>.
           </p>
         )}
       </Card>
@@ -170,65 +213,66 @@ export default function ModuleAccessPage() {
       <Card className="p-4 flex items-start gap-3 bg-muted/30">
         <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
         <p className="text-xs text-muted-foreground">
-          Disabling a module immediately hides it from every user in the selected client.
-          Newly released features always appear here as <strong>off</strong> — you must toggle them on manually before the client and its employees can use them.
+          Each toggle below corresponds to one sidebar tab inside the client's workspace.
+          Turn a tab off to hide it for everyone in this client (admins, HR and employees).
+          Settings tabs control what's available inside the client's Settings area.
         </p>
       </Card>
 
       {!selectedClientId ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground">Select a client to manage their module access.</Card>
-      ) : isLoading ? (
+        <Card className="p-6 text-center text-sm text-muted-foreground">
+          Select a client to manage their tab access.
+        </Card>
+      ) : isLoading || defsLoading ? (
         <LoadingState rows={6} variant="list" />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {MODULE_CATALOG.map((m) => {
-            const moduleOn = modules.includes(m.key);
-            const enabledCount = m.features.filter((f) => features.includes(f.key)).length;
+          {grouped.map(([moduleKey, moduleTabs]) => {
+            const meta = MODULE_META[moduleKey] ?? { label: moduleKey, emoji: "📁", order: 99 };
+            const enabledCount = (moduleTabs ?? []).filter((t) => tabs[t.tab_key]).length;
+            const total = moduleTabs?.length ?? 0;
+            const allOn = enabledCount === total;
             return (
-              <Card key={m.key} className="p-4 space-y-3">
+              <Card key={moduleKey} className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold flex items-center gap-2">
-                      {m.label}
-                      {moduleOn ? (
-                        <Badge variant="secondary" className="text-[10px]">
-                          {enabledCount}/{m.features.length}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px]">Off</Badge>
-                      )}
+                      <span>{meta.emoji}</span>
+                      {meta.label}
+                      <Badge variant={enabledCount > 0 ? "secondary" : "outline"} className="text-[10px]">
+                        {enabledCount}/{total}
+                      </Badge>
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      {moduleOn ? "Module is visible to this client." : "Hidden from this client."}
+                      {enabledCount === 0
+                        ? "All tabs hidden from this client."
+                        : allOn
+                          ? "All tabs visible."
+                          : `${enabledCount} of ${total} tabs visible.`}
                     </p>
                   </div>
-                  <Switch checked={moduleOn} onCheckedChange={(v) => toggleModule(m.key, v)} />
+                  <Switch checked={allOn} onCheckedChange={(v) => toggleModule(moduleKey, v)} />
                 </div>
 
-                {moduleOn && (
-                  <div className="border-t pt-2 space-y-1.5">
-                    {m.features.map((f) => {
-                      const on = features.includes(f.key);
-                      return (
-                        <label
-                          key={f.key}
-                          className="flex items-center justify-between gap-3 py-1.5 px-2 rounded hover:bg-muted/40 cursor-pointer"
-                        >
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium">{f.label}</p>
-                            {f.description && (
-                              <p className="text-[11px] text-muted-foreground">{f.description}</p>
-                            )}
-                          </div>
-                          <Switch
-                            checked={on}
-                            onCheckedChange={(v) => toggleFeature(m.key, f.key, v)}
-                          />
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="border-t pt-2 space-y-1.5">
+                  {(moduleTabs ?? []).map((t) => {
+                    const on = !!tabs[t.tab_key];
+                    return (
+                      <label
+                        key={t.tab_key}
+                        className="flex items-center justify-between gap-3 py-1.5 px-2 rounded hover:bg-muted/40 cursor-pointer"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium">{t.label}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {t.scope === "both" ? "Visible in Me + People" : "Visible in People only"}
+                          </p>
+                        </div>
+                        <Switch checked={on} onCheckedChange={(v) => setTab(t.tab_key, v)} />
+                      </label>
+                    );
+                  })}
+                </div>
               </Card>
             );
           })}
