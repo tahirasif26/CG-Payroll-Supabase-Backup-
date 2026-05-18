@@ -175,7 +175,7 @@ export default function LoansPage() {
     setEditAmount(String(loan.principal));
     setEditMonthly(String(loan.monthly_deduction));
     setEditRemaining(String(loan.remaining_balance));
-    setEditStart(loan.start_date);
+    
     setEditEnd(loan.end_date ?? "");
     setEditing(true);
   };
