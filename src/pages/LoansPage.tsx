@@ -128,19 +128,18 @@ export default function LoansPage() {
       return;
     }
     const principal = principalNum;
-    const reasonText = `[${newLoanType}] ${newReason}`.trim();
+    const reasonText = newReason.trim();
     const created = await createLoan.mutateAsync({
       employee_id: emp.id,
       principal,
       monthly_deduction: monthlyEmi,
-      start_date: newStart,
+      start_date: todayIso,
       end_date: computedEndDate,
-      interest_rate: interestNum,
       reason: reasonText,
     });
     setNewOpen(false);
-    setNewAmount(""); setNewTenure("12"); setNewInterest("0");
-    setNewReason(""); setNewLoanType("Personal"); setNewAck(false);
+    setNewAmount(""); setNewTenure("12");
+    setNewReason(""); setNewAck(false);
     toast({ title: "Loan Created", description: "The loan has been successfully created." });
 
     // Start unified approval workflow
