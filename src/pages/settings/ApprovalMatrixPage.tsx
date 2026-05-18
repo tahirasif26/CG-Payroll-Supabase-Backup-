@@ -624,7 +624,7 @@ function PoliciesTab({
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={isRange ? 5 : 3} className="text-center text-muted-foreground py-4 text-sm">
+                      <TableCell colSpan={isRange ? 4 : 2} className="text-center text-muted-foreground py-4 text-sm">
                         No rules — falls back to Admin approval.
                       </TableCell>
                     </TableRow>
@@ -638,9 +638,6 @@ function PoliciesTab({
                           </TableCell>
                         )}
                         <TableCell>{groupName(p.group_id)}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {p.approval_type_override ? APPROVAL_TYPE_LABELS[p.approval_type_override] : "Use group default"}
-                        </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Button size="sm" variant="ghost" onClick={() => {
