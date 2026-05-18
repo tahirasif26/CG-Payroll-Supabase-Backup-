@@ -188,7 +188,7 @@ export default function LoansPage() {
       principal: Number(editAmount),
       monthly_deduction: Number(editMonthly),
       remaining_balance: Number(editRemaining),
-      start_date: editStart,
+      end_date: editEnd,
       end_date: editEnd,
     });
     setEditing(false);
