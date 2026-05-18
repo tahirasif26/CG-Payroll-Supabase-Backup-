@@ -1198,7 +1198,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                           </div>
                         </div>
                       </div>
-                    </div>
                     {salaryBreakdown.deductions.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Deductions</p>
