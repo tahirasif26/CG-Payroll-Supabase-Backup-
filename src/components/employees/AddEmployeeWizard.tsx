@@ -213,7 +213,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
       dateOfBirth: e.date_of_birth ?? "",
       gender: e.gender ?? "",
       maritalStatus: e.marital_status ?? "",
-      religion: e.religion ?? "",
       nationality: e.nationality ?? "",
       personalPhone: e.personal_phone ?? e.phone ?? "",
       personalEmail: e.personal_email ?? "",
