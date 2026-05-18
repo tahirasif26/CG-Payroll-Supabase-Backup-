@@ -710,11 +710,11 @@ function PolicyDialog({
       const ec = categories.find((c) => c.key === editing.category);
       setMinVal(ec?.unit === "money" ? toSAR(editing.min_value) : String(editing.min_value));
       setMaxVal(editing.max_value == null ? "" : ec?.unit === "money" ? toSAR(editing.max_value) : String(editing.max_value));
-      setGroupId(editing.group_id ?? "admin");
+      setGroupId(editing.group_id ?? "");
       setOverride(editing.approval_type_override ?? "none");
     } else {
       setCategory(defaultCategory);
-      setMinVal(""); setMaxVal(""); setGroupId("admin"); setOverride("none");
+      setMinVal(""); setMaxVal(""); setGroupId(""); setOverride("none");
     }
   }, [open, editing, defaultCategory, categories]);
 
