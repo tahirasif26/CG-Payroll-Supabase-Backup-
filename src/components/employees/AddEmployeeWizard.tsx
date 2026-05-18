@@ -439,7 +439,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             date_of_birth: form.dateOfBirth || null,
             gender: form.gender || null,
             marital_status: form.maritalStatus || null,
-            religion: form.religion || null,
             nationality: form.nationality || null,
           },
           contact: {
