@@ -767,10 +767,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Religion</p>
-                  <Input value={form.religion} onChange={e => updateField("religion", e.target.value)} placeholder="e.g. Islam" className="h-8 text-sm" />
-                </div>
-                <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Nationality</p>
                   <Input value={form.nationality} onChange={e => updateField("nationality", e.target.value)} placeholder="e.g. Saudi" className="h-8 text-sm" />
                 </div>
