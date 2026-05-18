@@ -74,6 +74,7 @@ export default function PayrollSetupEditorPage() {
     country: client.country ?? DEFAULT_PAYROLL_SETUP.country,
     currency: client.currency ?? DEFAULT_PAYROLL_SETUP.currency,
   }));
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
     if (!isNew && id) {
