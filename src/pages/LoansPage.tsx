@@ -669,10 +669,6 @@ export default function LoansPage() {
                 <span className="font-semibold">SAR {monthlyEmi.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Interest</span>
-                <span>SAR {Math.round(totalInterest).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Payable</span>
                 <span>SAR {Math.round(totalPayable).toLocaleString()}</span>
               </div>
