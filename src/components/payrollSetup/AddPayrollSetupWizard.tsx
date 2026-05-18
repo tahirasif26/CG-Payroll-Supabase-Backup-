@@ -164,15 +164,14 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
                 const done = i < step;
                 const active = i === step;
                 return (
-                  <button
+                  <div
                     key={s.id}
-                    type="button"
-                    onClick={() => setStep(i)}
+                    aria-current={active ? "step" : undefined}
                     className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-sm transition",
+                      "w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-sm select-none cursor-default",
                       active && "bg-primary text-primary-foreground",
-                      !active && done && "text-foreground hover:bg-muted",
-                      !active && !done && "text-muted-foreground hover:bg-muted",
+                      !active && done && "text-foreground",
+                      !active && !done && "text-muted-foreground",
                     )}
                   >
                     <span className={cn(
@@ -183,7 +182,7 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
                     </span>
                     <Icon className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{s.label}</span>
-                  </button>
+                  </div>
                 );
               })}
             </div>
