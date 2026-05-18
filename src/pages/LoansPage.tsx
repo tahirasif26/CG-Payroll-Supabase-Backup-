@@ -645,40 +645,15 @@ export default function LoansPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Loan Type</Label>
-                <Select value={newLoanType} onValueChange={setNewLoanType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {LOAN_TYPES.map(t => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label>Loan Amount (SAR)</Label>
                 <Input type="number" placeholder="0" value={newAmount}
                   onChange={e => setNewAmount(e.target.value)} required min={1} step="1" />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tenure (months)</Label>
                 <Input type="number" value={newTenure}
                   onChange={e => setNewTenure(e.target.value)} required min={1} max={120} step="1" />
               </div>
-              <div className="space-y-2">
-                <Label>Interest Rate (% p.a.)</Label>
-                <Input type="number" value={newInterest}
-                  onChange={e => setNewInterest(e.target.value)} min={0} max={100} step="0.01" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Disbursement Date</Label>
-              <Input type="date" value={newStart}
-                onChange={e => setNewStart(e.target.value)} required />
             </div>
 
             <div className="space-y-2">
