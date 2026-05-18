@@ -1143,14 +1143,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                     <p className="text-xs text-muted-foreground">Tax</p>
                     <p className="text-sm font-medium">{selectedSetup.options.enableTaxCalculation ? "Enabled" : "Disabled"}</p>
                   </div>
-                  <div className="bg-muted/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground">Salary Type</p>
-                    <p className="text-sm font-medium capitalize">{selectedSetup.salaryRules.salaryType}</p>
-                  </div>
-                  <div className="bg-muted/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground">Proration</p>
-                    <p className="text-sm font-medium capitalize">{selectedSetup.salaryRules.prorationRule.replace("-", " ")}</p>
-                  </div>
                 </div>
               </CardContent>
             </Card>

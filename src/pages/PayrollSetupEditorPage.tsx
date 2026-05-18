@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 
 import PayScheduleTab from "@/components/payrollSetup/PayScheduleTab";
 import PayslipComponentsTab from "@/components/payrollSetup/PayslipComponentsTab";
-import SalaryRulesTab from "@/components/payrollSetup/SalaryRulesTab";
 import LeavesTab from "@/components/payrollSetup/LeavesTab";
 import FinalSettlementTab from "@/components/payrollSetup/FinalSettlementTab";
 import OptionsTab from "@/components/payrollSetup/OptionsTab";

@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
-  Calendar, Settings, Layers, Wallet, FileCheck, Check, ArrowLeft, ArrowRight, Save,
+  Calendar, Settings, Layers, FileCheck, Check, ArrowLeft, ArrowRight, Save,
   Plane, SlidersHorizontal,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,6 @@ import type { PayrollSetup } from "@/types/payrollSetup";
 
 import PayScheduleTab from "./PayScheduleTab";
 import PayslipComponentsTab from "./PayslipComponentsTab";
-import SalaryRulesTab from "./SalaryRulesTab";
 import LeavesTab from "./LeavesTab";
 import FinalSettlementTab from "./FinalSettlementTab";
 import OptionsTab from "./OptionsTab";
