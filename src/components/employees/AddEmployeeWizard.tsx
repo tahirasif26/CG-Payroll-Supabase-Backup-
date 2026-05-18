@@ -1156,18 +1156,20 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
               <CardContent>
                 {salaryBreakdown ? (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">Basic Salary</span>
-                        <Badge variant="outline" className="text-[10px] h-5">Base</Badge>
-                      </div>
-                      <span className="text-sm font-semibold">{salaryBreakdown.baseSalary.toLocaleString()} {selectedSetup.currency}</span>
-                    </div>
-                    {salaryBreakdown.additions.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Earnings</p>
-                        <div className="bg-muted/30 rounded-lg overflow-hidden">
-                          {salaryBreakdown.additions.map((item) => (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Earnings</p>
+                      <div className="bg-muted/30 rounded-lg overflow-hidden">
+                        <div className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50">
+                          <span className="text-sm col-span-4 truncate font-medium">Basic Salary</span>
+                          <div className="col-span-3 flex items-center gap-1">
+                            <Badge variant="outline" className="text-[10px] h-5">Earnings</Badge>
+                          </div>
+                          <div className="col-span-4 text-sm font-semibold text-right">
+                            {salaryBreakdown.baseSalary.toLocaleString()}
+                          </div>
+                          <span className="text-xs font-semibold text-emerald-600 col-span-1 text-right">{selectedSetup.currency}</span>
+                        </div>
+                        {salaryBreakdown.additions.map((item) => (
                             <div key={item.id} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0">
                               <span className="text-sm col-span-4 truncate">{item.name}</span>
                               <div className="col-span-3 flex items-center gap-1">
