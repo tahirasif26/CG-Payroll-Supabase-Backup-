@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { ChevronDown, Receipt, Clock, MinusCircle, Banknote, Gift, Award, PiggyBank, type LucideIcon } from "lucide-react";
+import { ChevronDown, Receipt, Banknote, Gift, Award, PiggyBank, type LucideIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { PayrollSetup } from "@/types/payrollSetup";
 
 import TaxRulesTab, { syncTaxComponent } from "./TaxRulesTab";
-import OvertimeTab from "./OvertimeTab";
-import AutoDeductionsTab from "./AutoDeductionsTab";
 import LoanAdvanceTab from "./LoanAdvanceTab";
 import BonusTab, { syncBonusComponent } from "./BonusTab";
 import GratuityTab, { syncGratuityComponent } from "./GratuityTab";
@@ -54,33 +52,6 @@ export default function OptionsTab({ setup, setSetup }: Props) {
           onBracketBasisChange={b => setSetup(s => ({ ...s, taxBracketBasis: b }))}
         />
       ),
-    },
-    {
-      id: "overtime",
-      label: "Overtime",
-      description: "Overtime rate multiplier and limits.",
-      icon: Clock,
-      enabled: setup.overtime.enabled,
-      onToggle: (v) => setSetup(s => ({ ...s, overtime: { ...s.overtime, enabled: v }, options: { ...s.options, includeOvertime: v } })),
-      content: <OvertimeTab data={setup.overtime} onChange={d => setSetup(s => ({ ...s, overtime: d }))} />,
-    },
-    {
-      id: "auto-deductions",
-      label: "Auto Deductions",
-      description: "Late penalties, absence deductions and custom rules.",
-      icon: MinusCircle,
-      enabled:
-        setup.autoDeductions.enabled ??
-        (setup.autoDeductions.latePenaltyEnabled ||
-          setup.autoDeductions.absenceDeductionEnabled ||
-          setup.autoDeductions.customRules.length > 0),
-      onToggle: (v) => setSetup(s => ({
-        ...s,
-        autoDeductions: v
-          ? { ...s.autoDeductions, enabled: true }
-          : { ...s.autoDeductions, enabled: false, latePenaltyEnabled: false, absenceDeductionEnabled: false, customRules: s.autoDeductions.customRules.map(r => ({ ...r, enabled: false })) },
-      })),
-      content: <AutoDeductionsTab data={setup.autoDeductions} onChange={d => setSetup(s => ({ ...s, autoDeductions: d }))} />,
     },
     {
       id: "loan",
