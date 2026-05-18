@@ -732,7 +732,7 @@ function PolicyDialog({
       is_active: true,
       min_value: min,
       max_value: max,
-      group_id: groupId === "admin" ? null : groupId,
+      group_id: groupId || null,
       approval_type_override: override === "none" ? null : (override as ApprovalType),
       sort_order: editing?.sort_order ?? 0,
     } as any, {
