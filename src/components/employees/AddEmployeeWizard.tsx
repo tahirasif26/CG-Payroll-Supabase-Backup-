@@ -997,8 +997,9 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                   <Input value={`${empPrefix}-${String(employeeCount + 1).padStart(3, "0")}`} disabled className="h-8 text-sm bg-muted" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Work Email</p>
-                  <Input value={form.workEmail} onChange={e => updateField("workEmail", e.target.value)} placeholder="employee@cg.com" className="h-8 text-sm" />
+                  <p className="text-xs text-muted-foreground">Work Email <span className="text-destructive">*</span></p>
+                  <Input value={form.workEmail} onChange={e => updateField("workEmail", e.target.value)} placeholder="employee@cg.com" className={cn("h-8 text-sm", errors.workEmail && "border-destructive")} />
+                  {renderError("workEmail")}
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Employee Type <span className="text-destructive">*</span></p>
