@@ -72,7 +72,7 @@ export default function LoansPage() {
   const [editAmount, setEditAmount] = useState("");
   const [editMonthly, setEditMonthly] = useState("");
   const [editRemaining, setEditRemaining] = useState("");
-  const [editStart, setEditStart] = useState("");
+  
   const [editEnd, setEditEnd] = useState("");
 
   // EMI adjustment
