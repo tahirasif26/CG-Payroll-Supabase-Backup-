@@ -797,18 +797,6 @@ function PolicyDialog({
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Override approval type</Label>
-            <Select value={override} onValueChange={setOverride}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Use group default</SelectItem>
-                {Object.entries(APPROVAL_TYPE_LABELS).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
