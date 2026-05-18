@@ -189,7 +189,6 @@ export default function LoansPage() {
       monthly_deduction: Number(editMonthly),
       remaining_balance: Number(editRemaining),
       end_date: editEnd,
-      end_date: editEnd,
     });
     setEditing(false);
     toast({ title: "Loan Updated", description: "Loan details have been saved." });
