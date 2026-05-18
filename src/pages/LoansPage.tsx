@@ -72,7 +72,7 @@ export default function LoansPage() {
   const [editAmount, setEditAmount] = useState("");
   const [editMonthly, setEditMonthly] = useState("");
   const [editRemaining, setEditRemaining] = useState("");
-  const [editStart, setEditStart] = useState("");
+  
   const [editEnd, setEditEnd] = useState("");
 
   // EMI adjustment
@@ -84,16 +84,9 @@ export default function LoansPage() {
   const [pauseReason, setPauseReason] = useState("");
 
   // New loan — industry-standard fields
-  const LOAN_TYPES = [
-    "Personal", "Salary Advance", "Education", "Medical",
-    "Housing", "Vehicle", "Emergency", "Other",
-  ];
   const [newEmployee, setNewEmployee] = useState("");
-  const [newLoanType, setNewLoanType] = useState<string>("Personal");
   const [newAmount, setNewAmount] = useState("");
   const [newTenure, setNewTenure] = useState("12"); // months
-  const [newInterest, setNewInterest] = useState("0"); // %
-  const [newStart, setNewStart] = useState(() => new Date().toISOString().slice(0, 10));
   const [newReason, setNewReason] = useState("");
   const [newAck, setNewAck] = useState(false);
 
@@ -102,16 +95,14 @@ export default function LoansPage() {
     if (currentEmpRow?.id) setNewEmployee(currentEmpRow.id);
   }, [currentEmpRow?.id]);
 
-  // Derived: monthly EMI (simple interest), end date
+  // Derived: monthly EMI, end date
   const principalNum = Number(newAmount) || 0;
   const tenureNum = Math.max(1, Number(newTenure) || 1);
-  const interestNum = Math.max(0, Number(newInterest) || 0);
-  const totalInterest = (principalNum * interestNum * (tenureNum / 12)) / 100;
-  const totalPayable = principalNum + totalInterest;
+  const totalPayable = principalNum;
   const monthlyEmi = tenureNum > 0 ? Math.ceil(totalPayable / tenureNum) : 0;
+  const todayIso = new Date().toISOString().slice(0, 10);
   const computedEndDate = (() => {
-    if (!newStart) return "";
-    const d = new Date(newStart);
+    const d = new Date(todayIso);
     if (isNaN(d.getTime())) return "";
     d.setMonth(d.getMonth() + tenureNum);
     return d.toISOString().slice(0, 10);
@@ -137,19 +128,18 @@ export default function LoansPage() {
       return;
     }
     const principal = principalNum;
-    const reasonText = `[${newLoanType}] ${newReason}`.trim();
+    const reasonText = newReason.trim();
     const created = await createLoan.mutateAsync({
       employee_id: emp.id,
       principal,
       monthly_deduction: monthlyEmi,
-      start_date: newStart,
+      start_date: todayIso,
       end_date: computedEndDate,
-      interest_rate: interestNum,
       reason: reasonText,
     });
     setNewOpen(false);
-    setNewAmount(""); setNewTenure("12"); setNewInterest("0");
-    setNewReason(""); setNewLoanType("Personal"); setNewAck(false);
+    setNewAmount(""); setNewTenure("12");
+    setNewReason(""); setNewAck(false);
     toast({ title: "Loan Created", description: "The loan has been successfully created." });
 
     // Start unified approval workflow
@@ -185,7 +175,7 @@ export default function LoansPage() {
     setEditAmount(String(loan.principal));
     setEditMonthly(String(loan.monthly_deduction));
     setEditRemaining(String(loan.remaining_balance));
-    setEditStart(loan.start_date);
+    
     setEditEnd(loan.end_date ?? "");
     setEditing(true);
   };
@@ -198,7 +188,6 @@ export default function LoansPage() {
       principal: Number(editAmount),
       monthly_deduction: Number(editMonthly),
       remaining_balance: Number(editRemaining),
-      start_date: editStart,
       end_date: editEnd,
     });
     setEditing(false);
@@ -458,10 +447,6 @@ export default function LoansPage() {
                     <Input type="number" value={editRemaining} onChange={e => setEditRemaining(e.target.value)} required min={0} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Start Date</Label>
-                    <Input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} required />
-                  </div>
-                  <div className="space-y-2">
                     <Label>End Date</Label>
                     <Input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} required />
                   </div>
@@ -655,40 +640,15 @@ export default function LoansPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Loan Type</Label>
-                <Select value={newLoanType} onValueChange={setNewLoanType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {LOAN_TYPES.map(t => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label>Loan Amount (SAR)</Label>
                 <Input type="number" placeholder="0" value={newAmount}
                   onChange={e => setNewAmount(e.target.value)} required min={1} step="1" />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tenure (months)</Label>
                 <Input type="number" value={newTenure}
                   onChange={e => setNewTenure(e.target.value)} required min={1} max={120} step="1" />
               </div>
-              <div className="space-y-2">
-                <Label>Interest Rate (% p.a.)</Label>
-                <Input type="number" value={newInterest}
-                  onChange={e => setNewInterest(e.target.value)} min={0} max={100} step="0.01" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Disbursement Date</Label>
-              <Input type="date" value={newStart}
-                onChange={e => setNewStart(e.target.value)} required />
             </div>
 
             <div className="space-y-2">
@@ -702,10 +662,6 @@ export default function LoansPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Monthly EMI</span>
                 <span className="font-semibold">SAR {monthlyEmi.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Interest</span>
-                <span>SAR {Math.round(totalInterest).toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Payable</span>
