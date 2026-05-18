@@ -68,7 +68,6 @@ export default function PayrollSetupViewPage() {
             <TabsTrigger value="schedule">Pay Schedule</TabsTrigger>
             <TabsTrigger value="components">Components</TabsTrigger>
             <TabsTrigger value="tax">Tax Rules</TabsTrigger>
-            <TabsTrigger value="salary">Salary Rules</TabsTrigger>
             <TabsTrigger value="overtime">Overtime</TabsTrigger>
             <TabsTrigger value="auto-deductions">Auto Deductions</TabsTrigger>
             <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
@@ -143,16 +142,6 @@ export default function PayrollSetupViewPage() {
                 ))}</TableBody>
               </Table>
             ) : <p className="text-sm text-muted-foreground py-8 text-center">No tax rules configured.</p>}
-          </TabsContent>
-
-          {/* Salary Rules */}
-          <TabsContent value="salary">
-            <h3 className="text-lg font-semibold mb-4">Salary Rules</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Field label="Salary Type" value={<span className="capitalize">{setup.salaryRules.salaryType}</span>} />
-              <Field label="Proration Rule" value={<span className="capitalize">{setup.salaryRules.prorationRule.replace(/-/g, " ")}</span>} />
-              <Field label="Working Days / Month" value={setup.salaryRules.workingDaysPerMonth} />
-            </div>
           </TabsContent>
 
           {/* Overtime */}

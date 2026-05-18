@@ -42,7 +42,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
               <TabsTrigger value="schedule">Pay Schedule</TabsTrigger>
               <TabsTrigger value="components">Components</TabsTrigger>
               <TabsTrigger value="tax">Tax Rules</TabsTrigger>
-              <TabsTrigger value="salary">Salary Rules</TabsTrigger>
               <TabsTrigger value="overtime">Overtime</TabsTrigger>
               <TabsTrigger value="deductions">Auto Deductions</TabsTrigger>
               <TabsTrigger value="loan">Loan & Advance</TabsTrigger>
@@ -92,16 +91,6 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
                       <TableRow key={t.id}><TableCell>{t.name}</TableCell><TableCell>{t.incomeFrom.toLocaleString()}</TableCell><TableCell>{t.incomeTo.toLocaleString()}</TableCell><TableCell>{t.percentage}%</TableCell></TableRow>
                     ))}</TableBody></Table>
                 ) : <p className="text-sm text-muted-foreground">No tax rules configured.</p>}
-              </CardContent></Card>
-            </TabsContent>
-
-            <TabsContent value="salary">
-              <Card><CardHeader><CardTitle className="text-sm">Salary Rules</CardTitle></CardHeader><CardContent>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><Label className="text-muted-foreground text-xs">Salary Type</Label><p className="capitalize">{setup.salaryRules.salaryType}</p></div>
-                  <div><Label className="text-muted-foreground text-xs">Proration Rule</Label><p className="capitalize">{setup.salaryRules.prorationRule.replace(/-/g, " ")}</p></div>
-                  <div><Label className="text-muted-foreground text-xs">Working Days/Month</Label><p>{setup.salaryRules.workingDaysPerMonth}</p></div>
-                </div>
               </CardContent></Card>
             </TabsContent>
 

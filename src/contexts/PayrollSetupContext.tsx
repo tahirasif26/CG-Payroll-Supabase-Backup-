@@ -47,11 +47,6 @@ function rowToSetup(row: any): PayrollSetup {
     taxComponentName: (opts as any).taxComponentName,
     taxBasis: (opts as any).taxBasis,
     taxBracketBasis: (opts as any).taxBracketBasis,
-    salaryRules: opts.salaryRules ?? {
-      salaryType: "fixed",
-      prorationRule: "calendar-days",
-      workingDaysPerMonth: 30,
-    },
     overtime: opts.overtime ?? { enabled: false, rateMultiplier: 1.5, maxOvertimeHours: 40 },
     autoDeductions: opts.autoDeductions ?? {
       latePenaltyEnabled: false,

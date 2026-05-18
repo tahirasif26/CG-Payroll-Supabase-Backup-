@@ -34,12 +34,6 @@ export interface TaxSlab {
   fixedAmount?: number;
 }
 
-export interface SalaryRules {
-  salaryType: "fixed" | "variable";
-  prorationRule: "days-worked" | "calendar-days";
-  workingDaysPerMonth: number;
-}
-
 export interface OvertimeConfig {
   enabled: boolean;
   rateMultiplier: number;
@@ -148,7 +142,6 @@ export interface PayrollSetup {
   taxBasis?: "basic" | "gross";
   /** Whether tax slab brackets (incomeFrom/incomeTo) are monthly or annual amounts. Default: annual. */
   taxBracketBasis?: "monthly" | "annual";
-  salaryRules: SalaryRules;
   overtime: OvertimeConfig;
   autoDeductions: AutoDeductions;
   loanAdvance: LoanAdvanceConfig;
