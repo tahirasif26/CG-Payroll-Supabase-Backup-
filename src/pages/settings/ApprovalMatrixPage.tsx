@@ -618,7 +618,6 @@ function PoliciesTab({
                     {isRange && <TableHead>Min ({c.unit === "money" ? "SAR" : "days"})</TableHead>}
                     {isRange && <TableHead>Max</TableHead>}
                     <TableHead>Group</TableHead>
-                    <TableHead>Approval mode</TableHead>
                     <TableHead className="w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
