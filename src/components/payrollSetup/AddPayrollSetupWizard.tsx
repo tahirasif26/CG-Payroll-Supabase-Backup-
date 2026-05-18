@@ -182,7 +182,7 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
                     </span>
                     <Icon className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{s.label}</span>
-                  </button>
+                  </div>
                 );
               })}
             </div>
