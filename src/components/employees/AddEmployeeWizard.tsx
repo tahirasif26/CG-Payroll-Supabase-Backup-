@@ -368,6 +368,8 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     if (!form.lastName.trim()) allErrors.lastName = "Required";
     if (!form.email.trim()) { if (!isEditMode) allErrors.email = "Required"; }
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) allErrors.email = "Invalid email";
+    if (!form.workEmail.trim()) allErrors.workEmail = "Required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.workEmail)) allErrors.workEmail = "Invalid email";
     if (!form.department) allErrors.department = "Required";
     if (!form.designation.trim()) allErrors.designation = "Required";
     if (!isEditMode && !form.category) allErrors.category = "Required";
@@ -377,7 +379,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
       if (allErrors.firstName || allErrors.lastName || allErrors.email) setActiveTab("personal");
-      else if (allErrors.department || allErrors.designation || allErrors.category) setActiveTab("work");
+      else if (allErrors.workEmail || allErrors.department || allErrors.designation || allErrors.category) setActiveTab("work");
       else if (allErrors.salary || allErrors.payrollSetupId) setActiveTab("compensation");
       toast({ title: "Incomplete Information", description: "Please fill all mandatory fields.", variant: "destructive" });
       return;
