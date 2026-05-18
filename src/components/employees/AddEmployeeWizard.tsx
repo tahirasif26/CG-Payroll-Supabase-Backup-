@@ -56,7 +56,7 @@ interface AddEmployeeWizardProps {
 interface FormData {
   // Personal > Basic
   firstName: string; lastName: string; email: string; dateOfBirth: string;
-  gender: string; maritalStatus: string; religion: string; nationality: string;
+  gender: string; maritalStatus: string; nationality: string;
   // Personal > Contact
   personalPhone: string; personalEmail: string;
   emergencyName: string; emergencyRelation: string; emergencyPhone: string; emergencyEmail: string;
