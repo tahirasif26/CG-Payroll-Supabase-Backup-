@@ -95,16 +95,14 @@ export default function LoansPage() {
     if (currentEmpRow?.id) setNewEmployee(currentEmpRow.id);
   }, [currentEmpRow?.id]);
 
-  // Derived: monthly EMI (simple interest), end date
+  // Derived: monthly EMI, end date
   const principalNum = Number(newAmount) || 0;
   const tenureNum = Math.max(1, Number(newTenure) || 1);
-  const interestNum = Math.max(0, Number(newInterest) || 0);
-  const totalInterest = (principalNum * interestNum * (tenureNum / 12)) / 100;
-  const totalPayable = principalNum + totalInterest;
+  const totalPayable = principalNum;
   const monthlyEmi = tenureNum > 0 ? Math.ceil(totalPayable / tenureNum) : 0;
+  const todayIso = new Date().toISOString().slice(0, 10);
   const computedEndDate = (() => {
-    if (!newStart) return "";
-    const d = new Date(newStart);
+    const d = new Date(todayIso);
     if (isNaN(d.getTime())) return "";
     d.setMonth(d.getMonth() + tenureNum);
     return d.toISOString().slice(0, 10);
