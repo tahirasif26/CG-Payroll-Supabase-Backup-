@@ -181,11 +181,6 @@ export default function PayslipsPage() {
             No payroll setup assigned. Contact HR.
           </div>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard title={`Gross Salary (${payCurrency})`} value={`${payCurrency} ${monthlySalary.toLocaleString()}`} icon={FileText} variant="primary" />
-          <StatCard title={`Total Deductions (${payCurrency})`} value={`${payCurrency} ${totalDeductions.toLocaleString()}`} icon={FileText} variant="warning" />
-          <StatCard title={`Net Pay (${payCurrency})`} value={`${payCurrency} ${netPay.toLocaleString()}`} icon={FileText} variant="success" />
-        </div>
         <div className="bg-card rounded-xl border overflow-hidden">
           <Table>
             <TableHeader>
