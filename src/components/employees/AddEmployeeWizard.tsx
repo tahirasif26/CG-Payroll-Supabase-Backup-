@@ -524,7 +524,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           gender: form.gender || undefined,
           marital_status: form.maritalStatus || undefined,
           nationality: form.nationality || undefined,
-          religion: form.religion || undefined,
           work_location_country: form.workLocationCountry || undefined,
           work_location_city: form.workLocationCity || undefined,
           payroll_setup_id: form.payrollSetupId || undefined,
