@@ -784,9 +784,8 @@ function PolicyDialog({
           <div>
             <Label>Approval group</Label>
             <Select value={groupId} onValueChange={setGroupId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={groups.length === 0 ? "No groups — create one first" : "Select a group"} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin only</SelectItem>
                 {groups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                 ))}
