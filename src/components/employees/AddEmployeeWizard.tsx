@@ -75,7 +75,7 @@ interface FormData {
 
 const INITIAL_FORM: FormData = {
   firstName: "", lastName: "", email: "", dateOfBirth: "",
-  gender: "", maritalStatus: "", religion: "", nationality: "",
+  gender: "", maritalStatus: "", nationality: "",
   personalPhone: "", personalEmail: "",
   emergencyName: "", emergencyRelation: "", emergencyPhone: "", emergencyEmail: "",
   addressLine1: "", addressLine2: "", city: "", state: "", country: "", postalCode: "",
