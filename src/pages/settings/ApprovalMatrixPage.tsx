@@ -696,7 +696,7 @@ function PolicyDialog({
   const [category, setCategory] = useState<PolicyCategory>(defaultCategory);
   const [minVal, setMinVal] = useState("");
   const [maxVal, setMaxVal] = useState("");
-  const [groupId, setGroupId] = useState<string>("admin");
+  const [groupId, setGroupId] = useState<string>("");
   const [override, setOverride] = useState<string>("none");
 
   const cat = categories.find((c) => c.key === category) ?? categories[0];
@@ -710,11 +710,11 @@ function PolicyDialog({
       const ec = categories.find((c) => c.key === editing.category);
       setMinVal(ec?.unit === "money" ? toSAR(editing.min_value) : String(editing.min_value));
       setMaxVal(editing.max_value == null ? "" : ec?.unit === "money" ? toSAR(editing.max_value) : String(editing.max_value));
-      setGroupId(editing.group_id ?? "admin");
+      setGroupId(editing.group_id ?? "");
       setOverride(editing.approval_type_override ?? "none");
     } else {
       setCategory(defaultCategory);
-      setMinVal(""); setMaxVal(""); setGroupId("admin"); setOverride("none");
+      setMinVal(""); setMaxVal(""); setGroupId(""); setOverride("none");
     }
   }, [open, editing, defaultCategory, categories]);
 
@@ -732,7 +732,7 @@ function PolicyDialog({
       is_active: true,
       min_value: min,
       max_value: max,
-      group_id: groupId === "admin" ? null : groupId,
+      group_id: groupId || null,
       approval_type_override: override === "none" ? null : (override as ApprovalType),
       sort_order: editing?.sort_order ?? 0,
     } as any, {
@@ -784,9 +784,8 @@ function PolicyDialog({
           <div>
             <Label>Approval group</Label>
             <Select value={groupId} onValueChange={setGroupId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={groups.length === 0 ? "No groups — create one first" : "Select a group"} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin only</SelectItem>
                 {groups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                 ))}
