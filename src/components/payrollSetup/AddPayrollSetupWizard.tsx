@@ -116,10 +116,10 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
       ),
     },
     { id: "schedule", label: "Pay Schedule", icon: Calendar, content: <PayScheduleTab data={setup.paySchedule} onChange={d => setSetup(s => ({ ...s, paySchedule: d }))} /> },
+    { id: "options", label: "Options", icon: SlidersHorizontal, content: <OptionsTab setup={setup} setSetup={setSetup} /> },
     { id: "components", label: "Components", icon: Layers, content: <PayslipComponentsTab data={setup.payslipComponents} onChange={d => setSetup(s => ({ ...s, payslipComponents: d }))} /> },
     { id: "salary", label: "Salary Rules", icon: Wallet, content: <SalaryRulesTab data={setup.salaryRules} onChange={d => setSetup(s => ({ ...s, salaryRules: d }))} /> },
     { id: "leaves", label: "Leaves", icon: Plane, content: <LeavesTab data={setup.leaves} onChange={d => setSetup(s => ({ ...s, leaves: d, options: { ...s.options, includeUnpaidLeave: d.includeUnpaidLeave } }))} /> },
-    { id: "options", label: "Options", icon: SlidersHorizontal, content: <OptionsTab setup={setup} setSetup={setSetup} /> },
     { id: "settlement", label: "Final Settlement", icon: FileCheck, content: <FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /> },
   ]), [setup]);
 

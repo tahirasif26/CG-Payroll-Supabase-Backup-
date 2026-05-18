@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { usePayrollSetups } from "@/contexts/PayrollSetupContext";
 import { PayrollSetup } from "@/types/payrollSetup";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 import PayScheduleTab from "@/components/payrollSetup/PayScheduleTab";
 import PayslipComponentsTab from "@/components/payrollSetup/PayslipComponentsTab";
@@ -74,6 +74,7 @@ export default function PayrollSetupEditorPage() {
     country: client.country ?? DEFAULT_PAYROLL_SETUP.country,
     currency: client.currency ?? DEFAULT_PAYROLL_SETUP.currency,
   }));
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
     if (!isNew && id) {
@@ -151,24 +152,19 @@ export default function PayrollSetupEditorPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="schedule" className="space-y-4">
-        <ScrollArea className="w-full">
-          <TabsList className="inline-flex w-auto">
-            <TabsTrigger value="schedule">Pay Schedule</TabsTrigger>
-            <TabsTrigger value="components">Components</TabsTrigger>
-            <TabsTrigger value="salary">Salary Rules</TabsTrigger>
-            <TabsTrigger value="leaves">Leaves</TabsTrigger>
-            <TabsTrigger value="options">Options</TabsTrigger>
-            <TabsTrigger value="settlement">Final Settlement</TabsTrigger>
-          </TabsList>
-        </ScrollArea>
-
-        <div className="rounded-lg border p-6">
-          <TabsContent value="schedule"><PayScheduleTab data={setup.paySchedule} onChange={d => setSetup(s => ({ ...s, paySchedule: d }))} /></TabsContent>
-          <TabsContent value="components"><PayslipComponentsTab data={setup.payslipComponents} onChange={d => setSetup(s => ({ ...s, payslipComponents: d }))} /></TabsContent>
-
-          <TabsContent value="salary">
+      {/* Stepper */}
+      {(() => {
+        const steps = [
+          { id: "schedule", label: "Pay Schedule", content: (
+            <PayScheduleTab data={setup.paySchedule} onChange={d => setSetup(s => ({ ...s, paySchedule: d }))} />
+          )},
+          { id: "options", label: "Options", content: (
+            <OptionsTab setup={setup} setSetup={setSetup} />
+          )},
+          { id: "components", label: "Components", content: (
+            <PayslipComponentsTab data={setup.payslipComponents} onChange={d => setSetup(s => ({ ...s, payslipComponents: d }))} />
+          )},
+          { id: "salary", label: "Salary Rules", content: (
             <div className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
@@ -179,9 +175,8 @@ export default function PayrollSetupEditorPage() {
               </div>
               <SalaryRulesTab data={setup.salaryRules} onChange={d => setSetup(s => ({ ...s, salaryRules: d }))} />
             </div>
-          </TabsContent>
-
-          <TabsContent value="leaves">
+          )},
+          { id: "leaves", label: "Leaves", content: (
             <LeavesTab
               data={setup.leaves}
               onChange={d => setSetup(s => ({
@@ -190,15 +185,62 @@ export default function PayrollSetupEditorPage() {
                 options: { ...s.options, includeUnpaidLeave: d.includeUnpaidLeave },
               }))}
             />
-          </TabsContent>
+          )},
+          { id: "settlement", label: "Final Settlement", content: (
+            <FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} />
+          )},
+        ];
+        const isFirst = step === 0;
+        const isLast = step === steps.length - 1;
+        return (
+          <div className="space-y-4">
+            <ScrollArea className="w-full">
+              <div className="flex items-center gap-2 pb-2">
+                {steps.map((s, i) => {
+                  const active = i === step;
+                  const done = i < step;
+                  return (
+                    <div key={s.id} className="flex items-center gap-2 shrink-0">
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm",
+                          active && "bg-primary text-primary-foreground",
+                          !active && done && "text-foreground",
+                          !active && !done && "text-muted-foreground",
+                        )}
+                      >
+                        <span className={cn(
+                          "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold",
+                          active ? "bg-primary-foreground text-primary" : done ? "bg-primary/20 text-primary" : "bg-muted-foreground/20"
+                        )}>
+                          {done ? <Check className="h-3 w-3" /> : i + 1}
+                        </span>
+                        <span className="whitespace-nowrap">{s.label}</span>
+                      </div>
+                      {i < steps.length - 1 && <div className="h-px w-6 bg-border" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
 
-          <TabsContent value="options">
-            <OptionsTab setup={setup} setSetup={setSetup} />
-          </TabsContent>
+            <div className="rounded-lg border p-6">{steps[step].content}</div>
 
-          <TabsContent value="settlement"><FinalSettlementTab data={setup.finalSettlement} onChange={d => setSetup(s => ({ ...s, finalSettlement: d }))} /></TabsContent>
-        </div>
-      </Tabs>
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="outline" onClick={() => setStep(s => Math.max(0, s - 1))} disabled={isFirst}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+              {isLast ? (
+                <Button onClick={handleSave}><Save className="h-4 w-4 mr-1" /> {isNew ? "Create Setup" : "Update Setup"}</Button>
+              ) : (
+                <Button onClick={() => setStep(s => Math.min(steps.length - 1, s + 1))}>
+                  Next <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
