@@ -30,7 +30,7 @@ export const DEFAULT_PAYROLL_SETUP: PayrollSetup = {
   currency: "SAR",
   status: "active",
   lastUpdated: new Date().toISOString().split("T")[0],
-  paySchedule: { payFrequency: "monthly", cycleStartDate: "1", cycleEndDate: "30", payDate: "28", cutoffDate: "25" },
+  paySchedule: { payFrequency: "monthly", cycleStartDate: "1", cycleEndDate: "EOM", payDate: "28" },
   options: { includeOvertime: false, includeUnpaidLeave: false, enableTaxCalculation: false, allowNegativeSalary: false },
   payslipComponents: [],
   taxRules: [],

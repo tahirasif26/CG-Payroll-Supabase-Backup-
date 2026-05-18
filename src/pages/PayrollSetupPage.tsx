@@ -53,9 +53,8 @@ function SetupViewDialog({ setup, open, onClose }: { setup: PayrollSetup | null;
               <Card><CardHeader><CardTitle className="text-sm">Pay Schedule</CardTitle></CardHeader><CardContent>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div><Label className="text-muted-foreground text-xs">Frequency</Label><p className="capitalize">{setup.paySchedule.payFrequency}</p></div>
-                  <div><Label className="text-muted-foreground text-xs">Cycle</Label><p>{setup.paySchedule.cycleStartDate} – {setup.paySchedule.cycleEndDate}</p></div>
+                  <div><Label className="text-muted-foreground text-xs">Cycle</Label><p>{setup.paySchedule.cycleStartDate} – {setup.paySchedule.cycleEndDate === "EOM" ? "End of month" : setup.paySchedule.cycleEndDate}</p></div>
                   <div><Label className="text-muted-foreground text-xs">Pay Date</Label><p>{setup.paySchedule.payDate}</p></div>
-                  <div><Label className="text-muted-foreground text-xs">Cutoff Date</Label><p>{setup.paySchedule.cutoffDate}</p></div>
                 </div>
               </CardContent></Card>
             </TabsContent>

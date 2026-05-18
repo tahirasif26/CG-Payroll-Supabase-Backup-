@@ -83,9 +83,8 @@ export default function PayrollSetupViewPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Field label="Pay Frequency" value={<span className="capitalize">{setup.paySchedule.payFrequency}</span>} />
               <Field label="Cycle Start Date" value={setup.paySchedule.cycleStartDate} />
-              <Field label="Cycle End Date" value={setup.paySchedule.cycleEndDate} />
+              <Field label="Cycle End Date" value={setup.paySchedule.cycleEndDate === "EOM" ? "End of month" : setup.paySchedule.cycleEndDate} />
               <Field label="Pay Date" value={setup.paySchedule.payDate} />
-              <Field label="Cutoff Date" value={setup.paySchedule.cutoffDate} />
             </div>
           </TabsContent>
 
