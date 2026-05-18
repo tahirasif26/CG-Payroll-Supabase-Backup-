@@ -136,15 +136,9 @@ export default function PayslipComponentsTab({ data, onChange }: Props) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {locked ? (
-                    <Badge variant="outline" className="text-[10px]">
-                      Base
-                    </Badge>
-                  ) : (
-                    <Badge variant={c.type === "earning" ? "default" : "destructive"} className="text-[10px]">
-                      {c.type === "earning" ? "Earnings" : "Deduction"}
-                    </Badge>
-                  )}
+                  <Badge variant={c.type === "earning" ? "default" : "destructive"} className="text-[10px]">
+                    {c.type === "earning" ? "Earnings" : "Deduction"}
+                  </Badge>
                 </TableCell>
                 <TableCell className="capitalize">{c.calculationType}</TableCell>
                 <TableCell>{c.calculationType === "percentage" ? `${c.value}%` : c.value.toLocaleString()}</TableCell>
