@@ -1,9 +1,11 @@
 export interface PaySchedule {
   payFrequency: "monthly" | "weekly" | "bi-weekly";
   cycleStartDate: string;
+  /** Day-of-month (1-31) or "EOM" for end-of-month auto. */
   cycleEndDate: string;
   payDate: string;
-  cutoffDate: string;
+  /** @deprecated kept for backward compatibility with existing setups. */
+  cutoffDate?: string;
 }
 
 export interface PayrollOptions {

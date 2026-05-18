@@ -76,19 +76,17 @@ export interface PayrollLineRow {
 export function usePayrollSetups() {
   const { clientId, isSuperAdmin } = useRole();
   return useQuery({
-    queryKey: ["payroll_setups_list", clientId ?? "super"],
+    queryKey: ["payroll_setups", clientId ?? "super"],
     queryFn: async () => {
-      // List view only — heavy `options` json is fetched per-setup on the editor page.
       const { data, error } = await supabase
         .from("payroll_setups")
-        .select("id,client_id,name,description,country,currency,pay_frequency,year_end_date,status,created_by,created_at,updated_at")
+        .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as PayrollSetupRow[];
     },
     enabled: !!clientId || isSuperAdmin,
-    staleTime: 5 * 60_000,
-    gcTime: 10 * 60_000,
+    staleTime: 30_000,
   });
 }
 
@@ -140,10 +138,7 @@ export function usePayrollRuns(filters?: { year?: number; status?: string }) {
   return useQuery({
     queryKey: ["payroll_runs", clientId ?? "super", filters],
     queryFn: async () => {
-      // Specific columns only — avoids fetching any future heavy/jsonb additions.
-      let q = supabase.from("payroll_runs").select(
-        "id,client_id,payroll_setup_id,month,year,status,total_gross,total_deductions,total_net,employee_count,run_date,approved_by,approved_at,completed_at,locked,locked_by,locked_at,created_by,created_at,updated_at"
-      );
+      let q = supabase.from("payroll_runs").select("*");
       if (filters?.year) q = q.eq("year", filters.year);
       if (filters?.status) q = q.eq("status", filters.status);
       const { data, error } = await q.order("year", { ascending: false }).order("created_at", { ascending: false });
@@ -151,8 +146,7 @@ export function usePayrollRuns(filters?: { year?: number; status?: string }) {
       return (data ?? []) as PayrollRunRow[];
     },
     enabled: !!clientId || isSuperAdmin,
-    staleTime: 5 * 60_000,
-    gcTime: 10 * 60_000,
+    staleTime: 15_000,
   });
 }
 

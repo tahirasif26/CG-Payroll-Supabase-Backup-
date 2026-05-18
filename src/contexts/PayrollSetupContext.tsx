@@ -33,9 +33,8 @@ function rowToSetup(row: any): PayrollSetup {
     paySchedule: opts.paySchedule ?? {
       payFrequency: (row.pay_frequency as any) ?? "monthly",
       cycleStartDate: "1",
-      cycleEndDate: "30",
+      cycleEndDate: "EOM",
       payDate: "28",
-      cutoffDate: "25",
     },
     options: opts.options ?? {
       includeOvertime: false,
