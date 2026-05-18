@@ -84,16 +84,9 @@ export default function LoansPage() {
   const [pauseReason, setPauseReason] = useState("");
 
   // New loan — industry-standard fields
-  const LOAN_TYPES = [
-    "Personal", "Salary Advance", "Education", "Medical",
-    "Housing", "Vehicle", "Emergency", "Other",
-  ];
   const [newEmployee, setNewEmployee] = useState("");
-  const [newLoanType, setNewLoanType] = useState<string>("Personal");
   const [newAmount, setNewAmount] = useState("");
   const [newTenure, setNewTenure] = useState("12"); // months
-  const [newInterest, setNewInterest] = useState("0"); // %
-  const [newStart, setNewStart] = useState(() => new Date().toISOString().slice(0, 10));
   const [newReason, setNewReason] = useState("");
   const [newAck, setNewAck] = useState(false);
 
