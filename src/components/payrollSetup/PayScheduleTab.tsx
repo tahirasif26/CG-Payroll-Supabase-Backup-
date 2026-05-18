@@ -30,15 +30,25 @@ export default function PayScheduleTab({ data, onChange }: Props) {
         </div>
         <div className="space-y-2">
           <Label>Cycle End Date</Label>
-          <Input value={data.cycleEndDate} onChange={e => onChange({ ...data, cycleEndDate: e.target.value })} />
+          <Select
+            value={data.cycleEndDate || "EOM"}
+            onValueChange={v => onChange({ ...data, cycleEndDate: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="EOM">End of month (auto)</SelectItem>
+              {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => (
+                <SelectItem key={d} value={d}>{d}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            "End of month" auto-picks the last day of each month (28–31) when payroll runs.
+          </p>
         </div>
         <div className="space-y-2">
           <Label>Pay Date</Label>
           <Input value={data.payDate} onChange={e => onChange({ ...data, payDate: e.target.value })} />
-        </div>
-        <div className="space-y-2">
-          <Label>Cutoff Date</Label>
-          <Input value={data.cutoffDate} onChange={e => onChange({ ...data, cutoffDate: e.target.value })} />
         </div>
       </div>
     </div>
