@@ -696,7 +696,7 @@ function PolicyDialog({
   const [category, setCategory] = useState<PolicyCategory>(defaultCategory);
   const [minVal, setMinVal] = useState("");
   const [maxVal, setMaxVal] = useState("");
-  const [groupId, setGroupId] = useState<string>("admin");
+  const [groupId, setGroupId] = useState<string>("");
   const [override, setOverride] = useState<string>("none");
 
   const cat = categories.find((c) => c.key === category) ?? categories[0];
