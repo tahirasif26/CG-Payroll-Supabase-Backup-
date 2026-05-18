@@ -56,7 +56,7 @@ interface AddEmployeeWizardProps {
 interface FormData {
   // Personal > Basic
   firstName: string; lastName: string; email: string; dateOfBirth: string;
-  gender: string; maritalStatus: string; religion: string; nationality: string;
+  gender: string; maritalStatus: string; nationality: string;
   // Personal > Contact
   personalPhone: string; personalEmail: string;
   emergencyName: string; emergencyRelation: string; emergencyPhone: string; emergencyEmail: string;
@@ -75,7 +75,7 @@ interface FormData {
 
 const INITIAL_FORM: FormData = {
   firstName: "", lastName: "", email: "", dateOfBirth: "",
-  gender: "", maritalStatus: "", religion: "", nationality: "",
+  gender: "", maritalStatus: "", nationality: "",
   personalPhone: "", personalEmail: "",
   emergencyName: "", emergencyRelation: "", emergencyPhone: "", emergencyEmail: "",
   addressLine1: "", addressLine2: "", city: "", state: "", country: "", postalCode: "",
@@ -213,7 +213,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
       dateOfBirth: e.date_of_birth ?? "",
       gender: e.gender ?? "",
       maritalStatus: e.marital_status ?? "",
-      religion: e.religion ?? "",
       nationality: e.nationality ?? "",
       personalPhone: e.personal_phone ?? e.phone ?? "",
       personalEmail: e.personal_email ?? "",
@@ -369,6 +368,8 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     if (!form.lastName.trim()) allErrors.lastName = "Required";
     if (!form.email.trim()) { if (!isEditMode) allErrors.email = "Required"; }
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) allErrors.email = "Invalid email";
+    if (!form.workEmail.trim()) allErrors.workEmail = "Required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.workEmail)) allErrors.workEmail = "Invalid email";
     if (!form.department) allErrors.department = "Required";
     if (!form.designation.trim()) allErrors.designation = "Required";
     if (!isEditMode && !form.category) allErrors.category = "Required";
@@ -378,7 +379,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
       if (allErrors.firstName || allErrors.lastName || allErrors.email) setActiveTab("personal");
-      else if (allErrors.department || allErrors.designation || allErrors.category) setActiveTab("work");
+      else if (allErrors.workEmail || allErrors.department || allErrors.designation || allErrors.category) setActiveTab("work");
       else if (allErrors.salary || allErrors.payrollSetupId) setActiveTab("compensation");
       toast({ title: "Incomplete Information", description: "Please fill all mandatory fields.", variant: "destructive" });
       return;
@@ -440,7 +441,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             date_of_birth: form.dateOfBirth || null,
             gender: form.gender || null,
             marital_status: form.maritalStatus || null,
-            religion: form.religion || null,
             nationality: form.nationality || null,
           },
           contact: {
@@ -526,7 +526,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           gender: form.gender || undefined,
           marital_status: form.maritalStatus || undefined,
           nationality: form.nationality || undefined,
-          religion: form.religion || undefined,
           work_location_country: form.workLocationCountry || undefined,
           work_location_city: form.workLocationCity || undefined,
           payroll_setup_id: form.payrollSetupId || undefined,
@@ -770,10 +769,6 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Religion</p>
-                  <Input value={form.religion} onChange={e => updateField("religion", e.target.value)} placeholder="e.g. Islam" className="h-8 text-sm" />
-                </div>
-                <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Nationality</p>
                   <Input value={form.nationality} onChange={e => updateField("nationality", e.target.value)} placeholder="e.g. Saudi" className="h-8 text-sm" />
                 </div>
@@ -1004,8 +999,9 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                   <Input value={`${empPrefix}-${String(employeeCount + 1).padStart(3, "0")}`} disabled className="h-8 text-sm bg-muted" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Work Email</p>
-                  <Input value={form.workEmail} onChange={e => updateField("workEmail", e.target.value)} placeholder="employee@cg.com" className="h-8 text-sm" />
+                  <p className="text-xs text-muted-foreground">Work Email <span className="text-destructive">*</span></p>
+                  <Input value={form.workEmail} onChange={e => updateField("workEmail", e.target.value)} placeholder="employee@cg.com" className={cn("h-8 text-sm", errors.workEmail && "border-destructive")} />
+                  {renderError("workEmail")}
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Employee Type <span className="text-destructive">*</span></p>
