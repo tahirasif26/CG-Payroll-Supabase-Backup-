@@ -452,11 +452,6 @@ export default function LoansPage() {
                     <Input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} required />
                   </div>
                 </div>
-                  <div className="space-y-2">
-                    <Label>End Date</Label>
-                    <Input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} required />
-                  </div>
-                </div>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
                   <Button type="submit" disabled={updateLoan.isPending}>Save Changes</Button>
