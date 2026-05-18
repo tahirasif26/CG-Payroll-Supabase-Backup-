@@ -448,9 +448,10 @@ export default function LoansPage() {
                     <Input type="number" value={editRemaining} onChange={e => setEditRemaining(e.target.value)} required min={0} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Start Date</Label>
-                    <Input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} required />
+                    <Label>End Date</Label>
+                    <Input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} required />
                   </div>
+                </div>
                   <div className="space-y-2">
                     <Label>End Date</Label>
                     <Input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} required />
