@@ -33,7 +33,7 @@ export const DEFAULT_PAYROLL_SETUP: PayrollSetup = {
   options: { includeOvertime: false, includeUnpaidLeave: false, enableTaxCalculation: false, allowNegativeSalary: false },
   payslipComponents: [],
   taxRules: [],
-  salaryRules: { salaryType: "fixed", prorationRule: "calendar-days", workingDaysPerMonth: 30 },
+  
   overtime: { enabled: false, rateMultiplier: 1.5, maxOvertimeHours: 40 },
   autoDeductions: { latePenaltyEnabled: false, latePenaltyAmount: 0, absenceDeductionEnabled: false, absenceDeductionPerDay: 0, customRules: [] },
   loanAdvance: { enableAdvanceDeduction: false, maxDeductionPercentage: 0, autoDeductRemaining: false },
@@ -162,18 +162,6 @@ export default function PayrollSetupEditorPage() {
           )},
           { id: "components", label: "Components", content: (
             <PayslipComponentsTab data={setup.payslipComponents} onChange={d => setSetup(s => ({ ...s, payslipComponents: d }))} />
-          )},
-          { id: "salary", label: "Salary Rules", content: (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                  <Label>Allow negative salary</Label>
-                  <p className="text-xs text-muted-foreground">Permit net pay below zero after deductions</p>
-                </div>
-                <Switch checked={setup.options.allowNegativeSalary} onCheckedChange={v => setOption("allowNegativeSalary", v)} />
-              </div>
-              <SalaryRulesTab data={setup.salaryRules} onChange={d => setSetup(s => ({ ...s, salaryRules: d }))} />
-            </div>
           )},
           { id: "leaves", label: "Leaves", content: (
             <LeavesTab
