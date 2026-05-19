@@ -1,50 +1,11 @@
-// Persists policy acknowledgements to the `policy_acknowledgements` table so the
-// scheduled `process-reminders` job can stop nudging employees who already acked.
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
-import { toast } from "sonner";
-
-export function useMyPolicyAcks() {
-  const { data: employee } = useCurrentEmployee();
-  return useQuery({
-    queryKey: ["policy_acks", employee?.id],
-    enabled: !!employee?.id,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("policy_acknowledgements")
-        .select("policy_id")
-        .eq("employee_id", employee!.id);
-      if (error) throw error;
-      return new Set<string>((data ?? []).map((r: any) => r.policy_id));
-    },
-  });
+/** Stub — policy acknowledgements not on NestJS yet. */
+export interface PolicyAckRow {
+  id: string;
+  policy_id: string;
+  employee_id: string;
+  acknowledged_at: string;
 }
-
-export function useAcknowledgePolicy() {
-  const qc = useQueryClient();
-  const { user, clientId } = useAuth();
-  const { data: employee } = useCurrentEmployee();
-
-  return useMutation({
-    mutationFn: async (policyId: string) => {
-      if (!user?.id || !employee?.id || !clientId) {
-        throw new Error("Not signed in as an employee");
-      }
-      const { error } = await (supabase as any)
-        .from("policy_acknowledgements")
-        .insert({
-          client_id: clientId,
-          policy_id: policyId,
-          employee_id: employee.id,
-        });
-      if (error && !String(error.message).includes("duplicate")) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["policy_acks"] });
-      toast.success("Policy acknowledged");
-    },
-    onError: (e: any) => toast.error(e.message ?? "Failed to acknowledge"),
-  });
+export function usePolicyAcks(_policyId?: string) { return { data: [] as PolicyAckRow[], isLoading: false }; }
+export function useAckPolicy() {
+  return { mutate: () => {}, mutateAsync: async () => undefined, isPending: false };
 }

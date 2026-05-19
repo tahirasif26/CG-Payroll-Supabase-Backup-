@@ -1,7 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/contexts/RoleContext";
-import { useToast } from "@/hooks/use-toast";
+/**
+ * Phase 4-cutover shim. Wraps the NestJS @/api employees hooks but preserves
+ * the legacy snake_case row shape and the exported signatures consumed by
+ * various pages.
+ */
+import {
+  useEmployees as useEmployeesApi,
+  useEmployee as useEmployeeApi,
+  useCreateEmployee as useCreateEmployeeApi,
+  useUpdateEmployee as useUpdateEmployeeApi,
+  useArchiveEmployee,
+  type EmployeeDirectoryItem,
+  type Employee as ApiEmployee,
+} from "@/api";
 
 export interface EmployeeFilters {
   status?: string;
@@ -12,317 +22,169 @@ export interface EmployeeFilters {
 export interface EmployeeRow {
   id: string;
   client_id: string;
-  user_id: string | null;
   emp_id: string;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-  phone: string | null;
-  department: string | null;
-  designation: string | null;
-  category: string | null;
-  joining_date: string | null;
-  status: string;
-  avatar_url: string | null;
-  reports_to: string | null;
-  pay_currency: string | null;
-  payroll_setup_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Fetch employees for the current tenant. Super admins can pass an explicit
- * client_id filter; otherwise we rely on RLS + the user's own client_id.
- */
-export function useEmployees(filters?: EmployeeFilters) {
-  const { clientId, isSuperAdmin } = useRole();
-  return useQuery({
-    queryKey: ["employees", clientId ?? "super", filters],
-    queryFn: async () => {
-      let query = supabase
-        .from("employees")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (filters?.status) query = query.eq("status", filters.status);
-      if (filters?.department) query = query.eq("department", filters.department);
-      if (filters?.search) {
-        const q = filters.search.replace(/[%,]/g, "");
-        query = query.or(
-          `first_name.ilike.%${q}%,last_name.ilike.%${q}%,emp_id.ilike.%${q}%,email.ilike.%${q}%`
-        );
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data ?? []) as EmployeeRow[];
-    },
-    enabled: !!clientId || isSuperAdmin,
-    staleTime: 30_000,
-  });
-}
-
-export function useEmployee(id: string | undefined) {
-  return useQuery({
-    queryKey: ["employee", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("id", id!)
-        .maybeSingle();
-      if (error) throw error;
-      return data as EmployeeRow | null;
-    },
-    enabled: !!id,
-  });
-}
-
-export interface CreateEmployeeInput {
-  /** Optional — if omitted, the database trigger auto-generates a unique ID per client. */
-  emp_id?: string;
   first_name: string;
   last_name: string;
   email: string;
-  phone?: string;
-  department?: string;
-  designation?: string;
-  category?: string;
-  division?: string;
-  joining_date?: string;
-  date_of_birth?: string;
-  gender?: string;
-  marital_status?: string;
-  nationality?: string;
-  religion?: string;
-  work_location_country?: string;
-  work_location_city?: string;
-  pay_currency?: string;
-  payroll_setup_id?: string;
-  reports_to?: string;
-  // Sub-records
-  address?: {
-    address_line1?: string; address_line2?: string;
-    city?: string; state?: string; country?: string; postal_code?: string;
+  phone: string | null;
+  department: string | null;
+  designation: string | null;
+  joining_date: string | null;
+  status: string;
+  avatar_url: string | null;
+  date_of_birth: string | null;
+  category: string | null;
+  work_location_country: string | null;
+  pay_currency: string | null;
+  reports_to: string | null;
+}
+
+export interface CreateEmployeeInput {
+  emp_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string | null;
+  department?: string | null;
+  designation?: string | null;
+  joining_date?: string | null;
+  status?: string;
+  category?: string | null;
+  work_location_country?: string | null;
+  pay_currency?: string | null;
+}
+
+function dirToRow(d: EmployeeDirectoryItem): EmployeeRow {
+  return {
+    id: d.id,
+    client_id: d.clientId,
+    emp_id: d.empId,
+    first_name: d.firstName,
+    last_name: d.lastName,
+    email: d.email,
+    phone: d.phone,
+    department: d.department,
+    designation: d.designation,
+    joining_date: d.joiningDate,
+    status: d.status,
+    avatar_url: d.avatarUrl,
+    date_of_birth: null,
+    category: d.category,
+    work_location_country: d.workLocationCountry,
+    pay_currency: d.payCurrency,
+    reports_to: d.reportsToId,
   };
-  bank?: {
-    bank_name?: string; bank_country?: string; swift_code?: string;
-    iban?: string; bank_currency?: string; beneficiary_name?: string; bank_address?: string;
+}
+
+function fullToRow(e: ApiEmployee): EmployeeRow {
+  return {
+    id: e.id,
+    client_id: e.clientId,
+    emp_id: e.empId,
+    first_name: e.firstName,
+    last_name: e.lastName,
+    email: e.email,
+    phone: e.phone,
+    department: e.department,
+    designation: e.designation,
+    joining_date: e.joiningDate,
+    status: e.status,
+    avatar_url: e.avatarUrl,
+    date_of_birth: e.dateOfBirth,
+    category: e.category,
+    work_location_country: e.workLocationCountry,
+    pay_currency: e.payCurrency,
+    reports_to: e.reportsToId,
   };
-  emergency_contact?: {
-    name?: string; relation?: string; phone?: string; email?: string;
+}
+
+export function useEmployees(filters?: EmployeeFilters) {
+  const q = useEmployeesApi({
+    pageSize: 500,
+    status: filters?.status as never,
+    department: filters?.department,
+    search: filters?.search,
+  });
+  return {
+    ...q,
+    data: (q.data?.data ?? []).map(dirToRow),
   };
-  education?: { institution?: string; degree?: string; field_of_study?: string; start_year?: number; end_year?: number }[];
-  // Optional: send invite email
-  send_invite?: boolean;
-  /** Per-employee feature whitelist; null = inherit all client-enabled features */
-  enabled_features?: string[] | null;
+}
+
+export function useEmployee(id: string | undefined) {
+  const q = useEmployeeApi(id);
+  return {
+    ...q,
+    data: q.data ? fullToRow(q.data as unknown as ApiEmployee) : undefined,
+  };
 }
 
 export function useCreateEmployee() {
-  const qc = useQueryClient();
-  const { clientId } = useRole();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (input: CreateEmployeeInput) => {
-      if (!clientId) throw new Error("No client context — cannot create employee.");
-
-      const normalizedEmail = input.email.trim().toLowerCase();
-
-      // Pre-flight: friendly error if email already exists for this client
-      const { data: existing } = await supabase
-        .from("employees")
-        .select("id")
-        .eq("client_id", clientId)
-        .eq("email", normalizedEmail)
-        .maybeSingle();
-      if (existing) {
-        throw new Error(`An employee with email ${input.email} already exists in this company.`);
-      }
-
-      // 1. Generate emp_id server-side using company-name prefix
-      const { data: generatedEmpId, error: rpcErr } = await supabase.rpc(
-        "generate_next_emp_id",
-        { _client_id: clientId }
-      );
-      if (rpcErr || !generatedEmpId) {
-        console.error("[useCreateEmployee] generate_next_emp_id failed:", rpcErr);
-        throw new Error(rpcErr?.message || "Could not generate employee ID");
-      }
-
-      const insertPayload: Record<string, unknown> = {
-        client_id: clientId,
-        emp_id: generatedEmpId,
-        first_name: input.first_name,
-        last_name: input.last_name,
-        email: normalizedEmail,
-        phone: input.phone || null,
-        department: input.department || null,
-        designation: input.designation || null,
-        category: input.category || null,
-        division: input.division || null,
-        joining_date: input.joining_date || null,
-        date_of_birth: input.date_of_birth || null,
-        gender: input.gender || null,
-        marital_status: input.marital_status || null,
-        nationality: input.nationality || null,
-        religion: input.religion || null,
-        work_location_country: input.work_location_country || null,
-        work_location_city: input.work_location_city || null,
-        pay_currency: input.pay_currency || null,
-        payroll_setup_id: input.payroll_setup_id || null,
-        reports_to: input.reports_to || null,
-        status: "active",
-        ...(input.enabled_features !== undefined
-          ? { enabled_features: input.enabled_features && input.enabled_features.length > 0 ? input.enabled_features : null }
-          : {}),
-      };
-
-      const { data: emp, error: empErr } = await supabase
-        .from("employees")
-        .insert(insertPayload as never)
-        .select()
-        .single();
-      if (empErr) {
-        if (empErr.message.includes("employees_client_id_email_key")) {
-          throw new Error("An employee with this email already exists in your company.");
-        }
-        if (empErr.message.includes("employees_client_id_emp_id_key")) {
-          throw new Error("Employee ID conflict. Please try again.");
-        }
-        throw empErr;
-      }
-
-      // 2. Insert sub-records (best-effort, won't fail the whole op)
-      const subInserts: Promise<unknown>[] = [];
-      if (input.address && Object.values(input.address).some(Boolean)) {
-        subInserts.push(
-          Promise.resolve(
-            supabase.from("employee_addresses").insert({
-              employee_id: emp.id, client_id: clientId, type: "current", ...input.address,
-            })
-          )
-        );
-      }
-      if (input.bank && Object.values(input.bank).some(Boolean)) {
-        subInserts.push(
-          Promise.resolve(
-            supabase.from("employee_bank_details").insert({
-              employee_id: emp.id, client_id: clientId, ...input.bank,
-            })
-          )
-        );
-      }
-      if (input.emergency_contact && Object.values(input.emergency_contact).some(Boolean)) {
-        subInserts.push(
-          Promise.resolve(
-            supabase.from("employee_emergency_contacts").insert({
-              employee_id: emp.id, client_id: clientId, ...input.emergency_contact,
-            })
-          )
-        );
-      }
-      if (input.education?.length) {
-        subInserts.push(
-          Promise.resolve(
-            supabase.from("employee_education").insert(
-              input.education.map((e) => ({ employee_id: emp.id, client_id: clientId, ...e }))
-            )
-          )
-        );
-      }
-      await Promise.allSettled(subInserts);
-
-      // 3. Send invite via edge function (best-effort)
-      let inviteResult: { ok: boolean; error?: string } = { ok: false };
-      if (input.send_invite) {
-        try {
-          const { error: inviteErr } = await supabase.functions.invoke("invite-employee", {
-            body: {
-              email: input.email,
-              full_name: `${input.first_name} ${input.last_name}`.trim(),
-              phone: input.phone,
-              role: "employee",
-              client_id: clientId,
-              enabled_features: input.enabled_features ?? null,
-            },
-          });
-          inviteResult = inviteErr ? { ok: false, error: inviteErr.message } : { ok: true };
-        } catch (err) {
-          inviteResult = { ok: false, error: err instanceof Error ? err.message : "Invite failed" };
-        }
-      }
-
-      return { employee: emp as EmployeeRow, invite: inviteResult };
-    },
-    onSuccess: ({ employee, invite }) => {
-      qc.invalidateQueries({ queryKey: ["employees"] });
-      const idLabel = employee.emp_id ? ` (ID: ${employee.emp_id})` : "";
-      if (invite.ok) {
-        toast({
-          title: "Employee added — invite sent",
-          description: `${employee.first_name} ${employee.last_name}${idLabel} must click the link in the email sent to ${employee.email} to set a password before they can sign in.`,
-        });
-      } else {
-        toast({
-          title: "Employee added",
-          description: invite.error
-            ? `Created, but invite email failed: ${invite.error}. They won't be able to sign in until re-invited.`
-            : `${employee.first_name} ${employee.last_name} has been onboarded. No login invite was sent.`,
-        });
-      }
-    },
-    onError: (err: Error) => {
-      toast({
-        title: "Failed to add employee",
-        description: err.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const m = useCreateEmployeeApi();
+  return {
+    ...m,
+    mutate: (input: CreateEmployeeInput) =>
+      m.mutate({
+        empId: input.emp_id,
+        firstName: input.first_name,
+        lastName: input.last_name,
+        email: input.email,
+        phone: input.phone ?? null,
+        department: input.department ?? null,
+        designation: input.designation ?? null,
+        joiningDate: input.joining_date ?? null,
+        status: (input.status ?? "active") as never,
+        category: input.category ?? null,
+        workLocationCountry: input.work_location_country ?? null,
+        payCurrency: input.pay_currency ?? null,
+      }),
+    mutateAsync: async (input: CreateEmployeeInput) =>
+      m.mutateAsync({
+        empId: input.emp_id,
+        firstName: input.first_name,
+        lastName: input.last_name,
+        email: input.email,
+        phone: input.phone ?? null,
+        department: input.department ?? null,
+        designation: input.designation ?? null,
+        joiningDate: input.joining_date ?? null,
+        status: (input.status ?? "active") as never,
+        category: input.category ?? null,
+        workLocationCountry: input.work_location_country ?? null,
+        payCurrency: input.pay_currency ?? null,
+      }),
+  };
 }
 
 export function useUpdateEmployee() {
-  const qc = useQueryClient();
-  const { toast } = useToast();
-  return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<EmployeeRow> }) => {
-      const { data, error } = await supabase
-        .from("employees")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .maybeSingle();
-      if (error) throw error;
-      return (data ?? null) as EmployeeRow | null;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["employees"] });
-      toast({ title: "Employee updated" });
-    },
-    onError: (err: Error) =>
-      toast({ title: "Update failed", description: err.message, variant: "destructive" }),
-  });
+  const m = useUpdateEmployeeApi();
+  return {
+    ...m,
+    mutate: ({ id, patch }: { id: string; patch: Partial<EmployeeRow> }) =>
+      m.mutate({
+        id,
+        body: {
+          firstName: patch.first_name,
+          lastName: patch.last_name,
+          email: patch.email ?? undefined,
+          phone: patch.phone ?? undefined,
+          department: patch.department ?? undefined,
+          designation: patch.designation ?? undefined,
+          joiningDate: patch.joining_date ?? undefined,
+          status: patch.status as never,
+          category: patch.category ?? undefined,
+          workLocationCountry: patch.work_location_country ?? undefined,
+          payCurrency: patch.pay_currency ?? undefined,
+        },
+      }),
+  };
 }
 
 export function useDeactivateEmployee() {
-  const qc = useQueryClient();
-  const { toast } = useToast();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("employees")
-        .update({ status: "inactive" })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["employees"] });
-      toast({ title: "Employee deactivated" });
-    },
-    onError: (err: Error) =>
-      toast({ title: "Action failed", description: err.message, variant: "destructive" }),
-  });
+  const m = useArchiveEmployee();
+  return {
+    ...m,
+    mutate: (id: string) => m.mutate({ id }),
+    mutateAsync: async (id: string) => m.mutateAsync({ id }),
+  };
 }

@@ -1,133 +1,97 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useRole } from "@/contexts/RoleContext";
-
-export type TabScope = "both" | "people_only";
+/**
+ * Tab access stub for the NestJS migration. The full `tab_definitions` master
+ * list (which used to live in Postgres) is hard-coded here so the AddClient
+ * wizard, Module Access settings, and any tab-aware UI continue to render the
+ * correct choices. Mutations are no-ops until a backend tab-access module is
+ * built — at that point swap each function for a real @/api call.
+ */
+const noopMut = {
+  mutate: () => console.warn("[useTabAccess] writes not yet on NestJS"),
+  mutateAsync: async () => undefined,
+  isPending: false,
+};
 
 export interface TabDefinition {
-  id: string;
-  module_key: string;
   tab_key: string;
+  module_key: string;
   label: string;
   path: string;
-  scope: TabScope;
+  scope: "both" | "people_only";
+  default_for_admin: boolean;
   sort_order: number;
 }
 
-export interface ClientTabAccess {
-  client_id: string;
-  tab_key: string;
+export interface AccessibleTabInfo {
   enabled: boolean;
+  peopleEnabled?: boolean;
 }
 
-export interface RoleTabAccess {
-  role_id: string;
-  tab_key: string;
-  people_enabled: boolean;
-}
+const TAB_DEFINITIONS: TabDefinition[] = [
+  // Employees
+  { module_key: "employees", tab_key: "employees.directory",  label: "Directory",          path: "/employees",          scope: "people_only", default_for_admin: true, sort_order: 1 },
+  { module_key: "employees", tab_key: "employees.org_chart",  label: "Org Chart",          path: "/org-chart",          scope: "both",        default_for_admin: true, sort_order: 2 },
+  { module_key: "employees", tab_key: "employees.imp_dates",  label: "Imp Dates",          path: "/birthdays",          scope: "people_only", default_for_admin: true, sort_order: 3 },
+  { module_key: "employees", tab_key: "employees.leave_mgmt", label: "Leave Management",   path: "/leave",              scope: "people_only", default_for_admin: true, sort_order: 4 },
+  { module_key: "employees", tab_key: "employees.id_cards",   label: "Employee Cards",     path: "/id-cards",           scope: "people_only", default_for_admin: true, sort_order: 5 },
+  { module_key: "employees", tab_key: "employees.hr_settings",label: "HR Settings",        path: "/employees/settings", scope: "people_only", default_for_admin: true, sort_order: 6 },
+  // Payroll
+  { module_key: "payroll",   tab_key: "payroll.setup",        label: "Payroll Setup",      path: "/payroll/setup",      scope: "people_only", default_for_admin: true, sort_order: 1 },
+  { module_key: "payroll",   tab_key: "payroll.runs",         label: "Payroll Runs",       path: "/payroll",            scope: "people_only", default_for_admin: true, sort_order: 2 },
+  { module_key: "payroll",   tab_key: "payroll.payslips",     label: "Payslips",           path: "/payslips",           scope: "both",        default_for_admin: true, sort_order: 3 },
+  { module_key: "payroll",   tab_key: "payroll.eos",          label: "End of Service",     path: "/separations",        scope: "people_only", default_for_admin: true, sort_order: 4 },
+  { module_key: "payroll",   tab_key: "payroll.loans",        label: "Loans",              path: "/loans",              scope: "both",        default_for_admin: true, sort_order: 5 },
+  { module_key: "payroll",   tab_key: "payroll.analytics",    label: "Analytics",          path: "/analytics",          scope: "people_only", default_for_admin: true, sort_order: 6 },
+  { module_key: "payroll",   tab_key: "payroll.settings",     label: "Payroll Settings",   path: "/payroll/settings",   scope: "people_only", default_for_admin: true, sort_order: 7 },
+  // Expenses
+  { module_key: "expenses",  tab_key: "expenses.claims",      label: "Expenses",           path: "/expenses",             scope: "both",        default_for_admin: true, sort_order: 1 },
+  { module_key: "expenses",  tab_key: "expenses.advances",    label: "Advances",           path: "/advances",             scope: "both",        default_for_admin: true, sort_order: 2 },
+  { module_key: "expenses",  tab_key: "expenses.outstanding", label: "Outstanding Advances", path: "/outstanding-advances", scope: "people_only", default_for_admin: true, sort_order: 3 },
+  { module_key: "expenses",  tab_key: "expenses.analytics",   label: "Expense Analytics",  path: "/expense-analytics",    scope: "people_only", default_for_admin: true, sort_order: 4 },
+  { module_key: "expenses",  tab_key: "expenses.settings",    label: "Expense Settings",   path: "/expenses/settings",    scope: "people_only", default_for_admin: true, sort_order: 5 },
+  // Assets
+  { module_key: "assets",    tab_key: "assets.dashboard",     label: "Dashboard",          path: "/assets/dashboard",     scope: "people_only", default_for_admin: true, sort_order: 1 },
+  { module_key: "assets",    tab_key: "assets.inventory",     label: "Asset Inventory",    path: "/assets/inventory",     scope: "both",        default_for_admin: true, sort_order: 2 },
+  { module_key: "assets",    tab_key: "assets.store",         label: "Asset Store",        path: "/assets/store",         scope: "both",        default_for_admin: true, sort_order: 3 },
+  { module_key: "assets",    tab_key: "assets.requests",      label: "Asset Requests",     path: "/assets/requests",      scope: "people_only", default_for_admin: true, sort_order: 4 },
+  { module_key: "assets",    tab_key: "assets.audits",        label: "Asset Audits",       path: "/assets/audits",        scope: "people_only", default_for_admin: true, sort_order: 5 },
+  { module_key: "assets",    tab_key: "assets.settings",      label: "Asset Settings",     path: "/assets/master-data",   scope: "people_only", default_for_admin: true, sort_order: 6 },
+  // Performance
+  { module_key: "performance", tab_key: "performance.ratings",             label: "Ratings Overview",      path: "/performance/ratings",            scope: "people_only", default_for_admin: true, sort_order: 1 },
+  { module_key: "performance", tab_key: "performance.calibration",         label: "Rating Calibration",    path: "/performance/calibration",        scope: "people_only", default_for_admin: true, sort_order: 2 },
+  { module_key: "performance", tab_key: "performance.self",                label: "Self Assessment",       path: "/performance/self-assessment",    scope: "both",        default_for_admin: true, sort_order: 3 },
+  { module_key: "performance", tab_key: "performance.peer",                label: "Peer Assessment",       path: "/performance/peer-assessment",    scope: "both",        default_for_admin: true, sort_order: 4 },
+  { module_key: "performance", tab_key: "performance.manager",             label: "Manager Assessment",    path: "/performance/manager-assessment", scope: "people_only", default_for_admin: true, sort_order: 5 },
+  { module_key: "performance", tab_key: "performance.assessment_ratings",  label: "Assessment Ratings",    path: "/performance/assessment-ratings", scope: "people_only", default_for_admin: true, sort_order: 6 },
+  { module_key: "performance", tab_key: "performance.questionnaire",       label: "Questionnaire Settings", path: "/performance/questionnaire",     scope: "people_only", default_for_admin: true, sort_order: 7 },
+  // Projects
+  { module_key: "projects",  tab_key: "projects.list",        label: "Projects",           path: "/projects",             scope: "people_only", default_for_admin: true, sort_order: 1 },
+  // Reports
+  { module_key: "reports",   tab_key: "reports.all",          label: "Reports",            path: "/reports",              scope: "people_only", default_for_admin: true, sort_order: 1 },
+  // Settings
+  { module_key: "settings",  tab_key: "settings.company_profile",  label: "Company Profile",    path: "/settings/company",          scope: "people_only", default_for_admin: true, sort_order: 1 },
+  { module_key: "settings",  tab_key: "settings.user_permissions", label: "User Permissions",   path: "/settings/user-permissions", scope: "people_only", default_for_admin: true, sort_order: 2 },
+  { module_key: "settings",  tab_key: "settings.approval_matrix",  label: "Approval Matrix",    path: "/settings/approval-matrix",  scope: "people_only", default_for_admin: true, sort_order: 3 },
+  { module_key: "settings",  tab_key: "settings.policies",         label: "Policies",           path: "/settings/policies",         scope: "people_only", default_for_admin: true, sort_order: 4 },
+  { module_key: "settings",  tab_key: "settings.audit_trail",      label: "Audit Trail",        path: "/settings/audit-trail",      scope: "people_only", default_for_admin: true, sort_order: 5 },
+  { module_key: "settings",  tab_key: "settings.visual",           label: "Visual Preferences", path: "/settings/visual",           scope: "people_only", default_for_admin: true, sort_order: 6 },
+];
 
-export interface AccessibleTab {
-  tab_key: string;
-  scope: TabScope;
-  people_enabled: boolean;
-}
-
-// ── All tab definitions (global) ─────────────────────────────────
 export function useTabDefinitions() {
-  return useQuery({
-    queryKey: ["tab_definitions"],
-    queryFn: async (): Promise<TabDefinition[]> => {
-      const { data, error } = await (supabase as any)
-        .from("tab_definitions")
-        .select("id, module_key, tab_key, label, path, scope, sort_order")
-        .order("module_key")
-        .order("sort_order");
-      if (error) throw error;
-      return (data ?? []) as TabDefinition[];
-    },
-  });
+  return { data: TAB_DEFINITIONS, isLoading: false };
 }
 
-// ── Per-client tab enablement (super-admin gating) ────────────────
-export function useClientTabAccess(clientId: string | null) {
-  return useQuery({
-    queryKey: ["client_tab_access", clientId],
-    enabled: !!clientId,
-    queryFn: async (): Promise<ClientTabAccess[]> => {
-      const { data, error } = await (supabase as any)
-        .from("client_tab_access")
-        .select("client_id, tab_key, enabled")
-        .eq("client_id", clientId!);
-      if (error) throw error;
-      return (data ?? []) as ClientTabAccess[];
-    },
-  });
-}
-
-// ── Per-role people_enabled flags ─────────────────────────────────
-export function useRoleTabAccess(roleId: string | null) {
-  return useQuery({
-    queryKey: ["role_tab_access", roleId],
-    enabled: !!roleId,
-    queryFn: async (): Promise<RoleTabAccess[]> => {
-      const { data, error } = await (supabase as any)
-        .from("role_tab_access")
-        .select("role_id, tab_key, people_enabled")
-        .eq("role_id", roleId!);
-      if (error) throw error;
-      return (data ?? []) as RoleTabAccess[];
-    },
-  });
-}
-
-// ── Save the people_enabled state for a whole role (replace all) ─
-export function useSetRoleTabAccess() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: {
-      role_id: string;
-      client_id: string;
-      tabs: { tab_key: string; people_enabled: boolean }[];
-    }) => {
-      const rows = input.tabs.map((t) => ({
-        role_id: input.role_id,
-        tab_key: t.tab_key,
-        people_enabled: t.people_enabled,
-      }));
-      // Upsert all rows; tabs not in the array stay as-is.
-      // To make it a true "replace" within the rows we send, use upsert.
-      const { error } = await (supabase as any)
-        .from("role_tab_access")
-        .upsert(rows, { onConflict: "role_id,tab_key" });
-      if (error) throw error;
-    },
-    onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["role_tab_access", vars.role_id] });
-      qc.invalidateQueries({ queryKey: ["accessible_tabs"] });
-      toast.success("Tab permissions saved");
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-}
-
-// ── Accessible tabs for current user (used by sidebar) ────────────
 export function useAccessibleTabs() {
-  const { user } = useRole();
-  return useQuery({
-    queryKey: ["accessible_tabs", user?.id],
-    enabled: !!user?.id,
-    staleTime: 60_000,
-    queryFn: async (): Promise<Map<string, AccessibleTab>> => {
-      const { data, error } = await (supabase as any).rpc("get_user_accessible_tabs", {
-        _user_id: user!.id,
-      });
-      if (error) throw error;
-      const map = new Map<string, AccessibleTab>();
-      for (const row of (data ?? []) as AccessibleTab[]) {
-        map.set(row.tab_key, row);
-      }
-      return map;
-    },
-  });
+  // Returning null = "tab gating disabled" → consumers fall back to role + feature checks.
+  return { data: null as Map<string, AccessibleTabInfo> | null, isLoading: false };
 }
+
+export function useClientTabAccess(_clientId: string | null) {
+  return { data: [] as { tab_key: string; enabled: boolean }[], isLoading: false };
+}
+export function useUpdateClientTabAccess() { return noopMut; }
+export function useSetClientTabAccess() { return noopMut; }
+export function useRoleTabAccess(_roleId?: string) {
+  return { data: [] as { tab_key: string; enabled: boolean }[], isLoading: false };
+}
+export function useUpdateRoleTabAccess() { return noopMut; }
+export function useSetRoleTabAccess() { return noopMut; }

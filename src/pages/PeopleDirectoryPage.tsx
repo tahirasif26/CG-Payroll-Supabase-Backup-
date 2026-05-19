@@ -5,24 +5,59 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Search, Mail, Phone, Building2, Briefcase } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useActiveEmployees } from "@/hooks/useActiveEmployees";
-import { useReporting } from "@/contexts/ReportingContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useEmployees, type EmployeeDirectoryItem } from "@/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/EmptyState";
-import type { Employee } from "@/types/hcm";
 
+/**
+ * Phase 3a-cutover: directory now reads from NestJS via `useEmployees`. The
+ * old `useActiveEmployees` hook also enforced an `is_verified` filter (employee
+ * has logged in at least once); that flag isn't yet ported to the new backend
+ * and will return in Phase 3b when login-status tracking lands. For now every
+ * active employee appears in the directory.
+ */
 export default function PeopleDirectoryPage() {
-  const employees = useActiveEmployees();
-  const { getManagerName } = useReporting();
   const [search, setSearch] = useState("");
   const [dept, setDept] = useState("all");
-  const [selected, setSelected] = useState<Employee | null>(null);
+  const [selected, setSelected] = useState<EmployeeDirectoryItem | null>(null);
+
+  // Pull a generous page; for clients with > 200 employees we'll move to
+  // server-side search/pagination in a follow-up.
+  const { data, isLoading } = useEmployees({ status: "active", pageSize: 200 });
+  const employees = data?.data ?? [];
 
   const departments = useMemo(
-    () => Array.from(new Set(employees.map((e) => e.department).filter(Boolean))).sort(),
-    [employees]
+    () =>
+      Array.from(
+        new Set(employees.map((e) => e.department).filter((d): d is string => !!d)),
+      ).sort(),
+    [employees],
   );
+
+  const managersById = useMemo(() => {
+    const map = new Map<string, EmployeeDirectoryItem>();
+    for (const e of employees) map.set(e.id, e);
+    return map;
+  }, [employees]);
+
+  const getManagerName = (emp: EmployeeDirectoryItem): string | null => {
+    if (!emp.reportsToId) return null;
+    const m = managersById.get(emp.reportsToId);
+    return m ? `${m.firstName} ${m.lastName}`.trim() : null;
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -59,13 +94,30 @@ export default function PeopleDirectoryPage() {
           <SelectContent>
             <SelectItem value="all">All departments</SelectItem>
             {departments.map((d) => (
-              <SelectItem key={d} value={d}>{d}</SelectItem>
+              <SelectItem key={d} value={d}>
+                {d}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4 flex items-start gap-3">
+                <div className="h-11 w-11 rounded-full bg-muted shrink-0" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-3 w-2/3 bg-muted rounded" />
+                  <div className="h-2 w-1/2 bg-muted rounded" />
+                  <div className="h-2 w-1/3 bg-muted rounded" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={Search}
           title="No people found"
@@ -81,17 +133,22 @@ export default function PeopleDirectoryPage() {
             >
               <CardContent className="p-4 flex items-start gap-3">
                 <Avatar className="h-11 w-11 shrink-0">
-                  {emp.avatar && <AvatarImage src={emp.avatar} alt="" />}
+                  {emp.avatarUrl && <AvatarImage src={emp.avatarUrl} alt="" />}
                   <AvatarFallback className="text-xs font-semibold">
-                    {emp.firstName?.[0]}{emp.lastName?.[0]}
+                    {emp.firstName?.[0]}
+                    {emp.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold truncate">
                     {emp.firstName} {emp.lastName}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">{emp.designation || "—"}</p>
-                  <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">{emp.department || ""}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {emp.designation || "—"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">
+                    {emp.department || ""}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -106,9 +163,10 @@ export default function PeopleDirectoryPage() {
               <DialogHeader>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-14 w-14">
-                    {selected.avatar && <AvatarImage src={selected.avatar} alt="" />}
+                    {selected.avatarUrl && <AvatarImage src={selected.avatarUrl} alt="" />}
                     <AvatarFallback className="text-sm font-semibold">
-                      {selected.firstName?.[0]}{selected.lastName?.[0]}
+                      {selected.firstName?.[0]}
+                      {selected.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
@@ -151,18 +209,26 @@ export default function PeopleDirectoryPage() {
                     }
                   />
                 )}
-                {getManagerName(selected.id) && (
-                  <Row icon={Briefcase} label="Reports to" value={getManagerName(selected.id)!} />
+                {getManagerName(selected) && (
+                  <Row icon={Briefcase} label="Reports to" value={getManagerName(selected)!} />
                 )}
                 {selected.workLocationCountry && (
-                  <Row icon={Building2} label="Location" value={selected.workLocationCountry} />
+                  <Row
+                    icon={Building2}
+                    label="Location"
+                    value={selected.workLocationCountry}
+                  />
                 )}
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Badge variant="outline" className="text-[10px] capitalize">{selected.status}</Badge>
+                <Badge variant="outline" className="text-[10px] capitalize">
+                  {selected.status}
+                </Badge>
                 {selected.category && (
-                  <Badge variant="outline" className="text-[10px] capitalize">{selected.category}</Badge>
+                  <Badge variant="outline" className="text-[10px] capitalize">
+                    {selected.category}
+                  </Badge>
                 )}
               </div>
             </>
@@ -173,7 +239,15 @@ export default function PeopleDirectoryPage() {
   );
 }
 
-function Row({ icon: Icon, label, value }: { icon: any; label: string; value: React.ReactNode }) {
+function Row({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Building2;
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="flex items-start gap-2.5">
       <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />

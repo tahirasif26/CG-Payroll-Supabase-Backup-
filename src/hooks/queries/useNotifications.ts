@@ -1,7 +1,28 @@
+/**
+ * Phase 3-notifications cutover: this file is now a thin adapter over `@/api`
+ * (NestJS). Consumers (TopBar, NotificationBell, NotificationsPage) continue
+ * to use the same hook signatures and `NotificationRow` snake_case shape —
+ * they don't need to change.
+ *
+ * Reminder rules (`useReminderSettings` / `useUpsertReminderSetting`) still
+ * call Supabase because the reminders module hasn't been ported yet — that's
+ * Phase 8. They are unrelated to in-app notifications and keep working.
+ *
+ * Realtime push: removed for now. The bell relies on the 60-second poll built
+ * into `useUnreadNotificationCount` plus React Query invalidation on
+ * mutations. Postgres realtime returns via the NestJS WebSocket gateway in
+ * Phase 8.
+ */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/contexts/RoleContext";
+import {
+  useUnreadNotificationCount as useUnreadNotificationCountApi,
+  useMarkNotificationsRead as useMarkReadApi,
+  useMarkAllNotificationsRead as useMarkAllReadApi,
+  useDeleteNotification as useDeleteNotificationApi,
+  notificationsApi,
+  type Notification as ApiNotification,
+} from "@/api";
 
 export type NotificationRow = {
   id: string;
@@ -19,118 +40,91 @@ export type NotificationRow = {
   created_at: string;
 };
 
+function toRow(n: ApiNotification): NotificationRow {
+  return {
+    id: n.id,
+    client_id: n.clientId ?? null,
+    user_id: n.userId,
+    actor_user_id: n.actorUserId,
+    title: n.title,
+    body: n.body,
+    category: n.category,
+    severity: n.severity,
+    entity_type: n.entityType,
+    entity_id: n.entityId,
+    link: n.link,
+    read_at: n.readAt,
+    created_at: n.createdAt,
+  };
+}
+
+// ─── Notifications list ──────────────────────────────────────────────────────
+
 export function useNotifications(unreadOnly = false) {
-  const { user } = useRole();
-  const qc = useQueryClient();
-
-  // Realtime subscription — invalidates the query whenever a row changes for me
-  useEffect(() => {
-    if (!user?.id) return;
-    const channel = supabase
-      .channel(`notifications:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["notifications"] });
-          qc.invalidateQueries({ queryKey: ["notifications_unread_count"] });
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, qc]);
-
   return useQuery({
-    queryKey: ["notifications", unreadOnly, user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      let q = (supabase as any)
-        .from("notifications")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (unreadOnly) q = q.is("read_at", null);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as NotificationRow[];
+    queryKey: ["notifications", unreadOnly],
+    queryFn: async (): Promise<NotificationRow[]> => {
+      const res = await notificationsApi.list({
+        ...(unreadOnly ? { state: "unread" as const } : {}),
+        pageSize: 50,
+      });
+      const items = res.data ?? [];
+      return items.map(toRow);
     },
   });
 }
 
 export function useUnreadNotificationCount() {
-  const { user } = useRole();
-  return useQuery({
-    queryKey: ["notifications_unread_count", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const { count, error } = await (supabase as any)
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .is("read_at", null);
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
+  // Delegates to the new API hook but exposes just the number (legacy shape).
+  const q = useUnreadNotificationCountApi();
+  return {
+    ...q,
+    data: q.data?.count ?? 0,
+  };
 }
+
+// ─── Mutations ───────────────────────────────────────────────────────────────
 
 export function useMarkNotificationRead() {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from("notifications")
-        .update({ read_at: new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
+  const m = useMarkReadApi();
+  return {
+    ...m,
+    mutate: (id: string) => {
+      m.mutate(
+        { ids: [id] },
+        {
+          onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["notifications"] });
+          },
+        },
+      );
     },
-    onSuccess: () => {
+    mutateAsync: async (id: string) => {
+      const r = await m.mutateAsync({ ids: [id] });
       qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["notifications_unread_count"] });
+      return r;
     },
-  });
+  };
 }
 
 export function useMarkAllNotificationsRead() {
-  const qc = useQueryClient();
-  const { user } = useRole();
-  return useMutation({
-    mutationFn: async () => {
-      if (!user?.id) return;
-      const { error } = await (supabase as any)
-        .from("notifications")
-        .update({ read_at: new Date().toISOString() })
-        .eq("user_id", user.id)
-        .is("read_at", null);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["notifications_unread_count"] });
-    },
-  });
+  return useMarkAllReadApi();
 }
 
 export function useDeleteNotification() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("notifications").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["notifications_unread_count"] });
-    },
-  });
+  return useDeleteNotificationApi();
 }
+
+// ─── Reminder rules — still Supabase until Phase 8 ───────────────────────────
 
 export function useReminderSettings() {
   return useQuery({
     queryKey: ["reminder_settings"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("reminder_settings").select("*");
+      const { data, error } = await (supabase as never as { from: (t: string) => any })
+        .from("reminder_settings")
+        .select("*");
       if (error) throw error;
       return data;
     },
@@ -140,8 +134,8 @@ export function useReminderSettings() {
 export function useUpsertReminderSetting() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: any) => {
-      const { data, error } = await (supabase as any)
+    mutationFn: async (payload: Record<string, unknown>) => {
+      const { data, error } = await (supabase as never as { from: (t: string) => any })
         .from("reminder_settings")
         .upsert(payload, { onConflict: "client_id,category" })
         .select()

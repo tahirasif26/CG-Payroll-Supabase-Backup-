@@ -1,7 +1,17 @@
-import React, { createContext, useContext, ReactNode } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/contexts/RoleContext";
+import { createContext, useContext, ReactNode, useState } from "react";
+
+/**
+ * Stubbed during NestJS migration. The `employee_types` table is not yet
+ * modeled in Prisma (it's a small lookup table for HR classifications).
+ * Restore by:
+ *   1. Adding `EmployeeType` model to `api/prisma/schema.prisma`
+ *   2. Building an `EmployeeTypesModule` + FE service layer
+ *   3. Replacing the in-memory state below with `useEmployeeTypes()` from @/api
+ *
+ * Pages that consume this context show empty type lists in the meantime —
+ * mutations are kept in component-local state so existing wizards still work
+ * within a session.
+ */
 
 export interface EmployeeType {
   id: string;
@@ -21,72 +31,40 @@ interface EmployeeTypeContextType {
 
 const EmployeeTypeContext = createContext<EmployeeTypeContextType | undefined>(undefined);
 
+const DEFAULTS: EmployeeType[] = [
+  { id: "full_time", name: "Full Time", isDefault: true, isActive: true },
+  { id: "part_time", name: "Part Time", isDefault: false, isActive: true },
+  { id: "contractor", name: "Contractor", isDefault: false, isActive: true },
+  { id: "intern", name: "Intern", isDefault: false, isActive: true },
+];
+
 export function EmployeeTypeProvider({ children }: { children: ReactNode }) {
-  const { clientId } = useRole();
-  const qc = useQueryClient();
+  const [employeeTypes, setEmployeeTypes] = useState<EmployeeType[]>(DEFAULTS);
 
-  const { data: rows = [] } = useQuery({
-    queryKey: ["employee_types", clientId],
-    enabled: !!clientId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employee_types")
-        .select("id, name, is_default, is_active")
-        .eq("client_id", clientId!)
-        .order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const employeeTypes: EmployeeType[] = (rows as any[]).map(r => ({
-    id: r.id, name: r.name, isDefault: r.is_default, isActive: r.is_active,
-  }));
-
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["employee_types", clientId] });
-
-  const addMut = useMutation({
-    mutationFn: async (name: string) => {
-      if (!clientId) throw new Error("No client context");
-      const { error } = await supabase.from("employee_types").insert({ client_id: clientId, name });
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  const updateMut = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<EmployeeType> }) => {
-      const payload: { name?: string; is_active?: boolean } = {};
-      if (updates.name !== undefined) payload.name = updates.name;
-      if (updates.isActive !== undefined) payload.is_active = updates.isActive;
-      const { error } = await supabase.from("employee_types").update(payload).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("employee_types").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  const getTypeName = (id: string) => employeeTypes.find(t => t.id === id)?.name || id;
-  const activeTypes = employeeTypes.filter(t => t.isActive);
+  const value: EmployeeTypeContextType = {
+    employeeTypes,
+    activeTypes: employeeTypes.filter((t) => t.isActive),
+    addEmployeeType: (name) =>
+      setEmployeeTypes((prev) => [
+        ...prev,
+        {
+          id: name.toLowerCase().replace(/\s+/g, "_"),
+          name,
+          isDefault: false,
+          isActive: true,
+        },
+      ]),
+    updateEmployeeType: (id, updates) =>
+      setEmployeeTypes((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+      ),
+    deleteEmployeeType: (id) =>
+      setEmployeeTypes((prev) => prev.filter((t) => t.id !== id)),
+    getTypeName: (id) => employeeTypes.find((t) => t.id === id)?.name ?? id,
+  };
 
   return (
-    <EmployeeTypeContext.Provider value={{
-      employeeTypes,
-      addEmployeeType: (name) => addMut.mutate(name),
-      updateEmployeeType: (id, updates) => updateMut.mutate({ id, updates }),
-      deleteEmployeeType: (id) => deleteMut.mutate(id),
-      getTypeName,
-      activeTypes,
-    }}>
-      {children}
-    </EmployeeTypeContext.Provider>
+    <EmployeeTypeContext.Provider value={value}>{children}</EmployeeTypeContext.Provider>
   );
 }
 

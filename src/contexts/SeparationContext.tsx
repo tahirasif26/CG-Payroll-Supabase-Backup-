@@ -1,55 +1,17 @@
-import { createContext, useContext, ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/contexts/RoleContext";
-import { toast } from "@/hooks/use-toast";
+import { createContext, useContext, useMemo, ReactNode } from "react";
+import {
+  useSeparations as useSeparationsApi,
+  useCreateSeparation,
+  useApproveSeparation,
+  type Separation as ApiSeparation,
+  type SeparationStatus,
+} from "@/api";
 
 /**
- * Real DB columns on public.separations (see migration history):
- *   id, client_id, employee_id, last_working_date, reason, type,
- *   notice_period_days, notice_period_served (bool),
- *   unpaid_salary, eosb_amount, eosb_breakdown (jsonb), leave_encashment,
- *   notice_period_pay, loan_deduction, total_settlement,
- *   status, payroll_run_id, approved_by, processed_date,
- *   created_at, updated_at, metadata (jsonb)
- *
- * The legacy frontend uses camelCase field names; we translate both ways here.
+ * Migrated to NestJS via @/api/separations. The legacy SeparationRecord shape
+ * had both snake_case and camelCase versions of every field — both are
+ * populated here so existing pages don't have to change.
  */
-const DB_COLUMNS = new Set([
-  "id",
-  "client_id",
-  "employee_id",
-  "last_working_date",
-  "reason",
-  "type",
-  "notice_period_days",
-  "notice_period_served",
-  "unpaid_salary",
-  "eosb_amount",
-  "eosb_breakdown",
-  "leave_encashment",
-  "notice_period_pay",
-  "loan_deduction",
-  "total_settlement",
-  "status",
-  "payroll_run_id",
-  "approved_by",
-  "processed_date",
-  "created_at",
-  "updated_at",
-  "metadata",
-]);
-
-const VALID_TYPES = new Set([
-  "resignation",
-  "termination",
-  "retirement",
-  "end_of_contract",
-  "contract_end",
-  "death",
-  "mutual",
-  "other",
-]);
 
 export interface SeparationRecord {
   id: string;
@@ -81,7 +43,6 @@ export interface SeparationRecord {
     department: string;
     designation: string;
   };
-  // ---- Legacy camelCase aliases (derived) ----
   employeeId?: string;
   employeeName?: string;
   empId?: string;
@@ -121,175 +82,114 @@ const SeparationContext = createContext<SeparationContextValue>({
   removeSeparation: async () => {},
 });
 
-// Map an incoming write payload (mix of new + legacy fields) to real DB columns.
-function toDbPayload(input: any): Record<string, any> {
-  const src: Record<string, any> = { ...input };
-  const out: Record<string, any> = {};
-  const meta: Record<string, any> = {};
-
-  // Legacy → canonical
-  if (src.employeeId && !src.employee_id) src.employee_id = src.employeeId;
-  if (src.lastDate && !src.last_working_date) src.last_working_date = src.lastDate;
-  if (src.noticePeriodDays != null && src.notice_period_days == null)
-    src.notice_period_days = src.noticePeriodDays;
-  if (src.noticePeriodServed != null && src.notice_period_served == null)
-    src.notice_period_served = !!src.noticePeriodServed;
-  if (src.unpaidSalary != null && src.unpaid_salary == null) src.unpaid_salary = src.unpaidSalary;
-  if (src.eosAmount != null && src.eosb_amount == null) src.eosb_amount = src.eosAmount;
-  if (src.eosBreakdown != null && src.eosb_breakdown == null) src.eosb_breakdown = src.eosBreakdown;
-  if (src.leaveEncashment != null && src.leave_encashment == null)
-    src.leave_encashment = src.leaveEncashment;
-  if (src.noticePeriodPay != null && src.notice_period_pay == null)
-    src.notice_period_pay = src.noticePeriodPay;
-  if (src.loanDeduction != null && src.loan_deduction == null) src.loan_deduction = src.loanDeduction;
-  if (src.totalSettlement != null && src.total_settlement == null)
-    src.total_settlement = src.totalSettlement;
-  if (src.processedDate && !src.processed_date) src.processed_date = src.processedDate;
-  if (src.payrollRunId && !src.payroll_run_id) src.payroll_run_id = src.payrollRunId;
-
-  // The legacy frontend stores the separation kind in `reason` (e.g. "resignation").
-  // The real DB has TWO columns: `type` (kind) + `reason` (free-text description).
-  // Promote the kind into `type` and keep any free-text in metadata.reasonNotes.
-  if (src.reason && !src.type) {
-    const r = String(src.reason).toLowerCase();
-    if (VALID_TYPES.has(r)) {
-      src.type = r === "contract_end" ? "end_of_contract" : r;
-      // clear `reason` so we don't double-write the same value
-      delete src.reason;
-    }
-  }
-
-  // bigint columns must be integers
-  const intCols = [
-    "unpaid_salary",
-    "eosb_amount",
-    "leave_encashment",
-    "notice_period_pay",
-    "loan_deduction",
-    "total_settlement",
-    "notice_period_days",
-  ];
-  for (const c of intCols) {
-    if (src[c] != null) src[c] = Math.round(Number(src[c]) || 0);
-  }
-
-  for (const [k, v] of Object.entries(src)) {
-    if (k === "id" || k === "created_at" || k === "updated_at" || k === "client_id") continue;
-    if (k === "employee") continue;
-    if (DB_COLUMNS.has(k)) {
-      out[k] = v;
-    } else {
-      meta[k] = v;
-    }
-  }
-
-  if (Object.keys(meta).length) out.metadata = { ...(input.metadata ?? {}), ...meta };
-  return out;
+function statusFromApi(s: SeparationStatus): SeparationRecord["status"] {
+  if (s === "processed") return "completed";
+  return s as SeparationRecord["status"];
 }
 
-// Add legacy aliases on read so existing consumers keep working.
-function withAliases(row: any): SeparationRecord {
-  const meta = row.metadata ?? {};
-  const emp = row.employee ?? {};
-  const fullName = [emp.first_name, emp.last_name].filter(Boolean).join(" ").trim();
+function adapt(a: ApiSeparation): SeparationRecord {
+  const eosbBreakdown =
+    Array.isArray((a.eosbBreakdown as any)?.components)
+      ? ((a.eosbBreakdown as any).components as Array<{ label?: string; amountMinor?: string }>).map(
+          (c) => ({ name: c.label ?? "", amount: Number(c.amountMinor ?? 0) }),
+        )
+      : [];
+
   return {
-    ...row,
-    eosb_breakdown: Array.isArray(row.eosb_breakdown) ? row.eosb_breakdown : [],
-    employeeId: row.employee_id,
-    employeeName: meta.employeeName ?? (fullName || meta.employeeName),
-    empId: emp.emp_id ?? meta.empId,
-    department: emp.department ?? meta.department,
-    designation: emp.designation ?? meta.designation,
-    lastDate: row.last_working_date,
-    noticePeriodDays: row.notice_period_days,
-    noticePeriodServed: !!row.notice_period_served,
-    unpaidSalary: Number(row.unpaid_salary) || 0,
-    eosAmount: Number(row.eosb_amount) || 0,
-    eosBreakdown: Array.isArray(row.eosb_breakdown) ? row.eosb_breakdown : [],
-    leaveEncashment: Number(row.leave_encashment) || 0,
-    noticePeriodPay: Number(row.notice_period_pay) || 0,
-    noticePeriodRecovery: Number(meta.noticePeriodRecovery) || 0,
-    loanDeduction: Number(row.loan_deduction) || 0,
-    totalSettlement: Number(row.total_settlement) || 0,
-    processedDate: row.processed_date ?? meta.processedDate ?? row.created_at?.split("T")[0],
-    payrollMonth: meta.payrollMonth,
-    payrollYear: meta.payrollYear,
-    payrollRunId: row.payroll_run_id ?? meta.payrollRunId,
-    currency: meta.currency,
-    // legacy alias for type used by some consumers
-    reason: row.reason ?? row.type,
+    id: a.id,
+    client_id: a.clientId,
+    employee_id: a.employeeId,
+    last_working_date: a.lastWorkingDate,
+    reason: a.reason ?? undefined,
+    type: a.type,
+    notice_period_days: a.noticePeriodDays,
+    notice_period_served: a.noticePeriodServed,
+    unpaid_salary: Number(a.unpaidSalaryMinor) || 0,
+    eosb_amount: Number(a.eosbAmountMinor) || 0,
+    eosb_breakdown: eosbBreakdown,
+    leave_encashment: Number(a.leaveEncashmentMinor) || 0,
+    notice_period_pay: Number(a.noticePeriodPayMinor) || 0,
+    loan_deduction: Number(a.loanDeductionMinor) || 0,
+    total_settlement: Number(a.totalSettlementMinor) || 0,
+    status: statusFromApi(a.status),
+    payroll_run_id: a.payrollRunId,
+    processed_date: a.processedDate,
+    created_at: "",
+    updated_at: "",
+    employee: a.employee
+      ? {
+          first_name: a.employee.firstName,
+          last_name: a.employee.lastName,
+          emp_id: a.employee.empId,
+          department: "",
+          designation: "",
+        }
+      : undefined,
+    // Legacy camelCase mirrors:
+    employeeId: a.employeeId,
+    employeeName: a.employee ? `${a.employee.firstName} ${a.employee.lastName}`.trim() : undefined,
+    empId: a.employee?.empId,
+    lastDate: a.lastWorkingDate,
+    noticePeriodDays: a.noticePeriodDays,
+    noticePeriodServed: a.noticePeriodServed,
+    unpaidSalary: Number(a.unpaidSalaryMinor) || 0,
+    eosAmount: Number(a.eosbAmountMinor) || 0,
+    eosBreakdown: eosbBreakdown,
+    leaveEncashment: Number(a.leaveEncashmentMinor) || 0,
+    noticePeriodPay: Number(a.noticePeriodPayMinor) || 0,
+    loanDeduction: Number(a.loanDeductionMinor) || 0,
+    totalSettlement: Number(a.totalSettlementMinor) || 0,
+    processedDate: a.processedDate ?? undefined,
+    payrollRunId: a.payrollRunId ?? undefined,
   };
 }
 
 export function SeparationProvider({ children }: { children: ReactNode }) {
-  const { clientId } = useRole();
-  const qc = useQueryClient();
-  const KEY = ["separations", clientId];
+  const listQ = useSeparationsApi({ pageSize: 500 });
+  const createMut = useCreateSeparation();
+  const approveMut = useApproveSeparation();
 
-  const { data: separations = [], isLoading } = useQuery({
-    queryKey: KEY,
-    enabled: !!clientId,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("separations")
-        .select(`
-          *,
-          employee:employees!employee_id (
-            first_name, last_name, emp_id, department, designation
-          )
-        `)
-        .eq("client_id", clientId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return ((data ?? []) as any[]).map(withAliases);
-    },
-  });
-
-  const addSeparation = async (data: any) => {
-    const payload = toDbPayload(data);
-    const { error } = await (supabase as any)
-      .from("separations")
-      .insert({ ...payload, client_id: clientId });
-    if (error) {
-      toast({ title: "Save failed", description: error.message, variant: "destructive" });
-      throw error;
-    }
-    qc.invalidateQueries({ queryKey: KEY });
-    toast({ title: "Separation record created" });
-  };
-
-  const updateSeparation = async (id: string, patch: any) => {
-    const payload = toDbPayload(patch);
-    const { error } = await (supabase as any)
-      .from("separations")
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) {
-      toast({ title: "Update failed", description: error.message, variant: "destructive" });
-      throw error;
-    }
-    qc.invalidateQueries({ queryKey: KEY });
-    toast({ title: "Separation record updated" });
-  };
-
-  const removeSeparation = async (id: string) => {
-    const { error } = await (supabase as any)
-      .from("separations")
-      .delete()
-      .eq("id", id);
-    if (error) {
-      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-      throw error;
-    }
-    qc.invalidateQueries({ queryKey: KEY });
-    toast({ title: "Separation record deleted" });
-  };
-
-  return (
-    <SeparationContext.Provider value={{ separations, isLoading, addSeparation, updateSeparation, removeSeparation }}>
-      {children}
-    </SeparationContext.Provider>
+  const separations = useMemo<SeparationRecord[]>(
+    () => (listQ.data?.data ?? []).map(adapt),
+    [listQ.data],
   );
+
+  const value: SeparationContextValue = {
+    separations,
+    isLoading: listQ.isLoading,
+    addSeparation: async (data) => {
+      await createMut.mutateAsync({
+        employeeId: data.employee_id ?? data.employeeId,
+        lastWorkingDate: data.last_working_date ?? data.lastDate ?? data.lastWorkingDate,
+        reason: data.reason ?? null,
+        type: data.type,
+        noticePeriodDays: data.notice_period_days ?? data.noticePeriodDays ?? 0,
+        noticePeriodServed: data.notice_period_served ?? data.noticePeriodServed ?? true,
+        unpaidSalaryMinor: data.unpaid_salary ?? data.unpaidSalary ?? 0,
+        leaveEncashmentMinor: data.leave_encashment ?? data.leaveEncashment ?? 0,
+        noticePeriodPayMinor: data.notice_period_pay ?? data.noticePeriodPay ?? 0,
+        loanDeductionMinor: data.loan_deduction ?? data.loanDeduction ?? 0,
+      });
+    },
+    updateSeparation: async (id, patch) => {
+      // Phase 7 only exposes approve/process — not arbitrary edits. Approve
+      // transitions if the patch sets status=approved; ignore other fields.
+      if (patch?.status === "approved") {
+        await approveMut.mutateAsync(id);
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[SeparationContext] Arbitrary separation updates not yet exposed by the backend.",
+        );
+      }
+    },
+    removeSeparation: async () => {
+      // eslint-disable-next-line no-console
+      console.warn("[SeparationContext] removeSeparation not implemented on backend (separations are immutable post-process).");
+    },
+  };
+
+  return <SeparationContext.Provider value={value}>{children}</SeparationContext.Provider>;
 }
 
 export const useSeparations = () => useContext(SeparationContext);

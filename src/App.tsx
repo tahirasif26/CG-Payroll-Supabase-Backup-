@@ -1,14 +1,16 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useThemeInit } from "@/hooks/useThemeInit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { AuthProvider } from "@/providers/AuthProvider";
+import { onAuthEvent } from "@/api";
 import { RoleProvider, useRole } from "@/contexts/RoleContext";
 import { ClientProvider } from "@/contexts/ClientContext";
 import { SeparationProvider } from "@/contexts/SeparationContext";
@@ -30,6 +32,7 @@ import { ViewScopeProvider } from "@/contexts/ViewScopeContext";
 // Eager-loaded (auth-critical, very small)
 import AuthPage from "@/pages/AuthPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import AcceptInvitePage from "@/pages/AcceptInvitePage";
 import NotFound from "./pages/NotFound";
 
 // Lazy-loaded routes — drastically reduces initial bundle size
@@ -127,29 +130,25 @@ function RouteRedirector() {
   return <Navigate to="/" replace />;
 }
 
+/**
+ * Listens for forced-logout signals from the API client (refresh failure, etc.)
+ * and bounces the user to /auth. Lives inside BrowserRouter so it can navigate.
+ */
+function ForcedLogoutHandler() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    return onAuthEvent((event) => {
+      if (event === "unauthenticated") {
+        navigate("/auth", { replace: true });
+      }
+    });
+  }, [navigate]);
+  return null;
+}
+
 function AppRoutes() {
   const { session, loading } = useRole();
   useThemeInit();
-
-  // CRITICAL: Detect invite/recovery URLs BEFORE auth check.
-  // The URL hash (#access_token=...&type=invite|recovery) MUST land on
-  // ResetPasswordPage so the user can set a password — regardless of session state.
-  const hash = typeof window !== "undefined" ? window.location.hash : "";
-  const isInviteOrRecovery =
-    hash.includes("type=invite") ||
-    hash.includes("type=recovery") ||
-    hash.includes("access_token");
-  const isOnResetPasswordRoute =
-    typeof window !== "undefined" && window.location.pathname === "/reset-password";
-
-  if (isInviteOrRecovery || isOnResetPasswordRoute) {
-    return (
-      <Routes>
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="*" element={<ResetPasswordPage />} />
-      </Routes>
-    );
-  }
 
   if (loading) {
     return (
@@ -171,6 +170,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/accept-invite" element={<AcceptInvitePage />} />
         <Route path="*" element={<AuthPage />} />
       </Routes>
     );
@@ -389,6 +389,7 @@ function AppRoutes() {
           <Route path="/account-settings" element={<ProtectedRoute requiredRole={["super_admin","admin","hr","employee"]}><AccountSettingsPage /></ProtectedRoute>} />
 
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/accept-invite" element={<AcceptInvitePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         </RouteErrorBoundary>
@@ -405,6 +406,8 @@ const App = () => {
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AuthProvider>
+        <ForcedLogoutHandler />
         <RoleProvider>
           <ClientProvider>
           <SeparationProvider>
@@ -440,6 +443,7 @@ const App = () => {
           </SeparationProvider>
           </ClientProvider>
         </RoleProvider>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

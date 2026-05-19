@@ -8,12 +8,70 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'implicit',
+/**
+ * During the NestJS migration the unmigrated pages still call this client.
+ * When the env vars are missing we DON'T want to crash module load (which
+ * blanks the entire app); we surface a clear runtime error only when a page
+ * actually tries to use the client.
+ *
+ * Once every page has cut over to `@/api` hooks, the unmigrated callers + this
+ * file can be removed altogether.
+ */
+function makeClient() {
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY not set. ' +
+        'Pages still using direct Supabase calls will fail at request time. ' +
+        'Migrate them to @/api hooks, or restore the env vars.',
+    );
+    const message =
+      'Supabase client is unavailable: VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY missing.';
+    const reject = () => Promise.reject(new Error(message));
+    // Minimal stub satisfying the shape that callers use. Methods throw lazily.
+    return new Proxy({} as ReturnType<typeof createClient<Database>>, {
+      get(_target, prop) {
+        if (prop === 'auth') {
+          return {
+            getSession: reject,
+            signInWithPassword: reject,
+            signOut: reject,
+            onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+            updateUser: reject,
+            resetPasswordForEmail: reject,
+            setSession: reject,
+          };
+        }
+        if (prop === 'channel') {
+          return () => ({ on() { return this; }, subscribe() { return this; } });
+        }
+        if (prop === 'removeChannel') {
+          return () => {};
+        }
+        // from / rpc / storage / functions etc. — return a thenable-ish stub.
+        return () =>
+          new Proxy(
+            {},
+            {
+              get(_, method) {
+                if (method === 'then') return undefined; // not thenable
+                return () =>
+                  Promise.resolve({ data: null, error: new Error(message) });
+              },
+            },
+          );
+      },
+    });
   }
-});
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'implicit',
+    },
+  });
+}
+
+export const supabase = makeClient();

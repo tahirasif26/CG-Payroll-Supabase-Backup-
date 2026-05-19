@@ -1,6 +1,10 @@
 import { createContext, useContext } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import type { AppRole, Profile } from "@/hooks/useAuth";
+import type {
+  AppRole,
+  Profile,
+  SessionLike,
+  UserLike,
+} from "@/hooks/useAuth";
 
 export type LegacyRole = "employer" | "employee";
 export type RoleValue = AppRole | LegacyRole;
@@ -20,9 +24,9 @@ export interface RoleContextType {
   customRoleName: string | null;
   hasFeature: (key: string) => boolean;
   hasPeopleFeature: (key: string) => boolean;
-  user: User | null;
+  user: UserLike | null;
   profile: Profile | null;
-  session: Session | null;
+  session: SessionLike | null;
   loading: boolean;
   signOut: () => Promise<void>;
   currentEmployeeId: string;

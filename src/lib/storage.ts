@@ -1,58 +1,38 @@
-import { supabase } from "@/integrations/supabase/client";
+/**
+ * Frontend storage helper. Stubbed during NestJS migration — real uploads
+ * will route through the NestJS Storage module in a follow-up.
+ */
 
-/** Public buckets: getPublicUrl works directly. */
-const PUBLIC_BUCKETS = new Set(["avatars", "client-logos"]);
+export type StorageBucket = "avatars" | "documents" | "receipts" | "payslips" | "employee-documents";
 
-export interface UploadResult {
-  /** Storage object path (relative to bucket). Save this to DB. */
-  path: string;
-  /** Public URL (only meaningful for public buckets). For private, use getSignedUrl. */
-  url: string | null;
-  error: Error | null;
+export function fileExt(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
+}
+
+export function makeFilePath(parts: Array<string | undefined | null>, fileName: string): string {
+  const safe = parts.filter(Boolean).map((p) => String(p).replace(/[^a-zA-Z0-9._-]/g, "_"));
+  return `${safe.join("/")}/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 }
 
 export async function uploadFile(
-  bucket: string,
-  path: string,
-  file: File | Blob,
-  options?: { upsert?: boolean; contentType?: string }
-): Promise<UploadResult> {
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    upsert: options?.upsert ?? true,
-    contentType: options?.contentType ?? (file instanceof File ? file.type : undefined),
-    cacheControl: "3600",
-  });
-  if (error) return { path, url: null, error };
-
-  if (PUBLIC_BUCKETS.has(bucket)) {
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    return { path, url: data.publicUrl, error: null };
-  }
-  return { path, url: null, error: null };
+  _bucket: StorageBucket,
+  _path: string,
+  _file: File | Blob,
+): Promise<{ url: string }> {
+  console.warn("[lib/storage] uploadFile not yet wired to NestJS storage endpoint.");
+  return { url: "" };
 }
 
-export async function getSignedUrl(
-  bucket: string,
-  path: string,
-  expiresIn = 3600
-): Promise<string | null> {
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn);
-  return error ? null : data.signedUrl;
+export async function deleteFile(_bucket: StorageBucket, _path: string): Promise<void> {
+  console.warn("[lib/storage] deleteFile not yet wired to NestJS storage endpoint.");
 }
 
-export async function deleteFile(bucket: string, path: string): Promise<boolean> {
-  const { error } = await supabase.storage.from(bucket).remove([path]);
-  return !error;
+export async function getSignedUrl(_bucket: StorageBucket, _path: string): Promise<string> {
+  console.warn("[lib/storage] getSignedUrl not yet wired.");
+  return "";
 }
 
-/** Build a path: parts joined by "/", filtering empties. */
-export function makeFilePath(...parts: (string | null | undefined)[]): string {
-  return parts.filter(Boolean).join("/");
-}
-
-/** Best-effort extension from a File or filename. */
-export function fileExt(file: File | string): string {
-  const name = typeof file === "string" ? file : file.name;
-  const idx = name.lastIndexOf(".");
-  return idx >= 0 ? name.slice(idx + 1).toLowerCase() : "bin";
+export async function removeFile(bucket: StorageBucket, path: string): Promise<void> {
+  return deleteFile(bucket, path);
 }

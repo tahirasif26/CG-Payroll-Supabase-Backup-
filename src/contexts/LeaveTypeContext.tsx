@@ -1,9 +1,24 @@
-import React, { createContext, useContext, ReactNode, useCallback, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useModuleEnabled } from "@/hooks/useModuleEnabled";
+import { createContext, useContext, ReactNode, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useLeaveTypes as useLeaveTypesApi,
+  useCreateLeaveType,
+  useUpdateLeaveType,
+  useDeleteLeaveType,
+  useLeaveBalances,
+  useUpsertLeaveBalance,
+  leaveKeys,
+  type LeaveType as ApiLeaveType,
+  type LeaveBalance as ApiLeaveBalance,
+} from "@/api";
 import { PayrollSetup } from "@/types/payrollSetup";
+
+/**
+ * Migrated to NestJS via @/api/leave. Core leave types + balances flow
+ * through the new backend; legacy helpers (initializeBalances,
+ * runYearEndCarryforward, allocations) operate on the React Query cache
+ * client-side until equivalent server endpoints land.
+ */
 
 export interface LeaveType {
   id: string;
@@ -23,7 +38,7 @@ export interface EmployeeLeaveAllocation {
 export interface EmployeeLeaveBalance {
   employeeId: string;
   leaveTypeId: string;
-  year: string; // kept as string for backward compat (e.g. "2025-2026" or "2025")
+  year: string;
   entitled: number;
   used: number;
   carriedForward: number;
@@ -39,376 +54,208 @@ interface LeaveTypeContextType {
   setAllocation: (employeeId: string, leaveTypeId: string, days: number) => void;
   getAllocationsForEmployee: (employeeId: string) => EmployeeLeaveAllocation[];
   balances: EmployeeLeaveBalance[];
-  getBalanceForEmployee: (employeeId: string, leaveTypeId: string, year: string) => EmployeeLeaveBalance | undefined;
+  getBalanceForEmployee: (
+    employeeId: string,
+    leaveTypeId: string,
+    year: string,
+  ) => EmployeeLeaveBalance | undefined;
   getBalancesForYear: (employeeId: string, year: string) => EmployeeLeaveBalance[];
-  initializeBalances: (employeeIds: string[], year: string, getSetupForEmployee?: (empId: string) => PayrollSetup | undefined) => void;
-  recordLeaveUsage: (employeeId: string, leaveTypeId: string, year: string, days: number) => void;
+  initializeBalances: (
+    employeeIds: string[],
+    year: string,
+    getSetupForEmployee?: (empId: string) => PayrollSetup | undefined,
+  ) => void;
+  recordLeaveUsage: (
+    employeeId: string,
+    leaveTypeId: string,
+    year: string,
+    days: number,
+  ) => void;
   runYearEndCarryforward: (
     fromYear: string,
     toYear: string,
     employeeIds: string[],
-    customCarryforward?: { employeeId: string; leaveTypeId: string; carryforward: number }[]
-  ) => { employeeId: string; leaveTypeId: string; leaveTypeName: string; remaining: number; carryforward: number }[];
+    customCarryforward?: { employeeId: string; leaveTypeId: string; carryforward: number }[],
+  ) => {
+    employeeId: string;
+    leaveTypeId: string;
+    leaveTypeName: string;
+    remaining: number;
+    carryforward: number;
+  }[];
   completedRollovers: string[];
   isLoading: boolean;
 }
 
 const LeaveTypeContext = createContext<LeaveTypeContextType | undefined>(undefined);
 
-// Convert "2025-2026" or "2025" → 2025 (use start year as DB integer)
 function yearToInt(year: string): number {
   const first = year.split("-")[0];
   const n = parseInt(first, 10);
-  return isNaN(n) ? new Date().getFullYear() : n;
+  return Number.isNaN(n) ? new Date().getFullYear() : n;
+}
+
+function adaptType(t: ApiLeaveType): LeaveType {
+  return {
+    id: t.id,
+    name: t.name,
+    defaultDays: Number(t.daysPerYear) || 0,
+    isActive: t.isActive,
+    isPaid: t.isPaid,
+    maxCarryForwardDays: Number(t.maxCarryforward) || 0,
+  };
+}
+
+function adaptBalance(b: ApiLeaveBalance, fallbackYear: number): EmployeeLeaveBalance {
+  const allocated = Number(b.allocated) || 0;
+  const used = Number(b.used) || 0;
+  const carriedForward = Number(b.carriedForward) || 0;
+  return {
+    employeeId: b.employeeId,
+    leaveTypeId: b.leaveTypeId,
+    year: String(b.year ?? fallbackYear),
+    entitled: allocated,
+    used,
+    carriedForward,
+    remaining: allocated + carriedForward - used,
+  };
 }
 
 export function LeaveTypeProvider({ children }: { children: ReactNode }) {
-  const { clientId } = useAuth();
-  const employeesEnabled = useModuleEnabled("employees");
-  const qEnabled = !!clientId && employeesEnabled;
-  const STALE = 5 * 60 * 1000;
   const qc = useQueryClient();
+  const typesQ = useLeaveTypesApi();
+  const balancesQ = useLeaveBalances();
+  const createMut = useCreateLeaveType();
+  const updateMut = useUpdateLeaveType();
+  const deleteMut = useDeleteLeaveType();
+  const upsertBalanceMut = useUpsertLeaveBalance();
 
-  // ---------------- Leave Types ----------------
-  const { data: rawTypes = [], isLoading: typesLoading } = useQuery({
-    queryKey: ["leave_types", clientId],
-    enabled: qEnabled,
-    staleTime: STALE,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("leave_types")
-        .select("*")
-        .eq("client_id", clientId!)
-        .order("name");
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const leaveTypes: LeaveType[] = useMemo(
-    () =>
-      rawTypes.map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        defaultDays: Number(r.days_per_year ?? 0),
-        isActive: !!r.is_active,
-        isPaid: !!r.is_paid,
-        maxCarryForwardDays: Number(r.max_carryforward ?? 0),
-      })),
-    [rawTypes]
+  const leaveTypes = useMemo<LeaveType[]>(
+    () => (typesQ.data ?? []).map(adaptType),
+    [typesQ.data],
   );
+  const balances = useMemo<EmployeeLeaveBalance[]>(() => {
+    const currentYear = new Date().getFullYear();
+    return (balancesQ.data ?? []).map((b) => adaptBalance(b, currentYear));
+  }, [balancesQ.data]);
 
-  const addTypeMut = useMutation({
-    mutationFn: async (lt: Omit<LeaveType, "id">) => {
-      if (!clientId) throw new Error("No client");
-      const { error } = await supabase.from("leave_types").insert({
-        client_id: clientId,
+  const value: LeaveTypeContextType = {
+    leaveTypes,
+    addLeaveType: (lt) => {
+      createMut.mutate({
         name: lt.name,
-        days_per_year: lt.defaultDays,
-        is_active: lt.isActive,
-        is_paid: lt.isPaid,
-        max_carryforward: lt.maxCarryForwardDays,
+        code: lt.name.toUpperCase().replace(/\s+/g, "_").slice(0, 40),
+        daysPerYear: lt.defaultDays,
+        maxCarryforward: lt.maxCarryForwardDays,
+        isPaid: lt.isPaid,
+        isActive: lt.isActive,
       });
-      if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave_types"] }),
-  });
-
-  const updateTypeMut = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<LeaveType> }) => {
-      const patch: any = {};
-      if (updates.name !== undefined) patch.name = updates.name;
-      if (updates.defaultDays !== undefined) patch.days_per_year = updates.defaultDays;
-      if (updates.isActive !== undefined) patch.is_active = updates.isActive;
-      if (updates.isPaid !== undefined) patch.is_paid = updates.isPaid;
-      if (updates.maxCarryForwardDays !== undefined) patch.max_carryforward = updates.maxCarryForwardDays;
-      const { error } = await supabase.from("leave_types").update(patch).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave_types"] }),
-  });
-
-  const deleteTypeMut = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("leave_types").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["leave_types"] });
-      qc.invalidateQueries({ queryKey: ["leave_allocations"] });
-      qc.invalidateQueries({ queryKey: ["leave_balances"] });
-    },
-  });
-
-  // ---------------- Allocations ----------------
-  const { data: rawAllocations = [] } = useQuery({
-    queryKey: ["leave_allocations", clientId],
-    enabled: qEnabled,
-    staleTime: STALE,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("leave_allocations")
-        .select("*")
-        .eq("client_id", clientId!);
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const allocations: EmployeeLeaveAllocation[] = useMemo(
-    () =>
-      (rawAllocations as any[]).map((a) => ({
-        employeeId: a.employee_id,
-        leaveTypeId: a.leave_type_id,
-        allocatedDays: Number(a.allocated_days ?? 0),
-      })),
-    [rawAllocations]
-  );
-
-  const setAllocationMut = useMutation({
-    mutationFn: async ({ employeeId, leaveTypeId, days }: { employeeId: string; leaveTypeId: string; days: number }) => {
-      if (!clientId) throw new Error("No client");
-      const { error } = await (supabase as any).from("leave_allocations").upsert(
-        {
-          client_id: clientId,
-          employee_id: employeeId,
-          leave_type_id: leaveTypeId,
-          allocated_days: days,
+    updateLeaveType: (id, updates) => {
+      updateMut.mutate({
+        id,
+        body: {
+          ...(updates.name !== undefined ? { name: updates.name } : {}),
+          ...(updates.defaultDays !== undefined ? { daysPerYear: updates.defaultDays } : {}),
+          ...(updates.maxCarryForwardDays !== undefined
+            ? { maxCarryforward: updates.maxCarryForwardDays }
+            : {}),
+          ...(updates.isPaid !== undefined ? { isPaid: updates.isPaid } : {}),
+          ...(updates.isActive !== undefined ? { isActive: updates.isActive } : {}),
         },
-        { onConflict: "employee_id,leave_type_id" }
-      );
-      if (error) throw error;
+      });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave_allocations"] }),
-  });
+    deleteLeaveType: (id) => deleteMut.mutate(id),
 
-  // ---------------- Balances ----------------
-  const { data: rawBalances = [] } = useQuery({
-    queryKey: ["leave_balances", clientId],
-    enabled: qEnabled,
-    staleTime: STALE,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("leave_balances")
-        .select("*")
-        .eq("client_id", clientId!);
-      if (error) throw error;
-      return data || [];
+    // Allocations are folded into balances on the new backend — keep an
+    // empty array for shape compat and route setAllocation to balance.allocated.
+    allocations: [],
+    setAllocation: (employeeId, leaveTypeId, days) => {
+      upsertBalanceMut.mutate({
+        employeeId,
+        leaveTypeId,
+        year: new Date().getFullYear(),
+        allocated: days,
+      });
     },
-  });
+    getAllocationsForEmployee: () => [],
 
-  const balances: EmployeeLeaveBalance[] = useMemo(
-    () =>
-      (rawBalances as any[]).map((b) => {
-        const entitled = Number(b.allocated ?? 0);
-        const used = Number(b.used ?? 0);
-        const carriedForward = Number(b.carried_forward ?? 0);
-        return {
-          employeeId: b.employee_id,
-          leaveTypeId: b.leave_type_id,
-          year: String(b.year),
-          entitled,
-          used,
-          carriedForward,
-          remaining: entitled + carriedForward - used,
-        };
-      }),
-    [rawBalances]
-  );
+    balances,
+    getBalanceForEmployee: (employeeId, leaveTypeId, year) =>
+      balances.find(
+        (b) =>
+          b.employeeId === employeeId &&
+          b.leaveTypeId === leaveTypeId &&
+          b.year === year,
+      ),
+    getBalancesForYear: (employeeId, year) =>
+      balances.filter((b) => b.employeeId === employeeId && b.year === year),
 
-  const getEntitledDays = useCallback(
-    (employeeId: string, leaveTypeId: string, _setup?: PayrollSetup) => {
-      // 1. Employee override
-      const alloc = allocations.find((a) => a.employeeId === employeeId && a.leaveTypeId === leaveTypeId);
-      if (alloc) return alloc.allocatedDays;
-      // 2. Global default
-      const lt = leaveTypes.find((l) => l.id === leaveTypeId);
-      return lt?.defaultDays ?? 0;
-    },
-    [allocations, leaveTypes]
-  );
-
-  const initializeBalancesMut = useMutation({
-    mutationFn: async ({
-      employeeIds,
-      year,
-      getSetupForEmployee,
-    }: {
-      employeeIds: string[];
-      year: string;
-      getSetupForEmployee?: (id: string) => PayrollSetup | undefined;
-    }) => {
-      if (!clientId) return;
+    initializeBalances: (employeeIds, year) => {
       const yearInt = yearToInt(year);
-      const rows: any[] = [];
       for (const empId of employeeIds) {
-        const setup = getSetupForEmployee?.(empId);
-        const applicable = leaveTypes.filter((l) => l.isActive);
-        for (const lt of applicable) {
-          const exists = balances.find(
-            (b) => b.employeeId === empId && b.leaveTypeId === lt.id && b.year === String(yearInt)
-          );
-          if (!exists) {
-            rows.push({
-              client_id: clientId,
-              employee_id: empId,
-              leave_type_id: lt.id,
-              year: yearInt,
-              allocated: getEntitledDays(empId, lt.id, setup),
-              used: 0,
-              carried_forward: 0,
-            });
-          }
+        for (const t of leaveTypes) {
+          upsertBalanceMut.mutate({
+            employeeId: empId,
+            leaveTypeId: t.id,
+            year: yearInt,
+            allocated: t.defaultDays,
+          });
         }
       }
-      if (rows.length) {
-        const { error } = await supabase.from("leave_balances").upsert(rows, {
-          onConflict: "employee_id,leave_type_id,year",
-          ignoreDuplicates: true,
-        });
-        if (error) throw error;
-      }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave_balances"] }),
-  });
-
-  const initializeBalances = useCallback(
-    (employeeIds: string[], year: string, getSetupForEmployee?: (id: string) => PayrollSetup | undefined) => {
-      initializeBalancesMut.mutate({ employeeIds, year, getSetupForEmployee });
-    },
-    [initializeBalancesMut]
-  );
-
-  const recordUsageMut = useMutation({
-    mutationFn: async ({
-      employeeId,
-      leaveTypeId,
-      year,
-      days,
-    }: {
-      employeeId: string;
-      leaveTypeId: string;
-      year: string;
-      days: number;
-    }) => {
+    recordLeaveUsage: (employeeId, leaveTypeId, year, days) => {
       const yearInt = yearToInt(year);
-      const existing = (rawBalances as any[]).find(
-        (b) => b.employee_id === employeeId && b.leave_type_id === leaveTypeId && b.year === yearInt
-      );
-      if (!existing) return;
-      const { error } = await supabase
-        .from("leave_balances")
-        .update({ used: Number(existing.used ?? 0) + days })
-        .eq("id", existing.id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave_balances"] }),
-  });
-
-  const carryforwardMut = useMutation({
-    mutationFn: async ({
-      preview,
-      toYear,
-    }: {
-      preview: { employeeId: string; leaveTypeId: string; carryforward: number }[];
-      toYear: string;
-    }) => {
-      if (!clientId) return;
-      const yearInt = yearToInt(toYear);
-      const rows = preview.map((p) => ({
-        client_id: clientId,
-        employee_id: p.employeeId,
-        leave_type_id: p.leaveTypeId,
+      upsertBalanceMut.mutate({
+        employeeId,
+        leaveTypeId,
         year: yearInt,
-        allocated: getEntitledDays(p.employeeId, p.leaveTypeId),
-        used: 0,
-        carried_forward: p.carryforward,
-      }));
-      if (rows.length) {
-        const { error } = await supabase.from("leave_balances").upsert(rows, {
-          onConflict: "employee_id,leave_type_id,year",
-        });
-        if (error) throw error;
-      }
+        used: days,
+      });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave_balances"] }),
-  });
-
-  return (
-    <LeaveTypeContext.Provider
-      value={{
-        leaveTypes,
-        addLeaveType: (lt) => addTypeMut.mutate(lt),
-        updateLeaveType: (id, updates) => updateTypeMut.mutate({ id, updates }),
-        deleteLeaveType: (id) => deleteTypeMut.mutate(id),
-        allocations,
-        setAllocation: (employeeId, leaveTypeId, days) =>
-          setAllocationMut.mutate({ employeeId, leaveTypeId, days }),
-        getAllocationsForEmployee: (employeeId) =>
-          allocations.filter((a) => a.employeeId === employeeId),
-        balances,
-        getBalanceForEmployee: (employeeId, leaveTypeId, year) =>
-          balances.find(
-            (b) =>
-              b.employeeId === employeeId &&
-              b.leaveTypeId === leaveTypeId &&
-              b.year === String(yearToInt(year))
-          ),
-        getBalancesForYear: (employeeId, year) =>
-          balances.filter((b) => b.employeeId === employeeId && b.year === String(yearToInt(year))),
-        initializeBalances,
-        recordLeaveUsage: (employeeId, leaveTypeId, year, days) =>
-          recordUsageMut.mutate({ employeeId, leaveTypeId, year, days }),
-        runYearEndCarryforward: (fromYear, toYear, employeeIds, customCarryforward) => {
-          const fromYearStr = String(yearToInt(fromYear));
-          const preview: {
-            employeeId: string;
-            leaveTypeId: string;
-            leaveTypeName: string;
-            remaining: number;
-            carryforward: number;
-          }[] = [];
-          for (const empId of employeeIds) {
-            for (const lt of leaveTypes.filter((l) => l.isActive)) {
-              const balance = balances.find(
-                (b) => b.employeeId === empId && b.leaveTypeId === lt.id && b.year === fromYearStr
-              );
-              const remaining = balance ? balance.remaining : getEntitledDays(empId, lt.id);
-              let carryforward = 0;
-              const custom = customCarryforward?.find(
-                (c) => c.employeeId === empId && c.leaveTypeId === lt.id
-              );
-              if (custom !== undefined) {
-                carryforward = custom.carryforward;
-              } else if (remaining > 0 && lt.maxCarryForwardDays > 0) {
-                carryforward = Math.min(remaining, lt.maxCarryForwardDays);
-              }
-              preview.push({
-                employeeId: empId,
-                leaveTypeId: lt.id,
-                leaveTypeName: lt.name,
-                remaining,
-                carryforward,
-              });
-            }
-          }
-          carryforwardMut.mutate({
-            preview: preview.map((p) => ({
-              employeeId: p.employeeId,
-              leaveTypeId: p.leaveTypeId,
-              carryforward: p.carryforward,
-            })),
-            toYear,
+    runYearEndCarryforward: (fromYear, toYear, employeeIds, customCarryforward) => {
+      const toInt = yearToInt(toYear);
+      const map = new Map(
+        (customCarryforward ?? []).map((c) => [`${c.employeeId}:${c.leaveTypeId}`, c.carryforward]),
+      );
+      const result: ReturnType<LeaveTypeContextType["runYearEndCarryforward"]> = [];
+      for (const empId of employeeIds) {
+        const yearBalances = balances.filter(
+          (b) => b.employeeId === empId && b.year === fromYear,
+        );
+        for (const b of yearBalances) {
+          const t = leaveTypes.find((lt) => lt.id === b.leaveTypeId);
+          if (!t) continue;
+          const remaining = b.remaining;
+          const cap = t.maxCarryForwardDays;
+          const customKey = `${empId}:${b.leaveTypeId}`;
+          const carryforward = map.has(customKey)
+            ? (map.get(customKey) ?? 0)
+            : Math.min(remaining, cap);
+          upsertBalanceMut.mutate({
+            employeeId: empId,
+            leaveTypeId: b.leaveTypeId,
+            year: toInt,
+            allocated: t.defaultDays,
+            carriedForward: carryforward,
           });
-          return preview;
-        },
-        completedRollovers: [],
-        isLoading: typesLoading,
-      }}
-    >
-      {children}
-    </LeaveTypeContext.Provider>
-  );
+          result.push({
+            employeeId: empId,
+            leaveTypeId: b.leaveTypeId,
+            leaveTypeName: t.name,
+            remaining,
+            carryforward,
+          });
+        }
+      }
+      qc.invalidateQueries({ queryKey: leaveKeys.all });
+      return result;
+    },
+    completedRollovers: [],
+    isLoading: typesQ.isLoading || balancesQ.isLoading,
+  };
+
+  return <LeaveTypeContext.Provider value={value}>{children}</LeaveTypeContext.Provider>;
 }
 
 export function useLeaveTypes() {

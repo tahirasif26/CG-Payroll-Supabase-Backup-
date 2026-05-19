@@ -1,15 +1,21 @@
-// Advance management context — Supabase-backed.
-// Preserves the legacy in-memory API (advances/addAdvance/approveAdvance/...) so
-// existing consumers (AdvancesPage, OutstandingAdvancesPage, PayrollPage, PayslipsPage,
-// ExpensesPage) keep working unchanged.
-import React, { createContext, useContext, useCallback, useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/contexts/RoleContext";
-import { useEmployees } from "@/contexts/EmployeeContext";
-import { useModuleEnabled } from "@/hooks/useModuleEnabled";
-import { notifyClientAdmins, notifyUser, getEmployeeUserId } from "@/lib/notify";
-import { startWorkflow } from "@/lib/workflow";
+import { createContext, useContext, useMemo, ReactNode, useState } from "react";
+import {
+  useAdvances as useAdvancesApi,
+  useCreateAdvance,
+  useDecideAdvance,
+  useSettleAdvance,
+  type Advance as ApiAdvance,
+} from "@/api";
+
+/**
+ * Migrated to NestJS via @/api/advances. Mappings:
+ *  - status: backend has more states (draft/submitted/approved/rejected/settled/cancelled);
+ *    UI legacy shape only has pending/approved/rejected → fold draft+submitted into "pending".
+ *  - amounts: backend returns BigInt strings of minor units; convert to number for display
+ *    (safe for typical advance amounts).
+ *  - reminders: per-advance reminder history isn't ported (Phase 8 reminders module handles
+ *    notifications globally). Stub `reminderHistory: []` and no-op `sendReminder`.
+ */
 
 export interface ReminderEntry {
   sentAt: string;
@@ -53,225 +59,86 @@ interface AdvanceContextType {
 
 const AdvanceContext = createContext<AdvanceContextType | undefined>(undefined);
 
-type DbAdvance = {
-  id: string;
-  client_id: string;
-  employee_id: string;
-  advance_name: string | null;
-  purpose: string | null;
-  amount: number;
-  amount_used: number;
-  currency: string;
-  status: string;
-  request_date: string;
-  expected_spend_date: string | null;
-  settlement_due_date: string | null;
-  attachments: unknown;
-  notes: string | null;
-  payroll_run_id: string | null;
-  last_reminder_sent: string | null;
-  reminder_history: unknown;
-};
-
-function mapRow(row: DbAdvance, employeeName: string): Advance {
-  const attachments = Array.isArray(row.attachments) ? (row.attachments as string[]) : [];
-  const reminderHistory = Array.isArray(row.reminder_history) ? (row.reminder_history as ReminderEntry[]) : [];
+function adapt(a: ApiAdvance): Advance {
+  const legacyStatus: Advance["status"] =
+    a.status === "approved" || a.status === "settled"
+      ? "approved"
+      : a.status === "rejected" || a.status === "cancelled"
+        ? "rejected"
+        : "pending";
   return {
-    id: row.id,
-    advanceName: row.advance_name ?? "",
-    employeeId: row.employee_id,
-    employeeName,
-    purpose: row.purpose ?? "",
-    amount: Number(row.amount ?? 0),
-    amountUsed: Number(row.amount_used ?? 0),
-    currency: row.currency ?? "SAR",
-    status: (row.status as Advance["status"]) ?? "pending",
-    requestDate: row.request_date,
-    expectedSpendDate: row.expected_spend_date ?? "",
-    settlementDueDate: row.settlement_due_date ?? "",
-    attachments,
-    notes: row.notes ?? "",
-    payrollRunId: row.payroll_run_id ?? undefined,
-    lastReminderSent: row.last_reminder_sent ?? undefined,
-    reminderHistory,
+    id: a.id,
+    advanceName: a.name,
+    employeeId: a.employeeId,
+    employeeName: a.employee
+      ? `${a.employee.firstName} ${a.employee.lastName}`.trim()
+      : "",
+    purpose: a.purpose ?? "",
+    amount: Number(a.amount) || 0,
+    amountUsed: Number(a.amountUsed) || 0,
+    currency: a.currency,
+    status: legacyStatus,
+    requestDate: a.createdAt,
+    expectedSpendDate: a.expectedSpendDate ?? "",
+    settlementDueDate: a.settlementDueDate ?? "",
+    attachments: [],
+    notes: a.notes ?? "",
+    reminderHistory: [],
   };
 }
 
-export function AdvanceProvider({ children }: { children: React.ReactNode }) {
-  const { clientId, isSuperAdmin } = useRole();
-  const { employees } = useEmployees();
-  const expensesEnabled = useModuleEnabled("expenses");
-  const qc = useQueryClient();
+export function AdvanceProvider({ children }: { children: ReactNode }) {
+  const listQ = useAdvancesApi({ pageSize: 500 });
+  const createMut = useCreateAdvance();
+  const decideMut = useDecideAdvance();
+  const settleMut = useSettleAdvance();
   const [autoReminderInterval, setAutoReminderInterval] = useState<AutoReminderInterval>("off");
 
-  const { data: rows = [] } = useQuery({
-    queryKey: ["advances_ctx", clientId ?? "super"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("advances")
-        .select("*")
-        .order("request_date", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as DbAdvance[];
-    },
-    enabled: (!!clientId || isSuperAdmin) && expensesEnabled,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const advances = useMemo<Advance[]>(() => {
-    return rows.map((r) => {
-      const emp = employees.find((e) => e.id === r.employee_id);
-      const name = emp ? `${emp.firstName} ${emp.lastName}` : "Unknown Employee";
-      return mapRow(r, name);
-    });
-  }, [rows, employees]);
-
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["advances_ctx"] });
-
-  const insertMut = useMutation({
-    mutationFn: async (adv: Advance) => {
-      if (!clientId) throw new Error("No client context");
-      const payload = {
-        client_id: clientId,
-        employee_id: adv.employeeId,
-        advance_name: adv.advanceName,
-        purpose: adv.purpose,
-        amount: Math.round(adv.amount),
-        amount_used: Math.round(adv.amountUsed ?? 0),
-        currency: adv.currency,
-        status: adv.status,
-        request_date: adv.requestDate,
-        expected_spend_date: adv.expectedSpendDate || null,
-        settlement_due_date: adv.settlementDueDate || null,
-        attachments: adv.attachments ?? [],
-        notes: adv.notes ?? "",
-        reminder_history: adv.reminderHistory ?? [],
-      };
-      const { data, error } = await (supabase as any).from("advances").insert(payload).select().single();
-      if (error) throw error;
-      return { row: data, adv };
-    },
-    onSuccess: async ({ row, adv }) => {
-      invalidate();
-      if (!clientId || !row?.id) return;
-      await startWorkflow({
-        module: "advance",
-        entityId: row.id,
-        clientId,
-        requesterEmployeeId: adv.employeeId,
-        value: Math.round(Number(adv.amount ?? 0) * 100),
-        valueUnit: "halalas",
-        category: "advances",
-        notification: {
-          title: "New advance request",
-          body: `${adv.employeeName} requested ${adv.currency} ${adv.amount.toLocaleString()}${adv.purpose ? ` — ${adv.purpose}` : ""}`,
-          category: "advance",
-          severity: "info",
-          entityType: "advance",
-          entityId: row.id,
-          actionUrl: "/advances",
-        },
-      });
-    },
-  });
-
-  const updateMut = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
-      const { error } = await (supabase as any).from("advances").update(patch).eq("id", id);
-      if (error) throw error;
-      return { id, patch };
-    },
-    onSuccess: async ({ id, patch }) => {
-      invalidate();
-      const status = patch?.status as string | undefined;
-      if (status === "approved" || status === "rejected") {
-        const current = rows.find((r) => r.id === id);
-        if (current) {
-          const recipient = await getEmployeeUserId(current.employee_id);
-          if (recipient) {
-            await notifyUser(recipient, {
-              title: status === "approved" ? "Advance approved" : "Advance rejected",
-              body: status === "approved"
-                ? `Your advance of ${current.currency} ${(Number(current.amount) / 1).toLocaleString()} has been approved.`
-                : `Your advance request was rejected.`,
-              category: "advance",
-              severity: status === "approved" ? "success" : "warning",
-              entityType: "advance",
-              entityId: id,
-              actionUrl: "/advances",
-              clientId,
-            });
-          }
-        }
-      }
-    },
-  });
-
-  const addAdvance = useCallback((adv: Advance) => {
-    insertMut.mutate(adv);
-  }, [insertMut]);
-
-  const approveAdvance = useCallback((id: string, payrollRunId?: string) => {
-    updateMut.mutate({ id, patch: { status: "approved", payroll_run_id: payrollRunId ?? null } });
-  }, [updateMut]);
-
-  const rejectAdvance = useCallback((id: string) => {
-    updateMut.mutate({ id, patch: { status: "rejected" } });
-  }, [updateMut]);
-
-  const useAdvanceAmount = useCallback((id: string, amount: number) => {
-    const current = rows.find((r) => r.id === id);
-    if (!current) return;
-    const newUsed = Math.round(Number(current.amount_used ?? 0) + amount);
-    updateMut.mutate({ id, patch: { amount_used: newUsed } });
-  }, [rows, updateMut]);
-
-  const getEmployeeAdvances = useCallback((employeeId: string) => {
-    return advances.filter(
-      (a) => a.employeeId === employeeId && a.status === "approved" && a.amount - a.amountUsed > 0
-    );
-  }, [advances]);
-
-  const sendReminder = useCallback((ids: string[]) => {
-    const now = new Date().toISOString();
-    const entry: ReminderEntry = { sentAt: now, sentBy: "Admin", type: "manual" };
-    ids.forEach((id) => {
-      const current = rows.find((r) => r.id === id);
-      if (!current) return;
-      const history = Array.isArray(current.reminder_history)
-        ? (current.reminder_history as ReminderEntry[])
-        : [];
-      updateMut.mutate({
-        id,
-        patch: {
-          last_reminder_sent: now,
-          reminder_history: [...history, entry],
-        },
-      });
-    });
-  }, [rows, updateMut]);
-
-  return (
-    <AdvanceContext.Provider value={{
-      advances,
-      addAdvance,
-      approveAdvance,
-      rejectAdvance,
-      useAdvanceAmount,
-      getEmployeeAdvances,
-      sendReminder,
-      autoReminderInterval,
-      setAutoReminderInterval,
-    }}>
-      {children}
-    </AdvanceContext.Provider>
+  const advances = useMemo<Advance[]>(
+    () => (listQ.data?.data ?? []).map(adapt),
+    [listQ.data],
   );
+
+  const value: AdvanceContextType = {
+    advances,
+    addAdvance: (adv) => {
+      createMut.mutate({
+        employeeId: adv.employeeId,
+        name: adv.advanceName || `Advance ${new Date().toISOString().slice(0, 10)}`,
+        purpose: adv.purpose || null,
+        amount: adv.amount,
+        currency: adv.currency,
+        expectedSpendDate: adv.expectedSpendDate || null,
+        settlementDueDate: adv.settlementDueDate || null,
+        notes: adv.notes || null,
+        status: "submitted",
+      });
+    },
+    approveAdvance: (id) => {
+      decideMut.mutate({ id, body: { decision: "approve" } });
+    },
+    rejectAdvance: (id) => {
+      decideMut.mutate({ id, body: { decision: "reject", rejectionReason: "Rejected" } });
+    },
+    useAdvanceAmount: (id, amount) => {
+      settleMut.mutate({ id, body: { amountUsed: amount } });
+    },
+    getEmployeeAdvances: (employeeId) => advances.filter((a) => a.employeeId === employeeId),
+    sendReminder: () => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[AdvanceContext] sendReminder is not yet wired — use the Phase 8 Reminders module.",
+      );
+    },
+    autoReminderInterval,
+    setAutoReminderInterval,
+  };
+
+  return <AdvanceContext.Provider value={value}>{children}</AdvanceContext.Provider>;
 }
 
 export function useAdvances() {
   const ctx = useContext(AdvanceContext);
-  if (ctx === undefined) {
-    throw new Error("useAdvances must be used within AdvanceProvider");
-  }
+  if (!ctx) throw new Error("useAdvances must be used within AdvanceProvider");
   return ctx;
 }

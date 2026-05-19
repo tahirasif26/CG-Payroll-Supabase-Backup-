@@ -1,0 +1,1577 @@
+// cg-payroll API — Prisma schema
+//
+// Phase 0 scope: foundational models for multi-tenancy, auth, RBAC, employees,
+// feature flags, and audit logging. Remaining ~40 tables (payroll, leave, assets,
+// expenses, performance, approvals, etc.) will be added per-module in later phases
+// to keep migrations reviewable.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum AppRole {
+  super_admin
+  admin
+  hr
+  employee
+}
+
+enum ClientStatus {
+  active
+  suspended
+  trial
+}
+
+enum SubscriptionPlan {
+  starter
+  pro
+  enterprise
+}
+
+enum EmployeeStatus {
+  active
+  on_leave
+  separated
+  pending
+}
+
+enum UserStatus {
+  pending
+  active
+  disabled
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  expired
+  revoked
+}
+
+enum NotificationSeverity {
+  info
+  warning
+  urgent
+}
+
+enum LeaveAccrualType {
+  none
+  monthly
+  yearly
+}
+
+enum ApprovalModule {
+  leave
+  expense
+  advance
+  loan
+  asset
+  payroll
+}
+
+enum ApprovalType {
+  any_one
+  all_must
+  majority
+}
+
+enum ApprovalMode {
+  sequential
+  parallel
+}
+
+enum RequestApprovalStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+enum AssignmentStatus {
+  pending
+  acted
+  skipped
+}
+
+enum ApprovalHistoryAction {
+  approve
+  reject
+  comment
+  delegate
+  cancel
+  system_advance
+}
+
+enum LeaveRequestStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+enum PayFrequency {
+  monthly
+  biweekly
+  weekly
+}
+
+enum PayrollSetupStatus {
+  draft
+  active
+  archived
+}
+
+enum PayrollComponentType {
+  earning
+  deduction
+}
+
+enum PayrollCalcType {
+  fixed
+  percentage
+  formula
+}
+
+enum PayrollRunStatus {
+  draft
+  calculated
+  pending_approval
+  approved
+  completed
+  cancelled
+}
+
+enum PerformanceCycleStatus {
+  draft
+  open
+  in_calibration
+  closed
+}
+
+enum AssessmentType {
+  self
+  peer
+  manager
+}
+
+enum AssessmentStatus {
+  pending
+  submitted
+}
+
+enum SeparationStatus {
+  pending
+  approved
+  processed
+  cancelled
+}
+
+enum SeparationType {
+  resignation
+  termination
+  end_of_contract
+  retirement
+}
+
+enum ReminderCategory {
+  document_expiry
+  asset_warranty
+  asset_service
+  advance_settlement
+  probation_end
+  birthday
+  work_anniversary
+  policy_ack
+  approval_pending
+  payroll_due
+  performance_assessment
+}
+
+enum ReminderFrequency {
+  once
+  daily
+  weekly
+  monthly
+}
+
+enum ReminderPriority {
+  info
+  warning
+  urgent
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tenancy
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Client {
+  id                String           @id @default(uuid()) @db.Uuid
+  companyName       String           @map("company_name")
+  companySlug       String           @unique @map("company_slug")
+  companyEmail      String           @map("company_email")
+  companyPhone      String?          @map("company_phone")
+  country           String
+  timezone          String
+  baseCurrency      String           @map("base_currency")
+  status            ClientStatus     @default(trial)
+  subscriptionPlan  SubscriptionPlan @default(starter) @map("subscription_plan")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  users             User[]
+  userRoles         UserRole[]
+  roles             Role[]
+  employees         Employee[]
+  featureToggles    FeatureToggle[]
+  auditLogs         AuditLog[]
+  invitations       Invitation[]
+  notifications     Notification[]
+  leaveTypes        LeaveType[]
+  leaveBalances     LeaveBalance[]
+  leaveRequests     LeaveRequest[]
+  holidays          Holiday[]
+
+  @@index([status])
+  @@map("clients")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auth & Identity
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id              String      @id @default(uuid()) @db.Uuid
+  email           String      @unique
+  passwordHash    String?     @map("password_hash") // null for OAuth-only users
+  emailVerifiedAt DateTime?   @map("email_verified_at")
+  status          UserStatus  @default(pending)
+  lastLoginAt     DateTime?   @map("last_login_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Primary client for the user (denormalized for fast lookup; user_roles is the
+  // source of truth for membership).
+  primaryClientId String?     @map("primary_client_id") @db.Uuid
+  primaryClient   Client?     @relation(fields: [primaryClientId], references: [id], onDelete: SetNull)
+
+  profile                  Profile?
+  userRoles                UserRole[]
+  refreshTokens            RefreshToken[]
+  passwordResetTokens      PasswordResetToken[]
+  emailVerificationTokens  EmailVerificationToken[]
+  employee                 Employee?
+  auditLogs                AuditLog[]
+  featureToggles           FeatureToggle[]
+  invitationsCreated       Invitation[]             @relation("InvitationCreatedBy")
+  invitationAccepted       Invitation?              @relation("InvitationAcceptedBy")
+  notifications            Notification[]           @relation("NotificationRecipient")
+  notificationsActed       Notification[]           @relation("NotificationActor")
+
+  @@index([primaryClientId])
+  @@map("users")
+}
+
+model Profile {
+  userId    String   @id @map("user_id") @db.Uuid
+  fullName  String?  @map("full_name")
+  avatarUrl String?  @map("avatar_url")
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenHash   String    @unique @map("token_hash") // sha256 of the actual token
+  family      String    @db.Uuid // refresh-token family for rotation/replay detection
+  expiresAt   DateTime  @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  replacedBy  String?   @map("replaced_by") @db.Uuid
+  userAgent   String?   @map("user_agent")
+  ipAddress   String?   @map("ip_address")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([family])
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RBAC
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Role {
+  id          String           @id @default(uuid()) @db.Uuid
+  clientId    String?          @map("client_id") @db.Uuid // null = system role
+  name        String
+  appRole     AppRole          @map("app_role") // maps to canonical app role
+  isSystem    Boolean          @default(false) @map("is_system")
+  description String?
+  color       String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  client      Client?          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userRoles   UserRole[]
+  permissions RolePermission[]
+
+  @@unique([clientId, name])
+  @@index([appRole])
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  clientId  String?  @map("client_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, clientId])
+  @@index([userId])
+  @@index([clientId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  key         String           @unique // e.g. "payroll.run.approve"
+  module      String
+  description String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  roles       RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Feature Flags (replaces Supabase feature_definitions + feature_toggles)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FeatureDefinition {
+  id                       String          @id @default(uuid()) @db.Uuid
+  featureKey               String          @unique @map("feature_key")
+  module                   String
+  name                     String
+  description              String?
+  defaultEnabledForRoles   AppRole[]       @map("default_enabled_for_roles")
+  createdAt                DateTime        @default(now()) @map("created_at")
+
+  toggles                  FeatureToggle[]
+
+  @@index([module])
+  @@map("feature_definitions")
+}
+
+model FeatureToggle {
+  id          String            @id @default(uuid()) @db.Uuid
+  clientId    String            @map("client_id") @db.Uuid
+  userId      String?           @map("user_id") @db.Uuid // null = client-wide
+  featureKey  String            @map("feature_key")
+  isEnabled   Boolean           @default(true) @map("is_enabled")
+  enabledBy   String?           @map("enabled_by") @db.Uuid
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  client      Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user        User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feature     FeatureDefinition @relation(fields: [featureKey], references: [featureKey], onDelete: Cascade)
+
+  @@unique([clientId, userId, featureKey])
+  @@index([clientId])
+  @@map("feature_toggles")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Employees (foundational only — sub-tables added in Employee module phase)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Employee {
+  id                  String          @id @default(uuid()) @db.Uuid
+  clientId            String          @map("client_id") @db.Uuid
+  userId              String?         @unique @map("user_id") @db.Uuid
+  empId               String          @map("emp_id") // human-readable employee code
+  firstName           String          @map("first_name")
+  middleName          String?         @map("middle_name")
+  lastName            String          @map("last_name")
+  email               String
+  personalEmail       String?         @map("personal_email")
+  phone               String?
+  personalPhone       String?         @map("personal_phone")
+  dateOfBirth         DateTime?       @map("date_of_birth") @db.Date
+  gender              String?
+  maritalStatus       String?         @map("marital_status")
+  nationality         String?
+  religion            String?
+  department          String?
+  designation         String?
+  division            String?
+  category            String?
+  joiningDate         DateTime?       @map("joining_date") @db.Date
+  probationEndDate    DateTime?       @map("probation_end_date") @db.Date
+  separationDate      DateTime?       @map("separation_date") @db.Date
+  workLocationCountry String?         @map("work_location_country")
+  workLocationCity    String?         @map("work_location_city")
+  payCurrency         String?         @map("pay_currency")
+  reportsToId         String?         @map("reports_to_id") @db.Uuid
+  avatarUrl           String?         @map("avatar_url")
+  status              EmployeeStatus  @default(active)
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  client              Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user                User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reportsTo           Employee?       @relation("EmployeeReportsTo", fields: [reportsToId], references: [id], onDelete: SetNull)
+  directReports       Employee[]      @relation("EmployeeReportsTo")
+
+  addresses           EmployeeAddress[]
+  bankDetails         EmployeeBankDetails[]
+  emergencyContacts   EmployeeEmergencyContact[]
+  education           EmployeeEducation[]
+  documents           EmployeeDocument[]
+  compensation        EmployeeCompensation[]
+  leaveBalances       LeaveBalance[]
+  leaveRequests       LeaveRequest[]
+  leaveApprovals      LeaveRequest[]              @relation("LeaveApprover")
+  expensesSubmitted   Expense[]                   @relation("ExpenseEmployee")
+  expensesApproved    Expense[]                   @relation("ExpenseApprover")
+  advancesRequested   Advance[]                   @relation("AdvanceEmployee")
+  advancesApproved    Advance[]                   @relation("AdvanceApprover")
+  loans               Loan[]                      @relation("LoanEmployee")
+  loansApproved       Loan[]                      @relation("LoanApprover")
+  assetsAssigned      Asset[]                     @relation("AssetAssignee")
+  approvalGroupMemberships ApprovalGroupMember[]  @relation("ApprovalGroupMembership")
+  delegationsFrom     ApprovalDelegation[]        @relation("DelegationFrom")
+  delegationsTo       ApprovalDelegation[]        @relation("DelegationTo")
+  delegationsFallback ApprovalDelegation[]        @relation("DelegationFallback")
+  approvalRequests    RequestApproval[]           @relation("ApprovalRequester")
+  approvalAssignments RequestAssignment[]         @relation("ApprovalAssignment")
+  payrollLines        PayrollLine[]               @relation("PayrollEmployee")
+  payrollOneOffs      PayrollOneOffAdjustment[]   @relation("PayrollOneOffEmployee")
+  payslips            Payslip[]                   @relation("PayslipEmployee")
+  assessmentsAsEmployee PerformanceAssessment[]   @relation("AssessmentEmployee")
+  assessmentsAsReviewer PerformanceAssessment[]   @relation("AssessmentReviewer")
+  calibrations        PerformanceCalibration[]    @relation("CalibrationEmployee")
+  separation          Separation?                 @relation("SeparationEmployee")
+
+  @@unique([clientId, empId])
+  @@index([clientId])
+  @@index([userId])
+  @@index([reportsToId])
+  @@index([status])
+  @@map("employees")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Employee sub-records (Phase 3b)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model EmployeeAddress {
+  id           String   @id @default(uuid()) @db.Uuid
+  employeeId   String   @map("employee_id") @db.Uuid
+  clientId     String   @map("client_id") @db.Uuid
+  type         String?  // home | mailing | work | ...
+  addressLine1 String?  @map("address_line1")
+  addressLine2 String?  @map("address_line2")
+  city         String?
+  state        String?
+  country      String?
+  postalCode   String?  @map("postal_code")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([clientId])
+  @@map("employee_addresses")
+}
+
+model EmployeeBankDetails {
+  id              String   @id @default(uuid()) @db.Uuid
+  employeeId      String   @map("employee_id") @db.Uuid
+  clientId        String   @map("client_id") @db.Uuid
+  bankName        String?  @map("bank_name")
+  bankCountry     String?  @map("bank_country")
+  swiftCode       String?  @map("swift_code")
+  iban            String?
+  bankCurrency    String?  @map("bank_currency")
+  beneficiaryName String?  @map("beneficiary_name")
+  bankAddress     String?  @map("bank_address")
+  accountNumber   String?  @map("account_number")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([clientId])
+  @@map("employee_bank_details")
+}
+
+model EmployeeEmergencyContact {
+  id         String   @id @default(uuid()) @db.Uuid
+  employeeId String   @map("employee_id") @db.Uuid
+  clientId   String   @map("client_id") @db.Uuid
+  name       String?
+  relation   String?
+  phone      String?
+  email      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([clientId])
+  @@map("employee_emergency_contacts")
+}
+
+model EmployeeEducation {
+  id            String   @id @default(uuid()) @db.Uuid
+  employeeId    String   @map("employee_id") @db.Uuid
+  clientId      String   @map("client_id") @db.Uuid
+  institution   String?
+  degree        String?
+  fieldOfStudy  String?  @map("field_of_study")
+  startYear     Int?     @map("start_year")
+  endYear       Int?     @map("end_year")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([clientId])
+  @@map("employee_education")
+}
+
+model EmployeeDocument {
+  id         String    @id @default(uuid()) @db.Uuid
+  employeeId String    @map("employee_id") @db.Uuid
+  clientId   String    @map("client_id") @db.Uuid
+  docType    String?   @map("doc_type")
+  docNumber  String?   @map("doc_number")
+  issueDate  DateTime? @map("issue_date") @db.Date
+  expiryDate DateTime? @map("expiry_date") @db.Date
+  fileUrl    String?   @map("file_url")
+  status     String?   // active | expired | renewed | ...
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([clientId])
+  @@index([expiryDate])
+  @@map("employee_documents")
+}
+
+model EmployeeCompensation {
+  id            String    @id @default(uuid()) @db.Uuid
+  employeeId    String    @map("employee_id") @db.Uuid
+  clientId      String    @map("client_id") @db.Uuid
+  componentName String    @map("component_name")
+  componentType String    @map("component_type") // base | allowance | bonus | deduction | ...
+  /** Stored as bigint minor units (halalas / fils / cents) to match payroll convention. */
+  amount        BigInt
+  currency      String?   // null = client base currency
+  effectiveFrom DateTime? @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([clientId])
+  @@index([effectiveTo])
+  @@map("employee_compensation")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Audit Log (cross-cutting)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String?  @map("client_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  userEmail   String?  @map("user_email")
+  userRole    String?  @map("user_role")
+  action      String   // create | update | delete | login | logout | approve | reject | ...
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  entityLabel String?  @map("entity_label")
+  beforeValue Json?    @map("before_value")
+  afterValue  Json?    @map("after_value")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Account lifecycle tokens (password reset, email verification, invitations)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") // sha256 of the issued token
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+model Notification {
+  id           String              @id @default(uuid()) @db.Uuid
+  clientId     String              @map("client_id") @db.Uuid
+  userId       String              @map("user_id") @db.Uuid
+  title        String
+  body         String?
+  category     String              // free-form domain tag (payroll, leave, approval, ...)
+  link         String?             // optional in-app deep link
+  severity     NotificationSeverity @default(info)
+  entityType   String?             @map("entity_type")
+  entityId     String?             @map("entity_id")
+  actorUserId  String?             @map("actor_user_id") @db.Uuid
+  readAt       DateTime?           @map("read_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  client       Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user         User                @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor        User?               @relation("NotificationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, readAt])
+  @@index([clientId, createdAt])
+  @@index([entityType, entityId])
+  @@map("notifications")
+}
+
+model Invitation {
+  id              String           @id @default(uuid()) @db.Uuid
+  clientId        String           @map("client_id") @db.Uuid
+  email           String
+  // Pre-filled employee fields captured at invite time; sealed when accepted.
+  firstName       String?          @map("first_name")
+  lastName        String?          @map("last_name")
+  empId           String?          @map("emp_id")
+  department      String?
+  designation     String?
+  // Role to assign on acceptance.
+  appRole         AppRole          @map("app_role")
+  roleId          String?          @map("role_id") @db.Uuid
+  tokenHash       String           @unique @map("token_hash")
+  status          InvitationStatus @default(pending)
+  expiresAt       DateTime         @map("expires_at")
+  acceptedAt      DateTime?        @map("accepted_at")
+  acceptedByUserId String?         @unique @map("accepted_by_user_id") @db.Uuid
+  revokedAt       DateTime?        @map("revoked_at")
+  createdByUserId String           @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy       User             @relation("InvitationCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  acceptedBy      User?            @relation("InvitationAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([clientId, email, status])
+  @@index([clientId])
+  @@index([email])
+  @@index([status])
+  @@map("invitations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4: Leave
+// ─────────────────────────────────────────────────────────────────────────────
+
+model LeaveType {
+  id                String           @id @default(uuid()) @db.Uuid
+  clientId          String           @map("client_id") @db.Uuid
+  name              String
+  code              String
+  daysPerYear       Decimal          @default(0) @map("days_per_year") @db.Decimal(6, 2)
+  accrualType       LeaveAccrualType @default(yearly) @map("accrual_type")
+  maxCarryforward   Decimal          @default(0) @map("max_carryforward") @db.Decimal(6, 2)
+  requiresApproval  Boolean          @default(true) @map("requires_approval")
+  genderSpecific    String?          @map("gender_specific") // null | male | female
+  isPaid            Boolean          @default(true) @map("is_paid")
+  isActive          Boolean          @default(true) @map("is_active")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  client            Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  balances          LeaveBalance[]
+  requests          LeaveRequest[]
+
+  @@unique([clientId, code])
+  @@index([clientId])
+  @@map("leave_types")
+}
+
+model LeaveBalance {
+  id              String   @id @default(uuid()) @db.Uuid
+  clientId        String   @map("client_id") @db.Uuid
+  employeeId      String   @map("employee_id") @db.Uuid
+  leaveTypeId     String   @map("leave_type_id") @db.Uuid
+  year            Int
+  allocated       Decimal  @default(0) @db.Decimal(6, 2)
+  used            Decimal  @default(0) @db.Decimal(6, 2)
+  carriedForward  Decimal  @default(0) @map("carried_forward") @db.Decimal(6, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType       LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, leaveTypeId, year])
+  @@index([clientId])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id              String              @id @default(uuid()) @db.Uuid
+  clientId        String              @map("client_id") @db.Uuid
+  employeeId      String              @map("employee_id") @db.Uuid
+  leaveTypeId     String              @map("leave_type_id") @db.Uuid
+  startDate       DateTime            @map("start_date") @db.Date
+  endDate         DateTime            @map("end_date") @db.Date
+  days            Decimal             @db.Decimal(6, 2)
+  status          LeaveRequestStatus  @default(pending)
+  reason          String?
+  approvedById    String?             @map("approved_by_id") @db.Uuid
+  approvedAt      DateTime?           @map("approved_at")
+  rejectionReason String?             @map("rejection_reason")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType       LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  approvedBy      Employee? @relation("LeaveApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([clientId, status])
+  @@index([employeeId, status])
+  @@index([startDate, endDate])
+  @@map("leave_requests")
+}
+
+model Holiday {
+  id                  String   @id @default(uuid()) @db.Uuid
+  clientId            String   @map("client_id") @db.Uuid
+  name                String
+  date                DateTime @db.Date
+  isOptional          Boolean  @default(false) @map("is_optional")
+  appliesToLocations  String[] @default([]) @map("applies_to_locations")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  client              Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, date, name])
+  @@index([clientId, date])
+  @@map("holidays")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4: Expenses
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ExpenseStatus {
+  draft
+  submitted
+  approved
+  rejected
+  paid
+}
+
+model Expense {
+  id           String        @id @default(uuid()) @db.Uuid
+  clientId     String        @map("client_id") @db.Uuid
+  employeeId   String        @map("employee_id") @db.Uuid
+  category     String?
+  /** Stored as BigInt minor units. */
+  amount       BigInt
+  currency     String        @default("AED")
+  expenseDate  DateTime      @map("expense_date") @db.Date
+  description  String?
+  receiptUrl   String?       @map("receipt_url")
+  status       ExpenseStatus @default(draft)
+  projectCode  String?       @map("project_code")
+  approvedById String?       @map("approved_by_id") @db.Uuid
+  approvedAt   DateTime?     @map("approved_at")
+  paidAt       DateTime?     @map("paid_at")
+  rejectionReason String?    @map("rejection_reason")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  employee     Employee  @relation("ExpenseEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  approvedBy   Employee? @relation("ExpenseApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([clientId, status])
+  @@index([employeeId, status])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4: Advances
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum AdvanceStatus {
+  draft
+  submitted
+  approved
+  rejected
+  settled
+  cancelled
+}
+
+model Advance {
+  id              String         @id @default(uuid()) @db.Uuid
+  clientId        String         @map("client_id") @db.Uuid
+  employeeId      String         @map("employee_id") @db.Uuid
+  name            String
+  purpose         String?
+  amount          BigInt
+  currency        String         @default("AED")
+  amountUsed      BigInt         @default(0) @map("amount_used")
+  status          AdvanceStatus  @default(draft)
+  expectedSpendDate   DateTime?  @map("expected_spend_date") @db.Date
+  settlementDueDate   DateTime?  @map("settlement_due_date") @db.Date
+  approvedById    String?        @map("approved_by_id") @db.Uuid
+  approvedAt      DateTime?      @map("approved_at")
+  settledAt       DateTime?      @map("settled_at")
+  rejectionReason String?        @map("rejection_reason")
+  notes           String?
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  employee        Employee  @relation("AdvanceEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  approvedBy      Employee? @relation("AdvanceApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([clientId, status])
+  @@index([employeeId, status])
+  @@map("advances")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4: Loans
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum LoanStatus {
+  draft
+  active
+  paused
+  completed
+  cancelled
+}
+
+model Loan {
+  id                String      @id @default(uuid()) @db.Uuid
+  clientId          String      @map("client_id") @db.Uuid
+  employeeId        String      @map("employee_id") @db.Uuid
+  principal         BigInt
+  remainingBalance  BigInt      @map("remaining_balance")
+  /** Per-period rate as basis points (10000 = 100%). 0 for interest-free. */
+  interestRateBps   Int         @default(0) @map("interest_rate_bps")
+  monthlyDeduction  BigInt      @map("monthly_deduction")
+  startDate         DateTime    @map("start_date") @db.Date
+  endDate           DateTime?   @map("end_date") @db.Date
+  pausedUntil       DateTime?   @map("paused_until") @db.Date
+  prePauseEmi       BigInt?     @map("pre_pause_emi")
+  status            LoanStatus  @default(draft)
+  reason            String?
+  approvedById      String?     @map("approved_by_id") @db.Uuid
+  approvedAt        DateTime?   @map("approved_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  employee          Employee   @relation("LoanEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  approvedBy        Employee?  @relation("LoanApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  transactions      LoanTransaction[]
+
+  @@index([clientId, status])
+  @@index([employeeId, status])
+  @@map("loans")
+}
+
+enum LoanTxnType {
+  disbursement
+  emi
+  prepayment
+  writeoff
+  pause
+  resume
+  adjustment
+}
+
+model LoanTransaction {
+  id           String       @id @default(uuid()) @db.Uuid
+  loanId       String       @map("loan_id") @db.Uuid
+  clientId     String       @map("client_id") @db.Uuid
+  type         LoanTxnType
+  amount       BigInt
+  balanceAfter BigInt       @map("balance_after")
+  emiAtTime    BigInt?      @map("emi_at_time")
+  date         DateTime     @db.Date
+  note         String?
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  loan         Loan         @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId, date])
+  @@map("loan_transactions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4: Assets
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum AssetStatus {
+  in_stock
+  assigned
+  in_repair
+  retired
+  lost
+}
+
+model Asset {
+  id              String       @id @default(uuid()) @db.Uuid
+  clientId        String       @map("client_id") @db.Uuid
+  assetTag        String       @map("asset_tag")
+  name            String
+  category        String?
+  brand           String?
+  model           String?
+  serialNumber    String?      @map("serial_number")
+  condition       String?
+  location        String?
+  assignedToId    String?      @map("assigned_to_id") @db.Uuid
+  assignedDate    DateTime?    @map("assigned_date") @db.Date
+  status          AssetStatus  @default(in_stock)
+  purchaseDate    DateTime?    @map("purchase_date") @db.Date
+  /** Stored as BigInt minor units. */
+  purchaseCost    BigInt?      @map("purchase_cost")
+  warrantyExpiry  DateTime?    @map("warranty_expiry") @db.Date
+  serviceDueDate  DateTime?    @map("service_due_date") @db.Date
+  notes           String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  assignedTo      Employee?    @relation("AssetAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  history         AssetHistory[]
+
+  @@unique([clientId, assetTag])
+  @@index([clientId, status])
+  @@index([assignedToId])
+  @@map("assets")
+}
+
+model AssetHistory {
+  id             String   @id @default(uuid()) @db.Uuid
+  assetId        String   @map("asset_id") @db.Uuid
+  clientId       String   @map("client_id") @db.Uuid
+  action         String   // assigned | unassigned | repaired | retired | ...
+  fromEmployeeId String?  @map("from_employee_id") @db.Uuid
+  toEmployeeId   String?  @map("to_employee_id") @db.Uuid
+  date           DateTime @default(now())
+  note           String?
+  performedById  String?  @map("performed_by_id") @db.Uuid
+
+  asset          Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, date])
+  @@map("asset_history")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 5: Approval workflow engine
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ApprovalGroup {
+  id                  String                  @id @default(uuid()) @db.Uuid
+  clientId            String                  @map("client_id") @db.Uuid
+  name                String
+  description         String?
+  approvalType        ApprovalType            @default(any_one) @map("approval_type")
+  /** Threshold in minor units; null = no limit. */
+  maxLimitMinor       BigInt?                 @map("max_limit_minor")
+  escalateAfterDays   Int?                    @map("escalate_after_days")
+  escalateToGroupId   String?                 @map("escalate_to_group_id") @db.Uuid
+  isActive            Boolean                 @default(true) @map("is_active")
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+
+  members             ApprovalGroupMember[]
+  escalateTo          ApprovalGroup?          @relation("ApprovalGroupEscalation", fields: [escalateToGroupId], references: [id], onDelete: SetNull)
+  escalationsFrom     ApprovalGroup[]         @relation("ApprovalGroupEscalation")
+  policyLevels        ApprovalPolicyLevel[]
+  policies            ApprovalPolicy[]
+  assignments         RequestAssignment[]
+  currentInRequests   RequestApproval[]       @relation("CurrentApprovalGroup")
+  historyEntries      RequestApprovalHistory[]
+
+  @@index([clientId])
+  @@map("approval_groups")
+}
+
+model ApprovalGroupMember {
+  groupId    String @map("group_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  clientId   String @map("client_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  group      ApprovalGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  employee   Employee      @relation("ApprovalGroupMembership", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, employeeId])
+  @@index([employeeId])
+  @@map("approval_group_members")
+}
+
+model ApprovalPolicy {
+  id            String                @id @default(uuid()) @db.Uuid
+  clientId      String                @map("client_id") @db.Uuid
+  module        ApprovalModule
+  category      String?               // free-form domain tag (e.g. "travel" within expenses)
+  /** Match range in minor units. Inclusive. */
+  minValueMinor BigInt                @default(0) @map("min_value_minor")
+  maxValueMinor BigInt?               @map("max_value_minor") // null = no upper bound
+  /** Fallback single-group routing — see policyLevels for multi-level routing. */
+  groupId       String?               @map("group_id") @db.Uuid
+  sortOrder     Int                   @default(0) @map("sort_order")
+  isActive      Boolean               @default(true) @map("is_active")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  group         ApprovalGroup?        @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  levels        ApprovalPolicyLevel[]
+  requests      RequestApproval[]
+
+  @@index([clientId, module])
+  @@map("approval_policies")
+}
+
+model ApprovalPolicyLevel {
+  id         String        @id @default(uuid()) @db.Uuid
+  policyId   String        @map("policy_id") @db.Uuid
+  levelOrder Int           @map("level_order")
+  groupId    String        @map("group_id") @db.Uuid
+  mode       ApprovalMode  @default(sequential)
+  slaHours   Int?          @map("sla_hours")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  policy     ApprovalPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  group      ApprovalGroup  @relation(fields: [groupId], references: [id], onDelete: Restrict)
+
+  @@unique([policyId, levelOrder])
+  @@map("approval_policy_levels")
+}
+
+model ApprovalDelegation {
+  id                  String   @id @default(uuid()) @db.Uuid
+  clientId            String   @map("client_id") @db.Uuid
+  fromEmployeeId      String   @map("from_employee_id") @db.Uuid
+  toEmployeeId        String   @map("to_employee_id") @db.Uuid
+  startDate           DateTime @map("start_date") @db.Date
+  endDate             DateTime @map("end_date") @db.Date
+  isActive            Boolean  @default(true) @map("is_active")
+  fallbackEmployeeId  String?  @map("fallback_employee_id") @db.Uuid
+  reason              String?
+  createdByUserId     String   @map("created_by_user_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  fromEmployee        Employee @relation("DelegationFrom", fields: [fromEmployeeId], references: [id], onDelete: Cascade)
+  toEmployee          Employee @relation("DelegationTo", fields: [toEmployeeId], references: [id], onDelete: Cascade)
+  fallbackEmployee    Employee? @relation("DelegationFallback", fields: [fallbackEmployeeId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, isActive])
+  @@index([fromEmployeeId, startDate, endDate])
+  @@map("approval_delegations")
+}
+
+/**
+ * RequestApproval represents the workflow state for a single underlying entity
+ * (a leave request, expense, advance, etc.). It tracks the current level + the
+ * group whose approval is currently expected. Detailed action history lives
+ * in RequestApprovalHistory; per-approver tracking in RequestAssignment.
+ */
+model RequestApproval {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  clientId               String                  @map("client_id") @db.Uuid
+  module                 ApprovalModule
+  /** Foreign key into the underlying domain table (leave_requests.id, etc.). */
+  entityId               String                  @map("entity_id") @db.Uuid
+  policyId               String?                 @map("policy_id") @db.Uuid
+  requesterEmployeeId    String                  @map("requester_employee_id") @db.Uuid
+  /** Snapshotted value in minor units at submit time — for limit matching even if the entity later changes. */
+  valueMinor             BigInt                  @map("value_minor")
+  /** Snapshotted unit (currency code or "days"/"qty"). */
+  valueUnit              String                  @default("AED") @map("value_unit")
+  currentLevel           Int                     @default(1) @map("current_level")
+  currentGroupId         String?                 @map("current_group_id") @db.Uuid
+  status                 RequestApprovalStatus   @default(pending)
+  finalizedAt            DateTime?               @map("finalized_at")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+
+  policy                 ApprovalPolicy?         @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  currentGroup           ApprovalGroup?          @relation("CurrentApprovalGroup", fields: [currentGroupId], references: [id], onDelete: SetNull)
+  requester              Employee                @relation("ApprovalRequester", fields: [requesterEmployeeId], references: [id], onDelete: Cascade)
+  history                RequestApprovalHistory[]
+  assignments            RequestAssignment[]
+
+  @@unique([module, entityId])
+  @@index([clientId, status])
+  @@index([requesterEmployeeId])
+  @@map("request_approvals")
+}
+
+model RequestApprovalHistory {
+  id                     String                @id @default(uuid()) @db.Uuid
+  requestApprovalId      String                @map("request_approval_id") @db.Uuid
+  levelOrder             Int                   @map("level_order")
+  action                 ApprovalHistoryAction
+  actorUserId            String?               @map("actor_user_id") @db.Uuid
+  actorEmployeeId        String?               @map("actor_employee_id") @db.Uuid
+  onBehalfOfEmployeeId   String?               @map("on_behalf_of_employee_id") @db.Uuid
+  groupId                String?               @map("group_id") @db.Uuid
+  comment                String?
+  createdAt              DateTime              @default(now()) @map("created_at")
+
+  request                RequestApproval       @relation(fields: [requestApprovalId], references: [id], onDelete: Cascade)
+  group                  ApprovalGroup?        @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@index([requestApprovalId, createdAt])
+  @@map("request_approval_history")
+}
+
+model RequestAssignment {
+  id                String           @id @default(uuid()) @db.Uuid
+  requestApprovalId String           @map("request_approval_id") @db.Uuid
+  levelOrder        Int              @map("level_order")
+  groupId           String           @map("group_id") @db.Uuid
+  employeeId        String           @map("employee_id") @db.Uuid
+  viaDelegation     Boolean          @default(false) @map("via_delegation")
+  status            AssignmentStatus @default(pending)
+  actedAt           DateTime?        @map("acted_at")
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  request           RequestApproval  @relation(fields: [requestApprovalId], references: [id], onDelete: Cascade)
+  group             ApprovalGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  employee          Employee         @relation("ApprovalAssignment", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([requestApprovalId, levelOrder])
+  @@index([employeeId, status])
+  @@map("request_assignments")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 6: Payroll
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PayrollSetup {
+  id            String              @id @default(uuid()) @db.Uuid
+  clientId      String              @map("client_id") @db.Uuid
+  name          String
+  description   String?
+  country       String
+  currency      String
+  payFrequency  PayFrequency        @default(monthly) @map("pay_frequency")
+  yearEndDate   DateTime?           @map("year_end_date") @db.Date
+  status        PayrollSetupStatus  @default(draft)
+  options       Json                @default("{}")
+  createdByUserId String?           @map("created_by_user_id") @db.Uuid
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  components    PayrollSetupComponent[]
+  taxRules      PayrollSetupTaxRule[]
+  runs          PayrollRun[]
+
+  @@unique([clientId, name])
+  @@index([clientId, status])
+  @@map("payroll_setups")
+}
+
+model PayrollSetupComponent {
+  id              String                @id @default(uuid()) @db.Uuid
+  payrollSetupId  String                @map("payroll_setup_id") @db.Uuid
+  clientId        String                @map("client_id") @db.Uuid
+  name            String
+  type            PayrollComponentType
+  calculationType PayrollCalcType       @map("calculation_type")
+  /** For fixed: minor units. For percentage: basis points (10000 = 100%). For formula: ignored. */
+  value           BigInt                @default(0)
+  formula         String?               // expression evaluated against employee + line context
+  orderIndex      Int                   @default(0) @map("order_index")
+  isActive        Boolean               @default(true) @map("is_active")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  setup           PayrollSetup          @relation(fields: [payrollSetupId], references: [id], onDelete: Cascade)
+
+  @@index([payrollSetupId, orderIndex])
+  @@map("payroll_setup_components")
+}
+
+model PayrollSetupTaxRule {
+  id              String        @id @default(uuid()) @db.Uuid
+  payrollSetupId  String        @map("payroll_setup_id") @db.Uuid
+  clientId        String        @map("client_id") @db.Uuid
+  slabName        String        @map("slab_name")
+  /** Inclusive lower bound (minor units). */
+  incomeFromMinor BigInt        @map("income_from_minor")
+  /** Inclusive upper bound (minor units); null = no upper bound. */
+  incomeToMinor   BigInt?       @map("income_to_minor")
+  /** Tax rate in basis points (1500 = 15%). */
+  rateBps         Int           @map("rate_bps")
+  orderIndex      Int           @default(0) @map("order_index")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  setup           PayrollSetup  @relation(fields: [payrollSetupId], references: [id], onDelete: Cascade)
+
+  @@index([payrollSetupId, orderIndex])
+  @@map("payroll_setup_tax_rules")
+}
+
+model PayrollRun {
+  id                String           @id @default(uuid()) @db.Uuid
+  clientId          String           @map("client_id") @db.Uuid
+  payrollSetupId   String            @map("payroll_setup_id") @db.Uuid
+  month             Int              // 1-12
+  year              Int
+  status            PayrollRunStatus @default(draft)
+  totalGrossMinor   BigInt           @default(0) @map("total_gross_minor")
+  totalDeductionsMinor BigInt        @default(0) @map("total_deductions_minor")
+  totalNetMinor     BigInt           @default(0) @map("total_net_minor")
+  employeeCount     Int              @default(0) @map("employee_count")
+  runDate           DateTime?        @map("run_date")
+  approvedByUserId  String?          @map("approved_by_user_id") @db.Uuid
+  approvedAt        DateTime?        @map("approved_at")
+  completedAt       DateTime?        @map("completed_at")
+  /** Tamper-protection flag; once locked, lines cannot change. */
+  locked            Boolean          @default(false)
+  lockedByUserId    String?          @map("locked_by_user_id") @db.Uuid
+  lockedAt          DateTime?        @map("locked_at")
+  createdByUserId   String?          @map("created_by_user_id") @db.Uuid
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  setup             PayrollSetup     @relation(fields: [payrollSetupId], references: [id], onDelete: Restrict)
+  lines             PayrollLine[]
+  oneOffAdjustments PayrollOneOffAdjustment[]
+  payslips          Payslip[]
+
+  @@unique([clientId, payrollSetupId, month, year])
+  @@index([clientId, status])
+  @@map("payroll_runs")
+}
+
+model PayrollLine {
+  id                       String       @id @default(uuid()) @db.Uuid
+  payrollRunId             String       @map("payroll_run_id") @db.Uuid
+  employeeId               String       @map("employee_id") @db.Uuid
+  clientId                 String       @map("client_id") @db.Uuid
+  basicMinor               BigInt       @default(0) @map("basic_minor")
+  allowancesMinor          BigInt       @default(0) @map("allowances_minor")
+  grossMinor               BigInt       @default(0) @map("gross_minor")
+  taxDeductionMinor        BigInt       @default(0) @map("tax_deduction_minor")
+  loanDeductionMinor       BigInt       @default(0) @map("loan_deduction_minor")
+  statutoryDeductionMinor  BigInt       @default(0) @map("statutory_deduction_minor")
+  otherDeductionsMinor     BigInt       @default(0) @map("other_deductions_minor")
+  totalDeductionsMinor     BigInt       @default(0) @map("total_deductions_minor")
+  expenseReimbursementMinor BigInt      @default(0) @map("expense_reimbursement_minor")
+  advanceGivenMinor        BigInt       @default(0) @map("advance_given_minor")
+  oneOffBenefitsMinor      BigInt       @default(0) @map("one_off_benefits_minor")
+  oneOffDeductionsMinor    BigInt       @default(0) @map("one_off_deductions_minor")
+  separationSettlementMinor BigInt      @default(0) @map("separation_settlement_minor")
+  netPayMinor              BigInt       @default(0) @map("net_pay_minor")
+  payCurrency              String       @map("pay_currency")
+  exchangeRate             Decimal      @default(1) @map("exchange_rate") @db.Decimal(20, 8)
+  netInReportingCurrencyMinor BigInt    @default(0) @map("net_in_reporting_currency_minor")
+  /** Full snapshot of the calculation inputs + per-component breakdown. */
+  snapshotData             Json         @default("{}") @map("snapshot_data")
+  createdAt                DateTime     @default(now()) @map("created_at")
+  updatedAt                DateTime     @updatedAt @map("updated_at")
+
+  run                      PayrollRun   @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employee                 Employee     @relation("PayrollEmployee", fields: [employeeId], references: [id], onDelete: Restrict)
+  payslip                  Payslip?
+
+  @@unique([payrollRunId, employeeId])
+  @@index([clientId, payrollRunId])
+  @@map("payroll_lines")
+}
+
+model PayrollOneOffAdjustment {
+  id            String       @id @default(uuid()) @db.Uuid
+  payrollRunId  String       @map("payroll_run_id") @db.Uuid
+  employeeId    String       @map("employee_id") @db.Uuid
+  clientId      String       @map("client_id") @db.Uuid
+  name          String
+  amountMinor   BigInt       @map("amount_minor")
+  type          PayrollComponentType
+  createdByUserId String?    @map("created_by_user_id") @db.Uuid
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  run           PayrollRun   @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employee      Employee     @relation("PayrollOneOffEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([payrollRunId, employeeId])
+  @@map("payroll_one_off_adjustments")
+}
+
+model Payslip {
+  id                  String      @id @default(uuid()) @db.Uuid
+  payrollRunId        String      @map("payroll_run_id") @db.Uuid
+  payrollLineId       String      @unique @map("payroll_line_id") @db.Uuid
+  employeeId          String      @map("employee_id") @db.Uuid
+  clientId            String      @map("client_id") @db.Uuid
+  pdfUrl              String?     @map("pdf_url")
+  issuedAt            DateTime?   @map("issued_at")
+  viewedByEmployeeAt  DateTime?   @map("viewed_by_employee_at")
+  emailedAt           DateTime?   @map("emailed_at")
+  createdAt           DateTime    @default(now()) @map("created_at")
+
+  run                 PayrollRun  @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  line                PayrollLine @relation(fields: [payrollLineId], references: [id], onDelete: Cascade)
+  employee            Employee    @relation("PayslipEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@map("payslips")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 7: Performance
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PerformanceCycle {
+  id          String                  @id @default(uuid()) @db.Uuid
+  clientId    String                  @map("client_id") @db.Uuid
+  name        String
+  startDate   DateTime                @map("start_date") @db.Date
+  endDate     DateTime                @map("end_date") @db.Date
+  status      PerformanceCycleStatus  @default(draft)
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+
+  questionnaires  PerformanceQuestionnaire[]
+  assessments     PerformanceAssessment[]
+  calibrations    PerformanceCalibration[]
+
+  @@index([clientId, status])
+  @@map("performance_cycles")
+}
+
+model PerformanceQuestionnaire {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @map("client_id") @db.Uuid
+  cycleId   String   @map("cycle_id") @db.Uuid
+  name      String
+  /** JSON array of question definitions: { id, label, type: rating|text|... }. */
+  questions Json     @default("[]")
+  audience  String?  // self | peer | manager | all
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cycle     PerformanceCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@index([cycleId])
+  @@map("performance_questionnaires")
+}
+
+model PerformanceAssessment {
+  id           String           @id @default(uuid()) @db.Uuid
+  clientId     String           @map("client_id") @db.Uuid
+  cycleId      String           @map("cycle_id") @db.Uuid
+  employeeId   String           @map("employee_id") @db.Uuid
+  reviewerId   String           @map("reviewer_id") @db.Uuid
+  type         AssessmentType
+  /** JSON keyed by question id. */
+  responses    Json             @default("{}")
+  /** Numeric rating on a 1–5 scale; null until submitted. */
+  rating       Decimal?         @db.Decimal(4, 2)
+  status       AssessmentStatus @default(pending)
+  submittedAt  DateTime?        @map("submitted_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  cycle        PerformanceCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  employee     Employee         @relation("AssessmentEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewer     Employee         @relation("AssessmentReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, employeeId, reviewerId, type])
+  @@index([clientId, cycleId])
+  @@index([employeeId])
+  @@map("performance_assessments")
+}
+
+model PerformanceCalibration {
+  id                String   @id @default(uuid()) @db.Uuid
+  clientId          String   @map("client_id") @db.Uuid
+  cycleId           String   @map("cycle_id") @db.Uuid
+  employeeId        String   @map("employee_id") @db.Uuid
+  originalRating    Decimal? @map("original_rating") @db.Decimal(4, 2)
+  calibratedRating  Decimal? @map("calibrated_rating") @db.Decimal(4, 2)
+  notes             String?
+  calibratedByUserId String? @map("calibrated_by_user_id") @db.Uuid
+  status            String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  cycle             PerformanceCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  employee          Employee @relation("CalibrationEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, employeeId])
+  @@map("performance_calibrations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 7: Separations + EOSB
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Separation {
+  id                       String           @id @default(uuid()) @db.Uuid
+  clientId                 String           @map("client_id") @db.Uuid
+  employeeId               String           @map("employee_id") @db.Uuid
+  lastWorkingDate          DateTime         @map("last_working_date") @db.Date
+  reason                   String?
+  type                     SeparationType
+  noticePeriodDays         Int              @default(0) @map("notice_period_days")
+  noticePeriodServed       Boolean          @default(true) @map("notice_period_served")
+  unpaidSalaryMinor        BigInt           @default(0) @map("unpaid_salary_minor")
+  eosbAmountMinor          BigInt           @default(0) @map("eosb_amount_minor")
+  /** Full audit-friendly breakdown produced by the EOSB calculator. */
+  eosbBreakdown            Json             @default("{}") @map("eosb_breakdown")
+  leaveEncashmentMinor     BigInt           @default(0) @map("leave_encashment_minor")
+  noticePeriodPayMinor     BigInt           @default(0) @map("notice_period_pay_minor")
+  loanDeductionMinor       BigInt           @default(0) @map("loan_deduction_minor")
+  totalSettlementMinor     BigInt           @default(0) @map("total_settlement_minor")
+  status                   SeparationStatus @default(pending)
+  payrollRunId             String?          @map("payroll_run_id") @db.Uuid
+  approvedByUserId         String?          @map("approved_by_user_id") @db.Uuid
+  processedDate            DateTime?        @map("processed_date")
+  createdAt                DateTime         @default(now()) @map("created_at")
+  updatedAt                DateTime         @updatedAt @map("updated_at")
+
+  employee                 Employee @relation("SeparationEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId])
+  @@index([clientId, status])
+  @@map("separations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 8: Reminders
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ReminderRule {
+  id              String              @id @default(uuid()) @db.Uuid
+  clientId        String              @map("client_id") @db.Uuid
+  category        ReminderCategory
+  name            String
+  description     String?
+  isEnabled       Boolean             @default(true) @map("is_enabled")
+  /** Lead times in days before the trigger date. e.g. [30, 7, 1]. */
+  leadDaysBefore  Int[]               @default([]) @map("lead_days_before")
+  repeatFrequency ReminderFrequency   @default(once) @map("repeat_frequency")
+  /** Recipient buckets: ["self","manager","admin"]. */
+  recipients      String[]            @default([])
+  priority        ReminderPriority    @default(info)
+  conditions      Json                @default("{}")
+  lastRunAt       DateTime?           @map("last_run_at")
+  createdByUserId String?             @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  dispatches      ReminderDispatch[]
+
+  @@unique([clientId, category, name])
+  @@index([clientId, isEnabled])
+  @@map("reminder_rules")
+}
+
+model ReminderDispatch {
+  id              String   @id @default(uuid()) @db.Uuid
+  ruleId          String   @map("rule_id") @db.Uuid
+  clientId        String   @map("client_id") @db.Uuid
+  entityType      String   @map("entity_type")
+  entityId        String   @map("entity_id")
+  recipientUserId String   @map("recipient_user_id") @db.Uuid
+  notificationId  String?  @map("notification_id") @db.Uuid
+  leadDaysUsed    Int      @map("lead_days_used")
+  /** Idempotency key: rule + entity + recipient + lead day. */
+  dispatchKey     String   @unique @map("dispatch_key")
+  sentAt          DateTime @default(now()) @map("sent_at")
+
+  rule            ReminderRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, sentAt])
+  @@map("reminder_dispatches")
+}

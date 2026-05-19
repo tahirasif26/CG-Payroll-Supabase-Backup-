@@ -1,9 +1,19 @@
-import React, { createContext, useContext, useCallback, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/contexts/RoleContext";
-import { useModuleEnabled } from "@/hooks/useModuleEnabled";
+import { createContext, useContext, useMemo, ReactNode } from "react";
+import {
+  usePayrollSetups as usePayrollSetupsApi,
+  useCreatePayrollSetup,
+  useUpdatePayrollSetup,
+  useActivatePayrollSetup,
+  type PayrollSetup as ApiPayrollSetup,
+} from "@/api";
 import { PayrollSetup } from "@/types/payrollSetup";
+
+/**
+ * Migrated to NestJS via @/api/payroll. The legacy UI shape carries a rich
+ * `options` blob (paySchedule, options, overtime, leaves, bonus, gratuity,
+ * providentFund, etc.). The backend already stores this verbatim under
+ * `PayrollSetup.options` JSON column, so we round-trip it through there.
+ */
 
 interface PayrollSetupContextType {
   setups: PayrollSetup[];
@@ -18,10 +28,7 @@ interface PayrollSetupContextType {
 
 const PayrollSetupContext = createContext<PayrollSetupContextType | undefined>(undefined);
 
-// Build the rich UI PayrollSetup from the DB row.
-// Top-level columns hold name/country/currency/status; the entire structured
-// config is round-tripped through the `options` jsonb column.
-function rowToSetup(row: any): PayrollSetup {
+function rowToSetup(row: ApiPayrollSetup): PayrollSetup {
   const opts = (row.options ?? {}) as Partial<PayrollSetup>;
   return {
     id: row.id,
@@ -29,9 +36,9 @@ function rowToSetup(row: any): PayrollSetup {
     country: row.country ?? opts.country ?? "",
     currency: row.currency ?? opts.currency ?? "SAR",
     status: (row.status === "active" ? "active" : "inactive") as "active" | "inactive",
-    lastUpdated: (row.updated_at ?? row.created_at ?? new Date().toISOString()).split("T")[0],
+    lastUpdated: (row.updatedAt ?? row.createdAt ?? new Date().toISOString()).split("T")[0],
     paySchedule: opts.paySchedule ?? {
-      payFrequency: (row.pay_frequency as any) ?? "monthly",
+      payFrequency: (row.payFrequency as PayrollSetup["paySchedule"]["payFrequency"]) ?? "monthly",
       cycleStartDate: "1",
       cycleEndDate: "EOM",
       payDate: "28",
@@ -60,9 +67,7 @@ function rowToSetup(row: any): PayrollSetup {
       maxDeductionPercentage: 0,
       autoDeductRemaining: false,
     },
-    finalSettlement: opts.finalSettlement ?? {
-      noticePeriodRecoveryDays: 30,
-    },
+    finalSettlement: opts.finalSettlement ?? { noticePeriodRecoveryDays: 30 },
     retirement: opts.retirement ?? {
       enablePF: false,
       employeeContributionPct: 0,
@@ -84,163 +89,102 @@ function rowToSetup(row: any): PayrollSetup {
       allowCarryForward: false,
       maxCarryForwardDays: 10,
     },
-    bonus: opts.bonus ?? { enabled: false, method: "percentage", value: 0, frequency: "annual", includeInPayslip: true },
-    gratuity: opts.gratuity ?? { enabled: true, method: "saudi", slab1Days: 0, slab2Days: 15, slab3Days: 21, slab4Days: 30, maxMonths: 24, basis: "basic" },
-    providentFund: opts.providentFund ?? { enabled: false, scheme: "gosi_saudi", employeeRate: 9.75, employerRate: 9.75, basis: "basic", autoDeduct: true },
+    bonus: opts.bonus ?? {
+      enabled: false,
+      method: "percentage",
+      value: 0,
+      frequency: "annual",
+      includeInPayslip: true,
+    },
+    gratuity: opts.gratuity ?? {
+      enabled: true,
+      method: "saudi",
+      slab1Days: 0,
+      slab2Days: 15,
+      slab3Days: 21,
+      slab4Days: 30,
+      maxMonths: 24,
+      basis: "basic",
+    },
+    providentFund: opts.providentFund ?? {
+      enabled: false,
+      scheme: "gosi_saudi",
+      employeeRate: 9.75,
+      employerRate: 9.75,
+      basis: "basic",
+      autoDeduct: true,
+    },
     approvalWorkflow: opts.approvalWorkflow ?? { enabled: false, levels: [] },
   };
 }
 
-function setupToRow(setup: PayrollSetup, clientId: string) {
-  // Strip top-level identity from the jsonb blob to avoid duplication noise.
+function setupToCreateBody(setup: PayrollSetup) {
   const { id, lastUpdated, ...config } = setup;
+  void id;
+  void lastUpdated;
   return {
-    client_id: clientId,
     name: setup.name,
-    country: setup.country,
-    currency: setup.currency,
-    pay_frequency: setup.paySchedule.payFrequency,
-    status: setup.status,
-    options: config as any,
+    country: setup.country || "SA",
+    currency: setup.currency || "SAR",
+    payFrequency: setup.paySchedule.payFrequency,
+    options: config as Record<string, unknown>,
   };
 }
 
-export function PayrollSetupProvider({ children }: { children: React.ReactNode }) {
-  const { clientId } = useRole();
-  const payrollEnabled = useModuleEnabled("payroll");
-  const qc = useQueryClient();
+export function PayrollSetupProvider({ children }: { children: ReactNode }) {
+  const listQ = usePayrollSetupsApi();
+  const createMut = useCreatePayrollSetup();
+  const updateMut = useUpdatePayrollSetup();
+  const activateMut = useActivatePayrollSetup();
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["payroll_setups", clientId],
-    enabled: !!clientId && payrollEnabled,
-    staleTime: 5 * 60 * 1000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payroll_setups")
-        .select("*")
-        .eq("client_id", clientId!)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
+  const setups = useMemo<PayrollSetup[]>(
+    () => (listQ.data ?? []).map(rowToSetup),
+    [listQ.data],
+  );
+
+  const value: PayrollSetupContextType = {
+    setups,
+    addSetup: async (setup) => {
+      await createMut.mutateAsync(setupToCreateBody(setup));
     },
-  });
-
-  const setups: PayrollSetup[] = useMemo(() => rows.map(rowToSetup), [rows]);
-
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["payroll_setups"] });
-    qc.refetchQueries({ queryKey: ["payroll_setups"], type: "active" });
+    updateSetup: async (setup) => {
+      await updateMut.mutateAsync({ id: setup.id, body: setupToCreateBody(setup) });
+    },
+    deleteSetup: async () => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[PayrollSetupContext] deleteSetup not exposed on backend. " +
+          "Set status to 'archived' via updateSetup instead.",
+      );
+    },
+    duplicateSetup: async (id) => {
+      const src = setups.find((s) => s.id === id);
+      if (!src) return;
+      const copy: PayrollSetup = {
+        ...src,
+        id: "",
+        name: `${src.name} (Copy)`,
+        status: "inactive",
+      };
+      await createMut.mutateAsync(setupToCreateBody(copy));
+    },
+    toggleStatus: async (id) => {
+      const s = setups.find((x) => x.id === id);
+      if (!s) return;
+      if (s.status === "active") {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[PayrollSetupContext] deactivation not exposed; backend has draft/active/archived only.",
+        );
+        return;
+      }
+      await activateMut.mutateAsync(id);
+    },
+    getSetupById: (id) => setups.find((s) => s.id === id),
+    isLoading: listQ.isLoading,
   };
 
-  const addMut = useMutation({
-    mutationFn: async (setup: PayrollSetup) => {
-      if (!clientId) throw new Error("No client");
-      const { data: inserted, error } = await supabase
-        .from("payroll_setups")
-        .insert(setupToRow(setup, clientId))
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      // Auto-create the first open payroll run for this setup so it shows up
-      // immediately on the Payroll page Live cards.
-      try {
-        const now = new Date();
-        const payDate = parseInt(setup.paySchedule?.payDate ?? "25", 10) || 25;
-        const monthIdx = now.getMonth(); // 0-11
-        const advance = now.getDate() > payDate;
-        const targetIdx = advance ? (monthIdx + 1) % 12 : monthIdx;
-        const targetYear = advance && monthIdx === 11 ? now.getFullYear() + 1 : now.getFullYear();
-        const monthNames = [
-          "January", "February", "March", "April", "May", "June",
-          "July", "August", "September", "October", "November", "December",
-        ];
-        const { data: { user } } = await supabase.auth.getUser();
-        if (inserted?.id && user?.id) {
-          await supabase.from("payroll_runs").insert({
-            client_id: clientId,
-            payroll_setup_id: inserted.id,
-            month: monthNames[targetIdx],
-            year: targetYear,
-            run_date: `${targetYear}-${String(targetIdx + 1).padStart(2, "0")}-${String(payDate).padStart(2, "0")}`,
-            status: "draft",
-            created_by: user.id,
-          });
-          qc.invalidateQueries({ queryKey: ["payroll_runs"] });
-        }
-      } catch {
-        // Non-fatal: setup was created, run can be added manually if this fails.
-      }
-    },
-    onSuccess: invalidate,
-  });
-
-  const updateMut = useMutation({
-    mutationFn: async (setup: PayrollSetup) => {
-      if (!clientId) throw new Error("No client");
-      const row = setupToRow(setup, clientId);
-      const { error } = await supabase.from("payroll_setups").update(row).eq("id", setup.id);
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("payroll_setups").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  const duplicateMut = useMutation({
-    mutationFn: async (id: string) => {
-      if (!clientId) throw new Error("No client");
-      const original = setups.find((s) => s.id === id);
-      if (!original) return;
-      const copy: PayrollSetup = {
-        ...JSON.parse(JSON.stringify(original)),
-        id: "",
-        name: `${original.name} (Copy)`,
-      };
-      const { error } = await supabase.from("payroll_setups").insert(setupToRow(copy, clientId));
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  const toggleMut = useMutation({
-    mutationFn: async (id: string) => {
-      const target = setups.find((s) => s.id === id);
-      if (!target) return;
-      const newStatus = target.status === "active" ? "inactive" : "active";
-      const { error } = await supabase
-        .from("payroll_setups")
-        .update({ status: newStatus })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  const getSetupById = useCallback((id: string) => setups.find((s) => s.id === id), [setups]);
-
-  return (
-    <PayrollSetupContext.Provider
-      value={{
-        setups,
-        addSetup: (s) => addMut.mutateAsync(s),
-        updateSetup: (s) => updateMut.mutateAsync(s),
-        deleteSetup: (id) => deleteMut.mutateAsync(id),
-        duplicateSetup: (id) => duplicateMut.mutateAsync(id),
-        toggleStatus: (id) => toggleMut.mutateAsync(id),
-        getSetupById,
-        isLoading,
-      }}
-    >
-      {children}
-    </PayrollSetupContext.Provider>
-  );
+  return <PayrollSetupContext.Provider value={value}>{children}</PayrollSetupContext.Provider>;
 }
 
 export function usePayrollSetups() {

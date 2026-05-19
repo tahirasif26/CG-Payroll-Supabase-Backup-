@@ -1,18 +1,18 @@
 import { createContext, useContext, ReactNode, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTenant, useUpdateTenant, tenantKeys } from "@/api";
 import { useRole } from "@/contexts/RoleContext";
 
 export interface ClientConfig {
   companyName: string;
-  companyLogo?: string;    // localStorage only (base64 — not in DB yet)
-  yearEndDate?: string;    // DB: clients.year_end_date (MM-DD format e.g. "12-31")
-  yearEndLocked?: boolean; // localStorage only for now
-  currency?: string;       // DB: clients.base_currency
-  country?: string;        // DB: clients.country
-  timezone?: string;       // DB: clients.timezone
-  email?: string;          // DB: clients.company_email
-  phone?: string;          // DB: clients.company_phone
+  companyLogo?: string;    // localStorage only
+  yearEndDate?: string;    // not yet on backend Client model; localStorage fallback
+  yearEndLocked?: boolean; // localStorage only
+  currency?: string;       // → backend `baseCurrency`
+  country?: string;        // → backend `country`
+  timezone?: string;       // → backend `timezone`
+  email?: string;          // → backend `companyEmail`
+  phone?: string;          // → backend `companyPhone`
 }
 
 interface ClientContextType {
@@ -27,6 +27,7 @@ const LOCAL_KEY = "cg_client_local_extras";
 interface LocalExtras {
   companyLogo?: string;
   yearEndLocked?: boolean;
+  yearEndDate?: string;
 }
 
 function readLocalExtras(): LocalExtras {
@@ -49,78 +50,47 @@ function writeLocalExtras(extras: LocalExtras) {
 export function ClientProvider({ children }: { children: ReactNode }) {
   const { clientId } = useRole();
   const qc = useQueryClient();
-
-  const { data: dbClient } = useQuery({
-    queryKey: ["client", clientId],
-    enabled: !!clientId,
-    staleTime: 10 * 60 * 1000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("id, company_name, year_end_date, base_currency, country, timezone, company_email, company_phone")
-        .eq("id", clientId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (next: ClientConfig) => {
-      if (!clientId) return;
-      const patch: Record<string, any> = {
-        company_name: next.companyName,
-      };
-      if (next.yearEndDate !== undefined) patch.year_end_date = next.yearEndDate;
-      if (next.currency !== undefined) patch.base_currency = next.currency;
-      if (next.country !== undefined) patch.country = next.country;
-      if (next.timezone !== undefined) patch.timezone = next.timezone;
-      if (next.email !== undefined) patch.company_email = next.email;
-      if (next.phone !== undefined) patch.company_phone = next.phone;
-
-      const { error } = await supabase.from("clients").update(patch as any).eq("id", clientId);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["client", clientId] }),
-  });
+  const tenantQ = useTenant(clientId);
+  const updateMut = useUpdateTenant();
 
   const client = useMemo<ClientConfig>(() => {
     const extras = readLocalExtras();
-    const db: any = dbClient ?? {};
+    const db = tenantQ.data;
     return {
-      companyName: db.company_name ?? "",
+      companyName: db?.companyName ?? "",
       companyLogo: extras.companyLogo,
-      yearEndDate: db.year_end_date ?? "12-31",
+      yearEndDate: extras.yearEndDate ?? "12-31",
       yearEndLocked: extras.yearEndLocked,
-      currency: db.base_currency ?? "SAR",
-      country: db.country ?? "Saudi Arabia",
-      timezone: db.timezone ?? "Asia/Riyadh",
-      email: db.company_email ?? "",
-      phone: db.company_phone ?? "",
+      currency: db?.baseCurrency ?? "SAR",
+      country: db?.country ?? "Saudi Arabia",
+      timezone: db?.timezone ?? "Asia/Riyadh",
+      email: db?.companyEmail ?? "",
+      phone: db?.companyPhone ?? "",
     };
-  }, [dbClient]);
+  }, [tenantQ.data]);
 
   const setClient = (next: ClientConfig) => {
-    // Persist to DB (company name + all other DB-backed fields)
-    updateMutation.mutate(next);
-
-    // Persist ONLY non-DB fields to localStorage
+    if (clientId) {
+      updateMut.mutate({
+        id: clientId,
+        body: {
+          companyName: next.companyName,
+          ...(next.currency !== undefined ? { baseCurrency: next.currency } : {}),
+          ...(next.country !== undefined ? { country: next.country } : {}),
+          ...(next.timezone !== undefined ? { timezone: next.timezone } : {}),
+          ...(next.email !== undefined ? { companyEmail: next.email } : {}),
+          ...(next.phone !== undefined ? { companyPhone: next.phone } : {}),
+        },
+      });
+    }
     writeLocalExtras({
       companyLogo: next.companyLogo,
       yearEndLocked: next.yearEndLocked,
+      yearEndDate: next.yearEndDate,
     });
-
-    // Optimistic update
-    qc.setQueryData(["client", clientId], (old: any) => ({
-      ...(old ?? {}),
-      company_name: next.companyName,
-      year_end_date: next.yearEndDate,
-      base_currency: next.currency,
-      country: next.country,
-      timezone: next.timezone,
-      company_email: next.email,
-      company_phone: next.phone,
-    }));
+    if (clientId) {
+      qc.invalidateQueries({ queryKey: tenantKeys.detail(clientId) });
+    }
   };
 
   return (
