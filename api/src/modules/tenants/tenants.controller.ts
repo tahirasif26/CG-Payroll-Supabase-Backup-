@@ -1,21 +1,27 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common';
+import { z } from 'zod';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '@common/decorators/public.decorator';
 import { Roles } from '@common/decorators/roles.decorator';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '@common/pipes/zod-validation.pipe';
 import { paginationQuerySchema, type PaginationQuery, buildSkipTake } from '@common/dto/pagination.dto';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import type { RequestUser } from '@common/types/jwt-payload';
 import { TenantsService } from './tenants.service';
 import {
   createTenantSchema,
@@ -23,6 +29,20 @@ import {
   type CreateTenantDto,
   type UpdateTenantDto,
 } from './dto/tenant.schemas';
+
+const tabKeyArraySchema = z.object({
+  enabledTabKeys: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(2)
+        .max(80)
+        .regex(/^[a-z0-9_]+\.[a-z0-9_]+$/, 'Tab key must be module.key'),
+    )
+    .max(200),
+});
+type TabKeyArrayDto = z.infer<typeof tabKeyArraySchema>;
 
 @ApiTags('tenants')
 @ApiBearerAuth('access-token')
@@ -39,9 +59,11 @@ export class TenantsController {
   @Public()
   @Post()
   @ApiOperation({ summary: 'Provision a new tenant (client) with optional bootstrap admin' })
-  @UsePipes(new ZodValidationPipe(createTenantSchema))
-  create(@Body() dto: CreateTenantDto) {
-    return this.tenants.create(dto);
+  create(
+    @Body(new ZodValidationPipe(createTenantSchema)) dto: CreateTenantDto,
+    @CurrentUser() user?: RequestUser,
+  ) {
+    return this.tenants.create(dto, user?.id ?? null);
   }
 
   @UseGuards(RolesGuard)
@@ -66,6 +88,43 @@ export class TenantsController {
     };
   }
 
+  /**
+   * Returns the caller's accessible tab keys. Super-admins get `null`
+   * (unrestricted — sidebar/route guards bypass tab filtering). Everyone else
+   * gets their primary client's `enabledTabKeys` (empty array = locked out).
+   *
+   * Declared before `:id` so the literal `me` segment doesn't get parsed as a
+   * UUID.
+   */
+  @Get('me/tabs')
+  @ApiOperation({ summary: "Current user's accessible tab keys" })
+  async myTabs(@CurrentUser() user: RequestUser) {
+    const isSuperAdmin = user.roles.some((r) => r.role === 'super_admin');
+    return this.tenants.getTabsForUser({
+      isSuperAdmin,
+      primaryClientId: user.primaryClientId,
+    });
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('super_admin')
+  @Get(':id/tab-access')
+  @ApiOperation({ summary: "Tenant's enabled tab keys (super_admin only)" })
+  getTabAccess(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.tenants.getTabAccess(id);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('super_admin')
+  @Put(':id/tab-access')
+  @ApiOperation({ summary: 'Replace tenant tab access (super_admin only)' })
+  setTabAccess(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body(new ZodValidationPipe(tabKeyArraySchema)) dto: TabKeyArrayDto,
+  ) {
+    return this.tenants.setTabAccess(id, dto.enabledTabKeys);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get tenant by id' })
   findOne(@Param('id', new ParseUUIDPipe()) id: string) {
@@ -75,11 +134,29 @@ export class TenantsController {
   @UseGuards(RolesGuard)
   @Roles('super_admin', 'admin')
   @Patch(':id')
-  @ApiOperation({ summary: 'Update tenant (super_admin or tenant admin)' })
+  @ApiOperation({
+    summary: 'Update tenant (super_admin or tenant admin)',
+    description:
+      'Also handles suspend / activate by passing `{ status: "suspended" | "active" | "trial" }`.',
+  })
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body(new ZodValidationPipe(updateTenantSchema)) dto: UpdateTenantDto,
   ) {
     return this.tenants.update(id, dto);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('super_admin')
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete tenant and all its data (super_admin only, hard cascade)',
+    description:
+      'Cascade-deletes users, employees, payroll, leave, expenses, advances, ' +
+      'loans, assets, etc. — every row scoped to this client. Irreversible.',
+  })
+  remove(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.tenants.delete(id);
   }
 }

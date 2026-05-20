@@ -30,7 +30,19 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, status: true, primaryClientId: true },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        primaryClientId: true,
+        primaryClient: { select: { status: true } },
+        userRoles: {
+          select: {
+            clientId: true,
+            client: { select: { status: true } },
+          },
+        },
+      },
     });
 
     if (!user || user.status !== 'active') {
@@ -38,6 +50,27 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         code: 'USER_INACTIVE',
         message: 'User is not active',
       });
+    }
+
+    // Super-admins (no client binding) are always allowed through.
+    const isSuperAdmin = payload.roles.some((r) => r.role === 'super_admin');
+
+    if (!isSuperAdmin) {
+      // Block every member of a suspended client. If the user has more than
+      // one membership, they're locked out only when *all* their clients are
+      // suspended (otherwise the user picks a different client scope).
+      const memberClientStatuses = user.userRoles
+        .filter((r) => r.client)
+        .map((r) => r.client!.status);
+      const everyClientSuspended =
+        memberClientStatuses.length > 0 &&
+        memberClientStatuses.every((s) => s === 'suspended');
+      if (everyClientSuspended) {
+        throw new UnauthorizedException({
+          code: 'CLIENT_SUSPENDED',
+          message: 'Your organisation has been suspended. Contact support.',
+        });
+      }
     }
 
     return {

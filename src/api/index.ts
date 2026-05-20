@@ -54,10 +54,15 @@ export type {
 export { tenantsApi } from "./tenants/tenants.api";
 export {
   tenantKeys,
+  tabAccessKeys,
   useTenants,
   useTenant,
   useCreateTenant,
   useUpdateTenant,
+  useDeleteTenant,
+  useTenantTabAccess,
+  useSetTenantTabAccess,
+  useMyTabs,
 } from "./tenants/tenants.hooks";
 export type {
   Tenant,
@@ -66,6 +71,8 @@ export type {
   CreateTenantRequest,
   CreateTenantResponse,
   UpdateTenantRequest,
+  TenantTabAccess,
+  MyTabsResponse,
 } from "./tenants/tenants.types";
 
 // ─── Employees ───────────────────────────────────────────────────────────────

@@ -56,39 +56,40 @@ export function useAsset(id: string | undefined) {
 
 export function useCreateAsset() {
   const m = useCreateAssetApi();
+  const buildBody = (input: Partial<AssetRow>) => ({
+    assetTag: input.asset_tag!,
+    name: input.name!,
+    category: input.category,
+    brand: input.brand,
+    model: input.model,
+    serialNumber: input.serial_number,
+    location: input.location,
+    condition: input.condition,
+  });
   return {
     ...m,
-    mutate: (input: Partial<AssetRow>) =>
-      m.mutate({
-        assetTag: input.asset_tag!,
-        name: input.name!,
-        category: input.category,
-        brand: input.brand,
-        model: input.model,
-        serialNumber: input.serial_number,
-        location: input.location,
-        condition: input.condition,
-      }),
+    mutate: (input: Partial<AssetRow>) => m.mutate(buildBody(input)),
+    mutateAsync: async (input: Partial<AssetRow>) => m.mutateAsync(buildBody(input)),
   };
 }
 
 export function useUpdateAsset() {
   const m = useUpdateAssetApi();
+  const buildBody = (patch: Partial<AssetRow>) => ({
+    name: patch.name,
+    category: patch.category,
+    brand: patch.brand,
+    model: patch.model,
+    serialNumber: patch.serial_number,
+    location: patch.location,
+    condition: patch.condition,
+  });
   return {
     ...m,
     mutate: ({ id, patch }: { id: string; patch: Partial<AssetRow> }) =>
-      m.mutate({
-        id,
-        body: {
-          name: patch.name,
-          category: patch.category,
-          brand: patch.brand,
-          model: patch.model,
-          serialNumber: patch.serial_number,
-          location: patch.location,
-          condition: patch.condition,
-        },
-      }),
+      m.mutate({ id, body: buildBody(patch) }),
+    mutateAsync: async ({ id, patch }: { id: string; patch: Partial<AssetRow> }) =>
+      m.mutateAsync({ id, body: buildBody(patch) }),
   };
 }
 

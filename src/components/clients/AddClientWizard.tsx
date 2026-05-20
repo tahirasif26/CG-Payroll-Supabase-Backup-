@@ -1,17 +1,43 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
-import { Building2, User, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Sparkles, Crown, Rocket, Layers, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Building2,
+  User,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  Loader2,
+  Sparkles,
+  Crown,
+  Rocket,
+  Layers,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useCreateClient, type CreateClientInput } from "@/hooks/queries/useClients";
+import {
+  useCreateClient,
+  useUpdateClient,
+  type ClientStat,
+  type CreateClientInput,
+} from "@/hooks/queries/useClients";
 import { useTabDefinitions } from "@/hooks/queries/useTabAccess";
-
 import { COUNTRIES, TIMEZONES, CURRENCIES } from "@/lib/countries";
+import { useToast } from "@/hooks/use-toast";
+
+export type ClientWizardMode = "create" | "edit" | "view";
 
 const PLANS = [
   { id: "starter", name: "Starter", icon: Sparkles, desc: "Up to 25 employees, core HR + payroll", color: "text-slate-600", bg: "bg-slate-50 border-slate-200" },
@@ -28,18 +54,33 @@ const step1Schema = z.object({
   base_currency: z.string().min(1, "Currency is required"),
 });
 
-const step2Schema = z.object({
+const step2CreateSchema = z.object({
   admin_full_name: z.string().trim().min(2, "Admin name is required"),
   admin_email: z.string().trim().email("Valid email required"),
   subscription_plan: z.enum(["starter", "pro", "enterprise"]),
-  status: z.enum(["trial", "active"]),
+  status: z.enum(["trial", "active", "suspended"]),
 });
 
-type FormState = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & {
-  enabled_tab_keys: string[];
-};
+const step2EditSchema = z.object({
+  subscription_plan: z.enum(["starter", "pro", "enterprise"]),
+  status: z.enum(["trial", "active", "suspended"]),
+});
 
-const initialForm: FormState = {
+interface FormState {
+  company_name: string;
+  company_email: string;
+  company_phone: string;
+  country: string;
+  timezone: string;
+  base_currency: string;
+  admin_full_name: string;
+  admin_email: string;
+  subscription_plan: "starter" | "pro" | "enterprise";
+  status: "trial" | "active" | "suspended";
+  enabled_tab_keys: string[];
+}
+
+const blankForm: FormState = {
   company_name: "",
   company_email: "",
   company_phone: "",
@@ -54,27 +95,80 @@ const initialForm: FormState = {
 };
 
 const MODULE_META: Record<string, { label: string; emoji: string; order: number }> = {
-  employees:   { label: "Employees",        emoji: "👥", order: 1 },
-  payroll:     { label: "Payroll",          emoji: "💰", order: 2 },
-  expenses:    { label: "Expense Tracking", emoji: "🧾", order: 3 },
-  assets:      { label: "Assets",           emoji: "📦", order: 4 },
-  performance: { label: "Performance",      emoji: "⭐", order: 5 },
-  projects:    { label: "Projects",         emoji: "📂", order: 6 },
-  reports:     { label: "Reports",          emoji: "📊", order: 7 },
-  settings:    { label: "Settings",         emoji: "⚙️", order: 8 },
+  employees: { label: "Employees", emoji: "👥", order: 1 },
+  payroll: { label: "Payroll", emoji: "💰", order: 2 },
+  expenses: { label: "Expense Tracking", emoji: "🧾", order: 3 },
+  assets: { label: "Assets", emoji: "📦", order: 4 },
+  performance: { label: "Performance", emoji: "⭐", order: 5 },
+  projects: { label: "Projects", emoji: "📂", order: 6 },
+  reports: { label: "Reports", emoji: "📊", order: 7 },
+  settings: { label: "Settings", emoji: "⚙️", order: 8 },
 };
+
+/** ISO-2 code stored on the backend → display name from COUNTRIES list. */
+function isoToDisplayName(iso: string | undefined | null): string {
+  if (!iso) return "Saudi Arabia";
+  const match = COUNTRIES.find((c) => c.code.toLowerCase() === iso.toLowerCase());
+  return match ? match.name : iso;
+}
+
+function clientToForm(client: ClientStat): FormState {
+  return {
+    company_name: client.company_name ?? "",
+    company_email: client.company_email ?? "",
+    company_phone: "",
+    country: isoToDisplayName(client.country),
+    timezone: client.timezone ?? "Asia/Riyadh",
+    base_currency: client.base_currency ?? "SAR",
+    admin_full_name: "",
+    admin_email: "",
+    subscription_plan:
+      (client.subscription_plan as FormState["subscription_plan"]) ?? "starter",
+    status: (client.status as FormState["status"]) ?? "trial",
+    enabled_tab_keys: client.enabled_tab_keys ?? [],
+  };
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode?: ClientWizardMode;
+  client?: ClientStat | null;
 }
 
-export function AddClientWizard({ open, onOpenChange }: Props) {
+export function AddClientWizard({
+  open,
+  onOpenChange,
+  mode = "create",
+  client = null,
+}: Props) {
+  const isCreate = mode === "create";
+  const isEdit = mode === "edit";
+  const isView = mode === "view";
+  const readOnly = isView;
+  const totalSteps = isCreate ? 4 : 3; // edit/view: skip admin-only fields & merge
+
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<FormState>(initialForm);
+  const [form, setForm] = useState<FormState>(blankForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const createClient = useCreateClient();
+  const createMut = useCreateClient();
+  const updateMut = useUpdateClient();
+  const { toast } = useToast();
+  const submitting = createMut.isPending || updateMut.isPending;
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+
+  // Seed the form from the supplied client when in edit/view mode (or whenever
+  // the supplied client changes).
+  useEffect(() => {
+    if (!open) return;
+    if (client && (isEdit || isView)) {
+      setForm(clientToForm(client));
+    } else if (isCreate) {
+      setForm(blankForm);
+    }
+    setStep(1);
+    setErrors({});
+  }, [open, client, isCreate, isEdit, isView]);
 
   const toggleExpanded = (key: string) => {
     setExpandedModules((prev) => {
@@ -87,7 +181,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
 
   const { data: tabDefs } = useTabDefinitions();
 
-  const tabsByModule = (() => {
+  const tabsByModule = useMemo(() => {
     const map = new Map<string, typeof tabDefs>();
     for (const td of tabDefs ?? []) {
       if (!map.has(td.module_key)) map.set(td.module_key, [] as any);
@@ -96,9 +190,10 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
     return Array.from(map.entries()).sort(
       (a, b) => (MODULE_META[a[0]]?.order ?? 99) - (MODULE_META[b[0]]?.order ?? 99),
     );
-  })();
+  }, [tabDefs]);
 
   const toggleTab = (tabKey: string, enabled: boolean) => {
+    if (readOnly) return;
     setForm((f) => ({
       ...f,
       enabled_tab_keys: enabled
@@ -108,7 +203,10 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   };
 
   const toggleModule = (moduleKey: string, enabled: boolean) => {
-    const keys = (tabDefs ?? []).filter((t) => t.module_key === moduleKey).map((t) => t.tab_key);
+    if (readOnly) return;
+    const keys = (tabDefs ?? [])
+      .filter((t) => t.module_key === moduleKey)
+      .map((t) => t.tab_key);
     setForm((f) => ({
       ...f,
       enabled_tab_keys: enabled
@@ -117,19 +215,29 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
     }));
   };
 
-  const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
+  const update = (patch: Partial<FormState>) => {
+    if (readOnly) return;
+    setForm((f) => ({ ...f, ...patch }));
+  };
 
   const handleCountryChange = (countryName: string) => {
     const c = COUNTRIES.find((x) => x.name === countryName);
-    update({ country: countryName, ...(c ? { timezone: c.tz, base_currency: c.currency } : {}) });
+    update({
+      country: countryName,
+      ...(c ? { timezone: c.tz, base_currency: c.currency } : {}),
+    });
   };
 
   const validateStep = (s: number): boolean => {
-    const schema = s === 1 ? step1Schema : step2Schema;
+    if (readOnly) return true;
+    const schema =
+      s === 1 ? step1Schema : isCreate ? step2CreateSchema : step2EditSchema;
     const result = schema.safeParse(form);
     if (!result.success) {
       const errs: Record<string, string> = {};
-      result.error.issues.forEach((i) => { errs[i.path[0] as string] = i.message; });
+      result.error.issues.forEach((i) => {
+        errs[i.path[0] as string] = i.message;
+      });
       setErrors(errs);
       return false;
     }
@@ -137,62 +245,116 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
     return true;
   };
 
-  const handleNext = () => { if (validateStep(step)) setStep(step + 1); };
-  const handleBack = () => { setErrors({}); setStep(step - 1); };
+  const handleNext = () => {
+    if (validateStep(step)) setStep(step + 1);
+  };
+  const handleBack = () => {
+    setErrors({});
+    setStep(step - 1);
+  };
 
   const handleSubmit = async () => {
-    if (!validateStep(2)) return;
+    if (readOnly) {
+      onOpenChange(false);
+      return;
+    }
+    if (!validateStep(isCreate ? 2 : 2)) return;
+
     try {
-      // Derive enabled_modules from selected tabs (excludes "settings" — always implicit)
-      const enabledModules = Array.from(
-        new Set(
-          (tabDefs ?? [])
-            .filter((t) => form.enabled_tab_keys.includes(t.tab_key) && t.module_key !== "settings")
-            .map((t) => t.module_key),
-        ),
-      );
-      const payload = {
-        ...form,
-        enabled_modules: enabledModules,
-        enabled_tab_keys: form.enabled_tab_keys,
-      } as unknown as CreateClientInput;
-      await createClient.mutateAsync(payload);
+      if (isCreate) {
+        const payload: CreateClientInput = {
+          company_name: form.company_name,
+          company_email: form.company_email,
+          country: form.country,
+          timezone: form.timezone,
+          base_currency: form.base_currency,
+          enabled_tab_keys: form.enabled_tab_keys,
+          ...(form.admin_email
+            ? {
+                admin_invite: {
+                  email: form.admin_email,
+                  full_name: form.admin_full_name || undefined,
+                },
+              }
+            : {}),
+        };
+        const res = await createMut.mutateAsync(payload);
+        // res is `CreateTenantResponse`; surface invite delivery state.
+        const inv = (res as { invitation?: { email: string; emailSent: boolean } | null })?.invitation;
+        if (inv?.emailSent) {
+          toast({
+            title: "Client created",
+            description: `Invitation email sent to ${inv.email}`,
+          });
+        } else if (inv && inv.emailSent === false) {
+          toast({
+            variant: "destructive",
+            title: "Client created — email delivery failed",
+            description: `The invitation row was saved for ${inv.email} but the mail provider rejected the message. Check the API server logs for the detail and resend from the client detail view.`,
+          });
+        } else {
+          toast({ title: "Client created" });
+        }
+      } else if (isEdit && client) {
+        await updateMut.mutateAsync({
+          id: client.id,
+          patch: {
+            company_name: form.company_name,
+            company_email: form.company_email,
+            country: form.country,
+            timezone: form.timezone,
+            base_currency: form.base_currency,
+            enabled_tab_keys: form.enabled_tab_keys,
+          },
+        });
+      }
       onOpenChange(false);
       setStep(1);
-      setForm(initialForm);
     } catch {
-      /* toast handled in hook */
+      // toast is handled in the hook
     }
   };
 
-  const reset = (open: boolean) => {
-    onOpenChange(open);
-    if (!open) {
+  const reset = (next: boolean) => {
+    onOpenChange(next);
+    if (!next) {
       setStep(1);
-      setForm(initialForm);
       setErrors({});
+      if (isCreate) setForm(blankForm);
     }
   };
+
+  const title =
+    isCreate ? "Add New Client" : isEdit ? "Edit Client" : "Client Details";
+
+  // ─── Render ───────────────────────────────────────────────────────────
 
   return (
     <Dialog open={open} onOpenChange={reset}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">Add New Client</DialogTitle>
+          <DialogTitle className="text-xl">{title}</DialogTitle>
         </DialogHeader>
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-2 py-2">
-          {[1, 2, 3, 4].map((s) => (
+          {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
             <div key={s} className="flex items-center gap-2">
-              <div className={cn(
-                "h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-colors",
-                step === s ? "bg-primary text-primary-foreground border-primary" :
-                step > s ? "bg-primary/10 text-primary border-primary" : "bg-muted text-muted-foreground border-border"
-              )}>
+              <div
+                className={cn(
+                  "h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-colors",
+                  step === s
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : step > s
+                      ? "bg-primary/10 text-primary border-primary"
+                      : "bg-muted text-muted-foreground border-border",
+                )}
+              >
                 {step > s ? <CheckCircle2 className="h-4 w-4" /> : s}
               </div>
-              {s < 4 && <div className={cn("h-0.5 w-8", step > s ? "bg-primary" : "bg-border")} />}
+              {s < totalSteps && (
+                <div className={cn("h-0.5 w-8", step > s ? "bg-primary" : "bg-border")} />
+              )}
             </div>
           ))}
         </div>
@@ -204,30 +366,82 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Company Name *" error={errors.company_name}>
-                <Input value={form.company_name} onChange={(e) => update({ company_name: e.target.value })} placeholder="Acme Corp" />
+                <Input
+                  value={form.company_name}
+                  onChange={(e) => update({ company_name: e.target.value })}
+                  placeholder="Acme Corp"
+                  disabled={readOnly}
+                />
               </Field>
               <Field label="Company Email *" error={errors.company_email}>
-                <Input type="email" value={form.company_email} onChange={(e) => update({ company_email: e.target.value })} placeholder="contact@acme.com" />
+                <Input
+                  type="email"
+                  value={form.company_email}
+                  onChange={(e) => update({ company_email: e.target.value })}
+                  placeholder="contact@acme.com"
+                  disabled={readOnly}
+                />
               </Field>
               <Field label="Phone" error={errors.company_phone}>
-                <Input value={form.company_phone} onChange={(e) => update({ company_phone: e.target.value })} placeholder="+966 50 000 0000" />
+                <Input
+                  value={form.company_phone}
+                  onChange={(e) => update({ company_phone: e.target.value })}
+                  placeholder="+966 50 000 0000"
+                  disabled={readOnly}
+                />
               </Field>
               <Field label="Country *" error={errors.country}>
-                <Select value={form.country} onValueChange={handleCountryChange}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                <Select
+                  value={form.country}
+                  onValueChange={handleCountryChange}
+                  disabled={readOnly}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c.code} value={c.name}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </Field>
               <Field label="Timezone *" error={errors.timezone}>
-                <Select value={form.timezone} onValueChange={(v) => update({ timezone: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TIMEZONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                <Select
+                  value={form.timezone}
+                  onValueChange={(v) => update({ timezone: v })}
+                  disabled={readOnly}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMEZONES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </Field>
               <Field label="Base Currency *" error={errors.base_currency}>
-                <Select value={form.base_currency} onValueChange={(v) => update({ base_currency: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <Select
+                  value={form.base_currency}
+                  onValueChange={(v) => update({ base_currency: v })}
+                  disabled={readOnly}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </Field>
             </div>
@@ -237,34 +451,53 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
         {step === 2 && (
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-              <User className="h-4 w-4" /> Admin Account & Plan
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Admin Full Name *" error={errors.admin_full_name}>
-                <Input value={form.admin_full_name} onChange={(e) => update({ admin_full_name: e.target.value })} placeholder="Jane Doe" />
-              </Field>
-              <Field label="Admin Email *" error={errors.admin_email}>
-                <Input type="email" value={form.admin_email} onChange={(e) => update({ admin_email: e.target.value })} placeholder="jane@acme.com" />
-              </Field>
+              <User className="h-4 w-4" />
+              {isCreate ? "Admin Account & Plan" : "Subscription & Status"}
             </div>
 
+            {isCreate && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Admin Full Name *" error={errors.admin_full_name}>
+                  <Input
+                    value={form.admin_full_name}
+                    onChange={(e) => update({ admin_full_name: e.target.value })}
+                    placeholder="Jane Doe"
+                  />
+                </Field>
+                <Field label="Admin Email *" error={errors.admin_email}>
+                  <Input
+                    type="email"
+                    value={form.admin_email}
+                    onChange={(e) => update({ admin_email: e.target.value })}
+                    placeholder="jane@acme.com"
+                  />
+                </Field>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Subscription Plan</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Subscription Plan
+              </Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {PLANS.map((p) => {
                   const Icon = p.icon;
                   const selected = form.subscription_plan === p.id;
                   return (
-                    <button key={p.id} type="button" onClick={() => update({ subscription_plan: p.id })}
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => update({ subscription_plan: p.id })}
+                      disabled={readOnly}
                       className={cn(
-                        "text-left rounded-lg border-2 p-3 transition-all",
-                        selected ? `${p.bg} border-current ${p.color} ring-2 ring-current/20` : "border-border hover:border-muted-foreground/40"
-                      )}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Icon className={cn("h-4 w-4", selected ? p.color : "text-muted-foreground")} />
-                        <span className="font-semibold text-sm">{p.name}</span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-snug">{p.desc}</p>
+                        "rounded-lg border-2 p-3 text-left transition-all",
+                        selected ? `${p.bg} border-current ${p.color}` : "border-border hover:border-muted-foreground/40",
+                        readOnly && "opacity-80 cursor-not-allowed",
+                      )}
+                    >
+                      <Icon className={cn("h-5 w-5 mb-1", selected ? p.color : "text-muted-foreground")} />
+                      <div className="text-sm font-semibold">{p.name}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1">{p.desc}</div>
                     </button>
                   );
                 })}
@@ -272,14 +505,24 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Initial Status</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {(["trial", "active"] as const).map((s) => (
-                  <button key={s} type="button" onClick={() => update({ status: s })}
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Status
+              </Label>
+              <div className="grid grid-cols-3 gap-3">
+                {(["trial", "active", "suspended"] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => update({ status: s })}
+                    disabled={readOnly}
                     className={cn(
                       "rounded-lg border-2 p-3 text-sm font-medium capitalize transition-all",
-                      form.status === s ? "border-primary bg-primary/5 text-primary" : "border-border hover:border-muted-foreground/40"
-                    )}>
+                      form.status === s
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border hover:border-muted-foreground/40",
+                      readOnly && "opacity-80 cursor-not-allowed",
+                    )}
+                  >
                     {s}
                   </button>
                 ))}
@@ -294,8 +537,9 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
               <Layers className="h-4 w-4" /> Tab Access
             </div>
             <p className="text-xs text-muted-foreground">
-              Pick the sidebar tabs this client will have access to. Whatever you grant here is what their
-              admins and employees can see — anything off stays hidden.
+              {readOnly
+                ? "Tabs this client currently has access to."
+                : "Pick the sidebar tabs this client will have access to."}
             </p>
 
             <div className="space-y-2">
@@ -323,6 +567,7 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
                         checked={allOn}
                         onCheckedChange={(v) => toggleModule(moduleKey, Boolean(v))}
                         className="mt-1"
+                        disabled={readOnly}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -345,12 +590,16 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
                           return (
                             <label
                               key={t.tab_key}
-                              className="flex items-start gap-3 px-4 py-2.5 pl-12 hover:bg-muted/30 cursor-pointer"
+                              className={cn(
+                                "flex items-start gap-3 px-4 py-2.5 pl-12 hover:bg-muted/30",
+                                readOnly ? "cursor-default" : "cursor-pointer",
+                              )}
                             >
                               <Checkbox
                                 checked={checked}
                                 onCheckedChange={(v) => toggleTab(t.tab_key, Boolean(v))}
                                 className="mt-0.5"
+                                disabled={readOnly}
                               />
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm text-foreground">{t.label}</div>
@@ -376,7 +625,8 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
           </div>
         )}
 
-        {step === 4 && (
+        {/* Step 4 — only in create mode (review & confirm) */}
+        {step === 4 && isCreate && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <CheckCircle2 className="h-4 w-4" /> Review & Confirm
@@ -398,26 +648,52 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
             <ReviewSection title="Tab Access">
               <ReviewRow
                 k="Tabs"
-                v={form.enabled_tab_keys.length === 0 ? "None" : `${form.enabled_tab_keys.length} selected`}
+                v={
+                  form.enabled_tab_keys.length === 0
+                    ? "None"
+                    : `${form.enabled_tab_keys.length} selected`
+                }
               />
             </ReviewSection>
             <p className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
-              An invitation email will be sent to <strong>{form.admin_email}</strong> to set their password and access the platform.
+              An invitation email will be sent to <strong>{form.admin_email}</strong> to set
+              their password and access the platform.
             </p>
           </div>
         )}
 
         <div className="flex items-center justify-between pt-4 border-t">
-          <Button variant="ghost" onClick={handleBack} disabled={step === 1 || createClient.isPending}>
+          <Button variant="ghost" onClick={handleBack} disabled={step === 1 || submitting}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
-          {step < 4 ? (
+
+          {isView ? (
+            // View mode — single Close button on every step
+            step < totalSteps ? (
+              <Button onClick={handleNext}>
+                Next <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+            )
+          ) : step < totalSteps ? (
             <Button onClick={handleNext}>
               Next <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={createClient.isPending}>
-              {createClient.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</> : "Create Client & Send Invitation"}
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />{" "}
+                  {isCreate ? "Creating..." : "Saving..."}
+                </>
+              ) : isCreate ? (
+                "Create Client & Send Invitation"
+              ) : (
+                "Save Changes"
+              )}
             </Button>
           )}
         </div>
@@ -426,7 +702,15 @@ export function AddClientWizard({ open, onOpenChange }: Props) {
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium">{label}</Label>
@@ -436,16 +720,32 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   );
 }
 
-function ReviewSection({ title, children }: { title: string; children: React.ReactNode }) {
+function ReviewSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg border bg-muted/20 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{title}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        {title}
+      </p>
       <div className="space-y-1">{children}</div>
     </div>
   );
 }
 
-function ReviewRow({ k, v, className }: { k: string; v: string; className?: string }) {
+function ReviewRow({
+  k,
+  v,
+  className,
+}: {
+  k: string;
+  v: string;
+  className?: string;
+}) {
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-muted-foreground">{k}</span>

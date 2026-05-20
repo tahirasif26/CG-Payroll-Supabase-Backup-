@@ -1,6 +1,21 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { AppRole, ClientStatus, Prisma, UserStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  AppRole,
+  ClientStatus,
+  InvitationStatus,
+  Prisma,
+  UserStatus,
+} from '@prisma/client';
+import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '@infrastructure/prisma/prisma.service';
+import { MailService } from '@infrastructure/mail/mail.service';
+import { TypedConfigService } from '@config/typed-config.service';
 import { PasswordService } from '@modules/auth/password.service';
 import type { CreateTenantDto, UpdateTenantDto } from './dto/tenant.schemas';
 
@@ -16,12 +31,23 @@ import type { CreateTenantDto, UpdateTenantDto } from './dto/tenant.schemas';
  */
 @Injectable()
 export class TenantsService {
+  private readonly logger = new Logger(TenantsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly password: PasswordService,
+    private readonly mail: MailService,
+    private readonly config: TypedConfigService,
   ) {}
 
-  async create(dto: CreateTenantDto) {
+  async create(dto: CreateTenantDto, invitedByUserId?: string | null) {
+    if (dto.initialAdmin && dto.adminInvite) {
+      throw new BadRequestException({
+        code: 'CONFLICTING_ADMIN_FIELDS',
+        message: 'Provide either initialAdmin or adminInvite, not both',
+      });
+    }
+
     const existing = await this.prisma.client.findUnique({
       where: { companySlug: dto.companySlug },
     });
@@ -32,7 +58,22 @@ export class TenantsService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    // If we're inviting an admin, make sure their email isn't already on the
+    // platform — invite acceptance would otherwise collide on the user row.
+    if (dto.adminInvite) {
+      const conflict = await this.prisma.user.findUnique({
+        where: { email: dto.adminInvite.email },
+        select: { id: true },
+      });
+      if (conflict) {
+        throw new ConflictException({
+          code: 'EMAIL_TAKEN',
+          message: 'Admin email is already in use',
+        });
+      }
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
       const client = await tx.client.create({
         data: {
           companyName: dto.companyName,
@@ -44,6 +85,7 @@ export class TenantsService {
           baseCurrency: dto.baseCurrency,
           subscriptionPlan: dto.subscriptionPlan,
           status: ClientStatus.active,
+          enabledTabKeys: dto.enabledTabKeys ?? [],
         },
       });
 
@@ -98,11 +140,82 @@ export class TenantsService {
             clientId: client.id,
           },
         });
-        return { client, adminUserId: adminUser.id };
+        return { client, adminUserId: adminUser.id, invitation: null as
+          | { id: string; email: string; tokenPlain: string } | null };
       }
 
-      return { client, adminUserId: null };
+      // Alternative bootstrap: email an invitation link instead of setting a
+      // password up front. Token is generated here so we can mail it after the
+      // transaction commits (avoids sending mail for a tx that ends up rolled
+      // back).
+      if (dto.adminInvite) {
+        const tokenPlain = randomBytes(32).toString('hex');
+        const tokenHash = createHash('sha256').update(tokenPlain).digest('hex');
+        const ttlDays = this.config.get('INVITATION_TTL_DAYS');
+        const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+
+        const invitation = await tx.invitation.create({
+          data: {
+            clientId: client.id,
+            email: dto.adminInvite.email,
+            appRole: AppRole.admin,
+            roleId: adminRole.id,
+            firstName: dto.adminInvite.fullName?.split(' ')[0],
+            lastName: dto.adminInvite.fullName?.split(' ').slice(1).join(' ') || undefined,
+            tokenHash,
+            expiresAt,
+            status: InvitationStatus.pending,
+            createdByUserId: invitedByUserId ?? undefined,
+          },
+        });
+
+        return {
+          client,
+          adminUserId: null,
+          invitation: { id: invitation.id, email: invitation.email, tokenPlain },
+        };
+      }
+
+      return { client, adminUserId: null, invitation: null };
     });
+
+    // Side-effects after the transaction has committed.
+    if (result.invitation) {
+      try {
+        await this.mail.sendInvitation({
+          to: result.invitation.email,
+          token: result.invitation.tokenPlain,
+          companyName: result.client.companyName,
+        });
+      } catch (err) {
+        // Don't roll back the tenant if mail delivery fails — the super-admin
+        // can resend the invitation. Surface the failure in the response so
+        // the wizard can show a warning toast.
+        this.logger.error(
+          `Tenant created but invitation email failed for ${result.invitation.email}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        return {
+          client: result.client,
+          adminUserId: null,
+          invitation: {
+            id: result.invitation.id,
+            email: result.invitation.email,
+            emailSent: false,
+          },
+        };
+      }
+      return {
+        client: result.client,
+        adminUserId: null,
+        invitation: {
+          id: result.invitation.id,
+          email: result.invitation.email,
+          emailSent: true,
+        },
+      };
+    }
+
+    return { client: result.client, adminUserId: result.adminUserId, invitation: null };
   }
 
   async findById(id: string) {
@@ -136,5 +249,56 @@ export class TenantsService {
 
   update(id: string, dto: UpdateTenantDto) {
     return this.prisma.client.update({ where: { id }, data: dto });
+  }
+
+  /** Replace this tenant's tab access list. Empty array = locked workspace. */
+  async setTabAccess(id: string, enabledTabKeys: string[]) {
+    await this.findById(id);
+    return this.prisma.client.update({
+      where: { id },
+      data: { enabledTabKeys },
+      select: { id: true, enabledTabKeys: true },
+    });
+  }
+
+  async getTabAccess(id: string) {
+    const c = await this.prisma.client.findUnique({
+      where: { id },
+      select: { id: true, enabledTabKeys: true },
+    });
+    if (!c) {
+      throw new NotFoundException({ code: 'TENANT_NOT_FOUND', message: 'Tenant not found' });
+    }
+    return c;
+  }
+
+  /**
+   * Returns the tab access list for the caller. Resolution rules:
+   *   - super_admin (no client binding): returns null = unrestricted access
+   *   - user with primaryClientId: returns that client's enabledTabKeys
+   *   - user with no client at all: returns []  (effectively locked out)
+   */
+  async getTabsForUser(opts: { isSuperAdmin: boolean; primaryClientId: string | null }) {
+    if (opts.isSuperAdmin) return { enabledTabKeys: null as string[] | null };
+    if (!opts.primaryClientId) return { enabledTabKeys: [] };
+    const c = await this.prisma.client.findUnique({
+      where: { id: opts.primaryClientId },
+      select: { enabledTabKeys: true },
+    });
+    return { enabledTabKeys: c?.enabledTabKeys ?? [] };
+  }
+
+  /**
+   * Hard delete. Prisma's `onDelete: Cascade` on every domain table FK'd to
+   * Client (users, employees, leave, expenses, advances, loans, assets,
+   * payroll, etc.) means a single `delete` removes the tenant and every row
+   * scoped to it.
+   *
+   * If you'd rather keep history, switch this to a soft-delete by setting
+   * `status: 'suspended'` instead.
+   */
+  async delete(id: string) {
+    await this.findById(id); // 404 if not found
+    return this.prisma.client.delete({ where: { id } });
   }
 }

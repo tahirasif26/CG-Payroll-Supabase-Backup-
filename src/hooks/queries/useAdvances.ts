@@ -56,37 +56,38 @@ export function useAdvances(filters?: { status?: string; employee_id?: string })
 
 export function useCreateAdvance() {
   const m = useCreateAdvanceApi();
+  const buildBody = (input: Partial<AdvanceRow>) => ({
+    employeeId: input.employee_id!,
+    name: input.advance_name || "Advance",
+    purpose: input.purpose,
+    amount: input.amount ?? 0,
+    currency: input.currency ?? "AED",
+    expectedSpendDate: input.expected_spend_date,
+    settlementDueDate: input.settlement_due_date,
+    notes: input.notes,
+    status: "submitted" as const,
+  });
   return {
     ...m,
-    mutate: (input: Partial<AdvanceRow>) =>
-      m.mutate({
-        employeeId: input.employee_id!,
-        name: input.advance_name || "Advance",
-        purpose: input.purpose,
-        amount: input.amount ?? 0,
-        currency: input.currency ?? "AED",
-        expectedSpendDate: input.expected_spend_date,
-        settlementDueDate: input.settlement_due_date,
-        notes: input.notes,
-        status: "submitted",
-      }),
+    mutate: (input: Partial<AdvanceRow>) => m.mutate(buildBody(input)),
+    mutateAsync: async (input: Partial<AdvanceRow>) => m.mutateAsync(buildBody(input)),
   };
 }
 
 export function useUpdateAdvance() {
   const m = useUpdateAdvanceApi();
+  const buildBody = (patch: Partial<AdvanceRow>) => ({
+    name: patch.advance_name ?? undefined,
+    purpose: patch.purpose,
+    amount: patch.amount,
+    currency: patch.currency,
+    notes: patch.notes,
+  });
   return {
     ...m,
     mutate: ({ id, patch }: { id: string; patch: Partial<AdvanceRow> }) =>
-      m.mutate({
-        id,
-        body: {
-          name: patch.advance_name ?? undefined,
-          purpose: patch.purpose,
-          amount: patch.amount,
-          currency: patch.currency,
-          notes: patch.notes,
-        },
-      }),
+      m.mutate({ id, body: buildBody(patch) }),
+    mutateAsync: async ({ id, patch }: { id: string; patch: Partial<AdvanceRow> }) =>
+      m.mutateAsync({ id, body: buildBody(patch) }),
   };
 }

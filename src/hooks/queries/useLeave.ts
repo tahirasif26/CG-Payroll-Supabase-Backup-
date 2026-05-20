@@ -25,11 +25,22 @@ export function useLeaveRequests(filters?: { status?: string; employee_id?: stri
 export function useCreateLeaveRequest() { return useCreateLeaveRequestApi(); }
 export function useUpdateLeaveRequest() {
   const m = useDecideLeaveRequestApi();
+  const buildBody = (patch: { status?: string; rejection_reason?: string }) => {
+    if (patch.status === "approved") return { decision: "approve" as const };
+    if (patch.status === "rejected")
+      return { decision: "reject" as const, rejectionReason: patch.rejection_reason };
+    return null;
+  };
   return {
     ...m,
     mutate: ({ id, patch }: { id: string; patch: { status?: string; rejection_reason?: string } }) => {
-      if (patch.status === "approved") m.mutate({ id, body: { decision: "approve" } });
-      else if (patch.status === "rejected") m.mutate({ id, body: { decision: "reject", rejectionReason: patch.rejection_reason } });
+      const body = buildBody(patch);
+      if (body) m.mutate({ id, body });
+    },
+    mutateAsync: async ({ id, patch }: { id: string; patch: { status?: string; rejection_reason?: string } }) => {
+      const body = buildBody(patch);
+      if (body) return m.mutateAsync({ id, body });
+      return undefined as never;
     },
   };
 }

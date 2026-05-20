@@ -224,6 +224,12 @@ model Client {
   baseCurrency      String           @map("base_currency")
   status            ClientStatus     @default(trial)
   subscriptionPlan  SubscriptionPlan @default(starter) @map("subscription_plan")
+  /**
+   * Tab keys (matching the FE TAB_DEFINITIONS hardcoded list) this tenant has
+   * access to. Empty array = no tabs (locked workspace). The super admin sets
+   * this via the AddClient wizard step 3.
+   */
+  enabledTabKeys    String[]         @default([]) @map("enabled_tab_keys")
   createdAt         DateTime         @default(now()) @map("created_at")
   updatedAt         DateTime         @updatedAt @map("updated_at")
 
@@ -728,12 +734,14 @@ model Invitation {
   acceptedAt      DateTime?        @map("accepted_at")
   acceptedByUserId String?         @unique @map("accepted_by_user_id") @db.Uuid
   revokedAt       DateTime?        @map("revoked_at")
-  createdByUserId String           @map("created_by_user_id") @db.Uuid
+  // Nullable so the AddClient wizard can mint admin invitations during the
+  // tenant-bootstrap flow before any super-admin user exists in the system.
+  createdByUserId String?          @map("created_by_user_id") @db.Uuid
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
 
   client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdBy       User             @relation("InvitationCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdBy       User?            @relation("InvitationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   acceptedBy      User?            @relation("InvitationAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([clientId, email, status])

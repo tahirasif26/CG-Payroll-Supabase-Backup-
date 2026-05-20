@@ -60,7 +60,30 @@ export default function ClientManagementPage() {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [wizardOpen, setWizardOpen] = useState(false);
+  /**
+   * Wizard state covers all three modes (create / edit / view). The same
+   * `AddClientWizard` modal is reused — the only differences are which fields
+   * are editable and what button shows in the footer.
+   */
+  const [wizardMode, setWizardMode] = useState<"create" | "edit" | "view">("create");
+  const [wizardClient, setWizardClient] = useState<ClientStat | null>(null);
   const [detailsClient, setDetailsClient] = useState<ClientStat | null>(null);
+
+  const openCreateWizard = () => {
+    setWizardMode("create");
+    setWizardClient(null);
+    setWizardOpen(true);
+  };
+  const openEditWizard = (c: ClientStat) => {
+    setWizardMode("edit");
+    setWizardClient(c);
+    setWizardOpen(true);
+  };
+  const openViewWizard = (c: ClientStat) => {
+    setWizardMode("view");
+    setWizardClient(c);
+    setWizardOpen(true);
+  };
   const [confirmAction, setConfirmAction] = useState<{
     type: "suspend" | "activate" | "delete";
     client: ClientStat;
@@ -135,7 +158,7 @@ export default function ClientManagementPage() {
           title="Client Management"
           description="Manage all client companies and their administrators"
         />
-        <Button onClick={() => setWizardOpen(true)} className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white shadow-sm">
+        <Button onClick={openCreateWizard} className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white shadow-sm">
           <Plus className="h-4 w-4" /> Add Client
         </Button>
       </div>
@@ -218,7 +241,7 @@ export default function ClientManagementPage() {
               ) : paginated.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8}>
-                    <EmptyState onAdd={() => setWizardOpen(true)} hasFilters={!!search || statusFilter !== "all" || planFilter !== "all"} />
+                    <EmptyState onAdd={openCreateWizard} hasFilters={!!search || statusFilter !== "all" || planFilter !== "all"} />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -228,7 +251,7 @@ export default function ClientManagementPage() {
                     <TableRow
                       key={c.id}
                       className="group hover:bg-muted/30 cursor-pointer"
-                      onClick={() => setDetailsClient(c)}
+                      onClick={() => openViewWizard(c)}
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -269,10 +292,10 @@ export default function ClientManagementPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem onClick={() => setDetailsClient(c)}>
+                            <DropdownMenuItem onClick={() => openViewWizard(c)}>
                               <Eye className="h-3.5 w-3.5 mr-2" /> View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setDetailsClient(c)}>
+                            <DropdownMenuItem onClick={() => openEditWizard(c)}>
                               <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -327,7 +350,20 @@ export default function ClientManagementPage() {
         )}
       </Card>
 
-      <AddClientWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+      <AddClientWizard
+        open={wizardOpen}
+        onOpenChange={(o) => {
+          setWizardOpen(o);
+          if (!o) {
+            // Reset to default create mode when the modal closes so the next
+            // "Add Client" click starts clean.
+            setWizardMode("create");
+            setWizardClient(null);
+          }
+        }}
+        mode={wizardMode}
+        client={wizardClient}
+      />
       <ClientDetailsSheet
         client={detailsClient}
         open={!!detailsClient}

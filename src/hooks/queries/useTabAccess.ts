@@ -1,12 +1,22 @@
 /**
- * Tab access stub for the NestJS migration. The full `tab_definitions` master
- * list (which used to live in Postgres) is hard-coded here so the AddClient
- * wizard, Module Access settings, and any tab-aware UI continue to render the
- * correct choices. Mutations are no-ops until a backend tab-access module is
- * built — at that point swap each function for a real @/api call.
+ * Tab access for the NestJS backend. The `tab_definitions` master list is
+ * hard-coded below (one source of truth for both the wizard and the FE
+ * navigation). Per-client enabled tab keys are persisted on the Client row
+ * via `/tenants/:id/tab-access`, and the current user's accessible set comes
+ * from `/tenants/me/tabs`.
  */
+import { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useMyTabs,
+  useTenantTabAccess,
+  useSetTenantTabAccess,
+  tabAccessKeys,
+} from "@/api";
+import type { AccessibleTabInfo as NavTabInfo } from "@/lib/navigation";
+
 const noopMut = {
-  mutate: () => console.warn("[useTabAccess] writes not yet on NestJS"),
+  mutate: () => console.warn("[useTabAccess] role-level writes not implemented"),
   mutateAsync: async () => undefined,
   isPending: false,
 };
@@ -21,10 +31,8 @@ export interface TabDefinition {
   sort_order: number;
 }
 
-export interface AccessibleTabInfo {
-  enabled: boolean;
-  peopleEnabled?: boolean;
-}
+/** Re-export so callers can keep importing from this module. */
+export type AccessibleTabInfo = NavTabInfo;
 
 const TAB_DEFINITIONS: TabDefinition[] = [
   // Employees
@@ -80,16 +88,69 @@ export function useTabDefinitions() {
   return { data: TAB_DEFINITIONS, isLoading: false };
 }
 
+/**
+ * Returns a Map keyed by tab_key for tabs the caller can access, or `null`
+ * for super_admin (unrestricted). When the API returns an empty array the
+ * caller is locked to zero tabs — we still return a (empty) Map so consumers
+ * filter everything out instead of bypassing the gate.
+ */
 export function useAccessibleTabs() {
-  // Returning null = "tab gating disabled" → consumers fall back to role + feature checks.
-  return { data: null as Map<string, AccessibleTabInfo> | null, isLoading: false };
+  const q = useMyTabs();
+  const map = useMemo<Map<string, AccessibleTabInfo> | null>(() => {
+    if (q.isLoading) return null; // pre-load: don't restrict (avoids flash)
+    const keys = q.data?.enabledTabKeys;
+    if (keys === null || keys === undefined) return null; // super_admin
+    const defByKey = new Map(TAB_DEFINITIONS.map((d) => [d.tab_key, d]));
+    const m = new Map<string, AccessibleTabInfo>();
+    for (const k of keys) {
+      const def = defByKey.get(k);
+      m.set(k, {
+        scope: def?.scope ?? "people_only",
+        people_enabled: true,
+      });
+    }
+    return m;
+  }, [q.data, q.isLoading]);
+  return { data: map, isLoading: q.isLoading };
 }
 
-export function useClientTabAccess(_clientId: string | null) {
-  return { data: [] as { tab_key: string; enabled: boolean }[], isLoading: false };
+/** Super-admin: read a client's enabled tab keys (for the wizard edit/view). */
+export function useClientTabAccess(clientId: string | null) {
+  const q = useTenantTabAccess(clientId);
+  const data = useMemo(
+    () =>
+      (q.data?.enabledTabKeys ?? []).map((tab_key) => ({
+        tab_key,
+        enabled: true,
+      })),
+    [q.data],
+  );
+  return { data, isLoading: q.isLoading };
 }
-export function useUpdateClientTabAccess() { return noopMut; }
-export function useSetClientTabAccess() { return noopMut; }
+
+/** Super-admin: replace a client's tab access set. */
+export function useSetClientTabAccess() {
+  const m = useSetTenantTabAccess();
+  const qc = useQueryClient();
+  return {
+    ...m,
+    mutate: ({ clientId, tabKeys }: { clientId: string; tabKeys: string[] }) =>
+      m.mutate(
+        { id: clientId, enabledTabKeys: tabKeys },
+        { onSuccess: () => qc.invalidateQueries({ queryKey: tabAccessKeys.mine }) },
+      ),
+    mutateAsync: async ({ clientId, tabKeys }: { clientId: string; tabKeys: string[] }) => {
+      const res = await m.mutateAsync({ id: clientId, enabledTabKeys: tabKeys });
+      qc.invalidateQueries({ queryKey: tabAccessKeys.mine });
+      return res;
+    },
+  };
+}
+
+/** Kept as alias for legacy callers. */
+export const useUpdateClientTabAccess = useSetClientTabAccess;
+
+/** Role-level tab access not yet implemented on NestJS — stubs only. */
 export function useRoleTabAccess(_roleId?: string) {
   return { data: [] as { tab_key: string; enabled: boolean }[], isLoading: false };
 }

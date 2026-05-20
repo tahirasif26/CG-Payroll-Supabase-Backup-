@@ -36,8 +36,16 @@ export const envSchema = z.object({
   THROTTLE_TTL: z.coerce.number().int().positive().default(60),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
 
-  // Mail (Phase 1: dev console transport; SMTP/Resend wired later)
+  // Mail. `MAIL_PROVIDER` picks the transport:
+  //   - `console` (default): logs every outgoing email; useful in local dev.
+  //   - `sendgrid`: requires `SENDGRID_API_KEY` + a verified sender in SendGrid.
+  //   - `resend`:   requires `RESEND_API_KEY`   + a verified domain in Resend.
+  // Switching providers is a single env change + restart.
+  MAIL_PROVIDER: z.enum(['console', 'sendgrid', 'resend']).default('console'),
   MAIL_FROM: z.string().email().default('no-reply@cgpayroll.local'),
+  MAIL_FROM_NAME: z.string().default('CG Payroll'),
+  SENDGRID_API_KEY: z.string().min(10).optional(),
+  RESEND_API_KEY: z.string().min(10).optional(),
 
   // Logging
   LOG_LEVEL: z

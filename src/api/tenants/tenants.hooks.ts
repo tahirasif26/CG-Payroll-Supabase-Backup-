@@ -48,3 +48,47 @@ export function useUpdateTenant() {
     },
   });
 }
+
+export function useDeleteTenant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => tenantsApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: tenantKeys.all });
+    },
+  });
+}
+
+export const tabAccessKeys = {
+  forClient: (id: string) => ["tenants", "tab-access", id] as const,
+  mine: ["tenants", "me", "tabs"] as const,
+};
+
+export function useTenantTabAccess(id: string | null | undefined) {
+  return useQuery({
+    queryKey: tabAccessKeys.forClient(id ?? ""),
+    queryFn: () => tenantsApi.getTabAccess(id!),
+    enabled: !!id,
+  });
+}
+
+export function useSetTenantTabAccess() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, enabledTabKeys }: { id: string; enabledTabKeys: string[] }) =>
+      tenantsApi.setTabAccess(id, enabledTabKeys),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: tabAccessKeys.forClient(vars.id) });
+      qc.invalidateQueries({ queryKey: tabAccessKeys.mine });
+      qc.invalidateQueries({ queryKey: tenantKeys.detail(vars.id) });
+    },
+  });
+}
+
+export function useMyTabs() {
+  return useQuery({
+    queryKey: tabAccessKeys.mine,
+    queryFn: () => tenantsApi.myTabs(),
+    staleTime: 60_000,
+  });
+}

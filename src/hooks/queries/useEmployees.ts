@@ -158,25 +158,25 @@ export function useCreateEmployee() {
 
 export function useUpdateEmployee() {
   const m = useUpdateEmployeeApi();
+  const buildBody = (patch: Partial<EmployeeRow>) => ({
+    firstName: patch.first_name,
+    lastName: patch.last_name,
+    email: patch.email ?? undefined,
+    phone: patch.phone ?? undefined,
+    department: patch.department ?? undefined,
+    designation: patch.designation ?? undefined,
+    joiningDate: patch.joining_date ?? undefined,
+    status: patch.status as never,
+    category: patch.category ?? undefined,
+    workLocationCountry: patch.work_location_country ?? undefined,
+    payCurrency: patch.pay_currency ?? undefined,
+  });
   return {
     ...m,
     mutate: ({ id, patch }: { id: string; patch: Partial<EmployeeRow> }) =>
-      m.mutate({
-        id,
-        body: {
-          firstName: patch.first_name,
-          lastName: patch.last_name,
-          email: patch.email ?? undefined,
-          phone: patch.phone ?? undefined,
-          department: patch.department ?? undefined,
-          designation: patch.designation ?? undefined,
-          joiningDate: patch.joining_date ?? undefined,
-          status: patch.status as never,
-          category: patch.category ?? undefined,
-          workLocationCountry: patch.work_location_country ?? undefined,
-          payCurrency: patch.pay_currency ?? undefined,
-        },
-      }),
+      m.mutate({ id, body: buildBody(patch) }),
+    mutateAsync: async ({ id, patch }: { id: string; patch: Partial<EmployeeRow> }) =>
+      m.mutateAsync({ id, body: buildBody(patch) }),
   };
 }
 
