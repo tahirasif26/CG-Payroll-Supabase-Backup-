@@ -103,7 +103,43 @@ export class TenantsController {
     return this.tenants.getTabsForUser({
       isSuperAdmin,
       primaryClientId: user.primaryClientId,
+      appRoles: user.roles.map((r) => r.role),
     });
+  }
+
+  /**
+   * First-login setup wizard progress. Step completion is auto-derived from
+   * real tenant data; admin/HR can resume at any time from the banner.
+   */
+  @Get('me/setup-progress')
+  @ApiOperation({ summary: 'Current tenant setup-wizard progress' })
+  async mySetupProgress(@CurrentUser() user: RequestUser) {
+    if (!user.primaryClientId) {
+      return {
+        clientId: null,
+        steps: [],
+        completedCount: 0,
+        totalCount: 0,
+        isComplete: true,
+        dismissedAt: null,
+        shouldShowBanner: false,
+      };
+    }
+    return this.tenants.getSetupProgress({
+      clientId: user.primaryClientId,
+      userId: user.id,
+    });
+  }
+
+  /** Mark the setup-wizard banner as dismissed for the caller's tenant. */
+  @Post('me/setup-wizard/dismiss')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Dismiss the setup-wizard banner' })
+  async dismissSetupWizard(@CurrentUser() user: RequestUser) {
+    if (!user.primaryClientId) {
+      return { dismissedAt: null };
+    }
+    return this.tenants.dismissSetupWizard(user.primaryClientId);
   }
 
   @UseGuards(RolesGuard)

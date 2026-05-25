@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
-
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -12,7 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingState } from "@/components/LoadingState";
 import { useClients } from "@/hooks/queries/useClients";
-import { useTabDefinitions } from "@/hooks/queries/useTabAccess";
+import {
+  useTabDefinitions,
+  useClientTabAccess,
+  useSetClientTabAccess,
+} from "@/hooks/queries/useTabAccess";
 import { Save, RotateCcw, Info, Building2 } from "lucide-react";
 
 const MODULE_META: Record<string, { label: string; emoji: string; order: number }> = {
@@ -29,7 +30,6 @@ const MODULE_META: Record<string, { label: string; emoji: string; order: number 
 export default function ModuleAccessPage() {
   const { isSuperAdmin } = useRole();
   const { toast } = useToast();
-  const qc = useQueryClient();
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const { data: clients, isLoading: clientsLoading } = useClients();
@@ -41,47 +41,37 @@ export default function ModuleAccessPage() {
     }
   }, [clients, selectedClientId]);
 
-  // Existing per-client tab access
-  const { data: existing, isLoading } = useQuery({
-    queryKey: ["sa-client-tab-access", selectedClientId],
-    enabled: !!selectedClientId,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("client_tab_access")
-        .select("tab_key, enabled")
-        .eq("client_id", selectedClientId!);
-      if (error) throw error;
-      const map = new Map<string, boolean>();
-      for (const r of (data ?? []) as { tab_key: string; enabled: boolean }[]) {
-        map.set(r.tab_key, r.enabled);
-      }
-      return map;
-    },
-  });
+  // Persisted state: array of enabled tab_keys for the selected client.
+  const { data: existingRows, isLoading } = useClientTabAccess(selectedClientId);
+  const persistedKeys = useMemo(
+    () => new Set(existingRows.map((r) => r.tab_key)),
+    [existingRows],
+  );
 
-  // Local state: tab_key → enabled
+  // Local working state: tab_key → enabled (boolean).
   const [tabs, setTabs] = useState<Record<string, boolean>>({});
 
+  // Sync local state from server whenever the selected client or persisted keys change.
+  // Reset uses the same logic so toggles always snap back to the last saved state,
+  // not to the page-level defaults.
   useEffect(() => {
-    if (!tabDefs || !existing) return;
+    if (!tabDefs) return;
     const next: Record<string, boolean> = {};
     for (const td of tabDefs) {
-      // Settings tabs default-on; others default to whatever DB has (or false)
-      const dbVal = existing.get(td.tab_key);
-      next[td.tab_key] = dbVal ?? (td.module_key === "settings");
+      next[td.tab_key] = persistedKeys.has(td.tab_key);
     }
     setTabs(next);
-  }, [tabDefs, existing]);
+  }, [tabDefs, persistedKeys]);
 
   const dirty = useMemo(() => {
-    if (!tabDefs || !existing) return false;
+    if (!tabDefs) return false;
     for (const td of tabDefs) {
       const cur = tabs[td.tab_key] ?? false;
-      const orig = existing.get(td.tab_key) ?? (td.module_key === "settings");
+      const orig = persistedKeys.has(td.tab_key);
       if (cur !== orig) return true;
     }
     return false;
-  }, [tabs, tabDefs, existing]);
+  }, [tabs, tabDefs, persistedKeys]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, typeof tabDefs>();
@@ -105,52 +95,33 @@ export default function ModuleAccessPage() {
     });
   };
 
-  const save = useMutation({
-    mutationFn: async () => {
-      if (!selectedClientId || !tabDefs) return;
-      // Upsert all tab rows
-      const rows = tabDefs.map((td) => ({
-        client_id: selectedClientId,
-        tab_key: td.tab_key,
-        enabled: !!tabs[td.tab_key],
-      }));
-      const { error } = await (supabase as any)
-        .from("client_tab_access")
-        .upsert(rows, { onConflict: "client_id,tab_key" });
-      if (error) throw error;
+  const save = useSetClientTabAccess();
 
-      // Keep clients.enabled_modules in sync with selected tabs (for module gates)
-      const enabledModules = Array.from(
-        new Set(
-          tabDefs
-            .filter((td) => tabs[td.tab_key] && td.module_key !== "settings")
-            .map((td) => td.module_key),
-        ),
-      );
-      const { error: cErr } = await (supabase as any)
-        .from("clients")
-        .update({ enabled_modules: enabledModules })
-        .eq("id", selectedClientId);
-      if (cErr) throw cErr;
-    },
-    onSuccess: () => {
+  const handleSave = async () => {
+    if (!selectedClientId || !tabDefs) return;
+    const tabKeys = tabDefs
+      .filter((td) => tabs[td.tab_key])
+      .map((td) => td.tab_key);
+    try {
+      await save.mutateAsync({ clientId: selectedClientId, tabKeys });
       toast({
         title: "Tab access updated",
         description: "Changes apply immediately to this client and its users.",
       });
-      qc.invalidateQueries({ queryKey: ["sa-client-tab-access", selectedClientId] });
-      qc.invalidateQueries({ queryKey: ["accessible_tabs"] });
-      qc.invalidateQueries({ queryKey: ["my_features"] });
-    },
-    onError: (err: Error) =>
-      toast({ title: "Save failed", description: err.message, variant: "destructive" }),
-  });
+    } catch (err) {
+      toast({
+        title: "Save failed",
+        description: err instanceof Error ? err.message : "Could not save tab access.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const reset = () => {
-    if (!tabDefs || !existing) return;
+    if (!tabDefs) return;
     const next: Record<string, boolean> = {};
     for (const td of tabDefs) {
-      next[td.tab_key] = existing.get(td.tab_key) ?? (td.module_key === "settings");
+      next[td.tab_key] = persistedKeys.has(td.tab_key);
     }
     setTabs(next);
   };
@@ -178,7 +149,11 @@ export default function ModuleAccessPage() {
           <Button variant="outline" size="sm" onClick={reset} disabled={!dirty || save.isPending}>
             <RotateCcw className="h-4 w-4 mr-1" /> Reset
           </Button>
-          <Button size="sm" onClick={() => save.mutate()} disabled={!dirty || save.isPending || !selectedClientId}>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!dirty || save.isPending || !selectedClientId}
+          >
             <Save className="h-4 w-4 mr-1" />
             {save.isPending ? "Saving…" : "Save changes"}
           </Button>

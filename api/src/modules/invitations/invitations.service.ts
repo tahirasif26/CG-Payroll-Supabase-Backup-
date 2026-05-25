@@ -198,9 +198,9 @@ export class InvitationsService {
     }
 
     const userId = await this.prisma.$transaction(async (tx) => {
-      // Existing User can accept invitations to additional clients.
       let user = await tx.user.findUnique({ where: { email: inv.email } });
       if (!user) {
+        // Brand-new invitee (typical employee invite path).
         user = await tx.user.create({
           data: {
             email: inv.email,
@@ -211,7 +211,31 @@ export class InvitationsService {
             profile: dto.fullName ? { create: { fullName: dto.fullName } } : undefined,
           },
         });
+      } else if (!user.passwordHash) {
+        // Pre-provisioned user (e.g. admin created atomically with the tenant).
+        // Set the password they chose and activate the account.
+        user = await tx.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash,
+            status: UserStatus.active,
+            emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+            ...(dto.fullName
+              ? {
+                  profile: {
+                    upsert: {
+                      create: { fullName: dto.fullName },
+                      update: { fullName: dto.fullName },
+                    },
+                  },
+                }
+              : {}),
+          },
+        });
       }
+      // If user exists AND already has a password, this is an existing platform
+      // user accepting an invitation to an additional client — leave their
+      // password alone; only the role + employee binding below changes.
 
       await tx.userRole.upsert({
         where: {
@@ -229,7 +253,9 @@ export class InvitationsService {
         },
       });
 
-      // Create or link the Employee record.
+      // Create or link the Employee record. Idempotent — the tenant-creation
+      // flow already creates the admin's employee row, so this only acts when
+      // accepting a non-pre-provisioned invite.
       const existingEmployee = await tx.employee.findFirst({
         where: { clientId: inv.clientId, email: inv.email },
       });
@@ -241,6 +267,9 @@ export class InvitationsService {
           });
         }
       } else {
+        // joiningDate intentionally left null — the setup wizard's "Your
+        // Profile" step is complete when the admin sets it. Non-admin invitees
+        // can set it later from their profile page.
         await tx.employee.create({
           data: {
             clientId: inv.clientId,
@@ -251,7 +280,6 @@ export class InvitationsService {
             email: inv.email,
             department: inv.department,
             designation: inv.designation,
-            joiningDate: new Date(),
           },
         });
       }

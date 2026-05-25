@@ -55,6 +55,7 @@ export { tenantsApi } from "./tenants/tenants.api";
 export {
   tenantKeys,
   tabAccessKeys,
+  setupProgressKeys,
   useTenants,
   useTenant,
   useCreateTenant,
@@ -63,6 +64,8 @@ export {
   useTenantTabAccess,
   useSetTenantTabAccess,
   useMyTabs,
+  useSetupProgress,
+  useDismissSetupWizard,
 } from "./tenants/tenants.hooks";
 export type {
   Tenant,
@@ -73,6 +76,9 @@ export type {
   UpdateTenantRequest,
   TenantTabAccess,
   MyTabsResponse,
+  SetupProgressResponse,
+  SetupStep,
+  SetupStepKey,
 } from "./tenants/tenants.types";
 
 // ─── Employees ───────────────────────────────────────────────────────────────

@@ -2,10 +2,13 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ExpenseStatus, Prisma } from '@prisma/client';
+import { AppRole, ExpenseStatus, Prisma, UserStatus } from '@prisma/client';
 import { PrismaService } from '@infrastructure/prisma/prisma.service';
+import { MailService } from '@infrastructure/mail/mail.service';
+import { TypedConfigService } from '@config/typed-config.service';
 import { buildSkipTake } from '@common/dto/pagination.dto';
 import type {
   CreateExpenseDto,
@@ -16,7 +19,13 @@ import type {
 
 @Injectable()
 export class ExpensesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ExpensesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+    private readonly config: TypedConfigService,
+  ) {}
 
   async list(
     clientId: string,
@@ -138,10 +147,69 @@ export class ExpensesService {
         message: 'Only draft or rejected expenses can be submitted',
       });
     }
-    return this.prisma.expense.update({
+    const updated = await this.prisma.expense.update({
       where: { id },
       data: { status: ExpenseStatus.submitted, rejectionReason: null },
     });
+
+    const submittedByName = exp.employee
+      ? `${exp.employee.firstName} ${exp.employee.lastName}`.trim() || 'A colleague'
+      : 'A colleague';
+    await this.notifyApprovers({
+      clientId,
+      requestId: updated.id,
+      submittedByName,
+      detail:
+        `${updated.currency} ${formatMinor(updated.amount)}` +
+        (updated.category ? ` — ${updated.category}` : ''),
+    });
+
+    return updated;
+  }
+
+  private async notifyApprovers(input: {
+    clientId: string;
+    requestId: string;
+    submittedByName: string;
+    detail: string;
+  }): Promise<void> {
+    try {
+      const approvers = await this.prisma.user.findMany({
+        where: {
+          status: UserStatus.active,
+          userRoles: {
+            some: {
+              clientId: input.clientId,
+              role: { appRole: { in: [AppRole.admin, AppRole.hr] } },
+            },
+          },
+        },
+        select: { email: true, profile: { select: { fullName: true } } },
+      });
+      const reviewUrl = `${this.config.get('FRONTEND_URL')}/expenses/${input.requestId}`;
+      const seen = new Set<string>();
+      const recipients = approvers.filter((a) => {
+        if (seen.has(a.email)) return false;
+        seen.add(a.email);
+        return true;
+      });
+      await Promise.all(
+        recipients.map((a) =>
+          this.mail.sendApprovalNotification({
+            to: a.email,
+            approverName: a.profile?.fullName ?? null,
+            requestType: 'expense',
+            submittedByName: input.submittedByName,
+            detail: input.detail,
+            reviewUrl,
+          }),
+        ),
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to notify expense approvers: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   async decide(
@@ -227,4 +295,12 @@ function emptyPage(query: { page: number; pageSize: number }) {
 
 function notFound() {
   return new NotFoundException({ code: 'EXPENSE_NOT_FOUND', message: 'Expense not found' });
+}
+
+function formatMinor(minor: bigint): string {
+  const negative = minor < 0n;
+  const abs = negative ? -minor : minor;
+  const major = abs / 100n;
+  const cents = (abs % 100n).toString().padStart(2, '0');
+  return `${negative ? '-' : ''}${major.toString()}.${cents}`;
 }
