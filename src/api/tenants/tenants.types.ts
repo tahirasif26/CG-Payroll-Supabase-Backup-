@@ -67,3 +67,29 @@ export interface TenantTabAccess {
 export interface MyTabsResponse {
   enabledTabKeys: string[] | null;
 }
+
+export type SetupStepKey =
+  | "company_profile"
+  | "your_profile"
+  | "org_structure"
+  | "payroll_setup"
+  | "leave_holidays"
+  | "invite_team";
+
+export interface SetupStep {
+  key: SetupStepKey;
+  title: string;
+  description: string;
+  appRoute: string;
+  done: boolean;
+}
+
+export interface SetupProgressResponse {
+  clientId: string | null;
+  steps: SetupStep[];
+  completedCount: number;
+  totalCount: number;
+  isComplete: boolean;
+  dismissedAt: string | null;
+  shouldShowBanner: boolean;
+}

@@ -2,10 +2,13 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { LeaveRequestStatus, Prisma } from '@prisma/client';
+import { AppRole, LeaveRequestStatus, Prisma, UserStatus } from '@prisma/client';
 import { PrismaService } from '@infrastructure/prisma/prisma.service';
+import { MailService } from '@infrastructure/mail/mail.service';
+import { TypedConfigService } from '@config/typed-config.service';
 import { buildSkipTake } from '@common/dto/pagination.dto';
 import type {
   CreateHolidayDto,
@@ -22,7 +25,13 @@ import type {
 
 @Injectable()
 export class LeaveService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(LeaveService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+    private readonly config: TypedConfigService,
+  ) {}
 
   // ─── Leave types ──────────────────────────────────────────────────────
 
@@ -166,7 +175,7 @@ export class LeaveService {
       });
     }
 
-    return this.prisma.leaveRequest.create({
+    const request = await this.prisma.leaveRequest.create({
       data: {
         clientId,
         employeeId,
@@ -177,7 +186,69 @@ export class LeaveService {
         reason: dto.reason,
         status: LeaveRequestStatus.pending,
       },
+      include: {
+        employee: { select: { firstName: true, lastName: true } },
+        leaveType: { select: { name: true } },
+      },
     });
+
+    await this.notifyApprovers({
+      clientId,
+      requestId: request.id,
+      requestType: 'leave',
+      submittedByName: fullName(request.employee),
+      detail:
+        `${request.days} day(s) — ${request.leaveType?.name ?? 'Leave'} ` +
+        `(${formatDate(request.startDate)} → ${formatDate(request.endDate)})`,
+    });
+
+    return request;
+  }
+
+  private async notifyApprovers(input: {
+    clientId: string;
+    requestId: string;
+    requestType: string;
+    submittedByName: string;
+    detail: string;
+  }): Promise<void> {
+    try {
+      const approvers = await this.prisma.user.findMany({
+        where: {
+          status: UserStatus.active,
+          userRoles: {
+            some: {
+              clientId: input.clientId,
+              role: { appRole: { in: [AppRole.admin, AppRole.hr] } },
+            },
+          },
+        },
+        select: { email: true, profile: { select: { fullName: true } } },
+      });
+      const reviewUrl = `${this.config.get('FRONTEND_URL')}/leave/requests/${input.requestId}`;
+      const seen = new Set<string>();
+      const recipients = approvers.filter((a) => {
+        if (seen.has(a.email)) return false;
+        seen.add(a.email);
+        return true;
+      });
+      await Promise.all(
+        recipients.map((a) =>
+          this.mail.sendApprovalNotification({
+            to: a.email,
+            approverName: a.profile?.fullName ?? null,
+            requestType: input.requestType,
+            submittedByName: input.submittedByName,
+            detail: input.detail,
+            reviewUrl,
+          }),
+        ),
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to notify leave approvers: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   /**
@@ -328,4 +399,13 @@ export class LeaveService {
     });
     if (!h) throw new NotFoundException({ code: 'HOLIDAY_NOT_FOUND', message: 'Holiday not found' });
   }
+}
+
+function fullName(employee: { firstName: string; lastName: string } | null | undefined): string {
+  if (!employee) return 'A colleague';
+  return `${employee.firstName} ${employee.lastName}`.trim() || 'A colleague';
+}
+
+function formatDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
 }

@@ -92,3 +92,26 @@ export function useMyTabs() {
     staleTime: 60_000,
   });
 }
+
+export const setupProgressKeys = {
+  mine: ["tenants", "me", "setup-progress"] as const,
+};
+
+export function useSetupProgress(enabled = true) {
+  return useQuery({
+    queryKey: setupProgressKeys.mine,
+    queryFn: () => tenantsApi.mySetupProgress(),
+    enabled,
+    staleTime: 30_000,
+  });
+}
+
+export function useDismissSetupWizard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => tenantsApi.dismissSetupWizard(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: setupProgressKeys.mine });
+    },
+  });
+}

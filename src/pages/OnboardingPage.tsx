@@ -2,20 +2,21 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle, ArrowRight, ExternalLink, PartyPopper, Sparkles } from "lucide-react";
-import { useOnboardingStatus, type OnboardingStepKey } from "@/hooks/useOnboardingStatus";
-import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/contexts/RoleContext";
-import { toast } from "sonner";
+import {
+  CheckCircle2,
+  ArrowRight,
+  ExternalLink,
+  PartyPopper,
+  Sparkles,
+} from "lucide-react";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { cn } from "@/lib/utils";
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const { status, refetch } = useOnboardingStatus();
-  const { clientId } = useRole();
+  const { status, isLoading, refetch } = useOnboardingStatus();
 
-  if (!status) {
+  if (isLoading || !status) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
@@ -26,26 +27,6 @@ export default function OnboardingPage() {
   }
 
   const pct = Math.round((status.completedCount / status.totalCount) * 100);
-
-  const markStepDone = async (key: OnboardingStepKey) => {
-    if (!clientId) return;
-    const current = status.steps.filter((s) => s.done || s.key === key).map((s) => s.key);
-    const unique = Array.from(new Set(current));
-    const allDone = unique.length === status.totalCount;
-    const { error } = await supabase
-      .from("clients")
-      .update({
-        setup_completed_steps: unique,
-        setup_completed_at: allDone ? new Date().toISOString() : null,
-      })
-      .eq("id", clientId);
-    if (error) {
-      toast.error("Couldn't update progress");
-      return;
-    }
-    toast.success("Marked as done");
-    refetch();
-  };
 
   if (status.isComplete) {
     return (
@@ -63,7 +44,7 @@ export default function OnboardingPage() {
               Go to dashboard
             </Button>
             <Button onClick={() => navigate("/employees")}>
-              Add your first employee
+              Manage employees
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
@@ -83,7 +64,7 @@ export default function OnboardingPage() {
         <h1 className="text-2xl font-bold">Set up your company</h1>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           Finish these quick steps so payroll, leave and expenses work correctly for your team.
-          You can skip and come back anytime.
+          You can do them in any order and come back any time.
         </p>
       </div>
 
@@ -107,10 +88,11 @@ export default function OnboardingPage() {
               key={step.key}
               className={cn(
                 "p-4 flex items-center gap-4 transition-all",
-                isDone ? "bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-200/50" : "hover:border-primary/40",
+                isDone
+                  ? "bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-200/50"
+                  : "hover:border-primary/40",
               )}
             >
-              {/* Step number / check */}
               <div
                 className={cn(
                   "h-9 w-9 rounded-full flex items-center justify-center shrink-0 border-2",
@@ -127,34 +109,20 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold">{step.title}</h3>
-                  {step.detected && (
-                    <Badge variant="secondary" className="h-5 text-[10px] gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Detected
-                    </Badge>
-                  )}
-                </div>
+                <h3 className="text-sm font-semibold">{step.title}</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                {!isDone && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() => markStepDone(step.key)}
-                  >
-                    Skip
-                  </Button>
-                )}
                 <Button
                   variant={isDone ? "outline" : "default"}
                   size="sm"
                   className="h-8 gap-1.5"
-                  onClick={() => navigate(step.appRoute)}
+                  onClick={() => {
+                    navigate(step.appRoute);
+                    // Re-query when admin returns to the wizard so completion flips live.
+                    setTimeout(() => refetch(), 0);
+                  }}
                 >
                   {isDone ? "Review" : "Set up"}
                   <ExternalLink className="h-3.5 w-3.5" />
@@ -165,29 +133,13 @@ export default function OnboardingPage() {
         })}
       </div>
 
-      {/* Footer note about approvals */}
-      <Card className="p-4 bg-muted/40 border-dashed">
-        <div className="flex items-start gap-3">
-          <Circle className="h-4 w-4 text-muted-foreground mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold">Approval Matrix — coming after first employee</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Once you add an employee, we'll prompt you to set up who approves expenses and HR requests.
-            </p>
-          </div>
-        </div>
-      </Card>
-
       <div className="flex justify-between pt-2">
         <Button variant="ghost" onClick={() => navigate("/")}>
           Do this later
         </Button>
-        {status.isComplete && (
-          <Button onClick={() => navigate("/employees")}>
-            Continue
-            <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        )}
+        <Button variant="outline" onClick={() => refetch()}>
+          Refresh progress
+        </Button>
       </div>
     </div>
   );

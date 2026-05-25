@@ -3,41 +3,34 @@ import { Sparkles, X, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import { supabase } from "@/integrations/supabase/client";
+import { useDismissSetupWizard } from "@/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function OnboardingBanner() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { status, refetch } = useOnboardingStatus();
+  const { status } = useOnboardingStatus();
+  const dismiss = useDismissSetupWizard();
 
-  // Hide on the wizard itself, on auth, and when nothing to show
   if (!status || !status.shouldShowBanner) return null;
   if (location.pathname.startsWith("/onboarding")) return null;
 
   const pct = Math.round((status.completedCount / status.totalCount) * 100);
 
   const handleDismiss = async () => {
-    if (!status.clientId) return;
-    const { error } = await supabase
-      .from("clients")
-      .update({ setup_dismissed_at: new Date().toISOString() })
-      .eq("id", status.clientId);
-    if (error) {
+    try {
+      await dismiss.mutateAsync();
+      toast.success("Setup banner hidden — you can resume any time from /onboarding");
+    } catch {
       toast.error("Couldn't dismiss banner");
-      return;
     }
-    toast.success("Setup banner hidden — you can resume anytime from Settings");
-    refetch();
   };
 
   return (
     <div className="border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 px-4 py-2.5">
       <div className="mx-auto flex items-center gap-4">
-        <div className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-card shrink-0",
-        )}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-card shrink-0">
           <Sparkles className="h-4 w-4 text-primary" />
         </div>
 
@@ -66,7 +59,11 @@ export function OnboardingBanner() {
                 </span>
               )).reduce<React.ReactNode[]>((acc, el, i, arr) => {
                 acc.push(el);
-                if (i < arr.length - 1) acc.push(<span key={`sep-${i}`} className="text-muted-foreground/30">·</span>);
+                if (i < arr.length - 1) {
+                  acc.push(
+                    <span key={`sep-${i}`} className="text-muted-foreground/30">·</span>,
+                  );
+                }
                 return acc;
               }, [])}
             </div>
@@ -83,9 +80,10 @@ export function OnboardingBanner() {
         </Button>
         <button
           onClick={handleDismiss}
+          disabled={dismiss.isPending}
           className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0"
           aria-label="Dismiss"
-          title="Dismiss — you can finish setup later from Settings"
+          title="Dismiss — you can finish setup later from /onboarding"
         >
           <X className="h-3.5 w-3.5 text-muted-foreground" />
         </button>

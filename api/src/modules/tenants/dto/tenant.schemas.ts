@@ -21,6 +21,7 @@ export const createTenantSchema = z.object({
     .regex(slugRegex, 'Slug must be lowercase letters, digits, hyphens'),
   companyEmail: emailSchema,
   companyPhone: z.string().trim().max(40).optional(),
+  companyLogoUrl: z.string().trim().url().max(2048).optional(),
   country: z.string().trim().min(2).max(2).toUpperCase(),
   timezone: z.string().trim().min(1).max(64),
   baseCurrency: z.string().trim().min(3).max(3).toUpperCase(),

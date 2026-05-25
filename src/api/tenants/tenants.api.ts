@@ -4,6 +4,7 @@ import type {
   CreateTenantRequest,
   CreateTenantResponse,
   MyTabsResponse,
+  SetupProgressResponse,
   Tenant,
   TenantTabAccess,
   UpdateTenantRequest,
@@ -44,5 +45,15 @@ export const tenantsApi = {
   /** Caller's accessible tab keys. `null` = super_admin (unrestricted). */
   myTabs(): Promise<MyTabsResponse> {
     return apiGet<MyTabsResponse>("/tenants/me/tabs");
+  },
+
+  /** First-login setup wizard progress for the caller's tenant. */
+  mySetupProgress(): Promise<SetupProgressResponse> {
+    return apiGet<SetupProgressResponse>("/tenants/me/setup-progress");
+  },
+
+  /** Dismiss the wizard banner (the wizard itself remains accessible). */
+  dismissSetupWizard(): Promise<{ dismissedAt: string | null }> {
+    return apiPost<{ dismissedAt: string | null }>("/tenants/me/setup-wizard/dismiss", {});
   },
 };

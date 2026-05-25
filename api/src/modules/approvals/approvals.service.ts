@@ -14,6 +14,8 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '@infrastructure/prisma/prisma.service';
+import { MailService } from '@infrastructure/mail/mail.service';
+import { TypedConfigService } from '@config/typed-config.service';
 import { NotificationsService } from '@modules/notifications/notifications.service';
 import { buildSkipTake } from '@common/dto/pagination.dto';
 import type {
@@ -45,6 +47,8 @@ export class ApprovalsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly mail: MailService,
+    private readonly config: TypedConfigService,
   ) {}
 
   // ─── Groups ───────────────────────────────────────────────────────────
@@ -647,9 +651,23 @@ export class ApprovalsService {
 
   private async notifyAssignees(requestApprovalId: string, clientId: string, title: string) {
     try {
+      const request = await this.prisma.requestApproval.findUnique({
+        where: { id: requestApprovalId },
+        select: {
+          module: true,
+          requester: { select: { firstName: true, lastName: true } },
+        },
+      });
       const assignments = await this.prisma.requestAssignment.findMany({
         where: { requestApprovalId, status: AssignmentStatus.pending },
-        include: { employee: { select: { userId: true } } },
+        include: {
+          employee: {
+            select: {
+              userId: true,
+              user: { select: { email: true, profile: { select: { fullName: true } } } },
+            },
+          },
+        },
       });
       const userIds = Array.from(
         new Set(assignments.map((a) => a.employee.userId).filter((u): u is string => !!u)),
@@ -664,6 +682,28 @@ export class ApprovalsService {
           severity: 'info',
           entityType: 'request_approval',
           entityId: requestApprovalId,
+        });
+      }
+
+      // Email each unique approver. Failures inside MailService are non-fatal.
+      const seenEmails = new Set<string>();
+      const requester = request?.requester;
+      const submittedByName = requester
+        ? `${requester.firstName} ${requester.lastName}`.trim() || 'a colleague'
+        : 'a colleague';
+      const requestType = request?.module ?? 'approval';
+      const reviewUrl = `${this.config.get('FRONTEND_URL')}/approvals/${requestApprovalId}`;
+      for (const a of assignments) {
+        const email = a.employee.user?.email;
+        if (!email || seenEmails.has(email)) continue;
+        seenEmails.add(email);
+        await this.mail.sendApprovalNotification({
+          to: email,
+          approverName: a.employee.user?.profile?.fullName ?? null,
+          requestType,
+          submittedByName,
+          detail: title,
+          reviewUrl,
         });
       }
     } catch (err) {
