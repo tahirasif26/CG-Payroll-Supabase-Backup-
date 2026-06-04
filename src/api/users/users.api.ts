@@ -119,7 +119,7 @@ export const usersApi = {
     if (body.phone !== undefined) patch.phone = body.phone;
     const { data, error } = await supabase
       .from("profiles")
-      .update(patch)
+      .update(patch as never)
       .eq("id", u.id)
       .select("full_name, avatar_url, phone")
       .maybeSingle();
