@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AppRole, InvitationStatus, UserStatus } from '@prisma/client';
+import { AppRole, EmployeeStatus, InvitationStatus, UserStatus } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '@infrastructure/prisma/prisma.service';
 import { MailService } from '@infrastructure/mail/mail.service';
@@ -28,7 +28,12 @@ export class InvitationsService {
   async create(input: {
     dto: CreateInvitationDto;
     clientId: string;
-    invitedByUserId: string;
+    /**
+     * Nullable so the Add-Employee wizard and tenant-bootstrap flows can mint
+     * invitations even when there's no fully-resolved auth user yet (column
+     * was made nullable in the `invitation_created_by_nullable` migration).
+     */
+    invitedByUserId: string | null;
   }) {
     // Already a member?
     const existingUser = await this.prisma.user.findUnique({
@@ -79,7 +84,7 @@ export class InvitationsService {
         designation: input.dto.designation,
         tokenHash,
         expiresAt,
-        createdByUserId: input.invitedByUserId,
+        createdByUserId: input.invitedByUserId ?? undefined,
       },
       include: { client: { select: { companyName: true } } },
     });
@@ -260,10 +265,18 @@ export class InvitationsService {
         where: { clientId: inv.clientId, email: inv.email },
       });
       if (existingEmployee) {
-        if (!existingEmployee.userId) {
+        // Re-bind the existing employee row to the new user and flip the
+        // status back to `active` (the AddEmployee wizard parked the row in
+        // `pending` when the invite was sent).
+        if (!existingEmployee.userId || existingEmployee.status === EmployeeStatus.pending) {
           await tx.employee.update({
             where: { id: existingEmployee.id },
-            data: { userId: user.id },
+            data: {
+              userId: user.id,
+              ...(existingEmployee.status === EmployeeStatus.pending
+                ? { status: EmployeeStatus.active }
+                : {}),
+            },
           });
         }
       } else {

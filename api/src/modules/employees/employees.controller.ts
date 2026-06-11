@@ -113,9 +113,10 @@ export class EmployeesController {
   @ApiOperation({ summary: 'Create a new employee (admin / hr)' })
   create(
     @ActiveClientId() clientId: string,
+    @CurrentUser() user: RequestUser,
     @Body(new ZodValidationPipe(createEmployeeSchema)) dto: CreateEmployeeDto,
   ) {
-    return this.employees.create(clientId, dto);
+    return this.employees.create(clientId, dto, user.id);
   }
 
   @Patch(':id')

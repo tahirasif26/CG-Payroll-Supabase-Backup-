@@ -30,6 +30,8 @@ export interface Employee {
   workLocationCity: string | null;
   payCurrency: string | null;
   reportsToId: string | null;
+  /** PayrollSetup driving this employee's compensation calculations. */
+  payrollSetupId: string | null;
   avatarUrl: string | null;
   status: EmployeeStatus;
   createdAt: string;
@@ -60,6 +62,7 @@ export interface EmployeeDirectoryItem {
   avatarUrl: string | null;
   status: EmployeeStatus;
   reportsToId: string | null;
+  payrollSetupId: string | null;
   payCurrency: string | null;
   createdAt: string;
   updatedAt: string;
@@ -101,6 +104,7 @@ export interface CreateEmployeeRequest {
   workLocationCity?: string | null;
   payCurrency?: string | null;
   reportsToId?: string | null;
+  payrollSetupId?: string | null;
   avatarUrl?: string | null;
   status?: EmployeeStatus;
 }

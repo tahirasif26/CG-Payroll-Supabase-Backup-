@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Building2, Mail, Phone, Globe, Clock, DollarSign, CalendarDays, Users, Activity, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { useClientUsers, type ClientStat } from "@/hooks/queries/useClients";
 import { formatDistanceToNow } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { useInvitations, useResendInvitation } from "@/api";
 import { useToast } from "@/hooks/use-toast";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -25,45 +25,57 @@ interface Props {
 
 export function ClientDetailsSheet({ client, open, onOpenChange }: Props) {
   const { data: users, isLoading: usersLoading } = useClientUsers(client?.id ?? null);
+  const { data: invitations = [] } = useInvitations();
+  const resendInvitationMut = useResendInvitation();
   const { toast } = useToast();
   const [resendingId, setResendingId] = useState<string | null>(null);
 
   if (!client) return null;
 
-  const handleResend = async (userId: string, displayName: string) => {
-    setResendingId(userId);
+  /**
+   * Resend the open invitation that targets `email`. The handler keys local
+   * state by the row's user id (`localId`) so the per-row spinner shows
+   * correctly, but the actual API call uses the invitation id we look up
+   * by email — that's what the NestJS resend endpoint expects.
+   */
+  const handleResend = async (localId: string, email: string, displayName: string) => {
+    setResendingId(localId);
     try {
-      const { data, error } = await supabase.functions.invoke("resend-invite", {
-        body: { user_id: userId, client_id: client.id },
-      });
-      // Treat "already verified" as informational, not an error
-      const payload = (data as any) ?? {};
-      const errMsg = (error as any)?.message || payload?.error;
-      const isAlreadyVerified = payload?.verified === true ||
-        (typeof errMsg === "string" && errMsg.toLowerCase().includes("already verified"));
-
-      if (isAlreadyVerified) {
-        toast({
-          title: "Already verified",
-          description: `${displayName} has already signed in — no invite needed.`,
-        });
+      const pendingInvite = invitations.find(
+        (inv) =>
+          inv.email?.toLowerCase() === email.toLowerCase() &&
+          inv.status === "pending",
+      );
+      if (!pendingInvite) {
+        const acceptedInvite = invitations.find(
+          (inv) =>
+            inv.email?.toLowerCase() === email.toLowerCase() &&
+            inv.status === "accepted",
+        );
+        if (acceptedInvite) {
+          toast({
+            title: "Already verified",
+            description: `${displayName} has already signed in — no invite needed.`,
+          });
+        } else {
+          toast({
+            title: "No pending invitation",
+            description: `No outstanding invitation found for ${email}.`,
+            variant: "destructive",
+          });
+        }
         return;
       }
-      if (error) throw error;
-      if (payload?.error) throw new Error(payload.error);
+      await resendInvitationMut.mutateAsync(pendingInvite.id);
       toast({
         title: "Invite resent",
         description: `A fresh login link was sent to ${displayName}.`,
       });
-    } catch (err: any) {
-      const msg = err?.message ?? "Something went wrong";
-      if (msg.toLowerCase().includes("already verified")) {
-        toast({
-          title: "Already verified",
-          description: `${displayName} has already signed in — no invite needed.`,
-        });
-        return;
-      }
+    } catch (err: unknown) {
+      const msg =
+        (err as { error?: { message?: string }; message?: string })?.error?.message ??
+        (err as { message?: string })?.message ??
+        "Something went wrong";
       toast({
         title: "Could not resend invite",
         description: msg,
@@ -155,7 +167,7 @@ export function ClientDetailsSheet({ client, open, onOpenChange }: Props) {
                           className="h-7 px-2 gap-1 text-[11px]"
                           title="Resend invite email"
                           disabled={resendingId === u.id}
-                          onClick={() => handleResend(u.id, u.full_name ?? "user")}
+                          onClick={() => handleResend(u.id, u.email, u.full_name ?? u.email)}
                         >
                           {resendingId === u.id ? (
                             <Loader2 className="h-3 w-3 animate-spin" />

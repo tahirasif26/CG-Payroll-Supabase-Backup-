@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
@@ -24,12 +23,20 @@ import { useClient } from "@/contexts/ClientContext";
 import { COUNTRY_NAMES, CURRENCIES } from "@/lib/countries";
 
 
+export type PayrollSetupWizardMode = "create" | "edit" | "view";
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initial?: PayrollSetup;
   /** When provided, wizard runs in EDIT mode and calls updateSetup. */
   editId?: string;
+  /**
+   * - `create` (default): blank form, calls addSetup on save.
+   * - `edit`: form prefilled from `initial`, calls updateSetup on save.
+   * - `view`: form prefilled from `initial`, every input disabled, no save buttons.
+   */
+  mode?: PayrollSetupWizardMode;
 }
 
 const defaultSetup = (clientCountry: string, clientCurrency: string): PayrollSetup => ({
@@ -37,7 +44,6 @@ const defaultSetup = (clientCountry: string, clientCurrency: string): PayrollSet
   name: "",
   country: clientCountry,
   currency: clientCurrency,
-  status: "active",
   lastUpdated: new Date().toISOString().split("T")[0],
   paySchedule: { payFrequency: "monthly", cycleStartDate: "1", cycleEndDate: "EOM", payDate: "28" },
   options: { includeOvertime: false, includeUnpaidLeave: false, enableTaxCalculation: false, allowNegativeSalary: false },
@@ -71,10 +77,17 @@ const defaultSetup = (clientCountry: string, clientCurrency: string): PayrollSet
   approvalWorkflow: { enabled: false, levels: [] },
 });
 
-export default function AddPayrollSetupWizard({ open, onOpenChange, initial, editId }: Props) {
-  const { addSetup, updateSetup } = usePayrollSetups();
+export default function AddPayrollSetupWizard({
+  open,
+  onOpenChange,
+  initial,
+  editId,
+  mode = editId ? "edit" : "create",
+}: Props) {
+  const { addSetup, updateSetup, isSaving } = usePayrollSetups();
   const { toast } = useToast();
   const { client } = useClient();
+  const isView = mode === "view";
   const clientCountry = client.country ?? "Saudi Arabia";
   const clientCurrency = client.currency ?? "SAR";
   const makeDefault = () => defaultSetup(clientCountry, clientCurrency);
@@ -104,13 +117,6 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
               <SelectContent className="max-h-72">{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Status</Label>
-            <div className="flex items-center gap-2 pt-1">
-              <Switch checked={setup.status === "active"} onCheckedChange={v => setSetup(s => ({ ...s, status: v ? "active" : "inactive" }))} />
-              <span className="text-sm capitalize">{setup.status}</span>
-            </div>
-          </div>
         </div>
       ),
     },
@@ -126,31 +132,53 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
   const isFirst = step === 0;
   const canSave = setup.name.trim().length > 0;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!canSave) {
       toast({ title: "Setup name is required", variant: "destructive" });
       setStep(0);
       return;
     }
-    if (editId) {
-      updateSetup({ ...setup, id: editId });
-      toast({ title: "Payroll setup updated" });
-    } else {
-      addSetup(setup);
-      toast({ title: "Payroll setup created" });
+    try {
+      if (editId) {
+        await updateSetup({ ...setup, id: editId });
+        toast({ title: "Payroll setup updated" });
+      } else {
+        await addSetup(setup);
+        toast({ title: "Payroll setup created" });
+      }
+      onOpenChange(false);
+      setSetup(makeDefault());
+      setStep(0);
+    } catch (err: unknown) {
+      // Surface the backend's validation/error code so the user knows what to
+      // fix (e.g. SETUP_HAS_RUNS, unique-name conflict, missing required
+      // field). Falls back to a generic message for network errors.
+      const message =
+        (err as { error?: { message?: string }; message?: string })?.error?.message ??
+        (err as { message?: string })?.message ??
+        "Save failed — check the form and try again.";
+      toast({
+        title: editId ? "Could not update setup" : "Could not create setup",
+        description: message,
+        variant: "destructive",
+      });
     }
-    onOpenChange(false);
-    setSetup(makeDefault());
-    setStep(0);
   };
 
+  const titleText = isView
+    ? "View Payroll Setup"
+    : editId
+      ? "Edit Payroll Setup"
+      : "New Payroll Setup";
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setStep(0); if (!editId) setSetup(makeDefault()); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setStep(0); if (mode === "create") setSetup(makeDefault()); } }}>
       <DialogContent className="max-w-5xl p-0 max-h-[90vh] flex flex-col">
         <DialogHeader className="px-6 pt-6 pb-3 border-b">
-          <DialogTitle>{editId ? `Edit Payroll Setup` : "New Payroll Setup"}</DialogTitle>
+          <DialogTitle>{titleText}</DialogTitle>
           <DialogDescription>
             Step {step + 1} of {STEPS.length} — {STEPS[step].label}
+            {isView && setup.name ? ` · ${setup.name}` : null}
           </DialogDescription>
         </DialogHeader>
 
@@ -187,9 +215,14 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
             </div>
           </ScrollArea>
 
-          {/* Content */}
+          {/* Content. In view mode the whole tree sits inside a disabled
+              fieldset so every native input/select/button inside the existing
+              tab components is automatically disabled — no per-component
+              `readOnly` prop is needed. */}
           <ScrollArea className="min-h-0">
-            <div className="p-6">{STEPS[step].content}</div>
+            <fieldset disabled={isView} className="p-6 m-0 border-0">
+              {STEPS[step].content}
+            </fieldset>
           </ScrollArea>
         </div>
 
@@ -199,19 +232,35 @@ export default function AddPayrollSetupWizard({ open, onOpenChange, initial, edi
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
           <div className="flex items-center gap-2">
-            {!isLast && (
-              <Button variant="ghost" onClick={handleSave} disabled={!canSave}>
-                <Save className="h-4 w-4 mr-1" /> Save & Close
-              </Button>
-            )}
-            {isLast ? (
-              <Button onClick={handleSave} disabled={!canSave}>
-                <Save className="h-4 w-4 mr-1" /> {editId ? "Update Setup" : "Create Setup"}
-              </Button>
+            {isView ? (
+              // View mode: stepper navigation only, single Close action.
+              isLast ? (
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Close
+                </Button>
+              ) : (
+                <Button onClick={() => setStep(s => Math.min(STEPS.length - 1, s + 1))}>
+                  Next <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              )
             ) : (
-              <Button onClick={() => setStep(s => Math.min(STEPS.length - 1, s + 1))}>
-                Next <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
+              <>
+                {!isLast && (
+                  <Button variant="ghost" onClick={handleSave} disabled={!canSave || isSaving}>
+                    <Save className="h-4 w-4 mr-1" /> {isSaving ? "Saving…" : "Save & Close"}
+                  </Button>
+                )}
+                {isLast ? (
+                  <Button onClick={handleSave} disabled={!canSave || isSaving}>
+                    <Save className="h-4 w-4 mr-1" />
+                    {isSaving ? "Saving…" : editId ? "Update Setup" : "Create Setup"}
+                  </Button>
+                ) : (
+                  <Button onClick={() => setStep(s => Math.min(STEPS.length - 1, s + 1))} disabled={isSaving}>
+                    Next <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>

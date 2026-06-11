@@ -37,21 +37,40 @@ export interface EmployeeRow {
   work_location_country: string | null;
   pay_currency: string | null;
   reports_to: string | null;
+  payroll_setup_id: string | null;
 }
 
 export interface CreateEmployeeInput {
-  emp_id: string;
+  /** Optional — backend auto-generates `EMP-001`/`EMP-002`/… when omitted. */
+  emp_id?: string;
   first_name: string;
   last_name: string;
   email: string;
   phone?: string | null;
+  personal_phone?: string | null;
+  personal_email?: string | null;
   department?: string | null;
   designation?: string | null;
+  division?: string | null;
   joining_date?: string | null;
+  probation_end_date?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  marital_status?: string | null;
+  nationality?: string | null;
+  religion?: string | null;
   status?: string;
   category?: string | null;
   work_location_country?: string | null;
+  work_location_city?: string | null;
   pay_currency?: string | null;
+  reports_to?: string | null;
+  /** Which PayrollSetup drives this employee's compensation calculations. */
+  payroll_setup_id?: string | null;
+  /** When true, the backend creates an Invitation row + emails the work address. */
+  send_invite?: boolean;
+  /** Role id assigned on invitation accept (default: the tenant's system Employee role). */
+  invite_role_id?: string | null;
 }
 
 function dirToRow(d: EmployeeDirectoryItem): EmployeeRow {
@@ -73,6 +92,7 @@ function dirToRow(d: EmployeeDirectoryItem): EmployeeRow {
     work_location_country: d.workLocationCountry,
     pay_currency: d.payCurrency,
     reports_to: d.reportsToId,
+    payroll_setup_id: d.payrollSetupId ?? null,
   };
 }
 
@@ -95,6 +115,7 @@ function fullToRow(e: ApiEmployee): EmployeeRow {
     work_location_country: e.workLocationCountry,
     pay_currency: e.payCurrency,
     reports_to: e.reportsToId,
+    payroll_setup_id: e.payrollSetupId ?? null,
   };
 }
 
@@ -121,38 +142,47 @@ export function useEmployee(id: string | undefined) {
 
 export function useCreateEmployee() {
   const m = useCreateEmployeeApi();
+  /**
+   * Convert the wizard's snake_case input to the camelCase backend DTO. We
+   * only forward keys the user actually filled — empty strings become null so
+   * Prisma stores NULL rather than the literal "" (which breaks unique
+   * constraints and confuses downstream filters).
+   */
+  const buildBody = (input: CreateEmployeeInput) => {
+    const nullable = <T,>(v: T | undefined | null | "") => (v == null || v === "" ? null : v);
+    return {
+      ...(input.emp_id ? { empId: input.emp_id } : {}),
+      firstName: input.first_name,
+      lastName: input.last_name,
+      email: input.email,
+      phone: nullable(input.phone),
+      personalPhone: nullable(input.personal_phone),
+      personalEmail: nullable(input.personal_email),
+      department: nullable(input.department),
+      designation: nullable(input.designation),
+      division: nullable(input.division),
+      category: nullable(input.category),
+      joiningDate: nullable(input.joining_date),
+      probationEndDate: nullable(input.probation_end_date),
+      dateOfBirth: nullable(input.date_of_birth),
+      gender: nullable(input.gender),
+      maritalStatus: nullable(input.marital_status),
+      nationality: nullable(input.nationality),
+      religion: nullable(input.religion),
+      status: (input.status ?? "active") as never,
+      workLocationCountry: nullable(input.work_location_country),
+      workLocationCity: nullable(input.work_location_city),
+      payCurrency: nullable(input.pay_currency),
+      reportsToId: nullable(input.reports_to),
+      payrollSetupId: nullable(input.payroll_setup_id),
+      ...(input.send_invite ? { sendInvite: true } : {}),
+      ...(input.invite_role_id ? { inviteRoleId: input.invite_role_id } : {}),
+    };
+  };
   return {
     ...m,
-    mutate: (input: CreateEmployeeInput) =>
-      m.mutate({
-        empId: input.emp_id,
-        firstName: input.first_name,
-        lastName: input.last_name,
-        email: input.email,
-        phone: input.phone ?? null,
-        department: input.department ?? null,
-        designation: input.designation ?? null,
-        joiningDate: input.joining_date ?? null,
-        status: (input.status ?? "active") as never,
-        category: input.category ?? null,
-        workLocationCountry: input.work_location_country ?? null,
-        payCurrency: input.pay_currency ?? null,
-      }),
-    mutateAsync: async (input: CreateEmployeeInput) =>
-      m.mutateAsync({
-        empId: input.emp_id,
-        firstName: input.first_name,
-        lastName: input.last_name,
-        email: input.email,
-        phone: input.phone ?? null,
-        department: input.department ?? null,
-        designation: input.designation ?? null,
-        joiningDate: input.joining_date ?? null,
-        status: (input.status ?? "active") as never,
-        category: input.category ?? null,
-        workLocationCountry: input.work_location_country ?? null,
-        payCurrency: input.pay_currency ?? null,
-      }),
+    mutate: (input: CreateEmployeeInput) => m.mutate(buildBody(input) as never),
+    mutateAsync: async (input: CreateEmployeeInput) => m.mutateAsync(buildBody(input) as never),
   };
 }
 

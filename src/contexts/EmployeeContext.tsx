@@ -9,6 +9,7 @@ import {
   type EmployeeDirectoryItem,
 } from "@/api";
 import type { Employee } from "@/types/hcm";
+import { useConsumerCounter, useLazyContextSubscribe } from "@/lib/lazy-context-query";
 
 /**
  * Migrated from Supabase to NestJS via @/api. External API preserved so the
@@ -27,6 +28,8 @@ interface EmployeeContextType {
   addEmployee: (emp: Employee) => Promise<void>;
   removeEmployee: (empId: string) => Promise<void>;
   refresh: () => void;
+  /** @internal — wired up by `useEmployees()` so the underlying query only fires while a page is consuming this provider. */
+  _subscribe: () => () => void;
 }
 
 const EmployeeContext = createContext<EmployeeContextType | undefined>(undefined);
@@ -55,7 +58,10 @@ function adaptEmployee(row: EmployeeDirectoryItem): Employee {
 
 export function EmployeeProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
-  const list = useEmployeesApi({ pageSize: 500 });
+  // Provider is mounted globally but its list query waits until a page
+  // actually consumes it — see `useEmployees()` below.
+  const { enabled, subscribe } = useConsumerCounter();
+  const list = useEmployeesApi({ pageSize: 500 }, { enabled });
   const createMut = useCreateEmployee();
   const updateMut = useUpdateEmployee();
   const archiveMut = useArchiveEmployee();
@@ -107,6 +113,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
       await archiveMut.mutateAsync({ id: empId });
     },
     refresh: () => qc.invalidateQueries({ queryKey: employeeKeys.all }),
+    _subscribe: subscribe,
   };
 
   return <EmployeeContext.Provider value={value}>{children}</EmployeeContext.Provider>;
@@ -120,5 +127,10 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 export function useEmployees() {
   const ctx = useContext(EmployeeContext);
   if (!ctx) throw new Error("useEmployees must be used within EmployeeProvider");
+  // Subscribing on mount tells the provider its list query is needed by at
+  // least one page; the underlying `useEmployeesApi` flips `enabled` to true
+  // and the fetch fires. When the last consumer unmounts, the query goes
+  // idle again (cached data stays around).
+  useLazyContextSubscribe(ctx._subscribe);
   return ctx;
 }

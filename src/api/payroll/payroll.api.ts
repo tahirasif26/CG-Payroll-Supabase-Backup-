@@ -1,4 +1,4 @@
-import { apiClient, apiGet, apiGetWithMeta, apiPatch, apiPost } from "../client";
+import { apiClient, apiDelete, apiGet, apiGetWithMeta, apiPatch, apiPost } from "../client";
 import { ApiClientError } from "../errors";
 import type { ApiResponse } from "../types";
 import type {
@@ -21,8 +21,8 @@ export const payrollApi = {
     apiPost<PayrollSetup>("/payroll-setups", b),
   updateSetup: (id: string, b: UpdatePayrollSetupRequest): Promise<PayrollSetup> =>
     apiPatch<PayrollSetup>(`/payroll-setups/${id}`, b),
-  activateSetup: (id: string): Promise<PayrollSetup> =>
-    apiPost<PayrollSetup>(`/payroll-setups/${id}/activate`),
+  deleteSetup: (id: string): Promise<{ id: string; deleted: boolean }> =>
+    apiDelete<{ id: string; deleted: boolean }>(`/payroll-setups/${id}`),
 
   // runs
   listRuns: (q: ListPayrollRunsQuery = {}): Promise<ApiResponse<PayrollRun[]>> =>

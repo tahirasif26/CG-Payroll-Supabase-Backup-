@@ -49,7 +49,6 @@ const TAB_DEFINITIONS: TabDefinition[] = [
   { module_key: "payroll",   tab_key: "payroll.eos",          label: "End of Service",     path: "/separations",        scope: "people_only", default_for_admin: true, sort_order: 4 },
   { module_key: "payroll",   tab_key: "payroll.loans",        label: "Loans",              path: "/loans",              scope: "both",        default_for_admin: true, sort_order: 5 },
   { module_key: "payroll",   tab_key: "payroll.analytics",    label: "Analytics",          path: "/analytics",          scope: "people_only", default_for_admin: true, sort_order: 6 },
-  { module_key: "payroll",   tab_key: "payroll.settings",     label: "Payroll Settings",   path: "/payroll/settings",   scope: "people_only", default_for_admin: true, sort_order: 7 },
   // Expenses
   { module_key: "expenses",  tab_key: "expenses.claims",      label: "Expenses",           path: "/expenses",             scope: "both",        default_for_admin: true, sort_order: 1 },
   { module_key: "expenses",  tab_key: "expenses.advances",    label: "Advances",           path: "/advances",             scope: "both",        default_for_admin: true, sort_order: 2 },

@@ -20,8 +20,17 @@ import { useRoles, useAssignEmployeeRole } from "@/hooks/queries/useRoles";
 import { useToast } from "@/hooks/use-toast";
 
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  employeeKeys,
+  employeesApi,
+  useAssignAsset,
+  useDepartments,
+  useDesignations,
+  useDivisions,
+  useInvitations,
+  useResendInvitation,
+} from "@/api";
 import { useClient } from "@/contexts/ClientContext";
 import { COUNTRY_NAMES, CURRENCIES } from "@/lib/countries";
 import { useAssets, useAssetCategories } from "@/hooks/queries/useAssets";
@@ -43,12 +52,21 @@ import {
 import type { Employee } from "@/types/hcm";
 import { matchTaxSlab } from "@/lib/taxSlabs";
 
+export type EmployeeWizardMode = "create" | "edit" | "view";
+
 interface AddEmployeeWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   employeeCount: number;
   /** When provided, the wizard runs in EDIT mode and updates the existing employee. */
   editEmployeeId?: string;
+  /**
+   * - `create` (default): blank form, calls createEmployee on save.
+   * - `edit`: form prefilled from `editEmployeeId`, calls updateEmployee on save.
+   * - `view`: form prefilled from `editEmployeeId`, every input disabled, no save buttons.
+   * If `editEmployeeId` is set and `mode` is omitted, defaults to `edit`.
+   */
+  mode?: EmployeeWizardMode;
   /** Optional: show "Initiate Separation" in header (edit mode only). */
   onInitiateSeparation?: () => void;
 }
@@ -97,8 +115,20 @@ const TABS = [
 
 const DEPARTMENTS = ["Assurance", "Tax", "Advisory", "Strategy", "Technology"];
 
-export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmployeeId, onInitiateSeparation }: AddEmployeeWizardProps) {
-  const isEditMode = !!editEmployeeId;
+export function AddEmployeeWizard({
+  open,
+  onOpenChange,
+  employeeCount,
+  editEmployeeId,
+  mode,
+  onInitiateSeparation,
+}: AddEmployeeWizardProps) {
+  // `mode` resolution: explicit prop wins; otherwise derive from `editEmployeeId`.
+  // View mode is opt-in — never derived implicitly so the existing edit-from-row
+  // call sites (which don't pass `mode`) keep behaving as before.
+  const resolvedMode: EmployeeWizardMode = mode ?? (editEmployeeId ? "edit" : "create");
+  const isEditMode = resolvedMode === "edit";
+  const isViewMode = resolvedMode === "view";
   const { activeTypes } = useEmployeeTypes();
   const { setups } = usePayrollSetups();
   const { addEmployee, employees: allEmployees } = useEmployees();
@@ -109,54 +139,45 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const { toast } = useToast();
   
   const { clientId } = useAuth();
-  const { data: clientInfo } = useQuery({
-    queryKey: ["client-name", clientId],
-    queryFn: async () => {
-      if (!clientId) return null;
-      const { data } = await supabase.from("clients").select("company_name").eq("id", clientId).maybeSingle();
-      return data;
-    },
-    enabled: !!clientId,
-  });
-  const empPrefix = computeEmpPrefix(clientInfo?.company_name);
-  const activeSetups = setups.filter(s => s.status === "active");
+  // ClientContext provides the company name + country/currency — no need to
+  // round-trip to the backend for `company_name` separately.
+  const { client } = useClient();
+  const empPrefix = computeEmpPrefix(client.companyName);
+  /**
+   * The employee ID shown in the Work Information tab. Derived from the
+   * tenant's prefix + (count + 1), so the user sees what they're going to
+   * get. We send this verbatim to the backend on create — the uniqueness
+   * check on (clientId, empId) still defends against rare race conditions
+   * where two admins onboard at the same instant.
+   */
+  const displayedEmpId = useMemo(
+    () => `${empPrefix}-${String(employeeCount + 1).padStart(3, "0")}`,
+    [empPrefix, employeeCount],
+  );
+  // Every saved setup is selectable — there's no active/inactive flag.
+  const activeSetups = setups;
   const activeEmps = allEmployees.filter(e => e.status !== "separated");
   const { data: roles = [] } = useRoles(clientId ?? null);
 
-  const { data: dbDepartments = [] } = useQuery({
-    queryKey: ["departments", clientId],
-    enabled: !!clientId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("departments").select("id, name").eq("client_id", clientId!).order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-  const { data: dbDesignations = [] } = useQuery({
-    queryKey: ["designations", clientId],
-    enabled: !!clientId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("designations").select("id, name").eq("client_id", clientId!).order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-  const { data: dbDivisions = [] } = useQuery({
-    queryKey: ["divisions", clientId],
-    enabled: !!clientId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("divisions").select("id, name, is_active").eq("client_id", clientId!).order("name");
-      if (error) throw error;
-      return (data ?? []).filter((d: any) => d.is_active !== false);
-    },
-  });
+  // Org-structure dropdowns — served by the NestJS backend
+  // (`/divisions`, `/departments`, `/designations`).
+  const { data: dbDepartments = [] } = useDepartments();
+  const { data: dbDesignations = [] } = useDesignations();
+  const { data: dbDivisionsRaw = [] } = useDivisions();
+  const dbDivisions = dbDivisionsRaw.filter((d) => d.isActive !== false);
   const assignRole = useAssignEmployeeRole();
   const defaultEmployeeRole = useMemo(
     () => roles.find(r => r.is_system && r.name.toLowerCase() === "employee"),
     [roles]
   );
 
-  const { client } = useClient();
+  // Invitation list — used by the "Resend invite" button so we can look up the
+  // pending invitation id for the candidate email and call the NestJS resend
+  // endpoint (the legacy Supabase edge function is gone).
+  const { data: invitations = [] } = useInvitations();
+  const resendInvitation = useResendInvitation();
+  const assignAsset = useAssignAsset();
+
   const defaultCountry = client.country ?? "";
   const defaultCurrency = client.currency ?? "";
   const buildInitialForm = (): FormData => ({
@@ -199,9 +220,11 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
   const toggleAsset = (id: string) =>
     setSelectedAssetIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  // Prefill form when editing an existing employee.
+  // Prefill form when editing OR viewing an existing employee. View mode
+  // needs the same hydration; the difference is just that every input below
+  // is rendered inside a disabled fieldset.
   useEffect(() => {
-    if (!isEditMode || !editProfile?.employee) return;
+    if ((!isEditMode && !isViewMode) || !editProfile?.employee) return;
     const e: any = editProfile.employee;
     const a: any = editProfile.address ?? {};
     const b: any = editProfile.bank ?? {};
@@ -256,7 +279,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
         field: ed.field_of_study ?? "",
       }))
     );
-  }, [isEditMode, editProfile]);
+  }, [isEditMode, isViewMode, editProfile]);
 
   // Default new employees to the system "Employee" role once roles load.
   useEffect(() => {
@@ -466,30 +489,20 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           })),
         });
 
-        // Upsert base salary into employee_compensation
-        if (form.salary && Number(form.salary) > 0 && clientId) {
-          const baseAmount = Number(form.salary);
-          const { data: existingComp } = await (supabase as any)
-            .from("employee_compensation")
-            .select("id")
-            .eq("employee_id", editEmployeeId)
-            .eq("component_type", "base")
-            .is("effective_to", null)
-            .maybeSingle();
-          if (existingComp?.id) {
-            await (supabase as any).from("employee_compensation")
-              .update({ amount: baseAmount })
-              .eq("id", existingComp.id);
-          } else {
-            await (supabase as any).from("employee_compensation").insert({
-              employee_id: editEmployeeId,
-              client_id: clientId,
-              component_name: "Base Salary",
-              component_type: "base",
-              amount: baseAmount,
-              effective_from: new Date().toISOString().split("T")[0],
-            });
-          }
+        // Sync base salary via the employee-profile compensation array. The
+        // backend treats a `componentType === "base"` row as the canonical
+        // basic-pay record, closing out any previous open row.
+        if (form.salary && Number(form.salary) > 0 && editEmployeeId) {
+          await employeesApi.updateProfile(editEmployeeId, {
+            compensation: [
+              {
+                componentName: "Base Salary",
+                componentType: "base",
+                amount: Number(form.salary),
+                effectiveFrom: new Date().toISOString().split("T")[0],
+              },
+            ],
+          });
         }
 
         // Sync permission role (employees.role_id + user_roles).
@@ -511,12 +524,25 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
         toast({ title: "Employee updated", description: "Changes saved successfully." });
         resetAndClose();
       } else {
+        // Step 1 — create the employee row. The backend auto-generates `empId`
+        // when omitted, and (when `send_invite` is true) atomically mints an
+        // invitation row + emails the accept-link. The row stays in `pending`
+        // status until the invitee accepts → InvitationsService flips it to
+        // `active` and links the new user. `address` / `bank` / `emergency` /
+        // `education` / `compensation` go through the profile endpoint in
+        // step 2; sending them here would have been silently dropped.
         const createResult = await createEmployee.mutateAsync({
-          // emp_id is auto-generated by the DB trigger
+          // Send the displayed prefixed id (e.g. CA-005) so what the user sees
+          // in the form is what lands in the DB. The backend's uniqueness
+          // check still defends against concurrent onboards racing on the
+          // same suffix.
+          emp_id: displayedEmpId,
           first_name: newEmp.firstName,
           last_name: newEmp.lastName,
           email: inviteEmail,
           phone: form.personalPhone || undefined,
+          personal_phone: form.personalPhone || undefined,
+          personal_email: form.personalEmail || undefined,
           department: form.department || undefined,
           designation: form.designation || undefined,
           category: form.category || undefined,
@@ -528,50 +554,82 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
           nationality: form.nationality || undefined,
           work_location_country: form.workLocationCountry || undefined,
           work_location_city: form.workLocationCity || undefined,
-          payroll_setup_id: form.payrollSetupId || undefined,
           reports_to: reportsToId,
-          address: {
-            address_line1: form.addressLine1, address_line2: form.addressLine2,
-            city: form.city, state: form.state, country: form.country, postal_code: form.postalCode,
-          },
-          bank: {
-            bank_name: form.bankName, bank_country: form.bankCountry, swift_code: form.swiftCode,
-            iban: form.iban, bank_currency: form.bankCurrency, beneficiary_name: form.beneficiaryName,
-            bank_address: form.bankAddress,
-          },
-          emergency_contact: {
-            name: form.emergencyName, relation: form.emergencyRelation,
-            phone: form.emergencyPhone, email: form.emergencyEmail,
-          },
-          education: education.map(e => ({
-            institution: e.institution, degree: e.degree, field_of_study: e.field,
-            start_year: e.year ? Number(e.year) : undefined,
-          })),
+          payroll_setup_id: form.payrollSetupId || undefined,
           send_invite: sendInvite,
+          invite_role_id: form.roleId || undefined,
         });
-        // Insert base salary into employee_compensation for the newly created employee
-        const newEmpId = (createResult as any)?.employee?.id;
-        if (newEmpId && form.salary && Number(form.salary) > 0 && clientId) {
-          await (supabase as any).from("employee_compensation").insert({
-            employee_id: newEmpId,
-            client_id: clientId,
-            component_name: "Base Salary",
-            component_type: "base",
-            amount: Number(form.salary),
-            effective_from: new Date().toISOString().split("T")[0],
+
+        // Step 2 — push every sub-record group in one `updateProfile` so the
+        // row, address, bank, emergency, education and base salary all land
+        // in the same transaction (the backend wraps them).
+        const newEmpId = (createResult as any)?.employee?.id ?? (createResult as any)?.id;
+        if (newEmpId) {
+          const today = new Date().toISOString().split("T")[0];
+          const hasSalary = !!form.salary && Number(form.salary) > 0;
+          await employeesApi.updateProfile(newEmpId, {
+            address: {
+              addressLine1: form.addressLine1 || null,
+              addressLine2: form.addressLine2 || null,
+              city: form.city || null,
+              state: form.state || null,
+              country: form.country || null,
+              postalCode: form.postalCode || null,
+            },
+            bankDetails: {
+              bankName: form.bankName || null,
+              bankCountry: form.bankCountry || null,
+              swiftCode: form.swiftCode || null,
+              iban: form.iban || null,
+              bankCurrency: form.bankCurrency || null,
+              beneficiaryName: form.beneficiaryName || null,
+              bankAddress: form.bankAddress || null,
+            },
+            emergencyContact: {
+              name: form.emergencyName || null,
+              relation: form.emergencyRelation || null,
+              phone: form.emergencyPhone || null,
+              email: form.emergencyEmail || null,
+            },
+            education: education.map((e) => ({
+              institution: e.institution || null,
+              degree: e.degree || null,
+              fieldOfStudy: e.field || null,
+              startYear: e.year ? Number(e.year) : null,
+            })),
+            ...(hasSalary
+              ? {
+                  compensation: [
+                    {
+                      componentName: "Base Salary",
+                      componentType: "base",
+                      amount: Number(form.salary),
+                      effectiveFrom: today,
+                    },
+                  ],
+                }
+              : {}),
           });
         }
         if (newEmpId && selectedAssetIds.length > 0) {
-          const { error: assetErr } = await (supabase as any)
-            .from("assets")
-            .update({
-              employee_id: newEmpId,
-              assigned_date: new Date().toISOString().split("T")[0],
-              status: "assigned",
-            })
-            .in("id", selectedAssetIds);
+          // Each asset is assigned individually through the assets endpoint —
+          // collect the errors instead of failing the entire onboarding so a
+          // bad asset id doesn't roll back the employee record.
+          const today = new Date().toISOString().split("T")[0];
+          let assetErr: { message?: string } | null = null;
+          for (const assetId of selectedAssetIds) {
+            try {
+              await assignAsset.mutateAsync({
+                id: assetId,
+                body: { assignedToId: newEmpId, assignedDate: today },
+              });
+            } catch (e) {
+              assetErr = (e as { error?: { message?: string }; message?: string })?.error
+                ?? (e as { message?: string });
+            }
+          }
           if (assetErr) {
-            toast({ title: "Asset assignment failed", description: assetErr.message, variant: "destructive" });
+            toast({ title: "Asset assignment failed", description: assetErr.message ?? "Unknown error", variant: "destructive" });
           } else {
             qc.invalidateQueries({ queryKey: ["assets"] });
           }
@@ -596,7 +654,35 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
         // already inserts the employee row in the DB and invalidates the employees query.
         // Calling addEmployee would insert a SECOND row using form.email (personal),
         // creating a duplicate when work/personal emails differ.
-        qc.invalidateQueries({ queryKey: ["employees-ctx"] });
+        // Force-refetch the employees list (and any cached single-employee
+        // queries) so the newly-created row appears in the directory even
+        // though the global QueryClient has `refetchOnMount: false`.
+        await qc.invalidateQueries({ queryKey: employeeKeys.all, refetchType: "all" });
+        qc.invalidateQueries({ queryKey: ["invitations"] });
+
+        // Surface invitation delivery state. `invitation: null` means the
+        // admin chose not to send. `emailSent: false` means the row was saved
+        // but the mail provider rejected — admin can resend from the wizard's
+        // edit mode.
+        const invitation = (createResult as { invitation?: { id: string; emailSent: boolean } | null })?.invitation;
+        if (sendInvite) {
+          if (invitation?.emailSent) {
+            toast({
+              title: "Employee added — invitation sent",
+              description: `${inviteEmail} will receive an accept-invite email shortly.`,
+            });
+          } else if (invitation && !invitation.emailSent) {
+            toast({
+              variant: "destructive",
+              title: "Employee added — email delivery failed",
+              description: `The invitation row was saved but the mail provider rejected the send. Use the Resend button on the employee detail to retry.`,
+            });
+          } else {
+            toast({ title: "Employee added" });
+          }
+        } else {
+          toast({ title: "Employee added" });
+        }
         resetAndClose();
       }
     } catch (err) {
@@ -631,8 +717,18 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
 
   const displayName = form.firstName || form.lastName
     ? `${form.firstName} ${form.lastName}`.trim()
-    : (isEditMode ? "Edit Employee" : "New Employee");
-  const displaySub = [form.designation, form.department].filter(Boolean).join(" · ") || (isEditMode ? "Update employee details" : "Complete the form below to onboard");
+    : isViewMode
+      ? "Employee Profile"
+      : isEditMode
+        ? "Edit Employee"
+        : "New Employee";
+  const displaySub = [form.designation, form.department].filter(Boolean).join(" · ") || (
+    isViewMode
+      ? "Read-only employee profile"
+      : isEditMode
+        ? "Update employee details"
+        : "Complete the form below to onboard"
+  );
 
   return (
     <div className="space-y-6">
@@ -671,22 +767,35 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
                 if (!clientId) return;
                 setResending(true);
                 try {
-                  const { data, error } = await supabase.functions.invoke("resend-invite", {
-                    body: { email: form.email, client_id: clientId },
-                  });
-                  const payload: any = data;
-                  const errMsg: string = (error as any)?.message ?? payload?.error ?? "";
-                  if (payload?.verified === true || /already verified/i.test(errMsg)) {
-                    toast({ title: "Already verified", description: `${form.email} has already accepted the invite.` });
-                  } else if (error) {
-                    throw error;
-                  } else if (payload?.error) {
-                    throw new Error(payload.error);
-                  } else {
-                    toast({ title: "Invitation resent", description: `Invitation resent to ${form.email}.` });
+                  // Find the pending invitation for this email in this tenant.
+                  // The backend's resend endpoint takes the invitation id; if
+                  // there's no pending row the user has already accepted.
+                  const match = invitations.find(
+                    (inv) =>
+                      inv.email?.toLowerCase() === form.email.toLowerCase() &&
+                      inv.status === "pending",
+                  );
+                  if (!match) {
+                    const accepted = invitations.find(
+                      (inv) =>
+                        inv.email?.toLowerCase() === form.email.toLowerCase() &&
+                        inv.status === "accepted",
+                    );
+                    if (accepted) {
+                      toast({ title: "Already verified", description: `${form.email} has already accepted the invite.` });
+                    } else {
+                      toast({ title: "No pending invitation", description: `No pending invite found for ${form.email}.`, variant: "destructive" });
+                    }
+                    return;
                   }
-                } catch (e: any) {
-                  toast({ title: "Could not resend invite", description: e?.message ?? "Something went wrong", variant: "destructive" });
+                  await resendInvitation.mutateAsync(match.id);
+                  toast({ title: "Invitation resent", description: `Invitation resent to ${form.email}.` });
+                } catch (e: unknown) {
+                  const message =
+                    (e as { error?: { message?: string } })?.error?.message ??
+                    (e as { message?: string })?.message ??
+                    "Something went wrong";
+                  toast({ title: "Could not resend invite", description: message, variant: "destructive" });
                 } finally {
                   setResending(false);
                 }
@@ -701,12 +810,18 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
               Initiate Separation
             </Button>
           )}
-          <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Check className="h-4 w-4 mr-1" />
-            {inviting
-              ? (isEditMode ? "Saving..." : "Sending Invite...")
-              : (isEditMode ? "Save Changes" : "Submit & Onboard")}
-          </Button>
+          {isViewMode ? (
+            <Button size="sm" variant="outline" onClick={resetAndClose}>
+              Close
+            </Button>
+          ) : (
+            <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Check className="h-4 w-4 mr-1" />
+              {inviting
+                ? (isEditMode ? "Saving..." : "Sending Invite...")
+                : (isEditMode ? "Save Changes" : "Submit & Onboard")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -722,6 +837,14 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             );
           })}
         </TabsList>
+        {/*
+         * In view mode, wrap every TabsContent in a `<fieldset disabled>` so
+         * native HTML disables all inputs/selects/switches/buttons inside the
+         * tabs panels. The TabsList sits OUTSIDE the fieldset so the user can
+         * still navigate between tabs to inspect saved data.
+         */}
+        <fieldset disabled={isViewMode} className="m-0 p-0 border-0 min-w-0">
+          <legend className="sr-only">Employee details</legend>
 
         {/* ========== PERSONAL TAB ========== */}
         <TabsContent value="personal" className="mt-4 space-y-4">
@@ -996,7 +1119,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Employee ID</p>
-                  <Input value={`${empPrefix}-${String(employeeCount + 1).padStart(3, "0")}`} disabled className="h-8 text-sm bg-muted" />
+                  <Input value={displayedEmpId} disabled className="h-8 text-sm bg-muted" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Work Email <span className="text-destructive">*</span></p>
@@ -1389,6 +1512,7 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             </CardContent>
           </Card>
         </TabsContent>
+        </fieldset>
       </Tabs>
 
       {/* Navigation Footer */}
@@ -1404,18 +1528,26 @@ export function AddEmployeeWizard({ open, onOpenChange, employeeCount, editEmplo
             <div className="flex items-center gap-2">
               {currentTabIdx < TABS.length - 1 && (
                 <>
-                  <Button variant="ghost" size="sm" onClick={skipTab} className="text-muted-foreground">
-                    <SkipForward className="h-4 w-4 mr-1" />Skip
-                  </Button>
+                  {!isViewMode && (
+                    <Button variant="ghost" size="sm" onClick={skipTab} className="text-muted-foreground">
+                      <SkipForward className="h-4 w-4 mr-1" />Skip
+                    </Button>
+                  )}
                   <Button size="sm" onClick={goNext}>
                     Next<ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </>
               )}
               {currentTabIdx === TABS.length - 1 && (
-                <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                  <Check className="h-4 w-4 mr-1" />{isEditMode ? "Save Changes" : "Submit & Onboard"}
-                </Button>
+                isViewMode ? (
+                  <Button size="sm" variant="outline" onClick={resetAndClose}>
+                    Close
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={validateAndSubmit} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Check className="h-4 w-4 mr-1" />{isEditMode ? "Save Changes" : "Submit & Onboard"}
+                  </Button>
+                )
               )}
             </div>
           </div>

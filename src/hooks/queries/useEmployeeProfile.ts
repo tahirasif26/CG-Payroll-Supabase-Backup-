@@ -37,7 +37,15 @@ type EmployeeRow = {
   religion: string | null;
   department: string | null;
   designation: string | null;
+  division: string | null;
+  category: string | null;
   joining_date: string | null;
+  probation_end_date: string | null;
+  work_location_country: string | null;
+  work_location_city: string | null;
+  pay_currency: string | null;
+  reports_to: string | null;
+  payroll_setup_id: string | null;
   avatar_url: string | null;
   status: string;
 };
@@ -127,7 +135,15 @@ function toEmployeeRow(p: EmployeeProfile): EmployeeRow {
     religion: p.religion,
     department: p.department,
     designation: p.designation,
+    division: p.division,
+    category: p.category,
     joining_date: p.joiningDate,
+    probation_end_date: p.probationEndDate,
+    work_location_country: p.workLocationCountry,
+    work_location_city: p.workLocationCity,
+    pay_currency: p.payCurrency,
+    reports_to: p.reportsToId,
+    payroll_setup_id: p.payrollSetupId,
     avatar_url: p.avatarUrl,
     status: p.status,
   };

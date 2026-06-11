@@ -54,10 +54,6 @@ export default function PayrollSetupViewPage() {
           <Field label="Setup Name" value={setup.name} />
           <Field label="Country" value={setup.country} />
           <Field label="Currency" value={setup.currency} />
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Status</Label>
-            <div><Badge variant={setup.status === "active" ? "default" : "secondary"}>{setup.status}</Badge></div>
-          </div>
         </div>
       </div>
 

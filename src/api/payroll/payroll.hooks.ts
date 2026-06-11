@@ -22,11 +22,11 @@ export const payrollKeys = {
 
 // ─── Setups ──────────────────────────────────────────────────────────────────
 
-export function usePayrollSetups() {
+export function usePayrollSetups(opts: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: payrollKeys.setups(),
     queryFn: () => payrollApi.listSetups(),
-    enabled: enabled(),
+    enabled: enabled() && (opts.enabled ?? true),
   });
 }
 export function usePayrollSetup(id: string | null | undefined) {
@@ -54,10 +54,10 @@ export function useUpdatePayrollSetup() {
     },
   });
 }
-export function useActivatePayrollSetup() {
+export function useDeletePayrollSetup() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => payrollApi.activateSetup(id),
+    mutationFn: (id: string) => payrollApi.deleteSetup(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: payrollKeys.setups() }),
   });
 }
@@ -67,7 +67,13 @@ export function useActivatePayrollSetup() {
 export function usePayrollRuns(query: ListPayrollRunsQuery = {}) {
   return useQuery({
     queryKey: payrollKeys.runs(query),
-    queryFn: () => payrollApi.listRuns(query),
+    // listRuns() returns the `ApiResponse` envelope (data + meta) because the
+    // paginated meta is useful elsewhere. Most callers (PayrollPage included)
+    // expect a plain array, so unwrap here.
+    queryFn: async () => {
+      const res = await payrollApi.listRuns(query);
+      return res.data ?? [];
+    },
     enabled: enabled(),
   });
 }

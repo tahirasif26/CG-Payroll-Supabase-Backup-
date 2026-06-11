@@ -17,11 +17,17 @@ export const employeeKeys = {
   me: () => [...employeeKeys.all, "me"] as const,
 };
 
-export function useEmployees(query: ListEmployeesQuery = {}) {
+export function useEmployees(
+  query: ListEmployeesQuery = {},
+  opts: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: employeeKeys.list(query),
     queryFn: () => employeesApi.list(query),
-    enabled: !!tokenStorage.getAccessToken(),
+    // `opts.enabled ?? true` keeps the existing call sites (which never pass
+    // an enabled flag) firing on mount. Providers that want lazy fetching
+    // can pass `enabled: false` (or a counter-derived boolean).
+    enabled: !!tokenStorage.getAccessToken() && (opts.enabled ?? true),
   });
 }
 
@@ -49,8 +55,14 @@ export function useCreateEmployee() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateEmployeeRequest) => employeesApi.create(body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: employeeKeys.all });
+    onSuccess: async () => {
+      // `refetchType: 'all'` (and the explicit await) is the difference
+      // between "list invalidated but waiting for the next observer remount"
+      // and "list actually visibly updates the moment the wizard closes".
+      // The app's QueryClient default is `refetchOnMount: false` with a 5-min
+      // `staleTime`, so the default 'active' refetch behavior alone isn't
+      // enough to guarantee an immediate re-render of every observer.
+      await qc.invalidateQueries({ queryKey: employeeKeys.all, refetchType: 'all' });
     },
   });
 }

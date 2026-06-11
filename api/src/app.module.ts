@@ -18,6 +18,7 @@ import { UsersModule } from './modules/users/users.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
 import { EmployeesModule } from './modules/employees/employees.module';
+import { OrgStructureModule } from './modules/org-structure/org-structure.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { LeaveModule } from './modules/leave/leave.module';
@@ -105,6 +106,7 @@ interface RequestWithCorrelationId {
     TenantsModule,
     InvitationsModule,
     EmployeesModule,
+    OrgStructureModule,
     LeaveModule,
     ExpensesModule,
     AdvancesModule,

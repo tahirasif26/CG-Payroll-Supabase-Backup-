@@ -1,6 +1,7 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { EmployeeStatus, Prisma } from '@prisma/client';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { AppRole, EmployeeStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '@infrastructure/prisma/prisma.service';
+import { InvitationsService } from '@modules/invitations/invitations.service';
 import type { PaginationMeta } from '@common/dto/api-response.dto';
 import { buildSkipTake } from '@common/dto/pagination.dto';
 import type {
@@ -35,6 +36,7 @@ const directorySelect = {
   avatarUrl: true,
   status: true,
   reportsToId: true,
+  payrollSetupId: true,
   payCurrency: true,
   createdAt: true,
   updatedAt: true,
@@ -42,7 +44,12 @@ const directorySelect = {
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(EmployeesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly invitations: InvitationsService,
+  ) {}
 
   async list(
     clientId: string,
@@ -143,29 +150,116 @@ export class EmployeesService {
     return emp;
   }
 
-  async create(clientId: string, dto: CreateEmployeeDto) {
-    // Enforce unique (clientId, empId) explicitly for a friendlier error than P2002.
+  async create(
+    clientId: string,
+    dto: CreateEmployeeDto,
+    invitedByUserId?: string | null,
+  ) {
+    // Auto-generate empId when the wizard didn't supply one. Falls back to
+    // (clientId, empId) uniqueness check below so racing creates still get a
+    // friendly error rather than a raw P2022.
+    const empId = dto.empId ?? (await this.nextEmpId(clientId));
+
     const existing = await this.prisma.employee.findFirst({
-      where: { clientId, empId: dto.empId },
+      where: { clientId, empId },
       select: { id: true },
     });
     if (existing) {
       throw new ConflictException({
         code: 'EMP_ID_TAKEN',
-        message: `An employee with code "${dto.empId}" already exists`,
+        message: `An employee with code "${empId}" already exists`,
       });
     }
-    return this.prisma.employee.create({
+
+    // Strip the invitation-control flags before handing the rest to Prisma —
+    // those aren't columns on `employees`.
+    const { sendInvite, inviteRoleId, ...rowDto } = dto;
+
+    const employee = await this.prisma.employee.create({
       data: {
-        ...dto,
+        ...rowDto,
+        empId,
         clientId,
-        dateOfBirth: parseDate(dto.dateOfBirth),
-        joiningDate: parseDate(dto.joiningDate),
-        probationEndDate: parseDate(dto.probationEndDate),
-        // null-coalescing optional fields to avoid Prisma type quirks
-        avatarUrl: dto.avatarUrl ?? null,
+        // If we're sending an invite, the row starts in `pending` until the
+        // employee accepts and a User gets linked. Otherwise honour the
+        // caller's status (default to `active` via the Prisma column default).
+        status: sendInvite ? EmployeeStatus.pending : (rowDto.status as EmployeeStatus | undefined),
+        dateOfBirth: parseDate(rowDto.dateOfBirth),
+        joiningDate: parseDate(rowDto.joiningDate),
+        probationEndDate: parseDate(rowDto.probationEndDate),
+        avatarUrl: rowDto.avatarUrl ?? null,
       },
     });
+
+    let invitationId: string | null = null;
+    let inviteEmailSent = true;
+    if (sendInvite) {
+      try {
+        // Resolve the role to attach to the invitation. Prefer the caller's
+        // choice; otherwise pick the tenant's system `Employee` role.
+        let roleId = inviteRoleId ?? null;
+        if (!roleId) {
+          const sysEmployeeRole = await this.prisma.role.findFirst({
+            where: { clientId, appRole: AppRole.employee, isSystem: true },
+            select: { id: true },
+          });
+          roleId = sysEmployeeRole?.id ?? null;
+        }
+
+        const inv = await this.invitations.create({
+          dto: {
+            email: employee.email,
+            appRole: AppRole.employee,
+            roleId: roleId ?? undefined,
+            firstName: employee.firstName,
+            lastName: employee.lastName,
+            empId: employee.empId,
+            department: employee.department ?? undefined,
+            designation: employee.designation ?? undefined,
+          },
+          clientId,
+          invitedByUserId: invitedByUserId ?? null,
+        });
+        invitationId = inv.id;
+      } catch (err) {
+        // Don't roll back the employee — the admin can resend the invite
+        // from the employee detail view. Surface the failure so the FE can
+        // show a warning toast.
+        inviteEmailSent = false;
+        this.logger.error(
+          `Employee ${employee.id} created but invitation send failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    return { employee, invitation: invitationId ? { id: invitationId, emailSent: inviteEmailSent } : null };
+  }
+
+  /**
+   * Best-effort fallback empId used only when the FE doesn't supply one.
+   * Scans every employee row in the tenant for a `<prefix>-<digits>$` suffix
+   * and picks `max(suffix) + 1`. Walking ALL rows (instead of trusting
+   * alphabetical-desc ordering on `empId`) means a mixed dataset like
+   * `EMP-001`, `EMP-002`, `EMP-CA-001` doesn't fool the suffix detector into
+   * resetting to `001`.
+   *
+   * Not transactional — two concurrent creates can still collide on the
+   * unique `(clientId, empId)` constraint; the caller catches that 409.
+   */
+  private async nextEmpId(clientId: string): Promise<string> {
+    const rows = await this.prisma.employee.findMany({
+      where: { clientId },
+      select: { empId: true },
+    });
+    let maxSuffix = 0;
+    for (const r of rows) {
+      const m = r.empId?.match(/-(\d+)$/);
+      if (m) {
+        const n = Number(m[1]);
+        if (Number.isFinite(n) && n > maxSuffix) maxSuffix = n;
+      }
+    }
+    return `EMP-${String(maxSuffix + 1).padStart(3, '0')}`;
   }
 
   async update(clientId: string, id: string, dto: UpdateEmployeeDto) {

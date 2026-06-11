@@ -17,7 +17,13 @@ import { Plus, Download, FileText, Upload, User, Briefcase, DollarSign, Calendar
 import { matchTaxSlab } from "@/lib/taxSlabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+// NOTE: `supabase` is only referenced by a handful of legacy sub-features in
+// this page (compensation breakdown lookup at L1289, employee-leaves snapshot
+// at L1668, EOS info at L2227). The resend-invite flow has been migrated to
+// the NestJS invitations API via `useResendInvitation`. Drop this import
+// once those last sub-features are ported.
 import { supabase } from "@/integrations/supabase/client";
+import { useInvitations, useResendInvitation } from "@/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -202,76 +208,59 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
   const [deleting, setDeleting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
 
-  // Invite/verification status keyed by emp_id. Backed by employees.is_verified
-  // (updated instantly via the mark_self_verified RPC after password setup).
+  // Verification state now flows from the NestJS backend: the AddEmployee
+  // wizard parks new rows in `status: 'pending'` while an invitation is
+  // outstanding, and `InvitationsService.accept` flips it to `active` once
+  // the invitee sets their password. So `emp.status === 'pending'` IS the
+  // "Unverified" badge — no extra round-trip needed.
   const queryClient = useQueryClient();
-  const { data: inviteStatusList } = useQuery({
-    queryKey: ["employee-invite-status", clientId],
-    enabled: !!clientId,
-    staleTime: 30_000,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("employees")
-        .select("emp_id, is_verified, verified_at")
-        .eq("client_id", clientId!);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-  const inviteStatusMap = useMemo(() => {
-    const m = new Map<string, string | null>();
-    (inviteStatusList ?? []).forEach((p: any) => {
-      if (p.emp_id) m.set(p.emp_id, p.is_verified ? (p.verified_at ?? new Date().toISOString()) : null);
-    });
-    return m;
-  }, [inviteStatusList]);
-
-  // Live updates: refresh the badge the moment an invitee activates their account.
-  useEffect(() => {
-    if (!clientId) return;
-    const channel = supabase
-      .channel(`employees-verify-${clientId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "employees", filter: `client_id=eq.${clientId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["employee-invite-status", clientId] });
-          queryClient.invalidateQueries({ queryKey: ["verified-emp-ids", clientId] });
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [clientId, queryClient]);
+  const { data: invitations = [] } = useInvitations();
+  const resendInvitationMut = useResendInvitation();
 
   const handleResendInvite = async (emp: Employee) => {
     if (!clientId) return;
     setResendingId(emp.id);
     try {
-      const { data, error } = await supabase.functions.invoke("resend-invite", {
-        body: { email: emp.email, client_id: clientId },
-      });
-      const payload: any = data;
-      // Already-verified case: edge function returns 409 with { verified: true }
-      const errMsg: string = (error as any)?.message ?? payload?.error ?? "";
-      const isAlreadyVerified =
-        payload?.verified === true || /already verified/i.test(errMsg);
-      if (isAlreadyVerified) {
-        toast({
-          title: "Already verified",
-          description: `${emp.email} has already accepted the invite.`,
-        });
+      // Find the still-pending invitation for this employee. If there isn't
+      // one (e.g. they're already verified or invite was revoked), say so.
+      const pendingInvite = invitations.find(
+        (inv) =>
+          inv.email?.toLowerCase() === emp.email.toLowerCase() &&
+          inv.status === "pending",
+      );
+      if (!pendingInvite) {
+        const acceptedInvite = invitations.find(
+          (inv) =>
+            inv.email?.toLowerCase() === emp.email.toLowerCase() &&
+            inv.status === "accepted",
+        );
+        if (acceptedInvite) {
+          toast({
+            title: "Already verified",
+            description: `${emp.email} has already accepted the invite.`,
+          });
+        } else {
+          toast({
+            title: "No pending invitation",
+            description: `No pending invitation found for ${emp.email}. Re-create the employee with the "Send invite" toggle on.`,
+            variant: "destructive",
+          });
+        }
         return;
       }
-      if (error) throw error;
-      if (payload?.error) throw new Error(payload.error);
+      await resendInvitationMut.mutateAsync(pendingInvite.id);
       toast({
         title: "Invitation resent",
         description: `Invitation resent to ${emp.email}.`,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message =
+        (e as { error?: { message?: string }; message?: string })?.error?.message ??
+        (e as { message?: string })?.message ??
+        "Something went wrong";
       toast({
         title: "Could not resend invite",
-        description: e?.message ?? "Something went wrong",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -514,13 +503,13 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={emp.status} />
-                    {inviteStatusMap.has(emp.empId) && inviteStatusMap.get(emp.empId) ? (
-                      <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
-                        <CheckCircle2 className="h-3 w-3" /> Verified
-                      </Badge>
-                    ) : (
+                    {emp.status === "pending" ? (
                       <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
                         Unverified
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <CheckCircle2 className="h-3 w-3" /> Verified
                       </Badge>
                     )}
                   </div>
@@ -536,7 +525,7 @@ function EmployeeDirectoryTable({ employees: empList, onSelect, onEdit, isEmploy
                           <Edit2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      {!(inviteStatusMap.has(emp.empId) && inviteStatusMap.get(emp.empId)) && (
+                      {emp.status === "pending" && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1799,7 +1788,7 @@ function EmployeeTypeSelect() {
 
 function PayrollSetupSelect() {
   const { setups } = usePayrollSetups();
-  const activeSetups = setups.filter(s => s.status === "active");
+  const activeSetups = setups;
   return (
     <select name="payrollSetupId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
       <option value="">Select payroll setup...</option>
@@ -1925,15 +1914,17 @@ function EmployeesDirectory() {
   }
 
   // Admin/HR viewing another employee's profile in EDIT mode → use the wizard.
-  // View mode (profileViewOnly=true) falls through to the read-only profile panel below.
-  if (selectedEmployee && !profileViewOnly && role !== "employee" && selectedEmployee.id !== currentEmployeeId) {
+  // View mode (profileViewOnly=true) also uses the wizard but with `mode="view"`
+  // so every input is disabled and the tab layout / hydration match edit mode.
+  if (selectedEmployee && role !== "employee" && selectedEmployee.id !== currentEmployeeId) {
     return (
       <AddEmployeeWizard
         open={true}
         onOpenChange={(v) => { if (!v) setSelectedEmployee(null); }}
         employeeCount={localEmployees.length}
         editEmployeeId={selectedEmployee.id}
-        onInitiateSeparation={selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive"
+        mode={profileViewOnly ? "view" : "edit"}
+        onInitiateSeparation={!profileViewOnly && selectedEmployee.status !== "separated" && selectedEmployee.status !== "inactive"
           ? () => { setSeparationEmp(selectedEmployee); setSeparationOpen(true); }
           : undefined}
       />

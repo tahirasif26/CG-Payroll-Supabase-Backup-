@@ -27,7 +27,6 @@ export const DEFAULT_PAYROLL_SETUP: PayrollSetup = {
   name: "",
   country: "Saudi Arabia",
   currency: "SAR",
-  status: "active",
   lastUpdated: new Date().toISOString().split("T")[0],
   paySchedule: { payFrequency: "monthly", cycleStartDate: "1", cycleEndDate: "EOM", payDate: "28" },
   options: { includeOvertime: false, includeUnpaidLeave: false, enableTaxCalculation: false, allowNegativeSalary: false },
@@ -140,13 +139,6 @@ export default function PayrollSetupEditorPage() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-72">{currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <div className="flex items-center gap-2 pt-1">
-              <Switch checked={setup.status === "active"} onCheckedChange={v => setSetup(s => ({ ...s, status: v ? "active" : "inactive" }))} />
-              <span className="text-sm capitalize">{setup.status}</span>
-            </div>
           </div>
         </div>
       </div>

@@ -25,11 +25,11 @@ export const leaveKeys = {
 
 // ─── Leave types ─────────────────────────────────────────────────────────────
 
-export function useLeaveTypes() {
+export function useLeaveTypes(opts: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: leaveKeys.types(),
     queryFn: () => leaveApi.listTypes(),
-    enabled: enabled(),
+    enabled: enabled() && (opts.enabled ?? true),
   });
 }
 
@@ -60,15 +60,18 @@ export function useDeleteLeaveType() {
 
 // ─── Balances ────────────────────────────────────────────────────────────────
 
-export function useLeaveBalances(params: {
-  employeeId?: string;
-  leaveTypeId?: string;
-  year?: number;
-} = {}) {
+export function useLeaveBalances(
+  params: {
+    employeeId?: string;
+    leaveTypeId?: string;
+    year?: number;
+  } = {},
+  opts: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: leaveKeys.balances(params),
     queryFn: () => leaveApi.listBalances(params),
-    enabled: enabled(),
+    enabled: enabled() && (opts.enabled ?? true),
   });
 }
 

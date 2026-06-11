@@ -1,7 +1,4 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/contexts/RoleContext";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import type { JobTitle } from "@/data/settingsData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,157 +9,152 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useEmployeeTypes } from "@/contexts/EmployeeTypeContext";
+import {
+  useDivisions, useCreateDivision, useUpdateDivision, useDeleteDivision,
+  useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment,
+  useDesignations, useCreateDesignation, useUpdateDesignation, useDeleteDesignation,
+} from "@/api";
 
-interface SimpleDepartment {
-  id: string;
-  name: string;
-  isActive: boolean;
+const LEVEL_TO_NAME: Record<number, string> = { 4: "Leadership", 3: "Management", 2: "Professional", 1: "Entry" };
+const NAME_TO_LEVEL: Record<string, number> = { Leadership: 4, Management: 3, Professional: 2, Entry: 1 };
+
+/** Read an API error's `error.message` / fallback to `.message`. */
+function describeError(err: unknown, fallback: string): string {
+  return (
+    (err as { error?: { message?: string } })?.error?.message ??
+    (err as { message?: string })?.message ??
+    fallback
+  );
 }
-
 
 export default function CompanyStructurePage() {
   const { toast } = useToast();
-  const { clientId } = useRole();
-  const qc = useQueryClient();
   const { employeeTypes, addEmployeeType, updateEmployeeType, deleteEmployeeType } = useEmployeeTypes();
 
-  const { data: dbDepartments = [] } = useQuery({
-    queryKey: ["departments", clientId],
-    enabled: !!clientId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("departments").select("id, name").eq("client_id", clientId!).order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  // ─── Data ────────────────────────────────────────────────────────────────
+  const { data: divisions = [] } = useDivisions();
+  const { data: departments = [] } = useDepartments();
+  const { data: designations = [] } = useDesignations();
 
-  const { data: dbDesignations = [] } = useQuery({
-    queryKey: ["designations", clientId],
-    enabled: !!clientId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("designations").select("id, name, level").eq("client_id", clientId!).order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const createDivMut = useCreateDivision();
+  const updateDivMut = useUpdateDivision();
+  const deleteDivMut = useDeleteDivision();
 
-  const addDeptMut = useMutation({
-    mutationFn: async (name: string) => {
-      if (!clientId) throw new Error("No client context");
-      const { error } = await supabase.from("departments").insert({ client_id: clientId, name });
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["departments", clientId] }),
-    onError: (e: Error) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
-  });
+  const createDeptMut = useCreateDepartment();
+  const updateDeptMut = useUpdateDepartment();
+  const deleteDeptMut = useDeleteDepartment();
 
-  const updateDeptMut = useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("departments").update({ name }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["departments", clientId] }),
-    onError: (e: Error) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
-  });
+  const createDesigMut = useCreateDesignation();
+  const updateDesigMut = useUpdateDesignation();
+  const deleteDesigMut = useDeleteDesignation();
 
-  const deleteDeptMut = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("departments").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["departments", clientId] }),
-    onError: (e: Error) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
-  });
-
-  const levelToInt = (l: string): number | null => {
-    const map: Record<string, number> = { Leadership: 4, Management: 3, Professional: 2, Entry: 1 };
-    return map[l] ?? null;
+  // ─── Division dialog ─────────────────────────────────────────────────────
+  type DivisionItem = { id: string; name: string; isActive: boolean };
+  const [divDialogOpen, setDivDialogOpen] = useState(false);
+  const [divEdit, setDivEdit] = useState<DivisionItem | null>(null);
+  const [divName, setDivName] = useState("");
+  const openAddDiv = () => { setDivEdit(null); setDivName(""); setDivDialogOpen(true); };
+  const openEditDiv = (item: DivisionItem) => { setDivEdit(item); setDivName(item.name); setDivDialogOpen(true); };
+  const handleDivSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (divEdit) {
+        await updateDivMut.mutateAsync({ id: divEdit.id, body: { name: divName } });
+        toast({ title: "Updated" });
+      } else {
+        await createDivMut.mutateAsync({ name: divName });
+        toast({ title: "Added", description: `${divName} division added.` });
+      }
+      setDivDialogOpen(false);
+    } catch (err) {
+      toast({ title: "Save failed", description: describeError(err, "Could not save."), variant: "destructive" });
+    }
   };
-  const intToLevel = (n: number | null | undefined): string => {
-    const map: Record<number, string> = { 4: "Leadership", 3: "Management", 2: "Professional", 1: "Entry" };
-    return n != null ? (map[n] ?? "Entry") : "Entry";
+  const handleDivDelete = async (id: string) => {
+    try {
+      await deleteDivMut.mutateAsync(id);
+      toast({ title: "Deleted" });
+    } catch (err) {
+      toast({ title: "Delete failed", description: describeError(err, "Could not delete."), variant: "destructive" });
+    }
   };
 
-  const addDesigMut = useMutation({
-    mutationFn: async ({ name, level }: { name: string; level: string }) => {
-      if (!clientId) throw new Error("No client context");
-      const { error } = await supabase.from("designations").insert({ client_id: clientId, name, level: levelToInt(level) });
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["designations", clientId] }),
-    onError: (e: Error) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
-  });
+  // ─── Department dialog ───────────────────────────────────────────────────
+  type DeptItem = { id: string; name: string; isActive: boolean };
+  const [deptDialogOpen, setDeptDialogOpen] = useState(false);
+  const [deptEdit, setDeptEdit] = useState<DeptItem | null>(null);
+  const [deptName, setDeptName] = useState("");
+  const openAddDept = () => { setDeptEdit(null); setDeptName(""); setDeptDialogOpen(true); };
+  const openEditDept = (item: DeptItem) => { setDeptEdit(item); setDeptName(item.name); setDeptDialogOpen(true); };
+  const handleDeptSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (deptEdit) {
+        await updateDeptMut.mutateAsync({ id: deptEdit.id, body: { name: deptName } });
+        toast({ title: "Updated" });
+      } else {
+        await createDeptMut.mutateAsync({ name: deptName });
+        toast({ title: "Added", description: `${deptName} department added.` });
+      }
+      setDeptDialogOpen(false);
+    } catch (err) {
+      toast({ title: "Save failed", description: describeError(err, "Could not save."), variant: "destructive" });
+    }
+  };
+  const handleDeptDelete = async (id: string) => {
+    try {
+      await deleteDeptMut.mutateAsync(id);
+      toast({ title: "Deleted" });
+    } catch (err) {
+      toast({ title: "Delete failed", description: describeError(err, "Could not delete."), variant: "destructive" });
+    }
+  };
 
-  const updateDesigMut = useMutation({
-    mutationFn: async ({ id, name, level }: { id: string; name: string; level: string }) => {
-      const { error } = await supabase.from("designations").update({ name, level: levelToInt(level) }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["designations", clientId] }),
-    onError: (e: Error) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
-  });
+  // ─── Job Title (Designation) dialog ──────────────────────────────────────
+  const [jtDialogOpen, setJtDialogOpen] = useState(false);
+  const [jtEdit, setJtEdit] = useState<JobTitle | null>(null);
+  const [jtTitle, setJtTitle] = useState("");
+  const [jtLevel, setJtLevel] = useState("Entry");
+  const jtItems: JobTitle[] = designations.map((d) => ({
+    id: d.id,
+    title: d.name,
+    level: d.level != null ? (LEVEL_TO_NAME[d.level] ?? "Entry") : "Entry",
+    isActive: d.isActive,
+  })) as JobTitle[];
+  const openAddJt = () => { setJtEdit(null); setJtTitle(""); setJtLevel("Entry"); setJtDialogOpen(true); };
+  const openEditJt = (item: JobTitle) => { setJtEdit(item); setJtTitle(item.title); setJtLevel(item.level); setJtDialogOpen(true); };
+  const handleJtSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const level = NAME_TO_LEVEL[jtLevel] ?? null;
+      if (jtEdit) {
+        await updateDesigMut.mutateAsync({ id: jtEdit.id, body: { name: jtTitle, level } });
+        toast({ title: "Updated", description: `${jtTitle} updated.` });
+      } else {
+        await createDesigMut.mutateAsync({ name: jtTitle, level });
+        toast({ title: "Added", description: `${jtTitle} added.` });
+      }
+      setJtDialogOpen(false);
+    } catch (err) {
+      toast({ title: "Save failed", description: describeError(err, "Could not save."), variant: "destructive" });
+    }
+  };
+  const handleJtDelete = async (id: string) => {
+    try {
+      await deleteDesigMut.mutateAsync(id);
+      toast({ title: "Deleted" });
+    } catch (err) {
+      toast({ title: "Delete failed", description: describeError(err, "Could not delete."), variant: "destructive" });
+    }
+  };
 
-  const deleteDesigMut = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("designations").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["designations", clientId] }),
-    onError: (e: Error) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
-  });
-
-
-  // Divisions queries (DB-backed)
-  const { data: dbDivisions = [] } = useQuery({
-    queryKey: ["divisions", clientId],
-    enabled: !!clientId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("divisions").select("id, name, is_active").eq("client_id", clientId!).order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const addDivMut = useMutation({
-    mutationFn: async (name: string) => {
-      if (!clientId) throw new Error("No client context");
-      const { error } = await supabase.from("divisions").insert({ client_id: clientId, name });
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["divisions", clientId] }),
-    onError: (e: Error) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
-  });
-
-  const updateDivMut = useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("divisions").update({ name }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["divisions", clientId] }),
-    onError: (e: Error) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
-  });
-
-  const deleteDivMut = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("divisions").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["divisions", clientId] }),
-    onError: (e: Error) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
-  });
-
-  // Employee Types state
+  // ─── Employee Types (context-backed, not yet on backend) ─────────────────
   const [etDialogOpen, setEtDialogOpen] = useState(false);
   const [etEdit, setEtEdit] = useState<string | null>(null);
   const [etName, setEtName] = useState("");
-
   const openAddEt = () => { setEtEdit(null); setEtName(""); setEtDialogOpen(true); };
   const openEditEt = (id: string, name: string) => { setEtEdit(id); setEtName(name); setEtDialogOpen(true); };
   const handleEtSubmit = (e: React.FormEvent) => {
@@ -178,102 +170,6 @@ export default function CompanyStructurePage() {
   };
   const handleEtDelete = (id: string) => { deleteEmployeeType(id); toast({ title: "Deleted" }); };
 
-  // Divisions state (DB-backed)
-  type DivisionItem = { id: string; name: string; isActive: boolean };
-  const divItems: DivisionItem[] = dbDivisions.map((d: any) => ({ id: d.id, name: d.name, isActive: d.is_active }));
-  const [divDialogOpen, setDivDialogOpen] = useState(false);
-  const [divEdit, setDivEdit] = useState<DivisionItem | null>(null);
-  const [divName, setDivName] = useState("");
-
-  // Departments state
-  const deptItems: SimpleDepartment[] = dbDepartments.map((d: any) => ({
-    id: d.id, name: d.name, isActive: true,
-  }));
-  const [deptDialogOpen, setDeptDialogOpen] = useState(false);
-  const [deptEdit, setDeptEdit] = useState<SimpleDepartment | null>(null);
-  const [deptName, setDeptName] = useState("");
-
-  // Job Titles derived from DB
-  const jtItems: JobTitle[] = dbDesignations.map((d: any) => ({
-    id: d.id,
-    title: d.name,
-    level: intToLevel(d.level),
-    isActive: true,
-  })) as JobTitle[];
-  const [jtDialogOpen, setJtDialogOpen] = useState(false);
-  const [jtEdit, setJtEdit] = useState<JobTitle | null>(null);
-  const [jtTitle, setJtTitle] = useState("");
-  const [jtLevel, setJtLevel] = useState("Entry");
-
-  // Division handlers (DB-backed)
-  const openAddDiv = () => { setDivEdit(null); setDivName(""); setDivDialogOpen(true); };
-  const openEditDiv = (item: DivisionItem) => { setDivEdit(item); setDivName(item.name); setDivDialogOpen(true); };
-  const handleDivSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (divEdit) {
-        await updateDivMut.mutateAsync({ id: divEdit.id, name: divName });
-        toast({ title: "Updated" });
-      } else {
-        await addDivMut.mutateAsync(divName);
-        toast({ title: "Added", description: `${divName} division added.` });
-      }
-      setDivDialogOpen(false);
-    } catch { /* toast shown by mutation */ }
-  };
-  const handleDivDelete = async (id: string) => {
-    try {
-      await deleteDivMut.mutateAsync(id);
-      toast({ title: "Deleted" });
-    } catch { /* toast shown by mutation */ }
-  };
-
-  // Department handlers (DB-backed)
-  const openAddDept = () => { setDeptEdit(null); setDeptName(""); setDeptDialogOpen(true); };
-  const openEditDept = (item: SimpleDepartment) => { setDeptEdit(item); setDeptName(item.name); setDeptDialogOpen(true); };
-  const handleDeptSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (deptEdit) {
-        await updateDeptMut.mutateAsync({ id: deptEdit.id, name: deptName });
-        toast({ title: "Updated" });
-      } else {
-        await addDeptMut.mutateAsync(deptName);
-        toast({ title: "Added", description: `${deptName} department added.` });
-      }
-      setDeptDialogOpen(false);
-    } catch { /* toast shown by mutation */ }
-  };
-  const handleDeptDelete = async (id: string) => {
-    try {
-      await deleteDeptMut.mutateAsync(id);
-      toast({ title: "Deleted" });
-    } catch { /* toast shown by mutation */ }
-  };
-
-  // Job Title handlers (DB-backed)
-  const openAddJt = () => { setJtEdit(null); setJtTitle(""); setJtLevel("Entry"); setJtDialogOpen(true); };
-  const openEditJt = (item: JobTitle) => { setJtEdit(item); setJtTitle(item.title); setJtLevel(item.level); setJtDialogOpen(true); };
-  const handleJtSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (jtEdit) {
-        await updateDesigMut.mutateAsync({ id: jtEdit.id, name: jtTitle, level: jtLevel });
-        toast({ title: "Updated", description: `${jtTitle} updated.` });
-      } else {
-        await addDesigMut.mutateAsync({ name: jtTitle, level: jtLevel });
-        toast({ title: "Added", description: `${jtTitle} added.` });
-      }
-      setJtDialogOpen(false);
-    } catch { /* toast shown by mutation */ }
-  };
-  const handleJtDelete = async (id: string) => {
-    try {
-      await deleteDesigMut.mutateAsync(id);
-      toast({ title: "Deleted" });
-    } catch { /* toast shown by mutation */ }
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader title="Company Structure" description="Manage divisions, departments, and job titles." />
@@ -286,7 +182,6 @@ export default function CompanyStructurePage() {
           <TabsTrigger value="employee-types">Employee Types</TabsTrigger>
         </TabsList>
 
-        {/* Divisions Tab */}
         <TabsContent value="divisions" className="space-y-4">
           <div className="flex justify-end">
             <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAddDiv}>
@@ -301,7 +196,7 @@ export default function CompanyStructurePage() {
                 <TableHead className="font-semibold text-right">Actions</TableHead>
               </TableRow></TableHeader>
               <TableBody>
-                {divItems.map(item => (
+                {divisions.map(item => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
@@ -316,7 +211,6 @@ export default function CompanyStructurePage() {
           </div>
         </TabsContent>
 
-        {/* Departments Tab */}
         <TabsContent value="departments" className="space-y-4">
           <div className="flex justify-end">
             <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAddDept}>
@@ -331,7 +225,7 @@ export default function CompanyStructurePage() {
                 <TableHead className="font-semibold text-right">Actions</TableHead>
               </TableRow></TableHeader>
               <TableBody>
-                {deptItems.map(item => (
+                {departments.map(item => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell><StatusBadge status={item.isActive ? "active" : "inactive"} /></TableCell>
@@ -346,7 +240,6 @@ export default function CompanyStructurePage() {
           </div>
         </TabsContent>
 
-        {/* Job Titles Tab */}
         <TabsContent value="job-titles" className="space-y-4">
           <div className="flex justify-end">
             <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAddJt}>
@@ -375,7 +268,7 @@ export default function CompanyStructurePage() {
             </Table>
           </div>
         </TabsContent>
-        {/* Employee Types Tab */}
+
         <TabsContent value="employee-types" className="space-y-4">
           <div className="flex justify-end">
             <Button size="sm" className="gradient-ey text-primary-foreground font-semibold" onClick={openAddEt}>
@@ -410,40 +303,36 @@ export default function CompanyStructurePage() {
         </TabsContent>
       </Tabs>
 
-      {/* Division Dialog */}
       <Dialog open={divDialogOpen} onOpenChange={setDivDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{divEdit ? "Edit Division" : "Add Division"}</DialogTitle><DialogDescription>Configure division.</DialogDescription></DialogHeader>
           <form onSubmit={handleDivSubmit} className="space-y-4">
             <div className="space-y-2"><Label>Name</Label><Input value={divName} onChange={e => setDivName(e.target.value)} required /></div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setDivDialogOpen(false)}>Cancel</Button><Button type="submit">{divEdit ? "Update" : "Add"}</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setDivDialogOpen(false)}>Cancel</Button><Button type="submit" disabled={createDivMut.isPending || updateDivMut.isPending}>{divEdit ? "Update" : "Add"}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Department Dialog */}
       <Dialog open={deptDialogOpen} onOpenChange={setDeptDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{deptEdit ? "Edit Department" : "Add Department"}</DialogTitle><DialogDescription>Configure department name.</DialogDescription></DialogHeader>
           <form onSubmit={handleDeptSubmit} className="space-y-4">
             <div className="space-y-2"><Label>Department Name</Label><Input value={deptName} onChange={e => setDeptName(e.target.value)} required /></div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setDeptDialogOpen(false)}>Cancel</Button><Button type="submit">{deptEdit ? "Update" : "Add"}</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setDeptDialogOpen(false)}>Cancel</Button><Button type="submit" disabled={createDeptMut.isPending || updateDeptMut.isPending}>{deptEdit ? "Update" : "Add"}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Job Title Dialog */}
       <Dialog open={jtDialogOpen} onOpenChange={setJtDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{jtEdit ? "Edit Title" : "Add Title"}</DialogTitle><DialogDescription>Configure a job title.</DialogDescription></DialogHeader>
           <form onSubmit={handleJtSubmit} className="space-y-4">
             <div className="space-y-2"><Label>Title</Label><Input value={jtTitle} onChange={e => setJtTitle(e.target.value)} required /></div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setJtDialogOpen(false)}>Cancel</Button><Button type="submit">{jtEdit ? "Update" : "Add"}</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setJtDialogOpen(false)}>Cancel</Button><Button type="submit" disabled={createDesigMut.isPending || updateDesigMut.isPending}>{jtEdit ? "Update" : "Add"}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Employee Type Dialog */}
       <Dialog open={etDialogOpen} onOpenChange={setEtDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{etEdit ? "Edit Employee Type" : "Add Employee Type"}</DialogTitle><DialogDescription>Configure an employee type for classification.</DialogDescription></DialogHeader>

@@ -19,6 +19,7 @@ import {
   AssetLocationItem,
 } from "@/types/hcm";
 import { AssetAudit, AssetAuditEntry, AssetLogEntry } from "@/types/asset";
+import { useConsumerCounter, useLazyContextSubscribe } from "@/lib/lazy-context-query";
 
 /**
  * Migrated to NestJS via @/api. The core asset list + assign/unassign/CRUD
@@ -103,6 +104,8 @@ interface AssetContextType {
   approveRequest: (id: string) => void;
   rejectRequest: (id: string) => void;
   getEmployeeRequests: (employeeId: string) => AssetRequest[];
+  /** @internal — wired up by `useAssets()` so the underlying query only fires while a page is consuming this provider. */
+  _subscribe: () => () => void;
 }
 
 const AssetContext = createContext<AssetContextType | undefined>(undefined);
@@ -139,7 +142,11 @@ const warnNotPorted = (feature: string) => {
 
 export function AssetProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
-  const listQ = useAssetsApi({ pageSize: 500 });
+  // Provider stays mounted globally but the list query only fires once a
+  // consumer (e.g. the Assets page or the employee wizard's asset picker)
+  // is rendered — see `useAssets()` below.
+  const { enabled, subscribe } = useConsumerCounter();
+  const listQ = useAssetsApi({ pageSize: 500 }, { enabled });
   const createMut = useCreateAsset();
   const updateMut = useUpdateAsset();
   const deleteMut = useDeleteAsset();
@@ -256,6 +263,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     approveRequest: () => warnNotPorted("asset requests"),
     rejectRequest: () => warnNotPorted("asset requests"),
     getEmployeeRequests: () => [],
+    _subscribe: subscribe,
   };
 
   // Reference qc so eslint doesn't strip it; the create/update mutations
@@ -268,6 +276,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
 export function useAssets() {
   const ctx = useContext(AssetContext);
   if (!ctx) throw new Error("useAssets must be used within AssetProvider");
+  useLazyContextSubscribe(ctx._subscribe);
   return ctx;
 }
 

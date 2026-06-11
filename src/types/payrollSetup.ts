@@ -130,7 +130,6 @@ export interface PayrollSetup {
   name: string;
   country: string;
   currency: string;
-  status: "active" | "inactive";
   lastUpdated: string;
   paySchedule: PaySchedule;
   options: PayrollOptions;

@@ -78,13 +78,16 @@ export class PayrollController {
     return this.payroll.updateSetup(clientId, id, dto);
   }
 
-  @Post('payroll-setups/:id/activate')
+  @Delete('payroll-setups/:id')
   @Roles('super_admin', 'admin')
-  activateSetup(
+  @ApiOperation({
+    summary: 'Hard delete (refused if payroll runs exist for this setup)',
+  })
+  deleteSetup(
     @ActiveClientId() clientId: string,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.payroll.activateSetup(clientId, id);
+    return this.payroll.deleteSetup(clientId, id);
   }
 
   // ─── Runs ─────────────────────────────────────────────────────────────

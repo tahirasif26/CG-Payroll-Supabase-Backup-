@@ -1,0 +1,648 @@
+erDiagram
+    clients {
+        uuid id PK
+        string company_name
+        string company_slug UK
+        string company_email
+        string country
+        string timezone
+        string base_currency
+        string status
+        string subscription_plan
+        string_array enabled_tab_keys
+        timestamp setup_wizard_dismissed_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    divisions {
+        uuid id PK
+        uuid client_id FK
+        string name
+        boolean is_active
+    }
+
+    departments {
+        uuid id PK
+        uuid client_id FK
+        string name
+        boolean is_active
+    }
+
+    designations {
+        uuid id PK
+        uuid client_id FK
+        string name
+        int level
+        boolean is_active
+    }
+
+    users {
+        uuid id PK
+        string email UK
+        string password_hash
+        timestamp email_verified_at
+        string status
+        uuid primary_client_id FK
+        timestamp last_login_at
+    }
+
+    profiles {
+        uuid user_id PK, FK
+        string full_name
+        string avatar_url
+        string phone
+    }
+
+    refresh_tokens {
+        uuid id PK
+        uuid user_id FK
+        string token_hash UK
+        uuid family
+        timestamp expires_at
+        timestamp revoked_at
+    }
+
+    password_reset_tokens {
+        uuid id PK
+        uuid user_id FK
+        string token_hash UK
+        timestamp expires_at
+        timestamp used_at
+    }
+
+    email_verification_tokens {
+        uuid id PK
+        uuid user_id FK
+        string token_hash UK
+        timestamp expires_at
+        timestamp used_at
+    }
+
+    roles {
+        uuid id PK
+        uuid client_id FK
+        string name
+        string app_role
+        boolean is_system
+    }
+
+    user_roles {
+        uuid id PK
+        uuid user_id FK
+        uuid role_id FK
+        uuid client_id FK
+    }
+
+    permissions {
+        uuid id PK
+        string key UK
+        string module
+    }
+
+    role_permissions {
+        uuid role_id PK, FK
+        uuid permission_id PK, FK
+    }
+
+    feature_definitions {
+        uuid id PK
+        string feature_key UK
+        string module
+        string name
+        string_array default_enabled_for_roles
+    }
+
+    feature_toggles {
+        uuid id PK
+        uuid client_id FK
+        uuid user_id FK
+        string feature_key FK
+        boolean is_enabled
+    }
+
+    employees {
+        uuid id PK
+        uuid client_id FK
+        uuid user_id FK, UK
+        string emp_id
+        string first_name
+        string last_name
+        string email
+        string department
+        string designation
+        string division
+        uuid payroll_setup_id FK
+        uuid reports_to_id FK
+        string status
+        date joining_date
+    }
+
+    employee_addresses {
+        uuid id PK
+        uuid employee_id FK
+        uuid client_id
+        string type
+        string address_line1
+        string city
+        string country
+    }
+
+    employee_bank_details {
+        uuid id PK
+        uuid employee_id FK
+        uuid client_id
+        string bank_name
+        string iban
+        string account_number
+    }
+
+    employee_emergency_contacts {
+        uuid id PK
+        uuid employee_id FK
+        uuid client_id
+        string name
+        string phone
+    }
+
+    employee_education {
+        uuid id PK
+        uuid employee_id FK
+        uuid client_id
+        string institution
+        string degree
+    }
+
+    employee_documents {
+        uuid id PK
+        uuid employee_id FK
+        uuid client_id
+        string doc_type
+        date expiry_date
+        string file_url
+    }
+
+    employee_compensation {
+        uuid id PK
+        uuid employee_id FK
+        uuid client_id
+        string component_name
+        bigint amount
+        date effective_from
+        date effective_to
+    }
+
+    invitations {
+        uuid id PK
+        uuid client_id FK
+        string email
+        string app_role
+        string token_hash UK
+        string status
+        uuid accepted_by_user_id FK, UK
+        uuid created_by_user_id FK
+        timestamp expires_at
+    }
+
+    notifications {
+        uuid id PK
+        uuid client_id FK
+        uuid user_id FK
+        string title
+        string severity
+        uuid actor_user_id FK
+        timestamp read_at
+    }
+
+    audit_logs {
+        uuid id PK
+        uuid client_id FK
+        uuid user_id FK
+        string action
+        string entity_type
+        uuid entity_id
+        json before_value
+        json after_value
+        timestamp created_at
+    }
+
+    leave_types {
+        uuid id PK
+        uuid client_id FK
+        string name
+        string code
+        decimal days_per_year
+        string accrual_type
+        boolean is_active
+    }
+
+    leave_balances {
+        uuid id PK
+        uuid client_id FK
+        uuid employee_id FK
+        uuid leave_type_id FK
+        int year
+        decimal allocated
+        decimal used
+    }
+
+    leave_requests {
+        uuid id PK
+        uuid client_id FK
+        uuid employee_id FK
+        uuid leave_type_id FK
+        date start_date
+        date end_date
+        decimal days
+        string status
+        uuid approved_by_id FK
+    }
+
+    holidays {
+        uuid id PK
+        uuid client_id FK
+        string name
+        date date
+        boolean is_optional
+    }
+
+    expenses {
+        uuid id PK
+        uuid client_id
+        uuid employee_id FK
+        bigint amount
+        string currency
+        date expense_date
+        string status
+        uuid approved_by_id FK
+    }
+
+    advances {
+        uuid id PK
+        uuid client_id
+        uuid employee_id FK
+        bigint amount
+        bigint amount_used
+        string status
+        uuid approved_by_id FK
+    }
+
+    loans {
+        uuid id PK
+        uuid client_id
+        uuid employee_id FK
+        bigint principal
+        bigint remaining_balance
+        int interest_rate_bps
+        bigint monthly_deduction
+        string status
+        uuid approved_by_id FK
+    }
+
+    loan_transactions {
+        uuid id PK
+        uuid loan_id FK
+        uuid client_id
+        string type
+        bigint amount
+        bigint balance_after
+        date date
+    }
+
+    assets {
+        uuid id PK
+        uuid client_id
+        string asset_tag
+        string name
+        uuid assigned_to_id FK
+        string status
+        bigint purchase_cost
+        date warranty_expiry
+    }
+
+    asset_history {
+        uuid id PK
+        uuid asset_id FK
+        uuid client_id
+        string action
+        uuid from_employee_id
+        uuid to_employee_id
+        timestamp date
+    }
+
+    approval_groups {
+        uuid id PK
+        uuid client_id
+        string name
+        string approval_type
+        bigint max_limit_minor
+        uuid escalate_to_group_id FK
+        boolean is_active
+    }
+
+    approval_group_members {
+        uuid group_id PK, FK
+        uuid employee_id PK, FK
+        uuid client_id
+    }
+
+    approval_policies {
+        uuid id PK
+        uuid client_id
+        string module
+        bigint min_value_minor
+        bigint max_value_minor
+        uuid group_id FK
+        boolean is_active
+    }
+
+    approval_policy_levels {
+        uuid id PK
+        uuid policy_id FK
+        int level_order
+        uuid group_id FK
+        string mode
+        int sla_hours
+    }
+
+    approval_delegations {
+        uuid id PK
+        uuid client_id
+        uuid from_employee_id FK
+        uuid to_employee_id FK
+        uuid fallback_employee_id FK
+        date start_date
+        date end_date
+        boolean is_active
+    }
+
+    request_approvals {
+        uuid id PK
+        uuid client_id
+        string module
+        uuid entity_id
+        uuid policy_id FK
+        uuid requester_employee_id FK
+        bigint value_minor
+        int current_level
+        uuid current_group_id FK
+        string status
+    }
+
+    request_approval_history {
+        uuid id PK
+        uuid request_approval_id FK
+        int level_order
+        string action
+        uuid actor_user_id
+        uuid group_id FK
+        string comment
+        timestamp created_at
+    }
+
+    request_assignments {
+        uuid id PK
+        uuid request_approval_id FK
+        int level_order
+        uuid group_id FK
+        uuid employee_id FK
+        string status
+        timestamp acted_at
+    }
+
+    payroll_setups {
+        uuid id PK
+        uuid client_id
+        string name
+        string country
+        string currency
+        string pay_frequency
+        string status
+        json options
+    }
+
+    payroll_setup_components {
+        uuid id PK
+        uuid payroll_setup_id FK
+        uuid client_id
+        string name
+        string type
+        string calculation_type
+        bigint value
+        int order_index
+    }
+
+    payroll_setup_tax_rules {
+        uuid id PK
+        uuid payroll_setup_id FK
+        uuid client_id
+        string slab_name
+        bigint income_from_minor
+        bigint income_to_minor
+        int rate_bps
+    }
+
+    payroll_runs {
+        uuid id PK
+        uuid client_id
+        uuid payroll_setup_id FK
+        int month
+        int year
+        string status
+        bigint total_net_minor
+        boolean locked
+        timestamp locked_at
+    }
+
+    payroll_lines {
+        uuid id PK
+        uuid payroll_run_id FK
+        uuid employee_id FK
+        uuid client_id
+        bigint gross_minor
+        bigint net_pay_minor
+        json snapshot_data
+    }
+
+    payroll_one_off_adjustments {
+        uuid id PK
+        uuid payroll_run_id FK
+        uuid employee_id FK
+        uuid client_id
+        string name
+        bigint amount_minor
+        string type
+    }
+
+    payslips {
+        uuid id PK
+        uuid payroll_run_id FK
+        uuid payroll_line_id FK, UK
+        uuid employee_id FK
+        uuid client_id
+        string pdf_url
+        timestamp issued_at
+    }
+
+    performance_cycles {
+        uuid id PK
+        uuid client_id
+        string name
+        date start_date
+        date end_date
+        string status
+    }
+
+    performance_questionnaires {
+        uuid id PK
+        uuid client_id
+        uuid cycle_id FK
+        string name
+        json questions
+        string audience
+    }
+
+    performance_assessments {
+        uuid id PK
+        uuid client_id
+        uuid cycle_id FK
+        uuid employee_id FK
+        uuid reviewer_id FK
+        string type
+        json responses
+        decimal rating
+        string status
+    }
+
+    performance_calibrations {
+        uuid id PK
+        uuid client_id
+        uuid cycle_id FK
+        uuid employee_id FK
+        decimal original_rating
+        decimal calibrated_rating
+    }
+
+    separations {
+        uuid id PK
+        uuid client_id
+        uuid employee_id FK, UK
+        date last_working_date
+        string type
+        bigint eosb_amount_minor
+        json eosb_breakdown
+        bigint total_settlement_minor
+        string status
+        uuid payroll_run_id
+    }
+
+    reminder_rules {
+        uuid id PK
+        uuid client_id
+        string category
+        string name
+        boolean is_enabled
+        int_array lead_days_before
+        string repeat_frequency
+    }
+
+    reminder_dispatches {
+        uuid id PK
+        uuid rule_id FK
+        uuid client_id
+        string entity_type
+        uuid entity_id
+        uuid recipient_user_id
+        string dispatch_key UK
+        timestamp sent_at
+    }
+
+    clients ||--o{ divisions : scopes
+    clients ||--o{ departments : scopes
+    clients ||--o{ designations : scopes
+    clients ||--o{ users : primary_client
+    clients ||--o{ roles : tenant_roles
+    clients ||--o{ user_roles : memberships
+    clients ||--o{ feature_toggles : feature_overrides
+    clients ||--o{ employees : employs
+    clients ||--o{ invitations : onboards
+    clients ||--o{ notifications : delivers
+    clients ||--o{ audit_logs : audits
+    clients ||--o{ leave_types : defines
+    clients ||--o{ leave_balances : tracks
+    clients ||--o{ leave_requests : processes
+    clients ||--o{ holidays : observes
+    clients ||--o{ payroll_setups : configures
+    clients ||--o{ performance_cycles : runs
+    clients ||--o{ reminder_rules : schedules
+    users ||--|| profiles : has
+    users ||--o{ refresh_tokens : sessions
+    users ||--o{ password_reset_tokens : resets
+    users ||--o{ email_verification_tokens : verifies
+    users ||--o{ user_roles : assigned
+    users ||--o{ feature_toggles : user_override
+    users ||--o{ notifications : receives
+    users ||--o{ invitations : created
+    users ||--o{ audit_logs : performed
+    users ||--o{ employees : portal_access
+    roles ||--o{ user_roles : grants
+    roles ||--o{ role_permissions : has
+    permissions ||--o{ role_permissions : granted_to
+    feature_definitions ||--o{ feature_toggles : defines
+    employees ||--o{ employees : reports_to
+    payroll_setups ||--o{ employees : billed_against
+    employees ||--o{ employee_addresses : addresses
+    employees ||--o{ employee_bank_details : bank
+    employees ||--o{ employee_emergency_contacts : emergency
+    employees ||--o{ employee_education : education
+    employees ||--o{ employee_documents : documents
+    employees ||--o{ employee_compensation : compensation
+    employees ||--o{ leave_balances : balances
+    leave_types ||--o{ leave_balances : for_type
+    employees ||--o{ leave_requests : submits
+    leave_types ||--o{ leave_requests : of_type
+    employees ||--o{ leave_requests : approves_leave
+    employees ||--o{ expenses : claims
+    employees ||--o{ expenses : approves_expense
+    employees ||--o{ advances : requests_advance
+    employees ||--o{ advances : approves_advance
+    employees ||--o{ loans : borrows
+    employees ||--o{ loans : approves_loan
+    loans ||--o{ loan_transactions : ledger
+    employees ||--o{ assets : assigned
+    assets ||--o{ asset_history : history
+    approval_groups ||--o{ approval_groups : escalates_to
+    approval_groups ||--o{ approval_group_members : members
+    employees ||--o{ approval_group_members : in_group
+    approval_groups ||--o{ approval_policies : fallback_group
+    approval_policies ||--o{ approval_policy_levels : levels
+    approval_groups ||--o{ approval_policy_levels : at_level
+    employees ||--o{ approval_delegations : delegates_from
+    employees ||--o{ approval_delegations : delegates_to
+    employees ||--o{ approval_delegations : fallback_delegate
+    approval_policies ||--o{ request_approvals : matched_policy
+    approval_groups ||--o{ request_approvals : current_group
+    employees ||--o{ request_approvals : requester
+    request_approvals ||--o{ request_approval_history : history
+    request_approvals ||--o{ request_assignments : assignments
+    approval_groups ||--o{ request_assignments : group
+    employees ||--o{ request_assignments : approver
+    approval_groups ||--o{ request_approval_history : at_group
+    payroll_setups ||--o{ payroll_setup_components : components
+    payroll_setups ||--o{ payroll_setup_tax_rules : tax_rules
+    payroll_setups ||--o{ payroll_runs : runs
+    payroll_runs ||--o{ payroll_lines : lines
+    payroll_runs ||--o{ payroll_one_off_adjustments : one_offs
+    payroll_runs ||--o{ payslips : payslips
+    employees ||--o{ payroll_lines : paid
+    employees ||--o{ payroll_one_off_adjustments : one_off_employee
+    employees ||--o{ payslips : receives
+    payroll_lines ||--|| payslips : document
+    performance_cycles ||--o{ performance_questionnaires : questionnaires
+    performance_cycles ||--o{ performance_assessments : assessments
+    performance_cycles ||--o{ performance_calibrations : calibrations
+    employees ||--o{ performance_assessments : assessed
+    employees ||--o{ performance_assessments : reviews
+    employees ||--o{ performance_calibrations : calibrated
+    employees ||--|| separations : separation
+    reminder_rules ||--o{ reminder_dispatches : dispatches

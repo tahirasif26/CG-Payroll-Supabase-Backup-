@@ -1,0 +1,1047 @@
+{
+  "info": {
+    "_postman_id": "cg-payroll-collection-v1",
+    "name": "CG Payroll API",
+    "description": "Full endpoint surface of the NestJS backend (api/). Auth uses bearer JWT — run **Auth → Login** first; the post-response script stashes `accessToken` / `refreshToken` / `clientId` into the collection variables and every subsequent request inherits the Authorization header.\n\nGlobal collection variables:\n- `baseUrl` — default `http://localhost:3001/api/v1`. Change for staging/prod.\n- `accessToken`, `refreshToken` — set automatically by Login / Refresh.\n- `clientId`, `employeeId`, `payrollSetupId`, `payrollRunId`, `invitationId`, `assetId`, `leaveTypeId`, `leaveRequestId`, `expenseId`, `advanceId`, `loanId`, `divisionId`, `departmentId`, `designationId` — set them manually or paste from prior responses.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "clientId", "value": "" },
+    { "key": "employeeId", "value": "" },
+    { "key": "payrollSetupId", "value": "" },
+    { "key": "payrollRunId", "value": "" },
+    { "key": "invitationId", "value": "" },
+    { "key": "assetId", "value": "" },
+    { "key": "leaveTypeId", "value": "" },
+    { "key": "leaveRequestId", "value": "" },
+    { "key": "holidayId", "value": "" },
+    { "key": "expenseId", "value": "" },
+    { "key": "advanceId", "value": "" },
+    { "key": "loanId", "value": "" },
+    { "key": "divisionId", "value": "" },
+    { "key": "departmentId", "value": "" },
+    { "key": "designationId", "value": "" },
+    { "key": "approvalGroupId", "value": "" },
+    { "key": "approvalPolicyId", "value": "" },
+    { "key": "approvalDelegationId", "value": "" },
+    { "key": "approvalRequestId", "value": "" },
+    { "key": "performanceCycleId", "value": "" },
+    { "key": "questionnaireId", "value": "" },
+    { "key": "assessmentId", "value": "" },
+    { "key": "calibrationId", "value": "" },
+    { "key": "separationId", "value": "" },
+    { "key": "notificationId", "value": "" },
+    { "key": "oneOffId", "value": "" },
+    { "key": "reminderRuleId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness — GET /health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health", "auth": { "type": "noauth" } }
+        },
+        {
+          "name": "Readiness — GET /health/ready",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health/ready", "auth": { "type": "noauth" } }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register — POST /auth/register",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "const json = pm.response.json();",
+              "if (json?.success && json?.data?.accessToken) {",
+              "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+              "  pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+              "}"
+            ]}
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"SuperAdmin1!\",\n  \"fullName\": \"New User\"\n}" }
+          }
+        },
+        {
+          "name": "Login — POST /auth/login",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "const json = pm.response.json();",
+              "if (json?.success && json?.data?.accessToken) {",
+              "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+              "  pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+              "  const primary = json.data.user?.primaryClientId;",
+              "  if (primary) pm.collectionVariables.set('clientId', primary);",
+              "  console.log('[postman] tokens cached. clientId=' + (primary ?? '(none)'));",
+              "} else {",
+              "  console.warn('[postman] login response did not include accessToken', json);",
+              "}"
+            ]}
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"superadmin@cgpayroll.local\",\n  \"password\": \"SuperAdmin1!\"\n}" }
+          }
+        },
+        {
+          "name": "Refresh — POST /auth/refresh",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "const json = pm.response.json();",
+              "if (json?.success && json?.data?.accessToken) {",
+              "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+              "  pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+              "}"
+            ]}
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/refresh",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+          }
+        },
+        {
+          "name": "Logout — POST /auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/logout",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\",\n  \"allSessions\": false\n}" }
+          }
+        },
+        {
+          "name": "Forgot Password — POST /auth/forgot-password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/forgot-password",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\"\n}" }
+          }
+        },
+        {
+          "name": "Reset Password — POST /auth/reset-password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/reset-password",
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"<reset-token-from-email>\",\n  \"password\": \"NewPassword1!\"\n}" }
+          }
+        },
+        {
+          "name": "Verify Email — POST /auth/verify-email",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/verify-email",
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"<verification-token-from-email>\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Me — GET /users/me",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users/me" }
+        },
+        {
+          "name": "Update Profile — PATCH /users/me/profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/users/me/profile",
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Updated Name\",\n  \"phone\": \"+966500000000\",\n  \"avatarUrl\": null\n}" }
+          }
+        },
+        {
+          "name": "Change Password — PATCH /users/me/password",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/users/me/password",
+            "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"SuperAdmin1!\",\n  \"newPassword\": \"NewPassword1!\"\n}" }
+          }
+        },
+        {
+          "name": "Effective Features — GET /users/me/effective-features",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users/me/effective-features" }
+        }
+      ]
+    },
+    {
+      "name": "Tenants",
+      "item": [
+        {
+          "name": "Create Tenant — POST /tenants  (public; bootstrap)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/tenants",
+            "body": { "mode": "raw", "raw": "{\n  \"companyName\": \"Acme Inc\",\n  \"companySlug\": \"acme-inc\",\n  \"companyEmail\": \"admin@acme.example\",\n  \"country\": \"SA\",\n  \"timezone\": \"Asia/Riyadh\",\n  \"baseCurrency\": \"SAR\",\n  \"subscriptionPlan\": \"starter\",\n  \"enabledTabKeys\": [\"employees.directory\",\"payroll.runs\"],\n  \"adminInvite\": {\n    \"email\": \"founder@acme.example\",\n    \"fullName\": \"Acme Founder\"\n  }\n}" }
+          }
+        },
+        {
+          "name": "List Tenants — GET /tenants  (super_admin)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/tenants?page=1&pageSize=20&search=" }
+        },
+        {
+          "name": "My Tabs — GET /tenants/me/tabs",
+          "request": { "method": "GET", "url": "{{baseUrl}}/tenants/me/tabs" }
+        },
+        {
+          "name": "Setup Progress — GET /tenants/me/setup-progress",
+          "request": { "method": "GET", "url": "{{baseUrl}}/tenants/me/setup-progress" }
+        },
+        {
+          "name": "Dismiss Setup Wizard — POST /tenants/me/setup-wizard/dismiss",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/tenants/me/setup-wizard/dismiss",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Get Tab Access — GET /tenants/:id/tab-access",
+          "request": { "method": "GET", "url": "{{baseUrl}}/tenants/{{clientId}}/tab-access" }
+        },
+        {
+          "name": "Set Tab Access — PUT /tenants/:id/tab-access",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/tenants/{{clientId}}/tab-access",
+            "body": { "mode": "raw", "raw": "{\n  \"enabledTabKeys\": [\n    \"employees.directory\",\n    \"payroll.runs\",\n    \"expenses.claims\"\n  ]\n}" }
+          }
+        },
+        {
+          "name": "Get Tenant — GET /tenants/:id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/tenants/{{clientId}}" }
+        },
+        {
+          "name": "Update Tenant — PATCH /tenants/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/tenants/{{clientId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"companyName\": \"Acme Inc — Updated\",\n  \"status\": \"active\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Tenant — DELETE /tenants/:id  (super_admin)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/tenants/{{clientId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Invitations",
+      "item": [
+        {
+          "name": "List — GET /invitations",
+          "request": { "method": "GET", "url": "{{baseUrl}}/invitations" }
+        },
+        {
+          "name": "Create — POST /invitations",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/invitations",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"newhire@acme.example\",\n  \"appRole\": \"employee\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Hire\",\n  \"department\": \"Engineering\",\n  \"designation\": \"Software Engineer\"\n}" }
+          }
+        },
+        {
+          "name": "Resend — POST /invitations/:id/resend",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/invitations/{{invitationId}}/resend",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Revoke — DELETE /invitations/:id",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/invitations/{{invitationId}}" }
+        },
+        {
+          "name": "Accept — POST /invitations/accept  (public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/invitations/accept",
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"<invite-token-from-email>\",\n  \"password\": \"NewPassword1!\",\n  \"fullName\": \"New Hire\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "List — GET /employees",
+          "request": { "method": "GET", "url": "{{baseUrl}}/employees?page=1&pageSize=50&search=&status=&department=" }
+        },
+        {
+          "name": "Me — GET /employees/me",
+          "request": { "method": "GET", "url": "{{baseUrl}}/employees/me" }
+        },
+        {
+          "name": "Get — GET /employees/:id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/employees/{{employeeId}}" }
+        },
+        {
+          "name": "Profile — GET /employees/:id/profile",
+          "request": { "method": "GET", "url": "{{baseUrl}}/employees/{{employeeId}}/profile" }
+        },
+        {
+          "name": "Update Profile — PATCH /employees/:id/profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/employees/{{employeeId}}/profile",
+            "body": { "mode": "raw", "raw": "{\n  \"address\": {\n    \"addressLine1\": \"King Fahd Rd\",\n    \"city\": \"Riyadh\",\n    \"country\": \"SA\",\n    \"postalCode\": \"12345\"\n  },\n  \"bankDetails\": {\n    \"bankName\": \"SNB\",\n    \"iban\": \"SA0000000000000000000000\",\n    \"bankCurrency\": \"SAR\"\n  },\n  \"emergencyContact\": {\n    \"name\": \"Spouse\",\n    \"relation\": \"Spouse\",\n    \"phone\": \"+966500000001\"\n  },\n  \"education\": [\n    { \"institution\": \"KFUPM\", \"degree\": \"BSc\", \"fieldOfStudy\": \"CS\", \"startYear\": 2014, \"endYear\": 2018 }\n  ],\n  \"compensation\": [\n    { \"componentName\": \"Base Salary\", \"componentType\": \"base\", \"amount\": \"1500000\", \"effectiveFrom\": \"2026-01-01\" }\n  ]\n}" }
+          }
+        },
+        {
+          "name": "Create — POST /employees",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/employees",
+            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Ahmed\",\n  \"lastName\": \"Khan\",\n  \"email\": \"ahmed.khan@acme.example\",\n  \"phone\": \"+966500000000\",\n  \"department\": \"Engineering\",\n  \"designation\": \"Software Engineer\",\n  \"joiningDate\": \"2026-04-01\",\n  \"workLocationCountry\": \"SA\",\n  \"status\": \"active\",\n  \"sendInvite\": true\n}" }
+          }
+        },
+        {
+          "name": "Update — PATCH /employees/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/employees/{{employeeId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+966500000099\",\n  \"designation\": \"Senior Software Engineer\"\n}" }
+          }
+        },
+        {
+          "name": "Archive — DELETE /employees/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/employees/{{employeeId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"separationDate\": \"2026-06-30\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Org Structure",
+      "item": [
+        {
+          "name": "Divisions — List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/divisions" }
+        },
+        {
+          "name": "Divisions — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/divisions",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Technology\",\n  \"isActive\": true\n}" }
+          }
+        },
+        {
+          "name": "Divisions — Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/divisions/{{divisionId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Engineering\"\n}" }
+          }
+        },
+        {
+          "name": "Divisions — Delete",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/divisions/{{divisionId}}" }
+        },
+        {
+          "name": "Departments — List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/departments" }
+        },
+        {
+          "name": "Departments — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/departments",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Engineering\"\n}" }
+          }
+        },
+        {
+          "name": "Departments — Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/departments/{{departmentId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Product Engineering\"\n}" }
+          }
+        },
+        {
+          "name": "Departments — Delete",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/departments/{{departmentId}}" }
+        },
+        {
+          "name": "Designations — List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/designations" }
+        },
+        {
+          "name": "Designations — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/designations",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Senior Software Engineer\",\n  \"level\": 3\n}" }
+          }
+        },
+        {
+          "name": "Designations — Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/designations/{{designationId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"level\": 4\n}" }
+          }
+        },
+        {
+          "name": "Designations — Delete",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/designations/{{designationId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Leave",
+      "item": [
+        {
+          "name": "Types — List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/leave-types" }
+        },
+        {
+          "name": "Types — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/leave-types",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Annual\",\n  \"daysPerYear\": 21,\n  \"isPaid\": true,\n  \"accrualType\": \"yearly\",\n  \"maxCarryforward\": 5\n}" }
+          }
+        },
+        {
+          "name": "Types — Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/leave-types/{{leaveTypeId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"daysPerYear\": 25\n}" }
+          }
+        },
+        {
+          "name": "Types — Delete",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/leave-types/{{leaveTypeId}}" }
+        },
+        {
+          "name": "Balances — List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/leave-balances?employeeId={{employeeId}}&year=2026" }
+        },
+        {
+          "name": "Balances — Upsert",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/leave-balances",
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"leaveTypeId\": \"{{leaveTypeId}}\",\n  \"year\": 2026,\n  \"allocated\": 21,\n  \"used\": 0,\n  \"carriedForward\": 0\n}" }
+          }
+        },
+        {
+          "name": "Requests — List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/leave-requests?status=pending" }
+        },
+        {
+          "name": "Requests — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/leave-requests",
+            "body": { "mode": "raw", "raw": "{\n  \"leaveTypeId\": \"{{leaveTypeId}}\",\n  \"startDate\": \"2026-06-01\",\n  \"endDate\": \"2026-06-05\",\n  \"reason\": \"Family event\"\n}" }
+          }
+        },
+        {
+          "name": "Requests — Decide",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/leave-requests/{{leaveRequestId}}/decision",
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"approve\",\n  \"rejectionReason\": null\n}" }
+          }
+        },
+        {
+          "name": "Requests — Cancel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/leave-requests/{{leaveRequestId}}/cancel",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Holidays — List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/holidays?year=2026" }
+        },
+        {
+          "name": "Holidays — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/holidays",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Saudi National Day\",\n  \"date\": \"2026-09-23\"\n}" }
+          }
+        },
+        {
+          "name": "Holidays — Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/holidays/{{holidayId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"National Day\"\n}" }
+          }
+        },
+        {
+          "name": "Holidays — Delete",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/holidays/{{holidayId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/expenses?status=&employeeId=" }
+        },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/expenses/{{expenseId}}" } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/expenses",
+            "body": { "mode": "raw", "raw": "{\n  \"category\": \"Meals\",\n  \"merchant\": \"Cafe X\",\n  \"amountMinor\": \"5000\",\n  \"currency\": \"SAR\",\n  \"expenseDate\": \"2026-04-12\",\n  \"description\": \"Client lunch\"\n}" }
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/expenses/{{expenseId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"amountMinor\": \"7500\"\n}" }
+          }
+        },
+        {
+          "name": "Submit",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/expenses/{{expenseId}}/submit",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Decide",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/expenses/{{expenseId}}/decision",
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"approve\",\n  \"rejectionReason\": null\n}" }
+          }
+        },
+        {
+          "name": "Mark Paid",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/expenses/{{expenseId}}/mark-paid",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/expenses/{{expenseId}}" } }
+      ]
+    },
+    {
+      "name": "Advances",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/advances?status=&employeeId=" } },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/advances/{{advanceId}}" } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/advances",
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"name\": \"Travel advance\",\n  \"purpose\": \"Client visit\",\n  \"amount\": 5000,\n  \"currency\": \"SAR\",\n  \"expectedSpendDate\": \"2026-05-10\",\n  \"settlementDueDate\": \"2026-05-25\"\n}" }
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/advances/{{advanceId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 6000\n}" }
+          }
+        },
+        {
+          "name": "Submit",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/advances/{{advanceId}}/submit",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Decide",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/advances/{{advanceId}}/decision",
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"approve\",\n  \"rejectionReason\": null\n}" }
+          }
+        },
+        {
+          "name": "Settle",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/advances/{{advanceId}}/settle",
+            "body": { "mode": "raw", "raw": "{\n  \"amountUsed\": 4500\n}" }
+          }
+        },
+        {
+          "name": "Cancel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/advances/{{advanceId}}/cancel",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Loans",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/loans?status=&employeeId=" } },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/loans/{{loanId}}" } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/loans",
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"name\": \"Home loan\",\n  \"principal\": 50000,\n  \"currency\": \"SAR\",\n  \"installments\": 24,\n  \"installmentAmount\": 2200,\n  \"startMonth\": 6,\n  \"startYear\": 2026\n}" }
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/loans/{{loanId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"installmentAmount\": 2500\n}" }
+          }
+        },
+        {
+          "name": "Decide",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/loans/{{loanId}}/decision",
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"approve\",\n  \"rejectionReason\": null\n}" }
+          }
+        },
+        {
+          "name": "Pause",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/loans/{{loanId}}/pause",
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Employee request\"\n}" }
+          }
+        },
+        {
+          "name": "Resume",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/loans/{{loanId}}/resume",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Adjust",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/loans/{{loanId}}/adjust",
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"prepayment\",\n  \"amount\": 1000,\n  \"notes\": \"Manual lump-sum prepayment\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assets",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/assets?status=&assignedToId=" } },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/assets/{{assetId}}" } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/assets",
+            "body": { "mode": "raw", "raw": "{\n  \"assetTag\": \"LAPTOP-001\",\n  \"name\": \"MacBook Pro 14\",\n  \"category\": \"Laptop\",\n  \"brand\": \"Apple\",\n  \"model\": \"M3\",\n  \"serialNumber\": \"C02XXXXX\",\n  \"location\": \"Riyadh HQ\",\n  \"condition\": \"new\"\n}" }
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/assets/{{assetId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"condition\": \"good\"\n}" }
+          }
+        },
+        {
+          "name": "Assign",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/assets/{{assetId}}/assign",
+            "body": { "mode": "raw", "raw": "{\n  \"assignedToId\": \"{{employeeId}}\",\n  \"assignedDate\": \"2026-04-12\",\n  \"note\": \"Initial assignment\"\n}" }
+          }
+        },
+        {
+          "name": "Unassign",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/assets/{{assetId}}/unassign",
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Returned\",\n  \"setStatus\": \"available\"\n}" }
+          }
+        },
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/assets/{{assetId}}" } }
+      ]
+    },
+    {
+      "name": "Payroll",
+      "item": [
+        { "name": "Setups — List", "request": { "method": "GET", "url": "{{baseUrl}}/payroll-setups" } },
+        { "name": "Setups — Get", "request": { "method": "GET", "url": "{{baseUrl}}/payroll-setups/{{payrollSetupId}}" } },
+        {
+          "name": "Setups — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/payroll-setups",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Saudi Full-Time\",\n  \"country\": \"SA\",\n  \"currency\": \"SAR\",\n  \"payFrequency\": \"monthly\",\n  \"options\": {},\n  \"components\": [\n    { \"name\": \"Basic Salary\", \"type\": \"earning\", \"calculationType\": \"fixed\", \"value\": \"1500000\", \"orderIndex\": 0, \"isActive\": true }\n  ],\n  \"taxRules\": []\n}" }
+          }
+        },
+        {
+          "name": "Setups — Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/payroll-setups/{{payrollSetupId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Saudi Full-Time (updated)\"\n}" }
+          }
+        },
+        { "name": "Setups — Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/payroll-setups/{{payrollSetupId}}" } },
+        { "name": "Runs — List", "request": { "method": "GET", "url": "{{baseUrl}}/payroll-runs?status=&year=2026&setupId={{payrollSetupId}}" } },
+        { "name": "Runs — Get", "request": { "method": "GET", "url": "{{baseUrl}}/payroll-runs/{{payrollRunId}}" } },
+        {
+          "name": "Runs — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/payroll-runs",
+            "body": { "mode": "raw", "raw": "{\n  \"payrollSetupId\": \"{{payrollSetupId}}\",\n  \"month\": 4,\n  \"year\": 2026\n}" }
+          }
+        },
+        {
+          "name": "Runs — Calculate",
+          "request": { "method": "POST", "url": "{{baseUrl}}/payroll-runs/{{payrollRunId}}/calculate", "body": { "mode": "raw", "raw": "{}" } }
+        },
+        {
+          "name": "Runs — Submit",
+          "request": { "method": "POST", "url": "{{baseUrl}}/payroll-runs/{{payrollRunId}}/submit", "body": { "mode": "raw", "raw": "{}" } }
+        },
+        {
+          "name": "Runs — Finalize Approve",
+          "request": { "method": "POST", "url": "{{baseUrl}}/payroll-runs/{{payrollRunId}}/finalize-approve", "body": { "mode": "raw", "raw": "{}" } }
+        },
+        {
+          "name": "Runs — Complete",
+          "request": { "method": "POST", "url": "{{baseUrl}}/payroll-runs/{{payrollRunId}}/complete", "body": { "mode": "raw", "raw": "{}" } }
+        },
+        {
+          "name": "Runs — Add One-off",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/payroll-runs/{{payrollRunId}}/one-offs",
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"name\": \"Performance Bonus\",\n  \"amountMinor\": \"100000\",\n  \"type\": \"earning\"\n}" }
+          }
+        },
+        {
+          "name": "Runs — Remove One-off",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/payroll-runs/{{payrollRunId}}/one-offs/{{oneOffId}}" }
+        },
+        { "name": "Payslips — Mine", "request": { "method": "GET", "url": "{{baseUrl}}/payslips/mine" } }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/notifications?unreadOnly=false" } },
+        { "name": "Unread Count", "request": { "method": "GET", "url": "{{baseUrl}}/notifications/unread-count" } },
+        {
+          "name": "Mark Read",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/notifications/mark-read",
+            "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{notificationId}}\"]\n}" }
+          }
+        },
+        {
+          "name": "Mark All Read",
+          "request": { "method": "POST", "url": "{{baseUrl}}/notifications/mark-all-read", "body": { "mode": "raw", "raw": "{}" } }
+        },
+        { "name": "Dismiss", "request": { "method": "DELETE", "url": "{{baseUrl}}/notifications/{{notificationId}}" } }
+      ]
+    },
+    {
+      "name": "Approvals",
+      "item": [
+        { "name": "Groups — List", "request": { "method": "GET", "url": "{{baseUrl}}/approval-groups" } },
+        {
+          "name": "Groups — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/approval-groups",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Department Managers\",\n  \"description\": \"Direct managers per department\"\n}" }
+          }
+        },
+        {
+          "name": "Groups — Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/approval-groups/{{approvalGroupId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated\"\n}" }
+          }
+        },
+        { "name": "Groups — Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/approval-groups/{{approvalGroupId}}" } },
+        { "name": "Policies — List", "request": { "method": "GET", "url": "{{baseUrl}}/approval-policies" } },
+        {
+          "name": "Policies — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/approval-policies",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Standard Leave Policy\",\n  \"requestType\": \"leave\",\n  \"levels\": [\n    { \"order\": 1, \"groupId\": \"{{approvalGroupId}}\", \"minApprovers\": 1 }\n  ]\n}" }
+          }
+        },
+        {
+          "name": "Policies — Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/approval-policies/{{approvalPolicyId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Leave Policy v2\"\n}" }
+          }
+        },
+        { "name": "Delegations — List", "request": { "method": "GET", "url": "{{baseUrl}}/approval-delegations" } },
+        {
+          "name": "Delegations — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/approval-delegations",
+            "body": { "mode": "raw", "raw": "{\n  \"fromUserId\": \"{{employeeId}}\",\n  \"toUserId\": \"{{employeeId}}\",\n  \"startsAt\": \"2026-06-01\",\n  \"endsAt\": \"2026-06-15\"\n}" }
+          }
+        },
+        { "name": "Delegations — Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/approval-delegations/{{approvalDelegationId}}" } },
+        { "name": "Requests — List", "request": { "method": "GET", "url": "{{baseUrl}}/approval-requests?status=pending" } },
+        { "name": "Requests — Get", "request": { "method": "GET", "url": "{{baseUrl}}/approval-requests/{{approvalRequestId}}" } },
+        {
+          "name": "Requests — Decide",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/approval-requests/{{approvalRequestId}}/decision",
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"approve\",\n  \"comment\": \"OK\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "item": [
+        {
+          "name": "Logs — List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/audit-logs?action=&entityType=&userId=&from=&to=&page=1&pageSize=50" }
+        }
+      ]
+    },
+    {
+      "name": "Performance",
+      "item": [
+        { "name": "Cycles — List", "request": { "method": "GET", "url": "{{baseUrl}}/performance/cycles" } },
+        {
+          "name": "Cycles — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/performance/cycles",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"H1 2026\",\n  \"startDate\": \"2026-01-01\",\n  \"endDate\": \"2026-06-30\"\n}" }
+          }
+        },
+        {
+          "name": "Cycles — Patch Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/performance/cycles/{{performanceCycleId}}/status",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" }
+          }
+        },
+        { "name": "Questionnaires — List", "request": { "method": "GET", "url": "{{baseUrl}}/performance/questionnaires" } },
+        {
+          "name": "Questionnaires — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/performance/questionnaires",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Annual Review\",\n  \"items\": [\n    { \"prompt\": \"Quality of work\", \"type\": \"rating\", \"orderIndex\": 0 }\n  ]\n}" }
+          }
+        },
+        { "name": "Assessments — List", "request": { "method": "GET", "url": "{{baseUrl}}/performance/assessments?cycleId={{performanceCycleId}}" } },
+        {
+          "name": "Assessments — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/performance/assessments",
+            "body": { "mode": "raw", "raw": "{\n  \"cycleId\": \"{{performanceCycleId}}\",\n  \"questionnaireId\": \"{{questionnaireId}}\",\n  \"assesseeId\": \"{{employeeId}}\",\n  \"assessorId\": \"{{employeeId}}\",\n  \"role\": \"self\"\n}" }
+          }
+        },
+        {
+          "name": "Assessments — Submit",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/performance/assessments/{{assessmentId}}/submit",
+            "body": { "mode": "raw", "raw": "{\n  \"responses\": [\n    { \"itemId\": \"<questionnaire-item-id>\", \"rating\": 4 }\n  ]\n}" }
+          }
+        },
+        { "name": "Calibrations — List", "request": { "method": "GET", "url": "{{baseUrl}}/performance/calibrations?cycleId={{performanceCycleId}}" } },
+        {
+          "name": "Calibrations — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/performance/calibrations",
+            "body": { "mode": "raw", "raw": "{\n  \"cycleId\": \"{{performanceCycleId}}\",\n  \"employeeId\": \"{{employeeId}}\",\n  \"finalRating\": 4\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reminders",
+      "item": [
+        { "name": "Rules — List", "request": { "method": "GET", "url": "{{baseUrl}}/reminders/rules" } },
+        {
+          "name": "Rules — Upsert",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/reminders/rules",
+            "body": { "mode": "raw", "raw": "{\n  \"category\": \"document_expiry\",\n  \"enabled\": true,\n  \"daysBefore\": [30, 14, 7]\n}" }
+          }
+        },
+        {
+          "name": "Run (debug)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/reminders/run", "body": { "mode": "raw", "raw": "{}" } }
+        }
+      ]
+    },
+    {
+      "name": "Separations",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/separations?status=" } },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/separations/{{separationId}}" } },
+        {
+          "name": "EOSB Preview",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/separations/eosb-preview",
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"separationDate\": \"2026-06-30\",\n  \"separationReason\": \"resignation\"\n}" }
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/separations",
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"separationDate\": \"2026-06-30\",\n  \"separationReason\": \"resignation\",\n  \"noticePeriodDays\": 30\n}" }
+          }
+        },
+        {
+          "name": "Approve",
+          "request": { "method": "POST", "url": "{{baseUrl}}/separations/{{separationId}}/approve", "body": { "mode": "raw", "raw": "{}" } }
+        },
+        {
+          "name": "Process",
+          "request": { "method": "POST", "url": "{{baseUrl}}/separations/{{separationId}}/process", "body": { "mode": "raw", "raw": "{}" } }
+        }
+      ]
+    }
+  ]
+}

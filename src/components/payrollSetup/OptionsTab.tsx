@@ -119,11 +119,30 @@ export default function OptionsTab({ setup, setSetup }: Props) {
           return (
             <div key={item.id}>
               <div className="flex items-center gap-3 p-3">
-                <button
-                  type="button"
-                  className="flex flex-1 items-center gap-3 text-left"
+                {/*
+                 * Disclosure trigger: rendered as a div+role="button" rather
+                 * than a <button> so it stays interactive even when this tab
+                 * is rendered inside the wizard's view-mode <fieldset disabled>
+                 * wrapper (HTML disables every nested <button> natively;
+                 * non-form elements are unaffected).
+                 */}
+                <div
+                  role="button"
+                  tabIndex={item.enabled ? 0 : -1}
+                  aria-expanded={isOpen}
+                  aria-disabled={!item.enabled}
+                  className={cn(
+                    "flex flex-1 items-center gap-3 text-left",
+                    item.enabled ? "cursor-pointer" : "cursor-default opacity-60",
+                  )}
                   onClick={() => item.enabled && setOpenId(isOpen ? null : item.id)}
-                  disabled={!item.enabled}
+                  onKeyDown={(e) => {
+                    if (!item.enabled) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setOpenId(isOpen ? null : item.id);
+                    }
+                  }}
                 >
                   <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -133,7 +152,7 @@ export default function OptionsTab({ setup, setSetup }: Props) {
                   {item.enabled && (
                     <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
                   )}
-                </button>
+                </div>
                 <Switch
                   checked={item.enabled}
                   onCheckedChange={(v) => {

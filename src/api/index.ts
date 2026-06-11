@@ -81,6 +81,33 @@ export type {
   SetupStepKey,
 } from "./tenants/tenants.types";
 
+// ─── Org structure (Divisions / Departments / Designations) ──────────────────
+export { orgStructureApi } from "./org-structure/org-structure.api";
+export {
+  orgStructureKeys,
+  useDivisions,
+  useCreateDivision,
+  useUpdateDivision,
+  useDeleteDivision,
+  useDepartments,
+  useCreateDepartment,
+  useUpdateDepartment,
+  useDeleteDepartment,
+  useDesignations,
+  useCreateDesignation,
+  useUpdateDesignation,
+  useDeleteDesignation,
+} from "./org-structure/org-structure.hooks";
+export type {
+  Division,
+  Department,
+  Designation,
+  CreateNamedLookupRequest,
+  UpdateNamedLookupRequest,
+  CreateDesignationRequest,
+  UpdateDesignationRequest,
+} from "./org-structure/org-structure.types";
+
 // ─── Employees ───────────────────────────────────────────────────────────────
 export { employeesApi } from "./employees/employees.api";
 export {
@@ -340,7 +367,7 @@ export {
   usePayrollSetup,
   useCreatePayrollSetup,
   useUpdatePayrollSetup,
-  useActivatePayrollSetup,
+  useDeletePayrollSetup,
   usePayrollRuns,
   usePayrollRun,
   useCreatePayrollRun,

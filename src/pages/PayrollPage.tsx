@@ -331,7 +331,7 @@ export default function PayrollPage() {
   const queryClient = useQueryClient();
   const { advances } = useAdvances();
   const { setups, getSetupById } = usePayrollSetups();
-  const activeSetups = setups.filter(s => s.status === "active");
+  const activeSetups = setups;
   const approvedAdvances = advances.filter(a => a.status === "approved").map(a => ({ employeeId: a.employeeId, amount: a.amount, payrollRunId: a.payrollRunId }));
   const { data: dbRuns = [] } = usePayrollRuns();
   const { data: glMappings = [] } = useGLMappings();

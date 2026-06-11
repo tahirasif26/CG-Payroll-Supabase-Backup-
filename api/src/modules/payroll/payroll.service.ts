@@ -10,7 +10,6 @@ import {
   PayrollCalcType,
   PayrollComponentType,
   PayrollRunStatus,
-  PayrollSetupStatus,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '@infrastructure/prisma/prisma.service';
@@ -42,9 +41,16 @@ export class PayrollService {
   // ─── Setups ───────────────────────────────────────────────────────────
 
   listSetups(clientId: string) {
+    // Include components + taxRules so the FE list (which feeds both the edit
+    // and view wizards) has everything to re-hydrate the form without a
+    // second round-trip per row.
     return this.prisma.payrollSetup.findMany({
       where: { clientId },
-      orderBy: [{ status: 'asc' }, { name: 'asc' }],
+      orderBy: { name: 'asc' },
+      include: {
+        components: { orderBy: { orderIndex: 'asc' } },
+        taxRules: { orderBy: { orderIndex: 'asc' } },
+      },
     });
   }
 
@@ -165,12 +171,25 @@ export class PayrollService {
     });
   }
 
-  async activateSetup(clientId: string, id: string) {
+  /**
+   * Hard delete. Refuses if any PayrollRun references this setup (those rows
+   * carry historical payroll data that mustn't dangle). Cascade-deletes
+   * components + tax rules via FK onDelete: Cascade.
+   */
+  async deleteSetup(clientId: string, id: string) {
     await this.findSetup(clientId, id);
-    return this.prisma.payrollSetup.update({
-      where: { id },
-      data: { status: PayrollSetupStatus.active },
+    const runCount = await this.prisma.payrollRun.count({
+      where: { clientId, payrollSetupId: id },
     });
+    if (runCount > 0) {
+      throw new BadRequestException({
+        code: 'SETUP_HAS_RUNS',
+        message:
+          'This setup has payroll runs attached. Archive it instead so the run history stays intact.',
+      });
+    }
+    await this.prisma.payrollSetup.delete({ where: { id } });
+    return { id, deleted: true };
   }
 
   // ─── Runs ─────────────────────────────────────────────────────────────
@@ -215,13 +234,7 @@ export class PayrollService {
   }
 
   async createRun(clientId: string, userId: string, dto: CreatePayrollRunDto) {
-    const setup = await this.findSetup(clientId, dto.payrollSetupId);
-    if (setup.status !== PayrollSetupStatus.active) {
-      throw new BadRequestException({
-        code: 'SETUP_NOT_ACTIVE',
-        message: 'Payroll setup must be activated before a run can be created',
-      });
-    }
+    await this.findSetup(clientId, dto.payrollSetupId);
     const existing = await this.prisma.payrollRun.findFirst({
       where: { clientId, payrollSetupId: dto.payrollSetupId, month: dto.month, year: dto.year },
     });

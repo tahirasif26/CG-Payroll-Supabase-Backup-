@@ -11,7 +11,10 @@ export interface Employee {
   designation: string;
   joiningDate: string;
   salary: number;
-  status: "active" | "inactive" | "on-leave" | "separated";
+  // `pending` = invitation sent, employee hasn't accepted yet. The
+  // AddEmployee wizard parks rows in this state when `sendInvite: true`;
+  // `InvitationsService.accept` flips them to `active` on acceptance.
+  status: "active" | "pending" | "inactive" | "on-leave" | "separated";
   avatar: string;
   dateOfBirth: string;
   category: EmployeeCategory;

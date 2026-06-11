@@ -131,12 +131,6 @@ export const navigationGroups: NavGroup[] = [
       },
       { label: "Loans", path: "/loans", requiredFeature: "loans.view_own", tabKey: "payroll.loans" },
       { label: "Analytics", path: "/analytics", requiredRoles: ["admin", "hr"], requiredFeature: "payroll.export_csv", tabKey: "payroll.analytics" },
-      {
-        label: "Payroll Settings",
-        path: "/payroll/settings",
-        requiredRoles: ["admin", "hr"],
-        tabKey: "payroll.settings",
-      },
     ],
   },
   {

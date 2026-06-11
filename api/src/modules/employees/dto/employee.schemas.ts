@@ -19,7 +19,11 @@ export const listEmployeesQuerySchema = paginationQuerySchema.extend({
 export type ListEmployeesQuery = z.infer<typeof listEmployeesQuerySchema>;
 
 export const createEmployeeSchema = z.object({
-  empId: z.string().trim().min(1).max(40),
+  /**
+   * Human-readable employee code. Optional — the service auto-generates
+   * `EMP-001`, `EMP-002` … per tenant when the caller doesn't supply one.
+   */
+  empId: z.string().trim().min(1).max(40).optional(),
   firstName: z.string().trim().min(1).max(80),
   middleName: z.string().trim().max(80).optional(),
   lastName: z.string().trim().min(1).max(80),
@@ -42,12 +46,27 @@ export const createEmployeeSchema = z.object({
   workLocationCity: z.string().trim().max(120).optional().nullable(),
   payCurrency: z.string().trim().min(3).max(3).toUpperCase().optional().nullable(),
   reportsToId: z.string().uuid().optional().nullable(),
+  /** Which PayrollSetup drives this employee's compensation calculations. */
+  payrollSetupId: z.string().uuid().optional().nullable(),
   avatarUrl: z.string().url().optional().nullable(),
   status: employeeStatusEnum.optional(),
+  /**
+   * Send an invitation email to the new employee. When true the service:
+   *   - forces `status: 'pending'` on the new row
+   *   - creates an Invitation pointing at the employee's role
+   *   - sends the accept-invite email via MailService
+   * On accept, `InvitationsService.accept` links the user to this employee
+   * and flips status back to `active`.
+   */
+  sendInvite: z.boolean().optional().default(false),
+  /** Role id to assign on invitation accept (defaults to the system Employee role for the tenant). */
+  inviteRoleId: z.string().uuid().optional().nullable(),
 });
 export type CreateEmployeeDto = z.infer<typeof createEmployeeSchema>;
 
-export const updateEmployeeSchema = createEmployeeSchema.partial().omit({ empId: true });
+export const updateEmployeeSchema = createEmployeeSchema
+  .partial()
+  .omit({ empId: true, sendInvite: true, inviteRoleId: true });
 export type UpdateEmployeeDto = z.infer<typeof updateEmployeeSchema>;
 
 export const archiveEmployeeSchema = z.object({

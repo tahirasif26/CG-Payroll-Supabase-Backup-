@@ -252,9 +252,69 @@ model Client {
   leaveBalances     LeaveBalance[]
   leaveRequests     LeaveRequest[]
   holidays          Holiday[]
+  divisions         Division[]
+  departments       Department[]
+  designations      Designation[]
 
   @@index([status])
   @@map("clients")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Org structure (HR Settings → Company Structure)
+//
+// Lightweight per-tenant lookup tables consumed by the AddEmployee wizard's
+// dropdowns and the HR Settings page. `name` is unique inside a tenant. We
+// don't FK these into Employee — Employee.department/designation are free-text
+// snapshots so renaming/deleting an org-structure row doesn't ripple into
+// historical employee records.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Division {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @map("client_id") @db.Uuid
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, name])
+  @@index([clientId])
+  @@map("divisions")
+}
+
+model Department {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @map("client_id") @db.Uuid
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, name])
+  @@index([clientId])
+  @@map("departments")
+}
+
+model Designation {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @map("client_id") @db.Uuid
+  name      String
+  /** Numeric seniority (1=Entry, 2=Professional, 3=Management, 4=Leadership). */
+  level     Int?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, name])
+  @@index([clientId])
+  @@map("designations")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -460,6 +520,14 @@ model Employee {
   workLocationCountry String?         @map("work_location_country")
   workLocationCity    String?         @map("work_location_city")
   payCurrency         String?         @map("pay_currency")
+  /**
+   * Which PayrollSetup this employee is billed against. Drives base-salary,
+   * tax-slab, gratuity, PF and one-off lookups during payroll runs.
+   * Nullable so a freshly-created employee can be onboarded before any
+   * payroll setup exists; SetNull on payroll-setup delete so deleting an
+   * unused setup doesn't cascade-archive its assignees.
+   */
+  payrollSetupId      String?         @map("payroll_setup_id") @db.Uuid
   reportsToId         String?         @map("reports_to_id") @db.Uuid
   avatarUrl           String?         @map("avatar_url")
   status              EmployeeStatus  @default(active)
@@ -470,6 +538,7 @@ model Employee {
   user                User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   reportsTo           Employee?       @relation("EmployeeReportsTo", fields: [reportsToId], references: [id], onDelete: SetNull)
   directReports       Employee[]      @relation("EmployeeReportsTo")
+  payrollSetup        PayrollSetup?   @relation("EmployeePayrollSetup", fields: [payrollSetupId], references: [id], onDelete: SetNull)
 
   addresses           EmployeeAddress[]
   bankDetails         EmployeeBankDetails[]
@@ -506,6 +575,7 @@ model Employee {
   @@index([userId])
   @@index([reportsToId])
   @@index([status])
+  @@index([payrollSetupId])
   @@map("employees")
 }
 
@@ -1268,6 +1338,7 @@ model PayrollSetup {
   components    PayrollSetupComponent[]
   taxRules      PayrollSetupTaxRule[]
   runs          PayrollRun[]
+  employees     Employee[]              @relation("EmployeePayrollSetup")
 
   @@unique([clientId, name])
   @@index([clientId, status])

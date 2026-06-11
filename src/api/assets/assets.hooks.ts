@@ -17,11 +17,14 @@ export const assetKeys = {
   detail: (id: string) => [...assetKeys.all, "detail", id] as const,
 };
 
-export function useAssets(query: ListAssetsQuery = {}) {
+export function useAssets(
+  query: ListAssetsQuery = {},
+  opts: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: assetKeys.list(query),
     queryFn: () => assetsApi.list(query),
-    enabled: enabled(),
+    enabled: enabled() && (opts.enabled ?? true),
   });
 }
 

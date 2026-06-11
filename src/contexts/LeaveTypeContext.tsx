@@ -12,6 +12,7 @@ import {
   type LeaveBalance as ApiLeaveBalance,
 } from "@/api";
 import { PayrollSetup } from "@/types/payrollSetup";
+import { useConsumerCounter, useLazyContextSubscribe } from "@/lib/lazy-context-query";
 
 /**
  * Migrated to NestJS via @/api/leave. Core leave types + balances flow
@@ -85,6 +86,8 @@ interface LeaveTypeContextType {
   }[];
   completedRollovers: string[];
   isLoading: boolean;
+  /** @internal — wired up by `useLeaveTypes()` so the underlying queries only fire while a page is consuming this provider. */
+  _subscribe: () => () => void;
 }
 
 const LeaveTypeContext = createContext<LeaveTypeContextType | undefined>(undefined);
@@ -123,8 +126,10 @@ function adaptBalance(b: ApiLeaveBalance, fallbackYear: number): EmployeeLeaveBa
 
 export function LeaveTypeProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
-  const typesQ = useLeaveTypesApi();
-  const balancesQ = useLeaveBalances();
+  // Both the types + balances queries wait until a page consumes the provider.
+  const { enabled, subscribe } = useConsumerCounter();
+  const typesQ = useLeaveTypesApi({ enabled });
+  const balancesQ = useLeaveBalances({}, { enabled });
   const createMut = useCreateLeaveType();
   const updateMut = useUpdateLeaveType();
   const deleteMut = useDeleteLeaveType();
@@ -253,6 +258,7 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
     },
     completedRollovers: [],
     isLoading: typesQ.isLoading || balancesQ.isLoading,
+    _subscribe: subscribe,
   };
 
   return <LeaveTypeContext.Provider value={value}>{children}</LeaveTypeContext.Provider>;
@@ -261,5 +267,6 @@ export function LeaveTypeProvider({ children }: { children: ReactNode }) {
 export function useLeaveTypes() {
   const ctx = useContext(LeaveTypeContext);
   if (!ctx) throw new Error("useLeaveTypes must be used within LeaveTypeProvider");
+  useLazyContextSubscribe(ctx._subscribe);
   return ctx;
 }
